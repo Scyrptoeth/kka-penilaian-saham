@@ -36,9 +36,7 @@ export const NAV_TREE: NavGroup[] = [
       { label: 'FCF', href: '/analysis/fcf' },
       { label: 'NOPLAT', href: '/analysis/noplat' },
       { label: 'Growth Revenue', href: '/analysis/growth-revenue' },
-      { label: 'ROIC', href: '/analysis/roic', wip: true },
-      { label: 'DLOM', href: '/analysis/dlom', wip: true },
-      { label: 'DLOC (PFC)', href: '/analysis/dloc-pfc', wip: true },
+      { label: 'ROIC', href: '/analysis/roic' },
     ],
   },
   {
@@ -53,6 +51,8 @@ export const NAV_TREE: NavGroup[] = [
   {
     label: 'Penilaian',
     items: [
+      { label: 'DLOM', href: '/valuation/dlom' },
+      { label: 'DLOC (PFC)', href: '/valuation/dloc-pfc' },
       { label: 'WACC', href: '/valuation/wacc', wip: true },
       { label: 'DCF', href: '/valuation/dcf', wip: true },
       { label: 'AAM', href: '/valuation/aam', wip: true },
