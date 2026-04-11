@@ -13,6 +13,9 @@ const DEFAULT_DLOC: DlocState = {
   percentage: 0,
 }
 
+// Hoisted: see corresponding note in dlom/page.tsx.
+const DLOC_MAX_SCORE = DLOC_FACTORS.length
+
 export default function DlocPage() {
   const home = useKkaStore((s) => s.home)
   const dloc = useKkaStore((s) => s.dloc)
@@ -37,7 +40,7 @@ export default function DlocPage() {
     () => Object.values(scores).reduce((sum, s) => sum + s, 0),
     [scores],
   )
-  const maxScore = DLOC_FACTORS.length
+  const maxScore = DLOC_MAX_SCORE
 
   const result: QuestionnaireResult = useMemo(() => {
     const computed = computeDlocPercentage({
@@ -52,7 +55,7 @@ export default function DlocPage() {
       range: computed.range,
       percentage: computed.percentage,
     }
-  }, [scores, totalScore, jenisPerusahaan])
+  }, [scores, totalScore, maxScore, jenisPerusahaan])
 
   // DLOC kepemilikan is informational only — Excel formula B22 ignores it.
   // Carry it through state for consistency with DLOM but never feed to calc.

@@ -13,6 +13,11 @@ const DEFAULT_DLOM: DlomState = {
   percentage: 0,
 }
 
+// Hoisted: factor count is a compile-time constant of the DLOM catalogue.
+// Inline `DLOM_FACTORS.length` would force the lint rule to flag every
+// useMemo / useCallback dependency that closes over it.
+const DLOM_MAX_SCORE = DLOM_FACTORS.length
+
 export default function DlomPage() {
   const home = useKkaStore((s) => s.home)
   const dlom = useKkaStore((s) => s.dlom)
@@ -39,7 +44,7 @@ export default function DlomPage() {
     () => Object.values(scores).reduce((sum, s) => sum + s, 0),
     [scores],
   )
-  const maxScore = DLOM_FACTORS.length
+  const maxScore = DLOM_MAX_SCORE
 
   const result: QuestionnaireResult = useMemo(() => {
     const computed = computeDlomPercentage({
@@ -55,7 +60,7 @@ export default function DlomPage() {
       range: computed.range,
       percentage: computed.percentage,
     }
-  }, [scores, totalScore, jenisPerusahaan, current.kepemilikan])
+  }, [scores, totalScore, maxScore, jenisPerusahaan, current.kepemilikan])
 
   // Persist whenever answers/kepemilikan change. Result.percentage is the
   // single source of truth for home.dlomPercent (sync handled inside store).
