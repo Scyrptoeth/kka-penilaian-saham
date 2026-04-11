@@ -19,6 +19,8 @@ const SHEETS = [
   'financial-ratio',
   'cash-flow-statement',
   'fixed-asset',
+  'noplat',
+  'growth-revenue',
 ]
 
 const ROOT = path.resolve(__dirname, '..')

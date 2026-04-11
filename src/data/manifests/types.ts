@@ -129,6 +129,8 @@ export interface SheetManifest {
     | 'fcf'
     | 'cash-flow-statement'
     | 'fixed-asset'
+    | 'noplat'
+    | 'growth-revenue'
   /** The full list of years shown in the raw-value columns. */
   years: number[]
   /** Excel column letter per year for the values block. */

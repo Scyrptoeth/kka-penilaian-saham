@@ -19,6 +19,8 @@ import fcfJson from './fixtures/fcf.json'
 import financialRatioJson from './fixtures/financial-ratio.json'
 import cashFlowStatementJson from './fixtures/cash-flow-statement.json'
 import fixedAssetJson from './fixtures/fixed-asset.json'
+import noplatJson from './fixtures/noplat.json'
+import growthRevenueJson from './fixtures/growth-revenue.json'
 
 export type SheetSlug =
   | 'balance-sheet'
@@ -27,6 +29,8 @@ export type SheetSlug =
   | 'financial-ratio'
   | 'cash-flow-statement'
   | 'fixed-asset'
+  | 'noplat'
+  | 'growth-revenue'
 
 export interface FixtureCell {
   addr: string
@@ -54,6 +58,8 @@ const FIXTURES: Record<SheetSlug, SheetFixture> = {
   'financial-ratio': financialRatioJson as unknown as SheetFixture,
   'cash-flow-statement': cashFlowStatementJson as unknown as SheetFixture,
   'fixed-asset': fixedAssetJson as unknown as SheetFixture,
+  noplat: noplatJson as unknown as SheetFixture,
+  'growth-revenue': growthRevenueJson as unknown as SheetFixture,
 }
 
 const CELL_MAP_CACHE = new Map<SheetSlug, CellMap>()
