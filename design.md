@@ -1,77 +1,55 @@
-# Design — KKA Penilaian Saham
+# Design — KKA Penilaian Saham (Session 2A: Calc Engines)
 
-> Kertas Kerja Analisis Penilaian Bisnis/Saham: website interaktif yang menggantikan Excel workbook untuk Fungsional Penilai DJP. Source of truth: `kka-penilaian-saham.xlsx` (34 sheet relevan).
+## Problem
 
-## Problem Statement
+Phase 1 delivers HOME + Balance Sheet + Income Statement calculation engines. Phase 2 must add 6 calculation modules covering the analysis layer of the valuation workbook: Fixed Asset Schedule, NOPLAT, FCF, Cash Flow Statement, Financial Ratios, Growth Revenue. These are pure TypeScript functions validated against Excel ground truth via Vitest fixtures.
 
-Penilai DJP saat ini bekerja dengan Excel workbook kompleks berisi 30 sheet visible + 4 hidden dependency sheet, dengan formula cross-sheet yang padat (dependency chain 4+ level). Excel sebagai medium: (1) rawan error manual, (2) sulit di-share antar penilai, (3) tidak ada validation input, (4) UX buruk untuk navigasi antar sheet, (5) tidak ada formula transparency. Target: website yang menghasilkan output **identik** dengan Excel, tapi dengan UX superior, privasi 100% client-side, dan auto-save via LocalStorage.
+Phase 2 total scope (6 calc modules + `<FinancialTable>` + 8 pages + sidebar) exceeds 10-task-per-plan limit, so it is split: **Session 2A = calc engines only**, Session 2B = UI layer.
 
-## Chosen Approach
+## Approach
 
-Next.js 15 App Router dengan Server Components sebagai default. Calculation engine sebagai **pure TypeScript functions** yang testable (TDD dengan fixtures extracted dari Excel asli). State management via Zustand + persist middleware (LocalStorage). Export ke .xlsx via ExcelJS (client-side, MIT, zero known vulnerabilities). Ground truth untuk test di-extract via Python openpyxl script sekali di awal, hasil JSON di-commit sebagai fixtures.
+Implement 6 pure-function modules under `src/lib/calculations/` in dependency order:
 
-## Key Technical Decisions
+1. `fixed-asset.ts` — no dependency (reads raw acquisition/depreciation data)
+2. `noplat.ts` — depends on Income Statement primitives
+3. `fcf.ts` — depends on `noplat.ts` + `fixed-asset.ts`
+4. `cash-flow.ts` — depends on IS + BS + `acc-payables.json` hidden fixture
+5. `ratios.ts` — depends on IS + BS (already available)
+6. `growth-revenue.ts` — depends on IS
 
-| Keputusan | Pilihan | Alasan |
-|---|---|---|
-| Framework | Next.js 15 App Router | Latest stable, SSG-friendly, skill-mandated |
-| Language | TypeScript strict | Non-negotiable untuk financial calc |
-| Testing | Vitest + Testing Library + jsdom | Faster than Jest, native ESM, first-class TS |
-| State | Zustand + persist middleware | Lightweight, LocalStorage built-in |
-| Forms | react-hook-form + zod | Type-safe validation, industry-standard |
-| Charts | Recharts | Server-component-friendly |
-| Excel export | ExcelJS (bukan SheetJS) | Zero known vulnerabilities (SheetJS npm ada 2 high-severity) |
-| Excel ground truth | Python openpyxl → JSON fixtures | One-shot extraction, formula preserved, committed fixtures |
-| Fonts | IBM Plex Sans + IBM Plex Mono | Institutional, tabular-figures, bukan tren default (Inter/Roboto dihindari) |
-| Palette | Navy base + muted gold accent | Trust/finance character, DJP-adjacent |
-| Package mgr | npm | User preference |
+Per module: inspect specific fixture rows, write RED test asserting expected Excel values at **12-decimal precision**, implement GREEN with minimal code, commit.
 
-## Design Character
+## Key Decisions
 
-**Product character**: Authoritative institutional financial tool — "Bloomberg Terminal meets Stripe Dashboard". Internal DJP tool, bukan consumer-facing.
+1. **Precision 12 decimal digits** (`toBeCloseTo(expected, 12)`) — continues Session 1 convention.
+2. **Sample 3–5 representative rows per module** — consistent with Session 1 (BS row 8, IS rows 8/22/35). Prioritize totals + critical derived rows over full coverage.
+3. **Shared types live in `helpers.ts`**. Calculation modules import them, never re-export. Barrel `index.ts` only re-exports *functions*, never *types*, to avoid TS duplicate-symbol errors (lesson from Session 1).
+4. **Fixture-driven, not label-driven**. Session 1 lesson: IS columns labeled "COMMON SIZE" actually contain YoY growth for revenue rows. Always read the formula from the fixture and replicate that exact formula in TypeScript.
+5. **Ratios: implement all 19 in-sheet ratios** across 4 sections (Profitability 6, Liquidity 3, Leverage 5, Cash-Flow Indicator 5). Test 5 representative: GPM, NPM, ROE, DER, Current Ratio.
+6. **Fixed Asset schedule**: model the full matrix (Beginning × Additions × Disposals × Ending) per category; expose both the per-category schedule and the depreciation totals that FCF and Cash Flow consume.
+7. **Cash Flow Statement**: read `ACC PAYABLES` hidden sheet from `__tests__/fixtures/acc-payables.json` as input, do not hardcode numbers.
+8. **Growth Revenue**: implement YoY only for Company data (rows 8 Penjualan + 9 Laba Bersih). Industry and NSK comparison tables are Session 2B/UI concerns.
 
-**Typography**:
-- `IBM Plex Sans` — UI, headings, labels (tabular-figures native)
-- `IBM Plex Mono` — semua angka di tabel keuangan
-- Body min 16px, heading tight tracking, tabular-nums untuk financial data
+## Success Criteria
 
-**Palette (CSS variables)**:
-```
---bg:        #fafaf9  (warm off-white)
---bg-dark:   #0a0a0a
---ink:       #0a1628  (deep navy)
---ink-soft:  #1e293b
---accent:    #b8860b  (muted gold)
---positive:  #15803d  (emerald-700)
---negative:  #b91c1c  (red-700)
---grid:      #e7e5e4  (stone-200)
---muted:     #78716c  (stone-500)
-```
+- `npm test -- --run` — at least 40 tests passing (21 existing + ~20 new). Zero failures.
+- `npm run build 2>&1 | tail -25` — zero errors, zero warnings.
+- `npm run lint` — clean.
+- `npx tsc --noEmit` — clean.
+- 6 new modules committed with conventional commit messages (one module per commit).
+- `progress.md` updated with Session 2A summary.
+- Merged to `main` and pushed (Vercel deploy triggered).
 
-**Spatial**:
-- 8px base unit untuk semua spacing
-- Sidebar navigation (250px) + main content data-dense
-- Sticky table headers, alternating rows subtle, right-aligned numbers
-- Border-radius konsisten 4px (tajam, tidak rounded-2xl)
-- Negative numbers dalam parentheses (akuntansi convention)
+## Out of Scope (deferred to Session 2B+)
 
-**Motion**: Minimal. 150ms micro-interactions, 250ms navigation. Hanya `transform` dan `opacity`. `prefers-reduced-motion` respected.
-
-## Out of Scope (This Session)
-
-- Implementasi semua 30 sheet (hanya scaffold routes + 2 calculation modules terverifikasi)
-- Export .xlsx functional (scaffold lib saja, implementasi full di sesi berikut)
-- Dashboard charts (skeleton saja)
-- Projection sheets (PROY LR, PROY BALANCE SHEET, dll.)
-- Valuation methods (DCF, WACC, AAM, EEM)
-- Custom theme showcase / artifacts builder
-- Deploy ke Vercel
-- Dark mode toggle (single theme dulu)
-- Mobile optimization detail (responsive baseline saja)
-
-## Non-Negotiables
-
-1. **Kalkulasi identik dengan Excel** — setiap calculation function wajib punya test yang membandingkan output dengan fixture ground truth dari xlsx asli
-2. **Privacy-first** — zero network calls untuk data user, semua di client + LocalStorage
-3. **No telemetry, no tracking, no login**
-4. **Zero build warnings, zero lint errors, zero type errors** saat verify
+- `<FinancialTable>` reusable component
+- Historical pages (`/historical/{balance-sheet,income-statement,cash-flow,fixed-asset}`)
+- Analysis pages (`/analysis/{ratios,fcf,noplat,growth}`)
+- Sidebar navigation update with new routes
+- Projection sheets (`PROY LR`, `PROY BS`, `PROY CF`, `PROY NOPLAT`, `KEY DRIVERS` form)
+- WACC / Discount Rate
+- DCF / AAM / EEM valuation methods
+- DLOM / DLOC questionnaire forms
+- Dashboard charts (Recharts)
+- `.xlsx` export via ExcelJS
+- Dark mode toggle
