@@ -3,7 +3,6 @@ import { FinancialTable } from '@/components/financial/FinancialTable'
 import { loadCells } from '@/data/seed/loader'
 import { INCOME_STATEMENT_MANIFEST } from '@/data/manifests/income-statement'
 import { buildRowsFromManifest } from '@/data/manifests/build'
-import { deriveIncomeStatementColumns } from '@/data/manifests/historical-derive'
 
 export const metadata: Metadata = {
   title: 'Income Statement — KKA Penilaian Saham',
@@ -11,12 +10,7 @@ export const metadata: Metadata = {
 
 export default function IncomeStatementPage() {
   const cells = loadCells('income-statement')
-  const derived = deriveIncomeStatementColumns(cells, INCOME_STATEMENT_MANIFEST)
-  const rows = buildRowsFromManifest(
-    INCOME_STATEMENT_MANIFEST,
-    cells,
-    derived,
-  )
+  const rows = buildRowsFromManifest(INCOME_STATEMENT_MANIFEST, cells)
 
   return (
     <div className="mx-auto max-w-[1400px]">

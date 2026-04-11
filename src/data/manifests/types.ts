@@ -9,10 +9,17 @@
  *   - lists each row to render, pointing to an Excel row number, an optional
  *     indent level, a type (normal/subtotal/total/header/separator), and an
  *     optional human-readable formula description used by the tooltip layer
+ *   - optionally declares a `derive` callback that produces common-size
+ *     and growth column maps via the calc engine — auto-invoked by
+ *     `buildRowsFromManifest` so pages do not need to know which function
+ *     to call per sheet
  *
  * The builder in `./build.ts` takes a manifest + a loaded cell map and
  * produces `FinancialRow[]` ready for <FinancialTable>.
  */
+
+import type { CellMap } from '@/data/seed/loader'
+import type { YearKeyedSeries } from '@/types/financial'
 
 export type RowType =
   | 'normal'
@@ -52,6 +59,24 @@ export interface ManifestRow {
   formula?: ManifestFormulaDescriptions
 }
 
+/**
+ * Derived column-groups keyed by Excel row number. Shape matches
+ * `DerivedColumnMap` in `./build.ts` — kept inline here to avoid a
+ * circular import between types.ts and build.ts.
+ */
+export interface ManifestDerivedColumnMap {
+  commonSize?: Record<number, YearKeyedSeries>
+  growth?: Record<number, YearKeyedSeries>
+}
+
+/** Derivation callback invoked by `buildRowsFromManifest` — sheet-specific
+ *  logic that pulls data from cells + manifest and runs it through the
+ *  pure calc engine. */
+export type ManifestDeriveFn = (
+  cells: CellMap,
+  manifest: SheetManifest,
+) => ManifestDerivedColumnMap
+
 export interface SheetManifest {
   /** Sheet display title shown in the table caption. */
   title: string
@@ -90,4 +115,10 @@ export interface SheetManifest {
   rows: ManifestRow[]
   /** Optional disclaimer shown in the table caption (seed data marker). */
   disclaimer?: string
+  /**
+   * Optional sheet-specific derivation callback. When set, `buildRowsFromManifest`
+   * auto-invokes it with the loaded cells to produce common-size and growth
+   * column groups — page files never need to import sheet-specific helpers.
+   */
+  derive?: ManifestDeriveFn
 }
