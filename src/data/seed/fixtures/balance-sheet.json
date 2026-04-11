@@ -1,0 +1,3042 @@
+{
+  "name": "BALANCE SHEET",
+  "slug": "balance-sheet",
+  "visible": true,
+  "dimensions": {
+    "max_row": 69,
+    "max_col": 17,
+    "max_col_letter": "Q"
+  },
+  "merged_ranges": [
+    "H2:K2"
+  ],
+  "cells": [
+    {
+      "addr": "A1",
+      "row": 1,
+      "col": 1,
+      "value": "PT RAJA VOLTAMA ELEKTRIK",
+      "data_type": "s",
+      "formula": "=HOME!B4"
+    },
+    {
+      "addr": "O1",
+      "row": 1,
+      "col": 15,
+      "value": "LEGENDA",
+      "data_type": "s"
+    },
+    {
+      "addr": "A2",
+      "row": 2,
+      "col": 1,
+      "value": "Balance Sheet",
+      "data_type": "s"
+    },
+    {
+      "addr": "H2",
+      "row": 2,
+      "col": 8,
+      "value": "COMMON SIZE",
+      "data_type": "s"
+    },
+    {
+      "addr": "P2",
+      "row": 2,
+      "col": 16,
+      "value": "Komponen Cash Flow Statement, Changes on Working Capital, Current Assets",
+      "data_type": "s"
+    },
+    {
+      "addr": "A3",
+      "row": 3,
+      "col": 1,
+      "value": "(IDR)",
+      "data_type": "s"
+    },
+    {
+      "addr": "P3",
+      "row": 3,
+      "col": 16,
+      "value": "Komponen Cash Flow Statement, Changes on Working Capital, Current Liabilities",
+      "data_type": "s"
+    },
+    {
+      "addr": "C4",
+      "row": 4,
+      "col": 3,
+      "value": 2018,
+      "data_type": "n",
+      "formula": "=D4-1"
+    },
+    {
+      "addr": "D4",
+      "row": 4,
+      "col": 4,
+      "value": 2019,
+      "data_type": "n",
+      "formula": "=E4-1"
+    },
+    {
+      "addr": "E4",
+      "row": 4,
+      "col": 5,
+      "value": 2020,
+      "data_type": "n",
+      "formula": "=F4-1"
+    },
+    {
+      "addr": "F4",
+      "row": 4,
+      "col": 6,
+      "value": 2021,
+      "data_type": "n",
+      "formula": "=YEAR(HOME!B10)"
+    },
+    {
+      "addr": "H4",
+      "row": 4,
+      "col": 8,
+      "value": 2021,
+      "data_type": "n"
+    },
+    {
+      "addr": "I4",
+      "row": 4,
+      "col": 9,
+      "value": 2022,
+      "data_type": "n"
+    },
+    {
+      "addr": "J4",
+      "row": 4,
+      "col": 10,
+      "value": 2023,
+      "data_type": "n"
+    },
+    {
+      "addr": "K4",
+      "row": 4,
+      "col": 11,
+      "value": "AVG",
+      "data_type": "s"
+    },
+    {
+      "addr": "M4",
+      "row": 4,
+      "col": 13,
+      "value": "Growth",
+      "data_type": "s"
+    },
+    {
+      "addr": "N4",
+      "row": 4,
+      "col": 14,
+      "value": 2021,
+      "data_type": "n"
+    },
+    {
+      "addr": "O4",
+      "row": 4,
+      "col": 15,
+      "value": 2022,
+      "data_type": "n"
+    },
+    {
+      "addr": "P4",
+      "row": 4,
+      "col": 16,
+      "value": 2023,
+      "data_type": "n"
+    },
+    {
+      "addr": "Q4",
+      "row": 4,
+      "col": 17,
+      "value": "AVG",
+      "data_type": "s"
+    },
+    {
+      "addr": "A5",
+      "row": 5,
+      "col": 1,
+      "value": "ASSETS",
+      "data_type": "s"
+    },
+    {
+      "addr": "A7",
+      "row": 7,
+      "col": 1,
+      "value": "Current Assets",
+      "data_type": "s"
+    },
+    {
+      "addr": "B8",
+      "row": 8,
+      "col": 2,
+      "value": "Cash on Hands",
+      "data_type": "s"
+    },
+    {
+      "addr": "C8",
+      "row": 8,
+      "col": 3,
+      "value": 14216370131,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D8",
+      "row": 8,
+      "col": 4,
+      "value": 7699710033,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E8",
+      "row": 8,
+      "col": 5,
+      "value": 3334698915,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F8",
+      "row": 8,
+      "col": 6,
+      "value": 6635142218,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "H8",
+      "row": 8,
+      "col": 8,
+      "value": 0.29929419192407447,
+      "data_type": "n",
+      "formula": "=D8/D$27",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "I8",
+      "row": 8,
+      "col": 9,
+      "value": 0.11125799079079146,
+      "data_type": "n",
+      "formula": "=E8/E$27",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "J8",
+      "row": 8,
+      "col": 10,
+      "value": 0.1972624211095539,
+      "data_type": "n",
+      "formula": "=F8/F$27",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "K8",
+      "row": 8,
+      "col": 11,
+      "value": 0.20260486794147328,
+      "data_type": "n",
+      "formula": "=AVERAGE(H8:J8)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "N8",
+      "row": 8,
+      "col": 14,
+      "value": -0.45839127976767224,
+      "data_type": "n",
+      "formula": "=IFERROR((D8-C8)/C8,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "O8",
+      "row": 8,
+      "col": 15,
+      "value": -0.5669059093514048,
+      "data_type": "n",
+      "formula": "=IFERROR((E8-D8)/D8,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "P8",
+      "row": 8,
+      "col": 16,
+      "value": 0.9897275247711531,
+      "data_type": "n",
+      "formula": "=IFERROR((F8-E8)/E8,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "Q8",
+      "row": 8,
+      "col": 17,
+      "value": -0.011856554782641285,
+      "data_type": "n",
+      "formula": "=AVERAGE(N8:P8)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "B9",
+      "row": 9,
+      "col": 2,
+      "value": "Cash on Bank (Deposit)",
+      "data_type": "s"
+    },
+    {
+      "addr": "C9",
+      "row": 9,
+      "col": 3,
+      "value": 1956500000,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D9",
+      "row": 9,
+      "col": 4,
+      "value": 332586949,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E9",
+      "row": 9,
+      "col": 5,
+      "value": 5223888582,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F9",
+      "row": 9,
+      "col": 6,
+      "value": 9652447673,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "H9",
+      "row": 9,
+      "col": 8,
+      "value": 0.01292793387268177,
+      "data_type": "n",
+      "formula": "=D9/D$27",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "I9",
+      "row": 9,
+      "col": 9,
+      "value": 0.17428840281020594,
+      "data_type": "n",
+      "formula": "=E9/E$27",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "J9",
+      "row": 9,
+      "col": 10,
+      "value": 0.28696674992796056,
+      "data_type": "n",
+      "formula": "=F9/F$27",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "K9",
+      "row": 9,
+      "col": 11,
+      "value": 0.15806102887028275,
+      "data_type": "n",
+      "formula": "=AVERAGE(H9:J9)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "N9",
+      "row": 9,
+      "col": 14,
+      "value": -0.8300092261691796,
+      "data_type": "n",
+      "formula": "=IFERROR((D9-C9)/C9,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "O9",
+      "row": 9,
+      "col": 15,
+      "value": 14.706835754399972,
+      "data_type": "n",
+      "formula": "=IFERROR((E9-D9)/D9,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "P9",
+      "row": 9,
+      "col": 16,
+      "value": 0.8477514444430392,
+      "data_type": "n",
+      "formula": "=IFERROR((F9-E9)/E9,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "Q9",
+      "row": 9,
+      "col": 17,
+      "value": 4.908192657557944,
+      "data_type": "n",
+      "formula": "=AVERAGE(N9:P9)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "B10",
+      "row": 10,
+      "col": 2,
+      "value": "Account Receivable",
+      "data_type": "s"
+    },
+    {
+      "addr": "C10",
+      "row": 10,
+      "col": 3,
+      "value": 1719907750,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D10",
+      "row": 10,
+      "col": 4,
+      "value": 4748516740,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E10",
+      "row": 10,
+      "col": 5,
+      "value": 2838272055,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F10",
+      "row": 10,
+      "col": 6,
+      "value": 3382100694,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "H10",
+      "row": 10,
+      "col": 8,
+      "value": 0.18457883146834608,
+      "data_type": "n",
+      "formula": "=D10/D$27",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "I10",
+      "row": 10,
+      "col": 9,
+      "value": 0.09469533958118997,
+      "data_type": "n",
+      "formula": "=E10/E$27",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "J10",
+      "row": 10,
+      "col": 10,
+      "value": 0.10054967164454265,
+      "data_type": "n",
+      "formula": "=F10/F$27",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "K10",
+      "row": 10,
+      "col": 11,
+      "value": 0.1266079475646929,
+      "data_type": "n",
+      "formula": "=AVERAGE(H10:J10)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "N10",
+      "row": 10,
+      "col": 14,
+      "value": 1.7609136245824812,
+      "data_type": "n",
+      "formula": "=IFERROR((D10-C10)/C10,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "O10",
+      "row": 10,
+      "col": 15,
+      "value": -0.40228239460728954,
+      "data_type": "n",
+      "formula": "=IFERROR((E10-D10)/D10,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "P10",
+      "row": 10,
+      "col": 16,
+      "value": 0.1916055362071343,
+      "data_type": "n",
+      "formula": "=IFERROR((F10-E10)/E10,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "Q10",
+      "row": 10,
+      "col": 17,
+      "value": 0.516745588727442,
+      "data_type": "n",
+      "formula": "=AVERAGE(N10:P10)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "B11",
+      "row": 11,
+      "col": 2,
+      "value": "Deposito",
+      "data_type": "s"
+    },
+    {
+      "addr": "C11",
+      "row": 11,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D11",
+      "row": 11,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E11",
+      "row": 11,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F11",
+      "row": 11,
+      "col": 6,
+      "value": 1000000000,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "H11",
+      "row": 11,
+      "col": 8,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=D11/D$27",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "I11",
+      "row": 11,
+      "col": 9,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=E11/E$27",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "J11",
+      "row": 11,
+      "col": 10,
+      "value": 0.029729946190816356,
+      "data_type": "n",
+      "formula": "=F11/F$27",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "K11",
+      "row": 11,
+      "col": 11,
+      "value": 0.009909982063605452,
+      "data_type": "n",
+      "formula": "=AVERAGE(H11:J11)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "N11",
+      "row": 11,
+      "col": 14,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=IFERROR((D11-C11)/C11,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "O11",
+      "row": 11,
+      "col": 15,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=IFERROR((E11-D11)/D11,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "P11",
+      "row": 11,
+      "col": 16,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=IFERROR((F11-E11)/E11,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "Q11",
+      "row": 11,
+      "col": 17,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=AVERAGE(N11:P11)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "B12",
+      "row": 12,
+      "col": 2,
+      "value": "Inventory",
+      "data_type": "s"
+    },
+    {
+      "addr": "C12",
+      "row": 12,
+      "col": 3,
+      "value": 1276458000,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D12",
+      "row": 12,
+      "col": 4,
+      "value": 2883610661,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E12",
+      "row": 12,
+      "col": 5,
+      "value": 3208050970,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F12",
+      "row": 12,
+      "col": 6,
+      "value": 1423637783,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "H12",
+      "row": 12,
+      "col": 8,
+      "value": 0.11208836682274075,
+      "data_type": "n",
+      "formula": "=D12/D$27",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "I12",
+      "row": 12,
+      "col": 9,
+      "value": 0.10703254307942509,
+      "data_type": "n",
+      "formula": "=E12/E$27",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "J12",
+      "row": 12,
+      "col": 10,
+      "value": 0.04232467468380309,
+      "data_type": "n",
+      "formula": "=F12/F$27",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "K12",
+      "row": 12,
+      "col": 11,
+      "value": 0.08714852819532297,
+      "data_type": "n",
+      "formula": "=AVERAGE(H12:J12)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "N12",
+      "row": 12,
+      "col": 14,
+      "value": 1.259072104996796,
+      "data_type": "n",
+      "formula": "=IFERROR((D12-C12)/C12,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "O12",
+      "row": 12,
+      "col": 15,
+      "value": 0.11251182879435193,
+      "data_type": "n",
+      "formula": "=IFERROR((E12-D12)/D12,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "P12",
+      "row": 12,
+      "col": 16,
+      "value": -0.5562296870239565,
+      "data_type": "n",
+      "formula": "=IFERROR((F12-E12)/E12,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "Q12",
+      "row": 12,
+      "col": 17,
+      "value": 0.27178474892239707,
+      "data_type": "n",
+      "formula": "=AVERAGE(N12:P12)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "B13",
+      "row": 13,
+      "col": 2,
+      "value": "Pembayaran Dimuka",
+      "data_type": "s"
+    },
+    {
+      "addr": "C13",
+      "row": 13,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D13",
+      "row": 13,
+      "col": 4,
+      "value": 3938020274,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E13",
+      "row": 13,
+      "col": 5,
+      "value": 5335283169,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F13",
+      "row": 13,
+      "col": 6,
+      "value": 2930641100,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "H13",
+      "row": 13,
+      "col": 8,
+      "value": 0.15307415352474382,
+      "data_type": "n",
+      "formula": "=D13/D$27",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "I13",
+      "row": 13,
+      "col": 9,
+      "value": 0.17800494161940456,
+      "data_type": "n",
+      "formula": "=E13/E$27",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "J13",
+      "row": 13,
+      "col": 10,
+      "value": 0.08712780220759485,
+      "data_type": "n",
+      "formula": "=F13/F$27",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "K13",
+      "row": 13,
+      "col": 11,
+      "value": 0.13940229911724775,
+      "data_type": "n",
+      "formula": "=AVERAGE(H13:J13)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "N13",
+      "row": 13,
+      "col": 14,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=IFERROR((D13-C13)/C13,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "O13",
+      "row": 13,
+      "col": 15,
+      "value": 0.354813535172775,
+      "data_type": "n",
+      "formula": "=IFERROR((E13-D13)/D13,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "P13",
+      "row": 13,
+      "col": 16,
+      "value": -0.4507056125852652,
+      "data_type": "n",
+      "formula": "=IFERROR((F13-E13)/E13,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "Q13",
+      "row": 13,
+      "col": 17,
+      "value": -0.03196402580416341,
+      "data_type": "n",
+      "formula": "=AVERAGE(N13:P13)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "B14",
+      "row": 14,
+      "col": 2,
+      "value": "Others - PPn Lebih Bayar Kompensasi / PPh Pasal 25 / PPh Pasal 22/23",
+      "data_type": "s"
+    },
+    {
+      "addr": "C14",
+      "row": 14,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D14",
+      "row": 14,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E14",
+      "row": 14,
+      "col": 5,
+      "value": 4020450771,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F14",
+      "row": 14,
+      "col": 6,
+      "value": 2347809320,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "H14",
+      "row": 14,
+      "col": 8,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=D14/D$27",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "I14",
+      "row": 14,
+      "col": 9,
+      "value": 0.13413722985385276,
+      "data_type": "n",
+      "formula": "=E14/E$27",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "J14",
+      "row": 14,
+      "col": 10,
+      "value": 0.06980024474989714,
+      "data_type": "n",
+      "formula": "=F14/F$27",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "K14",
+      "row": 14,
+      "col": 11,
+      "value": 0.06797915820124996,
+      "data_type": "n",
+      "formula": "=AVERAGE(H14:J14)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "N14",
+      "row": 14,
+      "col": 14,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=IFERROR((D14-C14)/C14,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "O14",
+      "row": 14,
+      "col": 15,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=IFERROR((E14-D14)/D14,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "P14",
+      "row": 14,
+      "col": 16,
+      "value": -0.4160333122506974,
+      "data_type": "n",
+      "formula": "=IFERROR((F14-E14)/E14,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "Q14",
+      "row": 14,
+      "col": 17,
+      "value": -0.13867777075023247,
+      "data_type": "n",
+      "formula": "=AVERAGE(N14:P14)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "A16",
+      "row": 16,
+      "col": 1,
+      "value": "Current Assets",
+      "data_type": "s"
+    },
+    {
+      "addr": "C16",
+      "row": 16,
+      "col": 3,
+      "value": 19169235881,
+      "data_type": "n",
+      "formula": "=SUM(C8:C14)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D16",
+      "row": 16,
+      "col": 4,
+      "value": 19602444657,
+      "data_type": "n",
+      "formula": "=SUM(D8:D14)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E16",
+      "row": 16,
+      "col": 5,
+      "value": 23960644462,
+      "data_type": "n",
+      "formula": "=SUM(E8:E14)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F16",
+      "row": 16,
+      "col": 6,
+      "value": 27371778788,
+      "data_type": "n",
+      "formula": "=SUM(F8:F14)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A18",
+      "row": 18,
+      "col": 1,
+      "value": "Non Current Assets",
+      "data_type": "s"
+    },
+    {
+      "addr": "A19",
+      "row": 19,
+      "col": 1,
+      "value": "Fixed Asset",
+      "data_type": "s"
+    },
+    {
+      "addr": "B20",
+      "row": 20,
+      "col": 2,
+      "value": "Beginning",
+      "data_type": "s"
+    },
+    {
+      "addr": "C20",
+      "row": 20,
+      "col": 3,
+      "value": 261192000,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D20",
+      "row": 20,
+      "col": 4,
+      "value": 6527779500,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!C32",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E20",
+      "row": 20,
+      "col": 5,
+      "value": 6577365500,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!D32",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F20",
+      "row": 20,
+      "col": 6,
+      "value": 6989653544,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E32",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "H20",
+      "row": 20,
+      "col": 8,
+      "value": 0.25374026841759106,
+      "data_type": "n",
+      "formula": "=D20/D$27",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "I20",
+      "row": 20,
+      "col": 9,
+      "value": 0.21944543986714599,
+      "data_type": "n",
+      "formula": "=E20/E$27",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "J20",
+      "row": 20,
+      "col": 10,
+      "value": 0.20780202375556883,
+      "data_type": "n",
+      "formula": "=F20/F$27",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "K20",
+      "row": 20,
+      "col": 11,
+      "value": 0.22699591068010197,
+      "data_type": "n",
+      "formula": "=AVERAGE(H20:J20)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "N20",
+      "row": 20,
+      "col": 14,
+      "value": 23.99226431131122,
+      "data_type": "n",
+      "formula": "=IFERROR((D20-C20)/C20,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "O20",
+      "row": 20,
+      "col": 15,
+      "value": 0.00759615118739841,
+      "data_type": "n",
+      "formula": "=IFERROR((E20-D20)/D20,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "P20",
+      "row": 20,
+      "col": 16,
+      "value": 0.06268285440424437,
+      "data_type": "n",
+      "formula": "=IFERROR((F20-E20)/E20,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "Q20",
+      "row": 20,
+      "col": 17,
+      "value": 8.020847772300955,
+      "data_type": "n",
+      "formula": "=AVERAGE(N20:P20)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "B21",
+      "row": 21,
+      "col": 2,
+      "value": "Accumulated Depreciations",
+      "data_type": "s"
+    },
+    {
+      "addr": "C21",
+      "row": 21,
+      "col": 3,
+      "value": -230122382,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D21",
+      "row": 21,
+      "col": 4,
+      "value": -403998120,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!C60*-1",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E21",
+      "row": 21,
+      "col": 5,
+      "value": -565341111,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!D60*-1",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F21",
+      "row": 21,
+      "col": 6,
+      "value": -725313599,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E60*-1",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "H21",
+      "row": 21,
+      "col": 8,
+      "value": -0.015703746030177976,
+      "data_type": "n",
+      "formula": "=D21/D$27",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "I21",
+      "row": 21,
+      "col": 9,
+      "value": -0.018861887602015733,
+      "data_type": "n",
+      "formula": "=E21/E$27",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "J21",
+      "row": 21,
+      "col": 10,
+      "value": -0.021563534269737353,
+      "data_type": "n",
+      "formula": "=F21/F$27",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "K21",
+      "row": 21,
+      "col": 11,
+      "value": -0.01870972263397702,
+      "data_type": "n",
+      "formula": "=AVERAGE(H21:J21)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "N21",
+      "row": 21,
+      "col": 14,
+      "value": 0.7555794290361552,
+      "data_type": "n",
+      "formula": "=IFERROR((D21-C21)/C21,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "O21",
+      "row": 21,
+      "col": 15,
+      "value": 0.399365697543345,
+      "data_type": "n",
+      "formula": "=IFERROR((E21-D21)/D21,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "P21",
+      "row": 21,
+      "col": 16,
+      "value": 0.2829663098744645,
+      "data_type": "n",
+      "formula": "=IFERROR((F21-E21)/E21,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "Q21",
+      "row": 21,
+      "col": 17,
+      "value": 0.47930381215132156,
+      "data_type": "n",
+      "formula": "=AVERAGE(N21:P21)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "B22",
+      "row": 22,
+      "col": 2,
+      "value": "Fixed Assets, Net",
+      "data_type": "s"
+    },
+    {
+      "addr": "C22",
+      "row": 22,
+      "col": 3,
+      "value": 31069618,
+      "data_type": "n",
+      "formula": "=C20+C21",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D22",
+      "row": 22,
+      "col": 4,
+      "value": 6123781380,
+      "data_type": "n",
+      "formula": "=D20+D21",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E22",
+      "row": 22,
+      "col": 5,
+      "value": 6012024389,
+      "data_type": "n",
+      "formula": "=E20+E21",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F22",
+      "row": 22,
+      "col": 6,
+      "value": 6264339945,
+      "data_type": "n",
+      "formula": "=F20+F21",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "N22",
+      "row": 22,
+      "col": 14,
+      "value": 196.09870201815806,
+      "data_type": "n",
+      "formula": "=IFERROR((D22-C22)/C22,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "O22",
+      "row": 22,
+      "col": 15,
+      "value": -0.018249670271540622,
+      "data_type": "n",
+      "formula": "=IFERROR((E22-D22)/D22,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "P22",
+      "row": 22,
+      "col": 16,
+      "value": 0.041968485101566345,
+      "data_type": "n",
+      "formula": "=IFERROR((F22-E22)/E22,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "Q22",
+      "row": 22,
+      "col": 17,
+      "value": 65.3741402776627,
+      "data_type": "n",
+      "formula": "=AVERAGE(N22:P22)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "A23",
+      "row": 23,
+      "col": 1,
+      "value": "Non Current Assets",
+      "data_type": "s"
+    },
+    {
+      "addr": "C23",
+      "row": 23,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D23",
+      "row": 23,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E23",
+      "row": 23,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F23",
+      "row": 23,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "N23",
+      "row": 23,
+      "col": 14,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=IFERROR((D23-C23)/C23,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "O23",
+      "row": 23,
+      "col": 15,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=IFERROR((E23-D23)/D23,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "P23",
+      "row": 23,
+      "col": 16,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=IFERROR((F23-E23)/E23,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "Q23",
+      "row": 23,
+      "col": 17,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=AVERAGE(N23:P23)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "A24",
+      "row": 24,
+      "col": 1,
+      "value": "Intangible Assets",
+      "data_type": "s"
+    },
+    {
+      "addr": "C24",
+      "row": 24,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D24",
+      "row": 24,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E24",
+      "row": 24,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F24",
+      "row": 24,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "N24",
+      "row": 24,
+      "col": 14,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=IFERROR((D24-C24)/C24,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "O24",
+      "row": 24,
+      "col": 15,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=IFERROR((E24-D24)/D24,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "P24",
+      "row": 24,
+      "col": 16,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=IFERROR((F24-E24)/E24,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "Q24",
+      "row": 24,
+      "col": 17,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=AVERAGE(N24:P24)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "A25",
+      "row": 25,
+      "col": 1,
+      "value": "Total Non Current Asset",
+      "data_type": "s"
+    },
+    {
+      "addr": "C25",
+      "row": 25,
+      "col": 3,
+      "value": 31069618,
+      "data_type": "n",
+      "formula": "=C22+C23+C24",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D25",
+      "row": 25,
+      "col": 4,
+      "value": 6123781380,
+      "data_type": "n",
+      "formula": "=D22+D23+D24",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E25",
+      "row": 25,
+      "col": 5,
+      "value": 6012024389,
+      "data_type": "n",
+      "formula": "=E22+E23+E24",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F25",
+      "row": 25,
+      "col": 6,
+      "value": 6264339945,
+      "data_type": "n",
+      "formula": "=F22+F23+F24",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "N25",
+      "row": 25,
+      "col": 14,
+      "value": 196.09870201815806,
+      "data_type": "n",
+      "formula": "=IFERROR((D25-C25)/C25,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "O25",
+      "row": 25,
+      "col": 15,
+      "value": -0.018249670271540622,
+      "data_type": "n",
+      "formula": "=IFERROR((E25-D25)/D25,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "P25",
+      "row": 25,
+      "col": 16,
+      "value": 0.041968485101566345,
+      "data_type": "n",
+      "formula": "=IFERROR((F25-E25)/E25,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "Q25",
+      "row": 25,
+      "col": 17,
+      "value": 65.3741402776627,
+      "data_type": "n",
+      "formula": "=AVERAGE(N25:P25)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "A27",
+      "row": 27,
+      "col": 1,
+      "value": "ASSETS",
+      "data_type": "s"
+    },
+    {
+      "addr": "C27",
+      "row": 27,
+      "col": 3,
+      "value": 19200305499,
+      "data_type": "n",
+      "formula": "=+C16+C25",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D27",
+      "row": 27,
+      "col": 4,
+      "value": 25726226037,
+      "data_type": "n",
+      "formula": "=+D16+D25",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E27",
+      "row": 27,
+      "col": 5,
+      "value": 29972668851,
+      "data_type": "n",
+      "formula": "=+E16+E25",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F27",
+      "row": 27,
+      "col": 6,
+      "value": 33636118733,
+      "data_type": "n",
+      "formula": "=+F16+F25",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A29",
+      "row": 29,
+      "col": 1,
+      "value": "LIABILITIES & EQUITY",
+      "data_type": "s"
+    },
+    {
+      "addr": "A30",
+      "row": 30,
+      "col": 1,
+      "value": "Current Liabilities",
+      "data_type": "s"
+    },
+    {
+      "addr": "B31",
+      "row": 31,
+      "col": 2,
+      "value": "Bank Loan-Short Term",
+      "data_type": "s"
+    },
+    {
+      "addr": "C31",
+      "row": 31,
+      "col": 3,
+      "value": 1815215567,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D31",
+      "row": 31,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E31",
+      "row": 31,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F31",
+      "row": 31,
+      "col": 6,
+      "value": 1000000000,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "H31",
+      "row": 31,
+      "col": 8,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=D31/D$51",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "I31",
+      "row": 31,
+      "col": 9,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=E31/E$51",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "J31",
+      "row": 31,
+      "col": 10,
+      "value": 0.029729946189932487,
+      "data_type": "n",
+      "formula": "=F31/F$51",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "K31",
+      "row": 31,
+      "col": 11,
+      "value": 0.009909982063310828,
+      "data_type": "n",
+      "formula": "=AVERAGE(H31:J31)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "N31",
+      "row": 31,
+      "col": 14,
+      "value": -1,
+      "data_type": "n",
+      "formula": "=IFERROR((D31-C31)/C31,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "O31",
+      "row": 31,
+      "col": 15,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=IFERROR((E31-D31)/D31,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "P31",
+      "row": 31,
+      "col": 16,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=IFERROR((F31-E31)/E31,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "Q31",
+      "row": 31,
+      "col": 17,
+      "value": -0.3333333333333333,
+      "data_type": "n",
+      "formula": "=AVERAGE(N31:P31)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "B32",
+      "row": 32,
+      "col": 2,
+      "value": "Account Payables",
+      "data_type": "s"
+    },
+    {
+      "addr": "C32",
+      "row": 32,
+      "col": 3,
+      "value": 2703584285,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D32",
+      "row": 32,
+      "col": 4,
+      "value": 3007919400,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E32",
+      "row": 32,
+      "col": 5,
+      "value": 2579350024,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F32",
+      "row": 32,
+      "col": 6,
+      "value": 1096222695,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "H32",
+      "row": 32,
+      "col": 8,
+      "value": 0.11692035184927424,
+      "data_type": "n",
+      "formula": "=D32/D$51",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "I32",
+      "row": 32,
+      "col": 9,
+      "value": 0.08605673511499605,
+      "data_type": "n",
+      "formula": "=E32/E$51",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "J32",
+      "row": 32,
+      "col": 10,
+      "value": 0.03259064173453277,
+      "data_type": "n",
+      "formula": "=F32/F$51",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "K32",
+      "row": 32,
+      "col": 11,
+      "value": 0.07852257623293436,
+      "data_type": "n",
+      "formula": "=AVERAGE(H32:J32)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "N32",
+      "row": 32,
+      "col": 14,
+      "value": 0.11256727474283273,
+      "data_type": "n",
+      "formula": "=IFERROR((D32-C32)/C32,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "O32",
+      "row": 32,
+      "col": 15,
+      "value": -0.14248033906759602,
+      "data_type": "n",
+      "formula": "=IFERROR((E32-D32)/D32,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "P32",
+      "row": 32,
+      "col": 16,
+      "value": -0.5750004129722566,
+      "data_type": "n",
+      "formula": "=IFERROR((F32-E32)/E32,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "Q32",
+      "row": 32,
+      "col": 17,
+      "value": -0.20163782576567327,
+      "data_type": "n",
+      "formula": "=AVERAGE(N32:P32)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "B33",
+      "row": 33,
+      "col": 2,
+      "value": "Tax Payable",
+      "data_type": "s"
+    },
+    {
+      "addr": "C33",
+      "row": 33,
+      "col": 3,
+      "value": 418033671,
+      "data_type": "n",
+      "formula": "=373893805+26251133+2223333+15665400",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D33",
+      "row": 33,
+      "col": 4,
+      "value": 770087786,
+      "data_type": "n",
+      "formula": "=339583+15366585+637118425+117263193",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E33",
+      "row": 33,
+      "col": 5,
+      "value": 363048548,
+      "data_type": "n",
+      "formula": "=27807567+335240981",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F33",
+      "row": 33,
+      "col": 6,
+      "value": 480490835,
+      "data_type": "n",
+      "formula": "=59663049+16034031+48438466+356355289",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "H33",
+      "row": 33,
+      "col": 8,
+      "value": 0.029933958633980885,
+      "data_type": "n",
+      "formula": "=D33/D$51",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "I33",
+      "row": 33,
+      "col": 9,
+      "value": 0.012112653357790238,
+      "data_type": "n",
+      "formula": "=E33/E$51",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "J33",
+      "row": 33,
+      "col": 10,
+      "value": 0.014284966669305729,
+      "data_type": "n",
+      "formula": "=F33/F$51",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "K33",
+      "row": 33,
+      "col": 11,
+      "value": 0.018777192887025618,
+      "data_type": "n",
+      "formula": "=AVERAGE(H33:J33)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "N33",
+      "row": 33,
+      "col": 14,
+      "value": 0.842166886121477,
+      "data_type": "n",
+      "formula": "=IFERROR((D33-C33)/C33,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "O33",
+      "row": 33,
+      "col": 15,
+      "value": -0.5285621268118645,
+      "data_type": "n",
+      "formula": "=IFERROR((E33-D33)/D33,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "P33",
+      "row": 33,
+      "col": 16,
+      "value": 0.3234892072891585,
+      "data_type": "n",
+      "formula": "=IFERROR((F33-E33)/E33,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "Q33",
+      "row": 33,
+      "col": 17,
+      "value": 0.21236465553292364,
+      "data_type": "n",
+      "formula": "=AVERAGE(N33:P33)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "B34",
+      "row": 34,
+      "col": 2,
+      "value": "Others - Hutang Jangka Panjang / Hutang Jangka Pendek",
+      "data_type": "s"
+    },
+    {
+      "addr": "C34",
+      "row": 34,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D34",
+      "row": 34,
+      "col": 4,
+      "value": 3278893438,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E34",
+      "row": 34,
+      "col": 5,
+      "value": 3366806000,
+      "data_type": "n",
+      "formula": "=834630000+2532176000",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F34",
+      "row": 34,
+      "col": 6,
+      "value": 1692923000,
+      "data_type": "n",
+      "formula": "=1592923000+100000000",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "H34",
+      "row": 34,
+      "col": 8,
+      "value": 0.1274533401550708,
+      "data_type": "n",
+      "formula": "=D34/D$51",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "I34",
+      "row": 34,
+      "col": 9,
+      "value": 0.11232920287269216,
+      "data_type": "n",
+      "formula": "=E34/E$51",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "J34",
+      "row": 34,
+      "col": 10,
+      "value": 0.05033050969369907,
+      "data_type": "n",
+      "formula": "=F34/F$51",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "K34",
+      "row": 34,
+      "col": 11,
+      "value": 0.09670435090715401,
+      "data_type": "n",
+      "formula": "=AVERAGE(H34:J34)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "N34",
+      "row": 34,
+      "col": 14,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=IFERROR((D34-C34)/C34,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "O34",
+      "row": 34,
+      "col": 15,
+      "value": 0.026811655719321977,
+      "data_type": "n",
+      "formula": "=IFERROR((E34-D34)/D34,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "P34",
+      "row": 34,
+      "col": 16,
+      "value": -0.49717239425140625,
+      "data_type": "n",
+      "formula": "=IFERROR((F34-E34)/E34,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "Q34",
+      "row": 34,
+      "col": 17,
+      "value": -0.1567869128440281,
+      "data_type": "n",
+      "formula": "=AVERAGE(N34:P34)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "A35",
+      "row": 35,
+      "col": 1,
+      "value": "Current Liabilities",
+      "data_type": "s"
+    },
+    {
+      "addr": "C35",
+      "row": 35,
+      "col": 3,
+      "value": 4936833523,
+      "data_type": "n",
+      "formula": "=SUM(C31:C34)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D35",
+      "row": 35,
+      "col": 4,
+      "value": 7056900624,
+      "data_type": "n",
+      "formula": "=SUM(D31:D34)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E35",
+      "row": 35,
+      "col": 5,
+      "value": 6309204572,
+      "data_type": "n",
+      "formula": "=SUM(E31:E34)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F35",
+      "row": 35,
+      "col": 6,
+      "value": 4269636530,
+      "data_type": "n",
+      "formula": "=SUM(F31:F34)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A37",
+      "row": 37,
+      "col": 1,
+      "value": "Non Current Liabilities",
+      "data_type": "s"
+    },
+    {
+      "addr": "B38",
+      "row": 38,
+      "col": 2,
+      "value": "Bank Loan-Long Term",
+      "data_type": "s"
+    },
+    {
+      "addr": "C38",
+      "row": 38,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D38",
+      "row": 38,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E38",
+      "row": 38,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F38",
+      "row": 38,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "H38",
+      "row": 38,
+      "col": 8,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=D38/D$51",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "I38",
+      "row": 38,
+      "col": 9,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=E38/E$51",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "J38",
+      "row": 38,
+      "col": 10,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=F38/F$51",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "K38",
+      "row": 38,
+      "col": 11,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=AVERAGE(H38:J38)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "N38",
+      "row": 38,
+      "col": 14,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=IFERROR((D38-C38)/C38,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "O38",
+      "row": 38,
+      "col": 15,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=IFERROR((E38-D38)/D38,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "P38",
+      "row": 38,
+      "col": 16,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=IFERROR((F38-E38)/E38,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "Q38",
+      "row": 38,
+      "col": 17,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=AVERAGE(N38:P38)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "B39",
+      "row": 39,
+      "col": 2,
+      "value": "Related Party acc. Payable & Employee Benefits",
+      "data_type": "s"
+    },
+    {
+      "addr": "C39",
+      "row": 39,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D39",
+      "row": 39,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E39",
+      "row": 39,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F39",
+      "row": 39,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "H39",
+      "row": 39,
+      "col": 8,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=D39/D$51",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "I39",
+      "row": 39,
+      "col": 9,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=E39/E$51",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "J39",
+      "row": 39,
+      "col": 10,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=F39/F$51",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "K39",
+      "row": 39,
+      "col": 11,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=AVERAGE(H39:J39)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "N39",
+      "row": 39,
+      "col": 14,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=IFERROR((D39-C39)/C39,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "O39",
+      "row": 39,
+      "col": 15,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=IFERROR((E39-D39)/D39,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "P39",
+      "row": 39,
+      "col": 16,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=IFERROR((F39-E39)/E39,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "Q39",
+      "row": 39,
+      "col": 17,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=AVERAGE(N39:P39)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "A40",
+      "row": 40,
+      "col": 1,
+      "value": "Non Current Liabilities",
+      "data_type": "s"
+    },
+    {
+      "addr": "C40",
+      "row": 40,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=+C38+C39",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D40",
+      "row": 40,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=+D38+D39",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E40",
+      "row": 40,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=+E38+E39",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F40",
+      "row": 40,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=+F38+F39",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "H40",
+      "row": 40,
+      "col": 8,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=D40/D$51",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "I40",
+      "row": 40,
+      "col": 9,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=E40/E$51",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "J40",
+      "row": 40,
+      "col": 10,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=F40/F$51",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "K40",
+      "row": 40,
+      "col": 11,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=AVERAGE(H40:J40)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "A41",
+      "row": 41,
+      "col": 1,
+      "value": "LIABILITIES",
+      "data_type": "s"
+    },
+    {
+      "addr": "C41",
+      "row": 41,
+      "col": 3,
+      "value": 4936833523,
+      "data_type": "n",
+      "formula": "=+C35+C40",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D41",
+      "row": 41,
+      "col": 4,
+      "value": 7056900624,
+      "data_type": "n",
+      "formula": "=+D35+D40",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E41",
+      "row": 41,
+      "col": 5,
+      "value": 6309204572,
+      "data_type": "n",
+      "formula": "=+E35+E40",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F41",
+      "row": 41,
+      "col": 6,
+      "value": 4269636530,
+      "data_type": "n",
+      "formula": "=+F35+F40",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A42",
+      "row": 42,
+      "col": 1,
+      "value": "Shareholders' Equity",
+      "data_type": "s"
+    },
+    {
+      "addr": "A43",
+      "row": 43,
+      "col": 1,
+      "value": "Paid Up Capital",
+      "data_type": "s"
+    },
+    {
+      "addr": "C43",
+      "row": 43,
+      "col": 3,
+      "value": 2000000000,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D43",
+      "row": 43,
+      "col": 4,
+      "value": 2000000000,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E43",
+      "row": 43,
+      "col": 5,
+      "value": 2000000000,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F43",
+      "row": 43,
+      "col": 6,
+      "value": 2000000000,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "H43",
+      "row": 43,
+      "col": 8,
+      "value": 0.07774167874928713,
+      "data_type": "n",
+      "formula": "=D43/D$51",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "I43",
+      "row": 43,
+      "col": 9,
+      "value": 0.06672745793650846,
+      "data_type": "n",
+      "formula": "=E43/E$51",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "J43",
+      "row": 43,
+      "col": 10,
+      "value": 0.05945989237986497,
+      "data_type": "n",
+      "formula": "=F43/F$51",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "K43",
+      "row": 43,
+      "col": 11,
+      "value": 0.06797634302188686,
+      "data_type": "n",
+      "formula": "=AVERAGE(H43:J43)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "N43",
+      "row": 43,
+      "col": 14,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=IFERROR((D43-C43)/C43,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "O43",
+      "row": 43,
+      "col": 15,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=IFERROR((E43-D43)/D43,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "P43",
+      "row": 43,
+      "col": 16,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=IFERROR((F43-E43)/E43,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "Q43",
+      "row": 43,
+      "col": 17,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=AVERAGE(N43:P43)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "A44",
+      "row": 44,
+      "col": 1,
+      "value": "Addition",
+      "data_type": "s"
+    },
+    {
+      "addr": "C44",
+      "row": 44,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D44",
+      "row": 44,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E44",
+      "row": 44,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F44",
+      "row": 44,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A45",
+      "row": 45,
+      "col": 1,
+      "value": "Retained Earnings",
+      "data_type": "s"
+    },
+    {
+      "addr": "B46",
+      "row": 46,
+      "col": 2,
+      "value": "Surplus",
+      "data_type": "s"
+    },
+    {
+      "addr": "C46",
+      "row": 46,
+      "col": 3,
+      "value": 3680698625,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D46",
+      "row": 46,
+      "col": 4,
+      "value": 4405853437,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E46",
+      "row": 46,
+      "col": 5,
+      "value": 4994138866,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F46",
+      "row": 46,
+      "col": 6,
+      "value": 5805826735,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "H46",
+      "row": 46,
+      "col": 8,
+      "value": 0.17125922125784826,
+      "data_type": "n",
+      "formula": "=D46/D$51",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "I46",
+      "row": 46,
+      "col": 9,
+      "value": 0.16662309555504853,
+      "data_type": "n",
+      "formula": "=E46/E$51",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "J46",
+      "row": 46,
+      "col": 10,
+      "value": 0.17260691641962142,
+      "data_type": "n",
+      "formula": "=F46/F$51",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "K46",
+      "row": 46,
+      "col": 11,
+      "value": 0.17016307774417275,
+      "data_type": "n",
+      "formula": "=AVERAGE(H46:J46)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "N46",
+      "row": 46,
+      "col": 14,
+      "value": 0.19701553587533943,
+      "data_type": "n",
+      "formula": "=IFERROR((D46-C46)/C46,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "O46",
+      "row": 46,
+      "col": 15,
+      "value": 0.13352360386290354,
+      "data_type": "n",
+      "formula": "=IFERROR((E46-D46)/D46,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "P46",
+      "row": 46,
+      "col": 16,
+      "value": 0.16252809358705567,
+      "data_type": "n",
+      "formula": "=IFERROR((F46-E46)/E46,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "Q46",
+      "row": 46,
+      "col": 17,
+      "value": 0.16435574444176623,
+      "data_type": "n",
+      "formula": "=AVERAGE(N46:P46)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "B47",
+      "row": 47,
+      "col": 2,
+      "value": "Current Profit",
+      "data_type": "s"
+    },
+    {
+      "addr": "C47",
+      "row": 47,
+      "col": 3,
+      "value": 8582773351,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D47",
+      "row": 47,
+      "col": 4,
+      "value": 12263471976,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E47",
+      "row": 47,
+      "col": 5,
+      "value": 16669325413,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F47",
+      "row": 47,
+      "col": 6,
+      "value": 21560655469,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "H47",
+      "row": 47,
+      "col": 8,
+      "value": 0.47669144935453867,
+      "data_type": "n",
+      "formula": "=D47/D$51",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "I47",
+      "row": 47,
+      "col": 9,
+      "value": 0.5561508551629646,
+      "data_type": "n",
+      "formula": "=E47/E$51",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "J47",
+      "row": 47,
+      "col": 10,
+      "value": 0.6409971269130436,
+      "data_type": "n",
+      "formula": "=F47/F$51",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "K47",
+      "row": 47,
+      "col": 11,
+      "value": 0.5579464771435156,
+      "data_type": "n",
+      "formula": "=AVERAGE(H47:J47)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "N47",
+      "row": 47,
+      "col": 14,
+      "value": 0.42884723555832366,
+      "data_type": "n",
+      "formula": "=IFERROR((D47-C47)/C47,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "O47",
+      "row": 47,
+      "col": 15,
+      "value": 0.359266400707923,
+      "data_type": "n",
+      "formula": "=IFERROR((E47-D47)/D47,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "P47",
+      "row": 47,
+      "col": 16,
+      "value": 0.293432993526263,
+      "data_type": "n",
+      "formula": "=IFERROR((F47-E47)/E47,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "Q47",
+      "row": 47,
+      "col": 17,
+      "value": 0.36051554326416985,
+      "data_type": "n",
+      "formula": "=AVERAGE(N47:P47)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "A48",
+      "row": 48,
+      "col": 1,
+      "value": "Retained Earnings, Ending Balance",
+      "data_type": "s"
+    },
+    {
+      "addr": "C48",
+      "row": 48,
+      "col": 3,
+      "value": 12263471976,
+      "data_type": "n",
+      "formula": "=+C47+C46",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D48",
+      "row": 48,
+      "col": 4,
+      "value": 16669325413,
+      "data_type": "n",
+      "formula": "=+D47+D46",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E48",
+      "row": 48,
+      "col": 5,
+      "value": 21663464279,
+      "data_type": "n",
+      "formula": "=+E47+E46",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F48",
+      "row": 48,
+      "col": 6,
+      "value": 27366482204,
+      "data_type": "n",
+      "formula": "=+F47+F46",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "H48",
+      "row": 48,
+      "col": 8,
+      "value": 0.647950670612387,
+      "data_type": "n",
+      "formula": "=D48/D$51",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "I48",
+      "row": 48,
+      "col": 9,
+      "value": 0.7227739507180131,
+      "data_type": "n",
+      "formula": "=E48/E$51",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "J48",
+      "row": 48,
+      "col": 10,
+      "value": 0.813604043332665,
+      "data_type": "n",
+      "formula": "=F48/F$51",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "K48",
+      "row": 48,
+      "col": 11,
+      "value": 0.7281095548876882,
+      "data_type": "n",
+      "formula": "=AVERAGE(H48:J48)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "N48",
+      "row": 48,
+      "col": 14,
+      "value": 0.359266400707923,
+      "data_type": "n",
+      "formula": "=IFERROR((D48-C48)/C48,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "O48",
+      "row": 48,
+      "col": 15,
+      "value": 0.2996005382500478,
+      "data_type": "n",
+      "formula": "=IFERROR((E48-D48)/D48,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "P48",
+      "row": 48,
+      "col": 16,
+      "value": 0.2632551216902256,
+      "data_type": "n",
+      "formula": "=IFERROR((F48-E48)/E48,0)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "Q48",
+      "row": 48,
+      "col": 17,
+      "value": 0.30737402021606547,
+      "data_type": "n",
+      "formula": "=AVERAGE(N48:P48)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "A49",
+      "row": 49,
+      "col": 1,
+      "value": "Shareholders' Equity",
+      "data_type": "s"
+    },
+    {
+      "addr": "C49",
+      "row": 49,
+      "col": 3,
+      "value": 14263471976,
+      "data_type": "n",
+      "formula": "=+C43+C48",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D49",
+      "row": 49,
+      "col": 4,
+      "value": 18669325413,
+      "data_type": "n",
+      "formula": "=+D43+D48+D44",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E49",
+      "row": 49,
+      "col": 5,
+      "value": 23663464279,
+      "data_type": "n",
+      "formula": "=+E43+E48+E44",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F49",
+      "row": 49,
+      "col": 6,
+      "value": 29366482204,
+      "data_type": "n",
+      "formula": "=+F43+F48+F44",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A51",
+      "row": 51,
+      "col": 1,
+      "value": "LIABILITES & EQUITY",
+      "data_type": "s"
+    },
+    {
+      "addr": "C51",
+      "row": 51,
+      "col": 3,
+      "value": 19200305499,
+      "data_type": "n",
+      "formula": "=C35+C40+C49",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D51",
+      "row": 51,
+      "col": 4,
+      "value": 25726226037,
+      "data_type": "n",
+      "formula": "=D35+D40+D49",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E51",
+      "row": 51,
+      "col": 5,
+      "value": 29972668851,
+      "data_type": "n",
+      "formula": "=E35+E40+E49",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F51",
+      "row": 51,
+      "col": 6,
+      "value": 33636118734,
+      "data_type": "n",
+      "formula": "=F35+F40+F49",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F52",
+      "row": 52,
+      "col": 6,
+      "value": -1,
+      "data_type": "n",
+      "formula": "=F27-F51",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    }
+  ],
+  "required_hidden": false
+}

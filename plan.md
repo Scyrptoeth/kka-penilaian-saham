@@ -1,89 +1,91 @@
-# Plan — KKA Penilaian Saham (Session 2A.5: Harden Calc Engine)
+# Plan — Session 2B P1: UI Financial Tables + Navigation
 
-Branch: `feat/phase2a5-harden-calc`
-Target: Harden 6 Phase 2A calc modules with YearKeyedSeries, Zod validation boundary, and explicit-sign adapter layer. All existing tests must stay passing after each task.
+Branch: `feat/phase2b-ui-financial-tables`
+Target: 4 historical/analysis pages rendered end-to-end with `<FinancialTable>` + formula tooltip + responsive sidebar. All 90 existing tests stay green. Push to `main` → Vercel deploy.
 
 ## Tasks
 
-### Task 1 — `YearKeyedSeries` type + helpers
-- Add `YearKeyedSeries` to `src/types/financial.ts`
-- Add helpers to `src/lib/calculations/helpers.ts`:
-  - `yearsOf(series)` — sorted ascending year list
-  - `assertSameYears(label, a, b)` — throws on mismatch
-  - `emptySeriesLike(series)` — new series with same years, all zeros
-  - `mapSeries(series, fn)` — value-mapping, preserves years
-  - `fromArray(years, values)` / `toArray(series, years?)` — interop shims
-- Unit tests for helpers (edge cases: empty, single-year, sparse years)
-- **Verify**: `npm test` green (47 existing + new helper tests), no existing file broken
+### Task 1 — Seed loader foundation
+- Add `scripts/copy-fixtures.cjs` that copies `__tests__/fixtures/{balance-sheet,income-statement,fcf,financial-ratio,cash-flow-statement,fixed-asset}.json` → `src/data/seed/fixtures/`
+- Add npm script `seed:sync` and run once; commit copied JSON
+- `src/data/seed/loader.ts`: `loadCells(slug)` returning `CellMap`, plus `num`, `numOpt`, `formulaOf`, `textOf` helpers
+- `src/types/financial.ts` extensions: none yet — stay with `YearKeyedSeries`
+- **Verify**: `npm run typecheck` clean after adding loader; no new test yet
 
-### Task 2 — Refactor `fixed-asset.ts`
-- Change `FixedAssetCategoryInput` and `FixedAssetSchedule` to `YearKeyedSeries` throughout
-- Input still carries a `years` hint — derive from any input series instead
-- Rewrite test to build YearKeyedSeries from fixture
-- **Verify**: fixed-asset tests all pass; commit `refactor(calc): fixed asset to YearKeyedSeries`
+### Task 2 — Manifest type + builder utility
+- `src/data/manifests/types.ts`: `ManifestRow`, `SheetManifest` types
+- `src/data/manifests/build.ts`: `buildRowsFromManifest(manifest, cells, derivedFns?)` → `FinancialRow[]`
+  - Pulls values from cells via `manifest.columns[year] + row.excelRow`
+  - Attaches `formula.values` (description + per-year Excel formula from fixture)
+  - Attaches commonSize/growth when manifest declares those column groups
+  - Unit test: `__tests__/components/manifest-build.test.ts` — fixture-free synthetic cells, assert structure
+- **Verify**: new test green, all existing 90 still green
 
-### Task 3 — Refactor `noplat.ts`
-- `NoplatInput` fields → `YearKeyedSeries`
-- `NoplatResult` fields → `YearKeyedSeries`
-- Rewrite test
-- **Verify**: noplat tests pass; commit
+### Task 3 — `<FinancialTable>` + `<FormulaTooltip>`
+- `src/components/financial/FinancialTable.tsx` — Server Component shell, static table markup
+- `src/components/financial/FormulaTooltip.tsx` — `'use client'` island, hover + focus, accessible popover
+- `src/components/financial/format.ts` — pure `formatIdr`, `formatPercent`, `isNegative` helpers
+- Component test `__tests__/components/financial-table.test.tsx`:
+  - Renders headers for years
+  - Negative numbers wrapped in parens and coloured negative
+  - Indent classes applied
+  - subtotal/total type classes applied
+- **Verify**: all tests green, zero lint warnings
 
-### Task 4 — Refactor `fcf.ts`
-- Same pattern; pre-signed convention preserved (still documented in JSDoc)
-- **Verify**: fcf tests pass; commit
+### Task 4 — Responsive Shell + Sidebar drawer
+- Convert `src/components/layout/Sidebar.tsx` into pure nav list (still server-safe)
+- Add `src/components/layout/SidebarDrawer.tsx` — `'use client'` wrapper with `useState` open flag + body scroll lock
+- Add `src/components/layout/TopBar.tsx` — hamburger button + page title, visible `<lg`
+- Update `src/components/layout/Shell.tsx` to compose: static sidebar on `lg+`, drawer + top bar `<lg`
+- Active link state: `usePathname` in client TopBar; highlight active link via pathname comparison in client wrapper (or pass current path from RSC via prop — simpler)
+- **Verify**: dev server renders shell, navigate works on both widths
 
-### Task 5 — Refactor `cash-flow.ts`
-- 11 input series all become `YearKeyedSeries`
-- Year axis derived from `ebitda`, asserted same across all other inputs
-- **Verify**: cash-flow tests pass; commit
+### Task 5 — Balance Sheet manifest + page
+- Author `src/data/manifests/balance-sheet.ts` with ~35 rows mirroring fixture BS
+- `src/app/historical/balance-sheet/page.tsx` — Server Component using loader + manifest + `commonSizeBalanceSheet` + `growthBalanceSheet`
+- Supplies Total Assets line for common-size denominator
+- **Verify**: dev page renders 4-year BS with common-size and growth columns, tooltips show on derived rows
 
-### Task 6 — Refactor `ratios.ts`
-- 18 input series + 18 output series → `YearKeyedSeries`
-- **Verify**: ratios tests pass; commit
+### Task 6 — Income Statement manifest + page
+- `src/data/manifests/income-statement.ts` with ~20 rows
+- `src/app/historical/income-statement/page.tsx` using `yoyGrowthIncomeStatement` + `marginRatio` derivations
+- **Verify**: renders 4-year IS
 
-### Task 7 — Refactor `growth-revenue.ts`
-- Input: `YearKeyedSeries` of N years
-- Output: `YearKeyedSeries` of N−1 years (keyed by the *current* year of each YoY pair)
-- **Verify**: growth-revenue tests pass; commit
+### Task 7 — Financial Ratio manifest + page
+- `src/data/manifests/financial-ratio.ts` — 4 sections (Profitability, Liquidity, Leverage, Cash Flow) × 18 ratios, section headers
+- `src/app/analysis/financial-ratio/page.tsx` — read ratio outputs directly from fixture cells (no recompute; pure render of already-verified values). Tooltips cite formula per ratio row.
+- **Verify**: renders sectioned ratio table
 
-### Task 8 — Zod validation layer
-- `src/lib/validation/schemas.ts`:
-  - `yearKeyedSeriesSchema` — base: record of number(year) → finite number, rejects NaN/Infinity, min 1 entry
-  - One input schema per calc module (FixedAsset, Noplat, Fcf, CashFlow, Ratios, GrowthRevenue)
-  - Cross-field refinement: all series within a single input must have identical year sets
-- `src/lib/validation/index.ts`: thin `validated*` wrappers returning `z.infer<typeof ...>` and calling underlying calc functions
-- Tests covering: NaN, Infinity, missing year, sparse arrays, mismatched year sets, single-year input
-- **Verify**: validation tests pass; commit `feat(validation): zod boundary schemas`
+### Task 8 — FCF manifest + page
+- `src/data/manifests/fcf.ts` — 10 rows (NOPLAT, Depreciation, Gross CF, WC changes, Capex, FCF)
+- `src/app/analysis/fcf/page.tsx` — read fixture cells directly, show 3-year values
+- **Verify**: renders 3-year FCF page
 
-### Task 9 — Adapter layer
-- `src/lib/adapters/fcf-adapter.ts`:
-  - `toFcfInput(noplatResult, fixedAssetSchedule, workingCapitalDeltas)` → `FcfInput`
-  - Handles sign-flip of depreciation and capex with JSDoc
-- `src/lib/adapters/cash-flow-adapter.ts`:
-  - `toCashFlowInput(raw)` with explicit sign handling for tax, WC, capex, interest
-- `src/lib/adapters/noplat-adapter.ts`:
-  - `toNoplatInput(incomeStatement)` using labeled IS data
-- Tests reading raw fixture shapes, passing through adapter, then calling calc, asserting vs fixture
-- **Verify**: adapter tests pass; commit `feat(adapters): explicit sign convention layer`
+### Task 9 — Full verification gate
+- `npm run build 2>&1 | tail -25` — zero errors
+- `npm test` — ≥ 90 (existing) + new component tests all green
+- `npm run lint` — zero warnings
+- `npx tsc --noEmit` — exit 0
+- Manual dev server smoke: click through all 4 new pages
+- **Verify**: all gates green
 
-### Task 10 — Integration test + wrap up
-- `__tests__/integration/calc-pipeline.test.ts`: one end-to-end flow per adapter
-  - `raw fixture data → zod validate → adapter → calc → assert against fixture at 12 decimals`
-- Full verify: `npm test`, `npm run build`, `npm run lint`, `tsc --noEmit`
-- Update `progress.md` with Session 2A.5 summary
-- Merge `feat/phase2a5-harden-calc` → main (with user confirmation per git-workflow rules)
-- Push
-- **Verify**: ≥60 tests passing, all green; Vercel deploy succeeds
+### Task 10 — Ship: merge, push, deploy, verify live
+- Update `progress.md` with Session 004 summary
+- `git checkout main && git pull && git merge feat/phase2b-ui-financial-tables --no-ff -m "feat(ui): phase 2b p1 — financial tables + navigation"`
+- `git push origin main` → triggers Vercel production deploy
+- Poll `https://kka-penilaian-saham.vercel.app` + `/historical/balance-sheet` until HTTP 200
+- Delete feature branch locally
+- **Verify**: live site renders new pages, tooltips work, mobile responsive
 
 ## Progress
 
-- [ ] Task 1 — YearKeyedSeries type + helpers
-- [ ] Task 2 — Refactor fixed-asset
-- [ ] Task 3 — Refactor noplat
-- [ ] Task 4 — Refactor fcf
-- [ ] Task 5 — Refactor cash-flow
-- [ ] Task 6 — Refactor ratios
-- [ ] Task 7 — Refactor growth-revenue
-- [ ] Task 8 — Zod validation layer
-- [ ] Task 9 — Adapter layer
-- [ ] Task 10 — Integration test + verify + merge
+- [x] Task 1 — Seed loader foundation
+- [x] Task 2 — Manifest type + builder utility
+- [x] Task 3 — FinancialTable + FormulaTooltip
+- [x] Task 4 — Responsive Shell + Sidebar drawer
+- [x] Task 5 — Balance Sheet manifest + page
+- [x] Task 6 — Income Statement manifest + page
+- [x] Task 7 — Financial Ratio manifest + page
+- [x] Task 8 — FCF manifest + page
+- [x] Task 9 — Full verification gate
+- [x] Task 10 — Ship to main + Vercel deploy verification

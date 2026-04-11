@@ -1,0 +1,66 @@
+/**
+ * Sidebar navigation tree. Shared between desktop sidebar and mobile drawer.
+ * Pure data, no React — safe to import in both server and client components.
+ */
+
+export interface NavItem {
+  label: string
+  href: string
+  /** Optional: marks placeholder routes that are not yet implemented. */
+  wip?: boolean
+}
+
+export interface NavGroup {
+  label: string
+  items: NavItem[]
+}
+
+export const NAV_TREE: NavGroup[] = [
+  {
+    label: 'Input Master',
+    items: [{ label: 'HOME', href: '/' }],
+  },
+  {
+    label: 'Historis',
+    items: [
+      { label: 'Balance Sheet', href: '/historical/balance-sheet' },
+      { label: 'Income Statement', href: '/historical/income-statement' },
+      { label: 'Cash Flow', href: '/historical/cash-flow', wip: true },
+      { label: 'Fixed Asset', href: '/historical/fixed-asset', wip: true },
+    ],
+  },
+  {
+    label: 'Analisis',
+    items: [
+      { label: 'Financial Ratio', href: '/analysis/financial-ratio' },
+      { label: 'FCF', href: '/analysis/fcf' },
+      { label: 'NOPLAT', href: '/analysis/noplat', wip: true },
+      { label: 'Growth Revenue', href: '/analysis/growth-revenue', wip: true },
+      { label: 'ROIC', href: '/analysis/roic', wip: true },
+      { label: 'DLOM', href: '/analysis/dlom', wip: true },
+      { label: 'DLOC (PFC)', href: '/analysis/dloc-pfc', wip: true },
+    ],
+  },
+  {
+    label: 'Proyeksi',
+    items: [
+      { label: 'Proy. L/R', href: '/projection/income-statement', wip: true },
+      { label: 'Proy. Balance Sheet', href: '/projection/balance-sheet', wip: true },
+      { label: 'Proy. Cash Flow', href: '/projection/cash-flow', wip: true },
+      { label: 'Proy. NOPLAT', href: '/projection/noplat', wip: true },
+    ],
+  },
+  {
+    label: 'Penilaian',
+    items: [
+      { label: 'WACC', href: '/valuation/wacc', wip: true },
+      { label: 'DCF', href: '/valuation/dcf', wip: true },
+      { label: 'AAM', href: '/valuation/aam', wip: true },
+      { label: 'EEM', href: '/valuation/eem', wip: true },
+    ],
+  },
+  {
+    label: 'Ringkasan',
+    items: [{ label: 'Dashboard', href: '/dashboard', wip: true }],
+  },
+]

@@ -1,0 +1,96 @@
+/**
+ * FCF manifest — 3 historical years (2019/2020/2021) of Free Cash Flow
+ * schedule. Values are pre-signed in the workbook (see Session 2A lessons):
+ * depreciation and capex arrive as negatives via `='FIXED ASSET'!*-1`,
+ * which is why the FinancialTable will show them in parentheses.
+ *
+ * Note column-offset: the FCF sheet uses cols C/D/E for 2019/2020/2021 —
+ * one column LEFT of the Balance Sheet / Income Statement layout (which
+ * use D/E/F). This is handled transparently by the manifest's columns map.
+ */
+
+import type { SheetManifest } from './types'
+
+export const FCF_MANIFEST: SheetManifest = {
+  title: 'Free Cash Flow — PT Raja Voltama Elektrik',
+  slug: 'fcf',
+  years: [2019, 2020, 2021],
+  columns: { 2019: 'C', 2020: 'D', 2021: 'E' },
+  disclaimer:
+    'Data demo workbook PT Raja Voltama Elektrik. Depreciation dan capex sudah pre-signed negatif (convention Excel source).',
+  rows: [
+    {
+      excelRow: 7,
+      label: 'NOPLAT',
+      type: 'subtotal',
+      formula: {
+        values: "Pulled from NOPLAT!C19 (Net Operating Profit Less Adjusted Tax)",
+      },
+    },
+    {
+      excelRow: 8,
+      label: 'Add: Depreciation',
+      indent: 1,
+      formula: {
+        values: "='FIXED ASSET'!<col>51 × −1 (pre-signed negative addback)",
+      },
+    },
+    {
+      excelRow: 9,
+      label: 'Gross Cash Flow',
+      type: 'subtotal',
+      formula: { values: 'NOPLAT + Depreciation addback' },
+    },
+
+    { label: '', type: 'separator' },
+    { label: 'CHANGES IN WORKING CAPITAL', type: 'header' },
+    {
+      excelRow: 12,
+      label: '(Increase) / Decrease in Current Assets',
+      indent: 1,
+      formula: {
+        values: "Pulled from CASH FLOW STATEMENT!<col>8",
+      },
+    },
+    {
+      excelRow: 13,
+      label: 'Increase / (Decrease) in Current Liabilities',
+      indent: 1,
+      formula: {
+        values: "Pulled from CASH FLOW STATEMENT!<col>9",
+      },
+    },
+    {
+      excelRow: 14,
+      label: 'Total Net Changes in Working Capital',
+      type: 'subtotal',
+      formula: {
+        values: "Pulled from CASH FLOW STATEMENT!<col>10 (sum of lines 12 + 13)",
+      },
+    },
+
+    { label: '', type: 'separator' },
+    {
+      excelRow: 16,
+      label: 'Less: Capital Expenditures',
+      indent: 1,
+      formula: {
+        values: "='FIXED ASSET'!<col>23 × −1 (pre-signed negative)",
+      },
+    },
+    {
+      excelRow: 18,
+      label: 'Gross Investment',
+      type: 'subtotal',
+      formula: { values: 'Total Net WC Change + Capex' },
+    },
+
+    { label: '', type: 'separator' },
+    {
+      excelRow: 20,
+      label: 'FREE CASH FLOW',
+      type: 'total',
+      formula: { values: 'Gross Cash Flow + Gross Investment' },
+    },
+  ],
+}
