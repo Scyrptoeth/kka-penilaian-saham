@@ -11,53 +11,56 @@
  * IMPORTANT: The reference workbook stores `depreciationAddback` and `capex`
  * as pre-signed values (the sheet uses `='FIXED ASSET'!*-1` to negate them
  * before feeding them here). Callers must supply them in the same sign
- * convention to preserve fidelity with Excel outputs.
+ * convention. The {@link ../adapters/fcf-adapter} handles this explicitly.
+ *
+ * All inputs/outputs are {@link YearKeyedSeries} sharing a single year axis.
  */
 
+import type { YearKeyedSeries } from '@/types/financial'
+import { assertSameYears, yearsOf } from './helpers'
+
 export interface FcfInput {
-  noplat: readonly number[]
-  depreciationAddback: readonly number[]
-  deltaCurrentAssets: readonly number[]
-  deltaCurrentLiabilities: readonly number[]
-  capex: readonly number[]
+  noplat: YearKeyedSeries
+  depreciationAddback: YearKeyedSeries
+  deltaCurrentAssets: YearKeyedSeries
+  deltaCurrentLiabilities: YearKeyedSeries
+  capex: YearKeyedSeries
 }
 
 export interface FcfResult {
-  grossCashFlow: number[]
-  totalWorkingCapitalChange: number[]
-  grossInvestment: number[]
-  freeCashFlow: number[]
-}
-
-function assertSameLength(label: string, arr: readonly number[], expected: number): void {
-  if (arr.length !== expected) {
-    throw new RangeError(
-      `fcf: ${label} length ${arr.length} does not match expected ${expected}`,
-    )
-  }
+  grossCashFlow: YearKeyedSeries
+  totalWorkingCapitalChange: YearKeyedSeries
+  grossInvestment: YearKeyedSeries
+  freeCashFlow: YearKeyedSeries
 }
 
 export function computeFcf(input: FcfInput): FcfResult {
-  const years = input.noplat.length
-  if (years === 0) {
+  const anchor = input.noplat
+  const years = yearsOf(anchor)
+  if (years.length === 0) {
     throw new RangeError('fcf: noplat must not be empty')
   }
-  assertSameLength('depreciationAddback', input.depreciationAddback, years)
-  assertSameLength('deltaCurrentAssets', input.deltaCurrentAssets, years)
-  assertSameLength('deltaCurrentLiabilities', input.deltaCurrentLiabilities, years)
-  assertSameLength('capex', input.capex, years)
 
-  const grossCashFlow: number[] = new Array(years)
-  const totalWorkingCapitalChange: number[] = new Array(years)
-  const grossInvestment: number[] = new Array(years)
-  const freeCashFlow: number[] = new Array(years)
+  assertSameYears('fcf.depreciationAddback', anchor, input.depreciationAddback)
+  assertSameYears('fcf.deltaCurrentAssets', anchor, input.deltaCurrentAssets)
+  assertSameYears(
+    'fcf.deltaCurrentLiabilities',
+    anchor,
+    input.deltaCurrentLiabilities,
+  )
+  assertSameYears('fcf.capex', anchor, input.capex)
 
-  for (let i = 0; i < years; i++) {
-    grossCashFlow[i] = input.noplat[i] + input.depreciationAddback[i]
-    totalWorkingCapitalChange[i] =
-      input.deltaCurrentAssets[i] + input.deltaCurrentLiabilities[i]
-    grossInvestment[i] = totalWorkingCapitalChange[i] + input.capex[i]
-    freeCashFlow[i] = grossCashFlow[i] + grossInvestment[i]
+  const grossCashFlow: YearKeyedSeries = {}
+  const totalWorkingCapitalChange: YearKeyedSeries = {}
+  const grossInvestment: YearKeyedSeries = {}
+  const freeCashFlow: YearKeyedSeries = {}
+
+  for (const y of years) {
+    grossCashFlow[y] = input.noplat[y] + input.depreciationAddback[y]
+    totalWorkingCapitalChange[y] =
+      input.deltaCurrentAssets[y] + input.deltaCurrentLiabilities[y]
+    grossInvestment[y] = totalWorkingCapitalChange[y] + input.capex[y]
+    freeCashFlow[y] = grossCashFlow[y] + grossInvestment[y]
   }
 
   return {
