@@ -1,118 +1,340 @@
-# Session 007 Plan — Phase 2B.5: Four Remaining P1 Pages
+# Phase 3 Roadmap — Sessions 010-014
 
-**Date**: 2026-04-11
-**Branch**: main (direct — pure additive manifest authoring, no refactor)
-**Scope**: Ship Cash Flow Statement, Fixed Asset Schedule, NOPLAT, and
-Growth Revenue pages to reach 8 live financial tables total. No new
-components, no new helpers in `build.ts`, no new tests — pure data
-authoring against the existing 2B.6.1 declarative pipeline.
-
-Prompt source: `../PROMPT-CLI-PHASE2B5-REMAINING-PAGES.md`
+> **Status**: Master plan sebagai output Session 009 design brainstorm.
+> Akan di-refine per session: Session 010 akan rewrite plan.md dengan
+> Session 010-only task breakdown saat di-execute. Master plan ini
+> tetap di history sebagai design reference.
+>
+> **Date**: 2026-04-12
+> **Total scope**: 5 sessions × ~3 jam = ~15 jam pengembangan untuk Phase 3 lengkap.
+> **Approved decisions**: design.md "Phase 3 — Live Data Mode" section, 6 keputusan arsitektural.
 
 ---
 
-## Pre-flight Evidence Gathered Before Writing Any Code
+## Phase 3 Goal
 
-| Sheet                 | Years      | Columns    | Key rows (confirmed from fixture) | Derivations                                   |
-|-----------------------|------------|------------|------------------------------------|-----------------------------------------------|
-| cash-flow-statement   | 2019-2021  | C/D/E      | 5,6 (EBITDA,Tax) · 7-11 (CFO block) · 13 · 17 · 19 · 21-28 (Financing) · 30 · 32-36 | none (YoY/common-size not meaningful on CF items) |
-| fixed-asset           | 2019-2021  | C/D/E      | A: 8-14,17-23,26-32 · B: 36-42,45-51,54-60 · Net: 63-69 | none (raw schedule)                           |
-| noplat                | 2019-2021  | C/D/E      | 7-11 (EBIT chain) · 13-17 (taxes) · 19 (NOPLAT) | `yoyGrowth` only                              |
-| growth-revenue        | **2018-2021** | **B/C/D/E** (4 years from column B) | 8 (Penjualan), 9 (Laba Bersih), 40-41 (Industri placeholder) | `yoyGrowth` + `growthColumns: H/I/J` for tooltip fidelity |
+Transform aplikasi dari **demo viewer** ke **tool penilaian aktif**. Setelah
+Phase 3 selesai, Penilai DJP bisa:
 
-Key decisions made from this evidence:
-- CFS drops derivations — cash-flow lines routinely cross zero, YoY %
-  growth explodes meaninglessly around those transitions.
-- Fixed Asset drops derivations — it's a roll-forward schedule, not a
-  flow. Category lines stay static year-to-year by design.
-- NOPLAT uses `yoyGrowth` but no `growthColumns` because the workbook
-  has no pre-computed growth cells — the tooltip shows description only.
-- Growth Revenue uniquely starts at column B (first 4-year manifest in
-  the project) and carries `growthColumns: H/I/J` so the Excel formula
-  surfaces in the tooltip while the primitive still produces the value.
-- Fixed Asset renders a tiny local `categoryRows()` helper **inside
-  the manifest file** to collapse 18 near-identical category rows —
-  still pure data authoring, still zero imports outside the manifest.
+1. Buka aplikasi
+2. Isi HOME form dengan nama perusahaan + identitas kasus
+3. Isi `/input/balance-sheet` + `/input/income-statement` + `/input/fixed-asset`
+4. Lihat 6 derived sheets (CFS, FR, FCF, NOPLAT, Growth Revenue, ROIC) auto-compute
+5. Isi `/valuation/wacc` dengan parameter CAPM
+6. Lihat `/valuation/dcf`, `/valuation/aam`, `/valuation/eem` produce final share value
+7. `/dashboard` menampilkan summary lengkap dengan DLOM discount + DLOC premium
 
-## Tasks (6 commits, atomic)
+Semua client-side. Privacy-first. Zero network calls untuk data user.
 
-1. **Step 0** — `chore: sync noplat + growth-revenue fixtures and extend SheetSlug`
-   - `scripts/copy-fixtures.cjs`: add 2 slugs
-   - `node scripts/copy-fixtures.cjs`: 8/8 copied
-   - `src/data/seed/loader.ts`: imports + `SheetSlug` union + `FIXTURES` map
-   - `src/data/manifests/types.ts`: extend `SheetManifest.slug` union
-   - Verify: `npx tsc --noEmit` clean
+---
 
-2. **Step 1** — `feat: add Cash Flow Statement page`
-   - `src/data/manifests/cash-flow-statement.ts` (raw CFS layout, no derivations)
-   - `src/app/historical/cash-flow/page.tsx` (11-line `<SheetPage>`)
-   - Verify: build lists `/historical/cash-flow` as static
+## Session 010 — DataSource Foundation + BS Pilot
 
-3. **Step 2** — `feat: add Fixed Asset Schedule page`
-   - `src/data/manifests/fixed-asset.ts` (A acquisition → B depreciation → Net, local `categoryRows()` helper)
-   - `src/app/historical/fixed-asset/page.tsx`
-   - Verify: build lists `/historical/fixed-asset` as static
+**Estimated**: 3 jam, ~10 commits
+**Scope**: Build the foundation for live data mode + BS as pilot end-to-end.
 
-4. **Step 3** — `feat: add NOPLAT page`
-   - `src/data/manifests/noplat.ts` (EBIT chain → Tax block → NOPLAT total, yoyGrowth)
-   - `src/app/analysis/noplat/page.tsx`
-   - Verify: build lists `/analysis/noplat` as static
+### Tasks
 
-5. **Step 4** — `feat: add Growth Revenue page`
-   - `src/data/manifests/growth-revenue.ts` (4 years B-E, yoyGrowth + growthColumns H/I/J)
-   - `src/app/analysis/growth-revenue/page.tsx`
-   - Verify: build lists `/analysis/growth-revenue` as static
+1. **Extend Zustand store** (~20 min)
+   - Add `balanceSheet: BalanceSheetInputState | null` slice
+   - Add `incomeStatement`, `fixedAsset` slices (null placeholders, populated in Session 011-012)
+   - Bump persist version v2 → v3 dengan migrate function (preserve home/dlom/dloc, init new slices null)
+   - Test: 5 new migration tests covering v2 → v3
 
-6. **Step 5** — `chore: activate 4 new pages in navigation`
-   - `src/components/layout/nav-tree.ts`: remove `wip: true` from 4 entries
-     (Cash Flow, Fixed Asset, NOPLAT, Growth Revenue only — not ROIC/DLOM/DLOC)
+2. **Live data adapter** (~30 min)
+   - Create `src/data/live/types.ts` — `BalanceSheetInputState`, `IncomeStatementInputState`, `FixedAssetInputState`
+   - Create `src/data/live/build-cell-map.ts` — `buildLiveCellMap(manifest, liveData, years): CellMap`
+   - Create `src/lib/calculations/year-helpers.ts` — `computeHistoricalYears(tahunTransaksi, count)`
+   - Test: ~8 unit tests covering adapter + year derivation edge cases
 
-**Step 6 (no commit) — Final verification** that writes this plan.md
-snapshot for the Mode B wrap-up skill to read when the user runs
-`/update-kka-penilaian-saham` at session close.
+3. **Manifest extension** (~15 min)
+   - Add `historicalYearCount?: 3 | 4` field ke `SheetManifest` type
+   - Set di 9 existing manifests (BS/IS = 4, others = 3) — one-line addition each
+   - Verify typecheck
 
-## Non-negotiables (all met per LESSON-019)
+4. **Refactor SheetPage to client + mode-aware** (~45 min)
+   - Convert `SheetPage.tsx` ke `'use client'`
+   - Read store via `useKkaStore` selectors
+   - Mode detection: `isLive = home !== null && sheetData !== null`
+   - Conditional cells loading (live or seed)
+   - `<DataSourceHeader mode={isLive ? 'live' : 'seed'} />` derived from same condition
+   - Test: existing 9 financial pages still render seed mode unchanged when home === null
 
-- Every page file is 11 lines, identical shape, only the manifest import and metadata title differ.
-- Every sheet-specific knob lives in the manifest: column letters, anchor rows, derivation specs, label text, formula descriptions.
-- Zero new code in `components/`, `lib/`, or `build.ts` — only additive data in `data/manifests/` and `data/seed/loader.ts`.
-- Zero new tests added — existing 107 tests continue to pass because the builder/derivation engine is untouched.
-- `[[...slug]]` catch-all routes in `historical/` and `analysis/` remain untouched — Next.js' static-segment priority takes precedence automatically.
+5. **`<RowInputGrid>` reusable component** (~45 min)
+   - Client component di `src/components/forms/RowInputGrid.tsx`
+   - Props: `rows: ManifestRow[]`, `years: number[]`, `values: Record<number, YearKeyedSeries>`, `onChange`
+   - Per row: label kiri + N input fields right (one per year)
+   - `<input type="text" inputMode="numeric">` per cell, IBM Plex Mono, tabular-nums
+   - Paste handler: strip Rp/dots/commas, parse parentheses sebagai negative
+   - Tab navigation native HTML, left-to-right per row
+   - Computed rows (subtotal/total) ditampilkan as read-only display, formula sama dengan calc engine
+   - Auto-save debounced 500ms via callback prop
+   - Test: 6-8 component tests (paste parsing, tab nav, computed rows)
 
-## Final Verification Evidence (captured 2026-04-11)
+6. **`/input/balance-sheet/page.tsx`** (~30 min)
+   - Client component
+   - Uses `<RowInputGrid>` dengan `BALANCE_SHEET_MANIFEST`
+   - Wires `onChange` ke `setBalanceSheet` store action
+   - Hydration guard dengan loading placeholder
 
-```
-Build:      ✅ 13 routes total, 8 static financial pages (up from 4)
-Tests:      ✅ 107/107 passing (15 files) — unchanged
-Typecheck:  ✅ tsc --noEmit exit 0
-Lint:       ✅ zero warnings
-Commits:    6 (Steps 0-5, all atomic conventional-commits)
-Net delta:  +9 files, ~600 lines of manifest data
-```
+7. **Sidebar nav update** (~10 min)
+   - Add new "Input Data" group above "Historis"
+   - Entry: "Balance Sheet" → `/input/balance-sheet`
+   - Other input entries marked `wip: true` (added in Sessions 011-012)
 
-### Smoke test — real numeric data on all 4 new pages (dev server)
+8. **Manual smoke test + verify gauntlet** (~15 min)
+   - Build, test, lint, typecheck all green
+   - Manual: fresh browser → seed mode di /historical/balance-sheet → header "Mode Demo"
+   - Manual: fill HOME form → fill /input/balance-sheet → navigate /historical/balance-sheet → header switches to "live" + table shows live data
+   - Production deploy + verify
 
-- `/historical/cash-flow` → 200
-  - EBITDA 2019-2021: `6.048.346.987 · 6.413.419.305 · 7.493.446.732` (matches fixture C5/D5/E5, i.e. IS!D18/E18/F18)
-- `/historical/fixed-asset` → 200
-  - Renders "Acquisition Costs" and "TOTAL NET FIXED ASSETS" markers
-- `/analysis/noplat` → 200
-  - Profit Before Tax 2019 = `5.874.471.249` (matches IS!D32)
-  - NOPLAT 2019-2021 = `4.405.853.437 · 4.876.619.594 · 5.720.109.965` (matches C19/D19/E19)
-- `/analysis/growth-revenue` → 200
-  - Penjualan 2019-2020 = `52.109.888.424 · 59.340.130.084` (matches IS!D6/E6)
+### Acceptance Criteria
+- `npm test`: 133 + ~18-20 new tests passing
+- `/historical/balance-sheet` works in BOTH modes (seed when no home, live when filled)
+- DataSourceHeader auto-switches mode based on store state
+- `/input/balance-sheet` form works: type → debounced save → store updated
+- Existing 8 other financial pages still seed-mode (unchanged)
+- Production deploy verified live on Vercel
 
-Every boundary from `kka-penilaian-saham.xlsx` → Python extraction →
-fixture JSON → seed loader → manifest builder → `applyDerivations` →
-`<SheetPage>` → `<FinancialTable>` → HTML response is green.
+### Deliverables
+- 1 new store slice + migration v2→v3
+- 3 new lib files (live/types, live/build-cell-map, calculations/year-helpers)
+- 1 new component (`<RowInputGrid>`)
+- 1 new page (`/input/balance-sheet`)
+- 1 modified component (`<SheetPage>`)
+- Manifest type extension + 9 manifest field additions
+- ~20 new tests
+- Updated nav-tree
 
-## Architecture holdfast
+---
 
-This session validates the Session 2B.6 + 2B.6.1 bet: the entire
-rendering pipeline scales to new sheets without code changes. The
-pipeline graduated from "patch mode" (4 patches landed in Session 5)
-to "pure data authoring" (4 sheets landed in Session 7, zero patches).
+## Session 011 — IS Input + First Downstream Wave
 
-Next sheet added will be the same shape: create manifest, create
-11-line page, optionally add fixture slug, flip `wip:true` to absent.
-Predicted cost per future P2/P3 sheet: ~20 min of manifest authoring.
+**Estimated**: 3 jam, ~8 commits
+**Scope**: Mirror BS pattern untuk Income Statement + wire 4 downstream sheets ke live mode.
+
+### Tasks
+
+1. **`/input/income-statement/page.tsx`** (~30 min)
+   - Pattern identik dengan BS: `<RowInputGrid>` + `INCOME_STATEMENT_MANIFEST`
+   - Wires ke `setIncomeStatement` store action
+   - Subtotal rows (Revenue, Gross Profit, EBITDA, EBIT, NOPAT, Net Profit) computed read-only
+
+2. **Migrate Cash Flow Statement page ke live mode** (~30 min)
+   - `src/app/historical/cash-flow/page.tsx`: client component
+   - `useMemo` compute CFS dari BS+IS via existing `computeCashFlowStatement` + `toCashFlowInput` adapter
+   - Empty state: "Lengkapi BS dan IS dulu untuk melihat Cash Flow"
+   - Test: integration test untuk full flow BS+IS → CFS live
+
+3. **Migrate Financial Ratio page ke live mode** (~30 min)
+   - Wire ke existing ratio helpers
+   - Dependencies: BS + IS
+   - Same pattern: useMemo + adapter + empty state
+
+4. **Migrate NOPLAT page ke live mode** (~30 min)
+   - Wire ke `computeNoplat` + `toNoplatInput` adapter (already exist)
+   - Dependencies: IS only (NOPLAT only needs Profit Before Tax + Interest Inc/Exp + Non-Op + Tax Provision)
+
+5. **Migrate Growth Revenue page ke live mode** (~30 min)
+   - Wire ke yoyGrowth derivation
+   - Dependencies: IS only
+   - 4-year span (special — first sheet to use historicalYearCount=4 in live mode after BS/IS)
+
+6. **Verify gauntlet + smoke test** (~30 min)
+   - 5 financial pages live mode capable
+   - Filling BS+IS → 4 downstream pages auto-update
+   - Production deploy
+
+### Acceptance Criteria
+- 5 pages live: BS, IS, CFS, FR, NOPLAT, Growth Revenue (4 derived from BS+IS)
+- Each page has empty state when upstream incomplete
+- 133 + new tests still passing
+- Production smoke test verified
+
+### Deliverables
+- 1 new input page (`/input/income-statement`)
+- 4 modified pages (CFS, FR, NOPLAT, Growth Revenue → live mode)
+- ~10 new tests (integration coverage of BS+IS → derived chain)
+
+---
+
+## Session 012 — Remaining Downstream + Fixed Asset
+
+**Estimated**: 3 jam, ~8 commits
+**Scope**: Complete the 9 financial pages live-mode capability, add Fixed Asset input.
+
+### Tasks
+
+1. **`/input/fixed-asset/page.tsx`** (~60 min — most complex input)
+   - Category-based form (6 asset categories × Beginning/Additions/Ending × 3 sub-blocks A/B/C = ~54 fields)
+   - Reuse `<RowInputGrid>` dengan grouped sections
+   - Subtotals auto-computed per sub-block
+   - Net Value section auto-computed (Acquisition Ending − Depreciation Ending)
+
+2. **Migrate FCF page ke live mode** (~30 min)
+   - Wire ke `computeFcf` + `toFcfInput` adapter (already exist)
+   - Dependencies: NOPLAT + Fixed Asset (depreciation + capex via additions/ending)
+   - Pre-signed convention (LESSON-011) handled by adapter
+
+3. **Migrate ROIC page ke live mode** (~30 min)
+   - Wire ke existing ROIC calc
+   - Dependencies: NOPLAT + BS (Total Assets, Excess Cash)
+   - 2020-2021 only (no 2019 — needs prior year capital baseline)
+
+4. **All 9 financial pages live mode complete** — verification
+
+5. **Verify gauntlet + smoke test** (~30 min)
+
+### Acceptance Criteria
+- All 9 financial pages support live mode
+- All 3 input pages (BS, IS, FA) work
+- Filling all 3 inputs → all 9 pages display live user data
+- Production deploy verified
+
+### Deliverables
+- 1 new input page (`/input/fixed-asset`)
+- 2 modified pages (FCF, ROIC → live mode)
+- ~8 new tests
+
+---
+
+## Session 013 — WACC + DCF (First Valuation)
+
+**Estimated**: 3 jam, ~6 commits
+**Scope**: First valuation output. WACC parameters → DCF model → Enterprise Value + Equity Value.
+
+### Tasks
+
+1. **WACC calc engine** (~45 min)
+   - `src/lib/calculations/wacc.ts`:
+     - CAPM model: `Ke = Rf + β × (Rm − Rf)`
+     - WACC = `(E/V × Ke) + (D/V × Kd × (1−T))`
+     - Inputs: Beta, Risk-free Rate, Market Premium, Tax Rate, Equity %, Debt %
+   - 6+ unit tests against fixture (`__tests__/fixtures/wacc.json` or `discount-rate.json` already exists)
+
+2. **WACC input form** (~30 min)
+   - `/valuation/wacc/page.tsx`: 6-input form
+   - Live-display computed Ke + WACC
+   - Auto-save ke `wacc` store slice
+
+3. **DCF calc engine** (~45 min)
+   - `src/lib/calculations/dcf.ts`:
+     - Project FCF over 5 years (or use historical FCF + growth assumption)
+     - Discount each year by `(1 + WACC)^t`
+     - Terminal value via Gordon Growth: `TV = FCF_n × (1+g) / (WACC − g)`
+     - Sum present values → Enterprise Value
+     - Equity Value = EV − Net Debt
+   - 8+ unit tests against fixture (`__tests__/fixtures/dcf.json`)
+
+4. **DCF page** (~30 min)
+   - `/valuation/dcf/page.tsx`: read FCF live + WACC live → display projection table + final values
+   - Empty states untuk dependencies missing
+
+5. **Verify + deploy**
+
+### Acceptance Criteria
+- WACC computed correctly (matches Excel discount-rate fixture)
+- DCF computed correctly (matches Excel dcf fixture)
+- First **share value output** displayed di production
+- 14+ new tests
+
+### Deliverables
+- 2 new calc modules (wacc.ts, dcf.ts)
+- 2 new pages (`/valuation/wacc`, `/valuation/dcf`)
+- New store slices (wacc, possibly dcf for projections)
+
+---
+
+## Session 014 — AAM + EEM + Final Summary
+
+**Estimated**: 3 jam, ~7 commits
+**Scope**: Complete the valuation chain. End-to-end share valuation in production.
+
+### Tasks
+
+1. **AAM calc engine + page** (~60 min)
+   - Adjusted Asset Method: BS adjustments untuk fair value (revalue land, buildings, etc.)
+   - `src/lib/calculations/aam.ts`
+   - `/valuation/aam/page.tsx`: form untuk adjustments + display adjusted equity value
+   - Tests against `__tests__/fixtures/aam.json`
+
+2. **EEM calc engine + page** (~60 min)
+   - Excess Earning Method: AAM + WACC + average earnings
+   - `src/lib/calculations/eem.ts`
+   - `/valuation/eem/page.tsx`
+   - Tests against `__tests__/fixtures/eem.json`
+
+3. **Final Summary Dashboard** (~45 min)
+   - `/dashboard/page.tsx`: aggregate DCF + AAM + EEM → average → apply DLOM discount → apply DLOC premium → final share value
+   - Recharts visualization (bar chart of 3 methods, gauge for final value)
+   - Store integration: read all valuation slices
+
+4. **Verify + deploy + comprehensive end-to-end test**
+
+### Acceptance Criteria
+- Full valuation chain works: HOME → BS/IS/FA inputs → derived sheets → WACC → DCF + AAM + EEM → DLOM/DLOC adjustments → final share value
+- Dashboard displays summary correctly
+- Production deploy verified end-to-end with realistic test case
+- App is fully functional company-agnostic tool
+
+### Deliverables
+- 2 new calc modules (aam.ts, eem.ts)
+- 3 new pages (`/valuation/aam`, `/valuation/eem`, `/dashboard`)
+- Recharts integration (first chart in app)
+- ~15 new tests
+
+---
+
+## Summary Table
+
+| Session | Focus | New Pages | New Calc Modules | Estimated Tests |
+|---|---|---|---|---|
+| **010** | DataSource + BS pilot | 1 (BS input) + SheetPage refactor | 0 (uses existing) | ~20 |
+| **011** | IS + first downstream | 1 (IS input) + 4 migrated | 0 | ~10 |
+| **012** | FA + remaining downstream | 1 (FA input) + 2 migrated | 0 | ~8 |
+| **013** | WACC + DCF | 2 (wacc, dcf) | 2 | ~14 |
+| **014** | AAM + EEM + Dashboard | 3 (aam, eem, dashboard) | 2 | ~15 |
+| **TOTAL** | Phase 3 complete | **8 new + 6 migrated** | **4 new** | **~67 new** |
+
+**Cumulative test count after Phase 3**: 133 (current) + ~67 = **~200 tests**
+**Cumulative live pages after Phase 3**: 11 (current) + 8 = **19 financial + valuation pages**
+
+---
+
+## Critical Constraints (carry-over from Sessions 001-008.6)
+
+- **Privacy-first** (Non-negotiable #2): all computation client-side, no network calls untuk user data
+- **Calc identik dengan Excel** (Non-negotiable #1): every new calc module TDD against fixture @ 12-decimal precision
+- **Manifest is source of truth** (LESSON-019): no sheet-specific code outside manifests, including Phase 3 input forms (forms generated from manifest rows)
+- **Pre-signed convention** (LESSON-011): adapters handle sign-flips, pure calc never sign-flips
+- **DataSource header mode** (Session 008.6): single switching point at `<DataSourceHeader>` derives mode from `home === null` sentinel
+- **Lazy compute** (Decision 4): each downstream page uses `useMemo` from store state, no global reactive graph
+- **Backward compat** (Decision 1): zero changes to `build.ts` / `applyDerivations` / derivation primitives — live mode synthesizes CellMap
+
+---
+
+## Lesson Candidates (already drafted, will be promoted at wrap-up of each session)
+
+- **LESSON-030**: Backward-compatible additions > breaking refactor (synthesize CellMap pattern)
+- **LESSON-031**: Auto-detect mode dari domain state lebih simpel daripada toggles
+- **LESSON-032**: Lazy compute via useMemo per page > global reactive graph
+
+Plus future lessons yang akan emerge per session (input form patterns, paste handler edge cases, dependency resolution gotchas, dll.).
+
+---
+
+## Open Questions for User (to revisit before Session 010)
+
+1. **Default values di input forms**: Empty (user types from scratch) atau pre-filled dari demo (user edits)?
+   - **Recommended**: Empty. User selalu ingin input fresh data, tidak rewrite atas demo.
+
+2. **Year span saat HOME `tahunTransaksi` belum diisi**: Default ke current year? Atau disable input pages until HOME filled?
+   - **Recommended**: Disable input pages dengan friendly message "Lengkapi HOME form dulu (terutama Tahun Transaksi)".
+
+3. **Multi-case management**: Apakah Phase 3 perlu support multiple companies dalam satu localStorage? Atau selalu 1 case at a time?
+   - **Recommended**: 1 case at a time for Phase 3. Multi-case adalah Phase 4 feature.
+
+4. **WACC parameters: hardcode default values atau biarkan user input semua?**
+   - **Recommended**: Hardcode reasonable defaults (e.g. Indonesian risk-free rate ~7%, market premium ~6%, tax rate 22%) tapi tetap fully editable.
+
+Pertanyaan ini akan di-finalize saat Session 010 brainstorm di awal.
