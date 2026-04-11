@@ -3,6 +3,21 @@
  * Mirrors the data shape extracted from kka-penilaian-saham.xlsx.
  */
 
+/**
+ * A time series keyed by calendar year.
+ *
+ *   const revenue: YearKeyedSeries = { 2019: 52_109_888_424, 2020: 59_340_130_084 }
+ *
+ * Preferred over anonymous `number[]` for all analysis-layer data because:
+ *   - Years are explicit data, not positional axes.
+ *   - Cross-sheet merges cannot silently shift due to column offsets
+ *     (the Excel workbook uses different columns for the same year across sheets).
+ *   - Sparse/irregular year sets are expressible without sentinel values.
+ *
+ * Use {@link yearsOf} to enumerate keys in ascending order.
+ */
+export type YearKeyedSeries = Record<number, number>
+
 export type JenisPerusahaan = 'tertutup' | 'terbuka'
 export type ObjekPenilaian = 'saham' | 'bisnis'
 
