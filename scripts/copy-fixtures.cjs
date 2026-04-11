@@ -21,6 +21,7 @@ const SHEETS = [
   'fixed-asset',
   'noplat',
   'growth-revenue',
+  'roic',
 ]
 
 const ROOT = path.resolve(__dirname, '..')

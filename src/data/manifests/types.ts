@@ -131,6 +131,7 @@ export interface SheetManifest {
     | 'fixed-asset'
     | 'noplat'
     | 'growth-revenue'
+    | 'roic'
   /** The full list of years shown in the raw-value columns. */
   years: number[]
   /** Excel column letter per year for the values block. */
