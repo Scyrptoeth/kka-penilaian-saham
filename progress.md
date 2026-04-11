@@ -10,16 +10,20 @@
 | 004 | 2026-04-11 | Phase 2B P1 — UI financial tables + navigation | ✅ Shipped | inline |
 | 005 | 2026-04-11 | Phase 2B.6 — Systematization pass (refactor-only) | ✅ Shipped | inline |
 | 006 | 2026-04-11 | Phase 2B.6.1 — Declarative derive primitives | ✅ Shipped | inline |
+| 007 | 2026-04-11/12 | Phase 2B.5 — Four remaining P1 pages (CF/FA/NOPLAT/Growth) | ✅ Shipped | [session-007](history/session-007-phase2b5-remaining-pages.md) |
 
 ## Current State Snapshot (latest)
 
-- **Branch**: `main` (synced with `origin/main`)
+- **Branch**: `main` (synced with `origin/main` via `fb40612`)
 - **Tests**: 107 / 107 passing across 15 files
-- **Build**: ✅ clean, zero errors, zero warnings, 4 new P1 pages prerendered as static
+- **Build**: ✅ clean, zero errors, zero warnings, **8 financial pages** prerendered as static (out of 13 total routes)
 - **Lint**: ✅ clean
 - **Typecheck**: ✅ `tsc --noEmit` exit 0
-- **Live**: https://kka-penilaian-saham.vercel.app (HTTP 200)
-- **Pipeline proven end-to-end**: `seed fixture → adapter → Zod validator → calc engine → manifest builder → <FinancialTable>` — all 4 P1 pages render real workbook data with formula tooltips.
+- **Live**: https://kka-penilaian-saham.vercel.app (HTTP 200, production deploy `d6dhb2apt` — 25s build, Ready)
+- **Pipeline proven at scale**: system scaled from 4 → 8 pages in Session 007 with zero changes to `build.ts` / `SheetPage.tsx` / `types.ts` primitives and zero new tests. Pure manifest authoring validated — adding sheet #9 onwards will follow the same ~20-min-per-sheet budget.
+- **Live pages (8)**:
+  - Historis: Balance Sheet · Income Statement · **Cash Flow** · **Fixed Asset**
+  - Analisis: Financial Ratio · FCF · **NOPLAT** · **Growth Revenue**
 
 ## Session 1 — 2026-04-11 (Scope C: Full Phase 1)
 
@@ -561,3 +565,125 @@ Reasonably, all 4 Session 2B.5 sheets fit the existing 3-primitive library. If S
 - FCF migration to pipeline mode via `toFcfInput` (Session 3+, adapter already exists)
 - DataSource abstraction (Session 3+, defer until user-input requirement concrete)
 - Projection sheets, WACC/DCF/AAM/EEM, DLOM/DLOC, Recharts, Excel export, dark mode
+
+---
+
+## Session 007 — 2026-04-11/12 (Phase 2B.5: Four Remaining P1 Pages)
+
+### Motivation
+
+Session 006 left 4 P1 sheets unimplemented but with a fully systematized pipeline ready to absorb them: Cash Flow Statement, Fixed Asset Schedule, NOPLAT, and Growth Revenue. Session 007 tests the hypothesis that these 4 sheets can be shipped as **pure manifest authoring** — zero new components, zero new helpers in `build.ts`, zero new tests.
+
+### Delivered — 7 commits, 1 per atomic task + plan snapshot
+
+**Commit 1 — `chore: sync noplat + growth-revenue fixtures and extend SheetSlug`** (`c741811`)
+- `scripts/copy-fixtures.cjs`: +2 slugs (noplat, growth-revenue)
+- `node scripts/copy-fixtures.cjs`: 8/8 copied
+- `src/data/seed/loader.ts`: +2 imports + `SheetSlug` union + `FIXTURES` map
+- `src/data/manifests/types.ts`: `SheetManifest.slug` union extended
+
+**Commit 2 — `feat: add Cash Flow Statement page`** (`d8e1355`)
+- `src/data/manifests/cash-flow-statement.ts` (178 lines) — 3-year C/D/E layout, no derivations (LESSON-023), typo corrections, formula descriptions per row
+- `src/app/historical/cash-flow/page.tsx` — 11 lines
+
+**Commit 3 — `feat: add Fixed Asset Schedule page`** (`6b8e66b`)
+- `src/data/manifests/fixed-asset.ts` (153 lines) — A Acquisition + B Depreciation + C Net Value, local `categoryRows` helper (LESSON-025)
+- `src/app/historical/fixed-asset/page.tsx` — 11 lines
+
+**Commit 4 — `feat: add NOPLAT page`** (`0ed612c`)
+- `src/data/manifests/noplat.ts` (146 lines) — EBIT chain + Tax block + NOPLAT total, `yoyGrowth` derivation, no `growthColumns` (workbook has no pre-computed growth)
+- `src/app/analysis/noplat/page.tsx` — 11 lines
+
+**Commit 5 — `feat: add Growth Revenue page`** (`0529e89`)
+- `src/data/manifests/growth-revenue.ts` (75 lines) — **first 4-year manifest** starting from **column B** (LESSON-024), `yoyGrowth` derivation + `growthColumns: H/I/J` for tooltip fidelity
+- `src/app/analysis/growth-revenue/page.tsx` — 11 lines
+
+**Commit 6 — `chore: activate 4 new pages in navigation`** (`f547c62`)
+- `src/components/layout/nav-tree.ts`: removed `wip: true` from Cash Flow, Fixed Asset, NOPLAT, Growth Revenue. All other `wip` entries (ROIC, DLOM, DLOC, projections, valuations, dashboard) preserved.
+
+**Commit 7 — `docs: session 007 plan snapshot for wrap-up`** (`fb40612`)
+- `plan.md` rewritten end-of-session with pre-flight fixture analysis, per-sheet derivation decisions, final verification evidence.
+
+### Verification Results
+
+```
+Tests:     107 / 107 passing (15 files) — zero new tests (builder/primitives untouched)
+Build:     ✅ 13 routes, 8 static financial pages (up from 4), zero errors
+Typecheck: ✅ tsc --noEmit clean
+Lint:      ✅ zero warnings
+Smoke:     ✅ All 4 new pages return HTTP 200 with real numeric data:
+           - Cash Flow: EBITDA 6.048.346.987 → 7.493.446.732 (C5→E5)
+           - Fixed Asset: Acquisition Costs + TOTAL NET FIXED ASSETS markers
+           - NOPLAT: PBT 5.874.471.249 (C7), NOPLAT 4.405.853.437 → 5.720.109.965 (C19→E19)
+           - Growth Revenue: Penjualan 52.109.888.424, 59.340.130.084 (C8, D8)
+Vercel:    ✅ Production deploy d6dhb2apt Ready in 25s → kka-penilaian-saham.vercel.app (HTTP 200)
+```
+
+### Session 007 Stats
+
+- Commits: 7 atomic (6 planned + 1 bonus plan.md snapshot)
+- Files added: 9 (4 manifests + 4 pages + 2 fixture JSONs)
+- Files modified: 4 (copy-fixtures.cjs, loader.ts, types.ts, nav-tree.ts) + plan.md
+- Net delta: +2487 / −95 lines (most bulk from growth-revenue.json fixture)
+- New `build.ts` functions: 0
+- New primitives in `types.ts`: 0
+- New tests: 0 — existing 107 tests continue to cover the pipeline end-to-end
+
+### Architecture After 2B.5
+
+System now renders **8 financial sheets** via the same pipeline:
+
+```
+ ┌────────────────────────────────────────────────────────────────┐
+ │  kka-penilaian-saham.xlsx  (single source of truth)            │
+ └──────────────────────┬─────────────────────────────────────────┘
+                        │  scripts/extract-fixtures.py (openpyxl dual-pass)
+                        ▼
+ ┌────────────────────────────────────────────────────────────────┐
+ │  __tests__/fixtures/*.json  (34 sheets, 12-decimal ground truth) │
+ └──────────────────────┬─────────────────────────────────────────┘
+                        │  scripts/copy-fixtures.cjs (seed:sync)
+                        ▼
+ ┌────────────────────────────────────────────────────────────────┐
+ │  src/data/seed/fixtures/*.json  (8 bundled by Next at build time) │
+ └──────────────────────┬─────────────────────────────────────────┘
+                        │  src/data/seed/loader.ts (CellMap cache)
+                        ▼
+ ┌────────────────────────────────────────────────────────────────┐
+ │  src/data/manifests/*.ts  (8 manifests = pure data)             │
+ │  ├─ columns (Record<year, Excel col letter>)                    │
+ │  ├─ derivations (DerivationSpec[] — optional)                   │
+ │  ├─ rows (ManifestRow[] — Excel rows + labels + formula desc)   │
+ │  └─ disclaimer                                                  │
+ └──────────────────────┬─────────────────────────────────────────┘
+                        │  src/data/manifests/build.ts
+                        │    ├─ applyDerivations(specs, manifest, cells)
+                        │    ├─ buildRowsFromManifest(manifest, cells)
+                        │    └─ buildOne (per row: values + derived + formula)
+                        ▼
+ ┌────────────────────────────────────────────────────────────────┐
+ │  FinancialRow[] (rendered data)                                 │
+ └──────────────────────┬─────────────────────────────────────────┘
+                        │  src/components/financial/SheetPage.tsx (Server Component)
+                        ▼
+ ┌────────────────────────────────────────────────────────────────┐
+ │  <FinancialTable> + <FormulaTooltip>                            │
+ │  → static prerender → HTML                                      │
+ └────────────────────────────────────────────────────────────────┘
+```
+
+Every box except the top (Python extraction) and bottom (static HTML) is validated by the 107 tests. The 8 live pages are the empirical proof that the flow works end-to-end with real workbook data.
+
+### Next Session — 008 Priorities
+
+**Proposed scope: ROIC page + DLOM questionnaire form**
+
+1. **`/analysis/roic`** — last remaining pure-manifest P2 analysis sheet. Pure warm-up (≤30 min authoring). Uses NOPLAT + Invested Capital. Ship as seed-mode initially, wire through calc engine in Phase 3.
+
+2. **`/analysis/dlom`** — Discount for Lack of Marketability 12-factor weighted questionnaire. **First form UI in months** — exercises input-form component (client component), Zod schema, live weighted-sum output, accessible form primitives. This is the natural on-ramp to input-mode work without also introducing projection complexity.
+
+### Deferred (rolls over from Session 006, reprioritized)
+
+- **Phase 3 (blocking for all projections)**: KEY DRIVERS input form (COGS ratio, expense ratios, tax rate) — unlocks PROY L/R → PROY BS → PROY CF → PROY NOPLAT chain.
+- **Phase 3 (incremental hardening)**: `toRatiosInput` adapter + FR calc-engine wiring, FCF migration to pipeline mode via `toFcfInput` (adapter already exists), DataSource abstraction.
+- **Phase 4 (valuation)**: WACC (CAPM with Beta/Ke/Kd) → DCF (FCFF), AAM + EEM, DLOC (PFC) form, Recharts dashboard, ExcelJS export, dark mode toggle.

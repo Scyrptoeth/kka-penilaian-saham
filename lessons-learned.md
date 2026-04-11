@@ -487,6 +487,11 @@ untuk 3+ sesi ke depan:
 - LESSON-019 (Manifest owns sheet-specific knobs — no hardcoded constants in page files)
 - LESSON-021 (Declarative DerivationSpec > callback functions)
 
+### Session 007 (Phase 2B.5 remaining pages)
+- LESSON-023 (CF sheets skip yoyGrowth — line items cross zero)
+- LESSON-024 (manifest.columns map is fully year-agnostic — any column, any year count)
+- LESSON-025 (tactical DRY helpers live inside the manifest file — never in build.ts)
+
 LESSON-014, 015, 017, 020, 022 **TIDAK** di-promote — workflow/architecture
 insights yang general ke project lain tapi terlalu luas untuk section 8
 (yang fokus KKA-specific gotchas). Tersimpan di lessons-learned saja.
@@ -687,3 +692,91 @@ Every primitive reuses existing helpers (`ratioOfBase`, `yoyChangeSafe`). Zero d
 
 **Proven at**: session-006 (2026-04-11, declarative derive refactor before Session 2B.5)
 
+
+---
+
+## Session 007 — Phase 2B.5 (Four Remaining P1 Pages)
+
+### LESSON-023: Cash-flow sheets skip `yoyGrowth` — line items cross zero
+
+**Kategori**: Design | Excel | Anti-pattern
+**Sesi**: session-007
+**Tanggal**: 2026-04-11
+
+**Konteks**: Saat authoring Cash Flow Statement manifest di Session 007 Phase 2B.5. Pertimbangan awal: tambahkan `derivations: [{type: 'yoyGrowth'}]` seperti Balance Sheet dan Income Statement karena "semua historical sheet butuh growth kolom".
+
+**Apa yang terjadi**: Sebelum menulis manifest, inspect fixture data: EBITDA row swings positive year-over-year (normal), tapi Corporate Tax, Working Capital changes, Non-Operating CF, Net Cash Flow semua **routinely cross zero**. YoY growth formula `(current − prior) / prior` menjadi unstable saat prior ≈ 0 (IFERROR → 0 masks the problem tapi rendered "0%" di kolom bikin misleading), dan semantik growth pada flow item yang berubah tanda adalah tidak bermakna ("Cash Flow 2020 grew 800% from 2019" ketika 2019 = Rp 100k dan 2020 = Rp 900k adalah artifact, bukan insight).
+
+**Root cause / insight**: **Flow statements** (sheets yang merekam **changes** atau **delta**) punya sifat fundamentally berbeda dari **stock sheets** (sheets yang merekam **position** atau **level**). Flow items can and routinely do cross zero — the meaningful metric is the absolute magnitude and sign, not the percentage change. YoY growth and common-size derivations were designed for stock sheets (BS) and rate-of-return sheets (IS margin) — applying them to flow sheets produces noise that degrades interpretability.
+
+**Cara menerapkan di masa depan**:
+1. Before adding `derivations` to a new manifest, ask: **is this a flow statement or a stock statement?**
+2. Flow statements (CF variants, Changes in WC, Movements, Additions/Deletions schedules) → **no derivations**. Raw values only. Subtotals/totals get visual emphasis via `type: 'subtotal'` / `type: 'total'` instead.
+3. Stock/position statements (BS, FR ratios, inventory levels) → `commonSize` is meaningful if there's a natural denominator.
+4. Rate statements (IS, margin schedules) → `marginVsAnchor` against revenue/base.
+5. Growth schedules (like Growth Revenue) → `yoyGrowth` is literally the purpose; use `growthColumns` for tooltip fidelity against pre-computed Excel growth cells.
+6. Mixed sheets (e.g. Fixed Asset Schedule = roll-forward position): derivations typically not useful because year-to-year asset cost is often static by design; leave derivations off, rely on `type: 'subtotal'` for visual hierarchy.
+
+**Anti-pattern**: Adding `yoyGrowth` to every sheet "just in case" produces columns full of 0%, NaN-masked-to-zero, or exploding percentages around sign flips. Derivation choice is a semantic decision, not a styling default.
+
+**Proven at**: session-007 (2026-04-11), `src/data/manifests/cash-flow-statement.ts` and `src/data/manifests/fixed-asset.ts` both intentionally omit the `derivations` key. Cash-flow renders clean raw values at 2019-2021; rendering YoY growth would have shown explosive percentages on Working Capital and Non-Op lines.
+
+---
+
+### LESSON-024: `manifest.columns` map is fully year-agnostic — any column letter, any year count
+
+**Kategori**: Framework | Testing
+**Sesi**: session-007
+**Tanggal**: 2026-04-11
+
+**Konteks**: Growth Revenue sheet adalah sheet pertama di project yang (a) cover 4 tahun (2018-2021) dan (b) values start dari **column B**, bukan C. Sheet-sheet sebelumnya konsisten: BS/IS pakai 4 tahun C/D/E/F, CFS/FA/NOPLAT pakai 3 tahun C/D/E.
+
+**Apa yang terjadi**: Saat author `growth-revenue.ts` manifest dengan `columns: { 2018: 'B', 2019: 'C', 2020: 'D', 2021: 'E' }`, pipeline existing (`buildRowsFromManifest` + `applyDerivations` + `yoyGrowth` primitive + `SheetPage`) handle tanpa modifikasi kode sama sekali. Verified:
+- Values render benar (Penjualan 2019 = `52.109.888.424` matches IS!D6)
+- YoY growth computed via primitive matches workbook's pre-computed cells H/I/J exactly
+- Build produces `/analysis/growth-revenue` sebagai static route
+
+**Root cause / insight**: Design invariant yang dipegang oleh pipeline dari Session 2B.6 onwards: **manifest.columns is the single source of truth for the year ↔ Excel column mapping**, dan semua kode downstream derive year axis dari `manifest.years` (untuk urutan) lalu lookup column letter via `manifest.columns[year]`. Tidak ada kode yang pernah assume "values start at column C" atau "sheets have 3 years" atau "growth skips column[0]". Algoritma `computeGrowthSeries` iterates `for (let i = 1; i < manifest.years.length; i++)` — length-generic. Algoritma `readRowSeries` iterates `for (const year of manifest.years)` and looks up `manifest.columns[year]` — column-letter-agnostic.
+
+**Cara menerapkan di masa depan**:
+1. Saat menambah manifest untuk sheet dengan year span atau column offset berbeda dari convention existing, **cukup deklarasikan `columns: Record<number, string>` dengan mapping yang akurat**. Zero code changes in `build.ts`, `types.ts`, `SheetPage.tsx`, or tests.
+2. Asumsi yang bisa dipegang: (a) `manifest.years` urutan ascending, (b) length ≥ 2 untuk derivasi growth, (c) setiap year punya entry di `manifest.columns`. Tidak ada asumsi lain.
+3. Ini **mem-validasi** desain LESSON-019 ("manifest is source of truth") dan LESSON-021 ("declarative spec > callback") — satu sheet dengan convention tidak biasa cukup di-absorb oleh pipeline tanpa patch.
+4. Kalau suatu saat butuh derivation yang assume "column letter literal" (e.g. hardcoded `C` untuk base year), itu tanda desain perlu di-review — jangan hack di manifest, fix di primitive.
+5. Test yang menyentuh year-column mapping (seperti `__tests__/lib/calculations/*.test.ts`) juga harus pakai `Record<number, string>` year→column map, bukan hardcode column letters — dan memang sudah begitu di test suite existing (lihat LESSON-013).
+
+**Proven at**: session-007 (2026-04-11), `src/data/manifests/growth-revenue.ts` — first manifest ever to start from column B and cover 4 years. Pipeline handled it with zero modifications.
+
+---
+
+### LESSON-025: Tactical DRY helpers live inside the manifest file — never promote to `build.ts`
+
+**Kategori**: Workflow | Design | Anti-pattern
+**Sesi**: session-007
+**Tanggal**: 2026-04-11
+
+**Konteks**: Fixed Asset Schedule punya 6 asset categories × 9 sub-blocks (3 × 6 Acquisition + 3 × 6 Depreciation + 1 × 6 Net Value) = 54 near-identical `ManifestRow` rows. Menulis semuanya by hand = 54 object literals dengan pattern yang identik kecuali `excelRow` dan `label`.
+
+**Apa yang terjadi**: Alternatif yang dipilih adalah tiny local helper function `categoryRows(startRow, labels)` di dalam `src/data/manifests/fixed-asset.ts` yang return `ManifestRow[]` dengan indent 1. Helper ini:
+- **Tidak di-export** dari manifest file
+- **Tidak ditambahkan** ke `build.ts`, `types.ts`, atau primitive library
+- **Tidak di-generalize** lebih dari yang butuh Fixed Asset
+- **Pure data function** — hanya shape `ManifestRow[]`, tidak read cells, tidak compute, tidak format
+
+Hasilnya: manifest turun dari ~200 baris (hand-written) ke ~153 baris, self-contained, pattern tetap pure data.
+
+**Root cause / insight**: LESSON-019 menyatakan "manifest is source of truth, zero sheet-specific code outside manifests". Tapi ada ambiguitas: apakah helper function di dalam manifest file adalah "code outside manifest"? Jawaban yang benar adalah **tidak** — file `src/data/manifests/fixed-asset.ts` **adalah** manifest Fixed Asset, dan helper scoped ke file itu adalah bagian dari manifest authoring, bukan framework code.
+
+Rule definisinya: **framework code** adalah kode yang multiple manifests consume (via import dari `build.ts`/`types.ts`). **Manifest code** adalah kode yang satu manifest consume privately. Helper `categoryRows` adalah manifest code karena hanya Fixed Asset yang consume it.
+
+**Cara menerapkan di masa depan**:
+1. **DO**: Kalau satu manifest punya repeating pattern ≥ 6 instances, define local helper function inside the manifest file. Helper returns `ManifestRow[]`, tidak exported, tidak memoized, tidak generalized.
+2. **DO**: Helper boleh pakai template literals untuk generate labels/formula descriptions jika pattern memang literal (e.g. `formula.values: \`=C${26+i} − C${54+i}\``).
+3. **DON'T**: Jangan promote helper ke `build.ts` kecuali 2+ manifest benar-benar perlu helper yang sama. Premature abstraction lebih mahal daripada duplication di tingkat file.
+4. **DON'T**: Jangan extract helper ke file `manifest-helpers.ts` atau sejenisnya. Satu manifest file = satu unit, self-contained.
+5. **DON'T**: Helper jangan punya side-effects, jangan read `CellMap`, jangan compute derivation. Itu tanggung jawab `build.ts` + primitive library.
+6. **Test**: Smell test sebelum promote — "Apakah manifest kedua yang akan pakai helper ini sudah konkret?" Kalau tidak, keep local. Rule-of-three berlaku untuk abstraction, bukan rule-of-two.
+
+**Anti-pattern**: Mengekstrak `categoryRows` ke `src/data/manifests/helpers.ts` "for reusability" ketika tidak ada manifest kedua yang akan pakai. Ini bikin file helper tumbuh jadi junk drawer, dan manifest file kehilangan self-containedness.
+
+**Proven at**: session-007 (2026-04-11), `src/data/manifests/fixed-asset.ts` — 6-line local helper collapses 54 rows ke 9 calls, tetap scoped ke file, manifest tetap "data-only" dari perspektif build pipeline.
