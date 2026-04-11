@@ -1,5 +1,24 @@
 # Progress — KKA Penilaian Saham
 
+## Index
+
+| # | Session | Topic | Status | History |
+|---|---|---|---|---|
+| 001 | 2026-04-11 | Scaffold + Foundation (Phase 1) | ✅ Shipped | [session-001](history/session-001-scaffold-foundation.md) |
+| 002 | 2026-04-11 | Phase 2A — 6 calc engines | ✅ Shipped | [session-002](history/session-002-phase2-calc-engines.md) |
+| 003 | 2026-04-11 | Phase 2A.5 — Harden calc engine (YearKeyedSeries + Zod + adapters) | ✅ Shipped | [session-003](history/session-003-harden-calc-engine.md) |
+| 004 | — | Phase 2B — UI layer (FinancialTable + historical/analysis pages) | 📋 Planned | — |
+
+## Current State Snapshot (latest)
+
+- **Branch**: `main` (synced with `origin/main`)
+- **Tests**: 90 / 90 passing across 13 files
+- **Build**: ✅ clean, zero errors, zero warnings
+- **Lint**: ✅ clean
+- **Typecheck**: ✅ `tsc --noEmit` exit 0
+- **Live**: https://kka-penilaian-saham.vercel.app (HTTP 200)
+- **Pipeline proven end-to-end**: `raw data → adapter → Zod validator → pure calc → result` (integration test green)
+
 ## Session 1 — 2026-04-11 (Scope C: Full Phase 1)
 
 ### Delivered

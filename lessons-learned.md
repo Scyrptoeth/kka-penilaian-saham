@@ -313,12 +313,156 @@ Lebih parah: untuk row lain (contoh Gross Profit row 8), formula `H8 = D8/D$6` y
 
 ---
 
+## Session 002 — 2026-04-11 (Phase 2A Calc Engines)
+
+### LESSON-011: Excel "pre-signed" sign convention harus di-isolate di adapter layer
+
+**Kategori**: Excel | Anti-pattern | Workflow
+**Sesi**: session-002 (observed), session-003 (fixed)
+**Tanggal**: 2026-04-11
+
+**Konteks**: Saat implementasi `fcf.ts` dan `cash-flow.ts`. FCF sheet row 8 ("Add: Depreciation") punya formula `='FIXED ASSET'!C51*-1` — artinya nilai depresiasi dari FA (positif) di-negate menjadi negatif di FCF, lalu di-SUM dengan NOPLAT untuk menghasilkan Gross Cash Flow. Similarly row 16 capex: `='FIXED ASSET'!C23*-1`.
+
+**Apa yang terjadi**: Implementasi pertama di `computeFcf()` harus menerima `depreciationAddback` sebagai *already-negative* value. Jika caller lupa negate sebelum call, hasil diam-diam salah. JSDoc menyebut "pre-signed convention" tapi tidak ada compile-time atau test-time guard. Future developer (human atau AI) yang membaca code tanpa konteks akan salah menebak "ini butuh positif atau negatif?".
+
+**Root cause / insight**: Sign convention yang implicit di function signature adalah technical debt terselubung. Sama seperti "magic string" atau "magic number", "magic sign" membuat pure function terlihat simple tapi membawa asumsi tak tertulis. Calc function harus tetap pure DAN transparent — sign handling adalah concern yang HARUS hidup di satu tempat per modul.
+
+**Cara menerapkan di masa depan**:
+1. Setiap kali modul calc mirror sebuah Excel sheet yang pakai `*-1` dalam formulanya, **buat adapter function** di `src/lib/adapters/` bernama `to<Module>Input(raw)` yang:
+   - Menerima data positif/natural (sesuai struktur store UI)
+   - Apply sign transformations di sini
+   - Return shape yang sesuai `<Module>Input` interface
+2. JSDoc adapter WAJIB cite formula Excel yang memotivasi flip (cth: "FCF row 8 = FIXED ASSET!C51*-1")
+3. Calc function tetap pure, terima signed input, tidak punya knowledge tentang Excel conventions
+4. Pattern flow: `raw store data → adapter (sign flip) → validator → pure calc → output`
+5. Kalau sign flip terjadi >1 tempat, refactor ke adapter SEGERA. Technical debt yang menular lebih mahal dari refactor pencegahan.
+
+**Proven at**: session-003 (2026-04-11). `src/lib/adapters/fcf-adapter.ts` + `cash-flow-adapter.ts` + `noplat-adapter.ts` centralize semua `*-1` dengan JSDoc citing source formula. Integration test `calc-pipeline.test.ts` asserts adapter-fed pipeline matches raw fixture values at 12-decimal precision.
+
+---
+
+### LESSON-012: `YearKeyedSeries = Record<number, number>` > positional `number[]` untuk data finansial multi-sheet
+
+**Kategori**: TypeScript | Design | Anti-pattern
+**Sesi**: session-002 (observed), session-003 (fixed)
+**Tanggal**: 2026-04-11
+
+**Konteks**: Saat implementasi 6 Phase 2A calc modules, setiap input/output adalah `readonly number[]` dimana index 0 = tahun pertama, index 1 = tahun kedua, dst. Berbeda sheet bisa punya jumlah tahun berbeda (BS/IS 4 tahun, FA/NOPLAT 3 tahun).
+
+**Apa yang terjadi**: Setelah 6 modul selesai, review arsitektur menemukan 3 rough edges. Salah satunya: caller UI harus tahu bahwa `bs[0]` = 2018 tapi `fcf[0]` = 2019 (karena FCF pertama kali terhitung satu tahun setelah BS). Mismapping satu offset diam-diam mengkorupsi semua ratio downstream. TypeScript type system tidak bisa menangkap positional index mismatches.
+
+**Root cause / insight**: Array positional index adalah ENCODING dari "tahun". Encoding implicit yang harus di-decode di setiap callsite. Lebih buruk: encoding-nya BERBEDA per sheet (BS/IS col D=2019, CFS/FCF col C=2019). `number[]` memaksa setiap caller menjadi "translator" antar konvensi, dan translator yang salah = bug yang tidak menggugurkan test tapi menghasilkan angka salah di production.
+
+**Cara menerapkan di masa depan**:
+1. Data finansial yang hidup di >1 sheet atau yang year-span-nya bisa bervariasi WAJIB pakai `YearKeyedSeries = Record<number, number>` dari `src/types/financial.ts`
+2. Iterate via `yearsOf(series)` (ascending sorted) alih-alih `for (let i = 0; i < N; i++)`
+3. Cross-field consistency check via `assertSameYears(label, anchor, other)` — anchor = primary input, others must match exactly
+4. Hanya pakai `number[]` untuk data yang jelas-jelas single-axis dan non-financial (misal `[weights]` untuk regression coefficients, `[pixels]` untuk chart)
+5. Untuk interop dengan library yang butuh dense array, gunakan `seriesToArray(series)` — tapi keep internal representation year-keyed
+6. Zustand store untuk historical data juga pakai year-keyed, bukan positional array. UI code bicara dalam year (`data[2020]`) bukan index (`data[1]`)
+7. **Anti-pattern**: Jangan pakai `YearlySeries {y0, y1, y2, y3}` untuk modul baru. Interface itu hanya cocok untuk sheet yang PASTI 4 tahun (BS/IS Phase 1). Modul analysis layer gunakan `YearKeyedSeries`.
+
+**Proven at**: session-003 (2026-04-11). 6 modules refactored, 7 year-set guard tests added, zero positional-index bugs possible. Integration test proves BS/IS (col D/E/F) and CFS/FCF (col C/D/E) merge correctly via year-key, no offset mistakes possible at compile time.
+
+---
+
+### LESSON-013: Cross-sheet column offset adalah silent landmine — selalu pakai per-sheet column map di test helper
+
+**Kategori**: Excel | Testing
+**Sesi**: session-002
+**Tanggal**: 2026-04-11
+
+**Konteks**: Menulis test untuk `ratios.ts` yang konsumsi data dari 4 sheet berbeda: Balance Sheet, Income Statement, Cash Flow Statement, FCF. Satu test melakukan `num(balanceSheetCells, 'D8')` dan `num(cashFlowStatementCells, 'D8')` — mengharapkan keduanya mewakili year yang sama.
+
+**Apa yang terjadi**: Ternyata BS dan IS pakai cols D/E/F untuk tahun 2019/2020/2021 (4 tahun total dengan C = 2018 sebagai baseline). Tapi Cash Flow Statement dan FCF pakai cols C/D/E untuk tahun 2019/2020/2021 (hanya 3 tahun karena CFS pertama kali dihitung di 2019). Satu pergeseran kolom = satu tahun pergeseran = 100% salah tapi angka masih plausible di mata manusia.
+
+**Root cause / insight**: Workbook author reset kolom per sheet untuk meng-compress layout. Sheet dengan 4 tahun history mulai di C; sheet yang derive dari sheet lain dan hanya punya 3 tahun mulai di C juga (bukan D). Hasilnya: col C di satu sheet ≠ col C di sheet lain. Tidak ada warning header. Eye test tidak akan menangkap ini karena angka-angka masih "masuk akal".
+
+**Cara menerapkan di masa depan**:
+1. Saat menulis test yang cross-reference multi-sheet, definisikan **per-sheet column map** sebagai konstanta di top of test file:
+   ```ts
+   const BS_IS_COL: Record<number, string> = { 2019: 'D', 2020: 'E', 2021: 'F' }
+   const CFS_FCF_COL: Record<number, string> = { 2019: 'C', 2020: 'D', 2021: 'E' }
+   ```
+2. Jangan pernah hardcode `'C'`, `'D'`, dll. di assertion — selalu lookup via `COLMAP[year]`
+3. Pakai `YearKeyedSeries` di kalkulasi (LESSON-012) sehingga setelah data masuk ke calc function, offset bukan lagi masalah
+4. Saat extract data baru dari fixture, check dulu row 4 atau 5 untuk year headers — jangan asumsi col C = tahun pertama
+5. Kalau ada kecurigaan offset, run `python3 extract-fixtures.py` output dan grep year headers (`B5`, `C5`, `D5`, dst) per sheet
+6. Dokumentasikan offset di JSDoc module, cth: `// CFS uses C/D/E for the same 3 years that BS uses D/E/F`
+
+**Proven at**: session-002 (2026-04-11). Ratio test awal salah karena offset tidak disadari; refactor ke column map pattern + documented offset. Session-003 refactor ke YearKeyedSeries menghilangkan offset sebagai concern di layer kalkulasi — yang tersisa hanya di test fixture loader.
+
+---
+
+### LESSON-014: Zod validation di boundary antara store/UI dan pure calc — JANGAN di dalam pure function
+
+**Kategori**: TypeScript | Workflow
+**Sesi**: session-003
+**Tanggal**: 2026-04-11
+
+**Konteks**: Saat menambah Zod validation layer di Session 2A.5, muncul pilihan: (a) panggil schema `.parse()` di awal setiap calc function, atau (b) buat wrapper terpisah `validated*` di layer atas yang validate lalu panggil pure function.
+
+**Apa yang terjadi**: Jika validation di dalam pure function, function tidak lagi pure — ada runtime dependency on Zod, bundle size meningkat, error handling mencampur 2 concerns (validation + calculation), dan callers yang sudah yakin input bersih (test fixtures, internal composition) terpaksa ikut bayar cost Zod.
+
+**Root cause / insight**: Separation of concerns: pure calc function = math. Validation = boundary contract. Keduanya hidup di layer berbeda dengan audience berbeda:
+- **Pure calc**: dipanggil oleh adapter layer (trusted), integration test (trusted), dan `validated*` wrapper (trusted after validation). Tidak perlu re-validate.
+- **Boundary wrapper**: dipanggil oleh UI/store (untrusted). Harus validate setiap input termasuk cross-field constraints.
+
+Layering ini sesuai dengan Hexagonal Architecture / Ports-and-Adapters principle: core domain (calc) bebas dari infrastructure concerns (validation, I/O, serialization).
+
+**Cara menerapkan di masa depan**:
+1. Struktur folder:
+   ```
+   src/lib/calculations/   # pure, no Zod dependency
+   src/lib/validation/     # Zod schemas + validated* wrappers
+   src/lib/adapters/       # sign-convention + reshape
+   ```
+2. Pure calc function tetap punya runtime guards SEPERLUNYA (`assertSameYears`, length checks) — itu defensive programming di dalam trusted zone, bukan boundary validation
+3. Zod `safeParse` di wrapper function, throw `ValidationError` (custom class) dengan path-aware message
+4. UI / Server Action / Route Handler memanggil `validated*`, bukan calc function langsung. Internal composition (cth adapter feeding calc) boleh panggil calc directly karena input sudah ter-shape
+5. Test split: unit test pure calc dengan data bersih, separate test Zod layer dengan edge cases (NaN, Infinity, mismatch, empty)
+6. **Anti-pattern**: Jangan pakai `z.parse()` di test fixtures — test pakai typed constructors langsung
+
+**Proven at**: session-003 (2026-04-11). `src/lib/validation/` punya 6 wrapper functions. Pure calc tidak import dari `zod`. Integration test `calc-pipeline.test.ts` menunjukkan flow UI-bound: `raw → toFcfInput → validatedFcf → result`. 15 validation tests assert NaN/Infinity/empty/mismatch rejection tanpa sentuh pure calc.
+
+---
+
+### LESSON-015: Architectural harden-before-UI prevents debug graveyards di UI layer
+
+**Kategori**: Workflow | Anti-pattern
+**Sesi**: session-003
+**Tanggal**: 2026-04-11
+
+**Konteks**: Setelah Session 002 (Phase 2A) selesai dengan 47 tests hijau dan deploy sukses, user bertanya: "Apakah semua pengembangan adalah system development, bukan patching atau manual?". Jawaban jujur mengidentifikasi 3 rough edges: column offset burden, no boundary validation, implicit sign convention. Ada pilihan: lanjut ke Session 2B (UI) dan fix saat muncul, atau insert Session 2A.5 untuk hardening dulu.
+
+**Apa yang terjadi**: Pilih opsi hardening — Session 2A.5 = 10 tasks, 43 tests baru, 3 layer baru (types, validation, adapters). Hasilnya Session 2B bisa dibangun di atas pipeline yang sudah integration-tested: `raw → adapter → validator → calc`. Tanpa hardening, UI code akan jadi tempat di mana 3 bugs architectural berakumulasi — debugging UI visual regression + calc bug + validation bug secara bersamaan sangat mahal.
+
+**Root cause / insight**: Rough edges di layer bawah secara eksponensial lebih mahal saat merambat ke layer atas. Satu sign convention bug di FCF layer, ketika UI mulai render 8 halaman yang consume FCF, akan muncul sebagai 8 visual bug yang "looks weird" tanpa jelas root cause-nya. Technical debt di core = debugging nightmare di UI.
+
+Prinsip: **harden core before adding consumers**. Mirip dengan "test boundary before middle", "stabilize API before client code", "seed data before UI queries".
+
+**Cara menerapkan di masa depan**:
+1. Setelah menyelesaikan layer foundation (kalkulasi, API, data model), jalankan **architectural review** SEBELUM membangun consumer layer:
+   - "Apakah consumer bisa salah pakai ini dengan cara yang tidak terdeteksi compile-time?"
+   - "Ada berapa implicit convention yang harus consumer tahu?"
+   - "Apakah boundary saya bersih?"
+2. Kalau ada >1 rough edge, schedule mini-session hardening (disebut "Session NA.5" atau "phase NA.5") sebelum consumer session
+3. Hardening session harus produce: (a) tighter types yang mencegah salah pakai, (b) validation layer yang reject input tidak valid, (c) adapter/translator untuk menyembunyikan implicit conventions
+4. Budget hardening sebagai ROI vs probabilitas bug di consumer session: `cost = hardening_time; benefit = (bug_count * bug_debug_time)`. Biasanya ratio 1:5 atau lebih baik
+5. User yang bertanya "apakah ini system development?" adalah signal yang valuable — jawab jujur, tunjukkan rough edges yang kamu sendiri temukan, dan propose hardening session
+6. **Anti-pattern**: Merasionalisasi rough edges dengan "kita akan handle di UI layer" — UI layer punya concerns sendiri (state, rendering, accessibility, responsive), tidak boleh jadi tempat fix arsitektur
+
+**Proven at**: session-003 (2026-04-11). 10 task hardening menambah 43 tests, 0 UI code, tapi integration test membuktikan pipeline bekerja end-to-end. Session 2B (belum dilakukan) dapat mengkonsumsi validator+adapter tanpa re-derivasi convention.
+
+---
+
 ## Threshold untuk Promote ke `/start-kka-penilaian-saham`
 
 Lesson berikut sudah di-promote ke section 8 "Tech Stack Gotchas" di
 `~/.claude/skills/start-kka-penilaian-saham/SKILL.md` karena relevan
 untuk 3+ sesi ke depan:
 
+### Session 001 (foundation)
 - LESSON-001 (Next 16 breaking changes)
 - LESSON-002 (Tailwind v4 `@theme`)
 - LESSON-003 (ExcelJS vs SheetJS)
@@ -330,6 +474,12 @@ untuk 3+ sesi ke depan:
 - LESSON-009 (openpyxl dual-pass)
 - LESSON-010 (Excel label misleading)
 
-Semua 10 lesson dari session-001 di-promote karena mereka semua adalah
-stack-level gotchas yang akan berulang di sesi-sesi calculation module
-berikutnya.
+### Session 002 & 003 (Phase 2A + hardening)
+- LESSON-011 (Pre-signed convention → adapter layer)
+- LESSON-012 (YearKeyedSeries > number[])
+- LESSON-013 (Cross-sheet column offset landmine)
+
+LESSON-014 (Zod boundary placement) dan LESSON-015 (harden-before-UI)
+**TIDAK** di-promote — keduanya adalah workflow/architecture insights
+yang akan relevan di project lain tapi terlalu general untuk section 8
+(yang fokus ke KKA-specific gotchas). Simpan di lessons-learned saja.
