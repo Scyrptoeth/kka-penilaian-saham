@@ -25,8 +25,8 @@ export const NAV_TREE: NavGroup[] = [
     items: [
       { label: 'Balance Sheet', href: '/historical/balance-sheet' },
       { label: 'Income Statement', href: '/historical/income-statement' },
-      { label: 'Cash Flow', href: '/historical/cash-flow', wip: true },
-      { label: 'Fixed Asset', href: '/historical/fixed-asset', wip: true },
+      { label: 'Cash Flow', href: '/historical/cash-flow' },
+      { label: 'Fixed Asset', href: '/historical/fixed-asset' },
     ],
   },
   {
@@ -34,8 +34,8 @@ export const NAV_TREE: NavGroup[] = [
     items: [
       { label: 'Financial Ratio', href: '/analysis/financial-ratio' },
       { label: 'FCF', href: '/analysis/fcf' },
-      { label: 'NOPLAT', href: '/analysis/noplat', wip: true },
-      { label: 'Growth Revenue', href: '/analysis/growth-revenue', wip: true },
+      { label: 'NOPLAT', href: '/analysis/noplat' },
+      { label: 'Growth Revenue', href: '/analysis/growth-revenue' },
       { label: 'ROIC', href: '/analysis/roic', wip: true },
       { label: 'DLOM', href: '/analysis/dlom', wip: true },
       { label: 'DLOC (PFC)', href: '/analysis/dloc-pfc', wip: true },
