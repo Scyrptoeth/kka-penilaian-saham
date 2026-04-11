@@ -9,16 +9,15 @@
  *   - lists each row to render, pointing to an Excel row number, an optional
  *     indent level, a type (normal/subtotal/total/header/separator), and an
  *     optional human-readable formula description used by the tooltip layer
- *   - optionally declares a `derive` callback that produces common-size
- *     and growth column maps via the calc engine — auto-invoked by
- *     `buildRowsFromManifest` so pages do not need to know which function
- *     to call per sheet
+ *   - optionally declares a `derivations` array — a list of declarative
+ *     primitives (commonSize, marginVsAnchor, yoyGrowth) that are
+ *     interpreted by `buildRowsFromManifest` to produce common-size and
+ *     growth column groups. Pages never need sheet-specific helpers.
  *
  * The builder in `./build.ts` takes a manifest + a loaded cell map and
  * produces `FinancialRow[]` ready for <FinancialTable>.
  */
 
-import type { CellMap } from '@/data/seed/loader'
 import type { YearKeyedSeries } from '@/types/financial'
 
 export type RowType =
@@ -68,16 +67,6 @@ export interface ManifestDerivedColumnMap {
   commonSize?: Record<number, YearKeyedSeries>
   growth?: Record<number, YearKeyedSeries>
 }
-
-/**
- * @deprecated Use `SheetManifest.derivations` (declarative) instead.
- * The callback form is kept transiently for migration; it will be removed
- * once all manifests are migrated in Session 2B.6.1.
- */
-export type ManifestDeriveFn = (
-  cells: CellMap,
-  manifest: SheetManifest,
-) => ManifestDerivedColumnMap
 
 /* ────────────────────────── Declarative derivations ─────────────────────
  *
@@ -168,9 +157,9 @@ export interface SheetManifest {
   /** Optional disclaimer shown in the table caption (seed data marker). */
   disclaimer?: string
   /**
-   * Declarative derivation specs — the preferred form. Each entry produces
-   * either a common-size or growth column-group via the generic primitives
-   * in `./build.ts`. Interpret order does not matter.
+   * Declarative derivation specs. Each entry produces either a common-size
+   * or growth column-group via the generic primitives in `./build.ts`.
+   * Interpret order does not matter.
    *
    *   derivations: [
    *     { type: 'commonSize', denominatorRow: 27 },
@@ -178,10 +167,4 @@ export interface SheetManifest {
    *   ]
    */
   derivations?: DerivationSpec[]
-  /**
-   * @deprecated Use `derivations` instead. Kept transiently while manifests
-   * migrate to the declarative form (Session 2B.6.1). Ignored when
-   * `derivations` is set.
-   */
-  derive?: ManifestDeriveFn
 }
