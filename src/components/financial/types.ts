@@ -17,11 +17,16 @@ export interface FormulaMeta {
   excelByYear?: Record<number, string>
 }
 
+/** How the values-column should be formatted per row. */
+export type ValueKind = 'idr' | 'percent' | 'ratio'
+
 export interface FinancialRow {
   /** Row label shown in the first (sticky) column. */
   label: string
   /** Raw value per year. Always present — use empty object for separator/header. */
   values: YearKeyedSeries
+  /** Formatting mode for the values column. Defaults to 'idr'. */
+  valueKind?: ValueKind
   /** Indent level, 0 = parent (default), 1 = child, 2 = grandchild. */
   indent?: 0 | 1 | 2
   /** Visual treatment — mirrors manifest RowType. */

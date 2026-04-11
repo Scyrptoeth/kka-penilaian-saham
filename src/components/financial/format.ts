@@ -52,3 +52,21 @@ export function formatPercent(value: number): string {
   const rendered = `${PERCENT.format(Math.abs(pct))}%`
   return isNegative(value) ? `(${rendered})` : rendered
 }
+
+const RATIO = new Intl.NumberFormat('id-ID', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+})
+
+/**
+ * Format a dimensionless ratio with two decimal places (e.g. Current Ratio
+ * = 2,78). Negatives get parentheses. Zero renders as a dash.
+ *
+ *   formatRatio(2.7778) // → '2,78'
+ */
+export function formatRatio(value: number): string {
+  if (!Number.isFinite(value)) return '—'
+  if (value === 0) return '-'
+  const rendered = RATIO.format(Math.abs(value))
+  return isNegative(value) ? `(${rendered})` : rendered
+}

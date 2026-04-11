@@ -42,6 +42,12 @@ export interface ManifestRow {
   indent?: 0 | 1 | 2
   /** Row visual treatment. Defaults to 'normal' when `excelRow` is set. */
   type?: RowType
+  /**
+   * Formatting mode for the values column of this row. Defaults to 'idr'.
+   * Use 'percent' for rows like margins and ratios that are stored as
+   * fractions, 'ratio' for dimensionless multiples like Current Ratio.
+   */
+  valueKind?: 'idr' | 'percent' | 'ratio'
   /** Optional formula descriptions for tooltip layer. */
   formula?: ManifestFormulaDescriptions
 }

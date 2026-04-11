@@ -3,8 +3,14 @@ import type {
   FinancialRow,
   FinancialTableProps,
   FormulaMeta,
+  ValueKind,
 } from './types'
-import { formatIdr, formatPercent, isNegative } from './format'
+import {
+  formatIdr,
+  formatPercent,
+  formatRatio,
+  isNegative,
+} from './format'
 import { FormulaTooltip } from './FormulaTooltip'
 
 /**
@@ -225,6 +231,7 @@ function TableRow({
           key={`v-${year}`}
           value={row.values[year]}
           kind="value"
+          valueKind={row.valueKind ?? 'idr'}
           formula={row.formula?.values}
           year={year}
           rowType={type}
@@ -264,6 +271,7 @@ function TableRow({
 interface NumericCellProps {
   value: number | undefined
   kind: 'value' | 'percent'
+  valueKind?: ValueKind
   formula?: FormulaMeta
   year: number
   rowType: FinancialRow['type']
@@ -274,6 +282,7 @@ interface NumericCellProps {
 function NumericCell({
   value,
   kind,
+  valueKind,
   formula,
   year,
   rowType,
@@ -295,7 +304,14 @@ function NumericCell({
     )
   }
 
-  const text = kind === 'value' ? formatIdr(value) : formatPercent(value)
+  const text =
+    kind === 'percent'
+      ? formatPercent(value)
+      : valueKind === 'percent'
+        ? formatPercent(value)
+        : valueKind === 'ratio'
+          ? formatRatio(value)
+          : formatIdr(value)
   const negative = isNegative(value)
   const excel = formula?.excelByYear?.[year]
   const hasTooltip = Boolean(formula?.description || excel)

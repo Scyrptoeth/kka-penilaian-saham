@@ -146,6 +146,7 @@ function buildOne(
     indent: row.indent,
     type: row.type ?? (excelRow !== undefined ? 'normal' : 'separator'),
   }
+  if (row.valueKind) out.valueKind = row.valueKind
   if (commonSize) out.commonSize = commonSize
   if (growth) out.growth = growth
   if (hasFormula) {
