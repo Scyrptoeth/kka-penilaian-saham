@@ -2,33 +2,39 @@
  * Growth Revenue — YoY growth for Sales and Net Income.
  *
  * Mirrors the company section of the `GROWTH REVENUE` worksheet of
- * kka-penilaian-saham.xlsx. Given N years of raw data (typically 4), produces
- * N−1 year-over-year growth rates.
+ * kka-penilaian-saham.xlsx. Given N years of raw data (typically 4),
+ * produces a YearKeyedSeries of N−1 growth rates keyed by the *current*
+ * year of each YoY pair.
  *
- *   growth[i] = IF(prev == 0, 0, (current − prev) / prev)
+ *   Input: { 2018: 1000, 2019: 1500, 2020: 1800, 2021: 2200 }
+ *   Output: { 2019: 0.50, 2020: 0.20, 2021: 0.2222... }
+ *
+ *   growth[current] = IF(prev == 0, 0, (current − prev) / prev)
  *
  * This matches Excel's IF guard and is equivalent to the `yoyChangeSafe`
- * helper (both treat zero-previous as 0 rather than throwing).
+ * helper.
  */
 
-import { yoyChangeSafe } from './helpers'
+import type { YearKeyedSeries } from '@/types/financial'
+import { assertSameYears, yearsOf, yoyChangeSafe } from './helpers'
 
 export interface GrowthRevenueInput {
-  sales: readonly number[]
-  netIncome: readonly number[]
+  sales: YearKeyedSeries
+  netIncome: YearKeyedSeries
 }
 
 export interface GrowthRevenueResult {
-  salesGrowth: number[]
-  netIncomeGrowth: number[]
+  salesGrowth: YearKeyedSeries
+  netIncomeGrowth: YearKeyedSeries
 }
 
-function yoySeries(series: readonly number[]): number[] {
-  const n = series.length
-  if (n < 2) return []
-  const out: number[] = new Array(n - 1)
-  for (let i = 1; i < n; i++) {
-    out[i - 1] = yoyChangeSafe(series[i], series[i - 1])
+function yoySeries(series: YearKeyedSeries): YearKeyedSeries {
+  const years = yearsOf(series)
+  const out: YearKeyedSeries = {}
+  for (let i = 1; i < years.length; i++) {
+    const current = years[i]
+    const prev = years[i - 1]
+    out[current] = yoyChangeSafe(series[current], series[prev])
   }
   return out
 }
@@ -36,17 +42,14 @@ function yoySeries(series: readonly number[]): number[] {
 export function computeGrowthRevenue(
   input: GrowthRevenueInput,
 ): GrowthRevenueResult {
-  if (input.sales.length !== input.netIncome.length) {
-    throw new RangeError(
-      `growth-revenue: sales and netIncome must be the same length ` +
-        `(got ${input.sales.length} vs ${input.netIncome.length})`,
-    )
-  }
-  if (input.sales.length < 2) {
+  const anchor = input.sales
+  const years = yearsOf(anchor)
+  if (years.length < 2) {
     throw new RangeError(
       'growth-revenue: need at least 2 years of data to compute growth',
     )
   }
+  assertSameYears('growth-revenue.netIncome', anchor, input.netIncome)
 
   return {
     salesGrowth: yoySeries(input.sales),
