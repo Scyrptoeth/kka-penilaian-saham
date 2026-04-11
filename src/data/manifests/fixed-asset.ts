@@ -54,12 +54,12 @@ const ADDITIONS_LABELS = [
 ] as const
 
 export const FIXED_ASSET_MANIFEST: SheetManifest = {
-  title: 'Fixed Asset Schedule — PT Raja Voltama Elektrik',
+  title: 'Fixed Asset Schedule',
   slug: 'fixed-asset',
   years: [2019, 2020, 2021],
   columns: { 2019: 'C', 2020: 'D', 2021: 'E' },
   disclaimer:
-    'Data demo workbook PT Raja Voltama Elektrik. Roll-forward schedule: Acquisition + Depreciation + Net Book Value.',
+    'Data demo dari workbook prototipe. Roll-forward schedule: Acquisition + Depreciation + Net Book Value. Phase 3 akan menggantinya dengan input pengguna.',
   rows: [
     // ====================== A. ACQUISITION COSTS ======================
     { label: 'A. Acquisition Costs', type: 'header' },

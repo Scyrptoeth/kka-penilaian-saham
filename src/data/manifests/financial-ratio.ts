@@ -36,12 +36,12 @@
 import type { SheetManifest } from './types'
 
 export const FINANCIAL_RATIO_MANIFEST: SheetManifest = {
-  title: 'Financial Ratios — PT Raja Voltama Elektrik',
+  title: 'Financial Ratios',
   slug: 'financial-ratio',
   years: [2019, 2020, 2021],
   columns: { 2019: 'D', 2020: 'E', 2021: 'F' },
   disclaimer:
-    'Data demo workbook PT Raja Voltama Elektrik. Semua ratio sudah dihitung di workbook contoh dan dirender as-is.',
+    'Data demo dari workbook prototipe. Semua ratio sudah dihitung di workbook contoh dan dirender as-is. Phase 3 akan menggantinya dengan input pengguna.',
   rows: [
     { label: 'PROFITABILITY INDICATOR', type: 'header' },
     {

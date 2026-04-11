@@ -29,13 +29,13 @@ import type { SheetManifest } from './types'
 const GROWTH_DESC = 'YoY growth: (current − prior) / prior, IFERROR → 0'
 
 export const NOPLAT_MANIFEST: SheetManifest = {
-  title: 'NOPLAT — PT Raja Voltama Elektrik',
+  title: 'NOPLAT',
   slug: 'noplat',
   years: [2019, 2020, 2021],
   columns: { 2019: 'C', 2020: 'D', 2021: 'E' },
   derivations: [{ type: 'yoyGrowth', safe: true }],
   disclaimer:
-    'Data demo workbook PT Raja Voltama Elektrik. NOPLAT menggunakan konvensi pre-signed: Interest Expense ditambahkan kembali (positif), Interest Income dikurangkan (negatif).',
+    'Data demo dari workbook prototipe. NOPLAT menggunakan konvensi pre-signed: Interest Expense ditambahkan kembali (positif), Interest Income dikurangkan (negatif). Phase 3 akan menggantinya dengan input pengguna.',
   rows: [
     // ====================== EBIT CHAIN ======================
     { label: 'EBIT CALCULATION', type: 'header' },

@@ -23,14 +23,14 @@ import type { SheetManifest } from './types'
 const GROWTH_DESC = 'YoY growth: (current − prior) / prior, IFERROR → 0'
 
 export const GROWTH_REVENUE_MANIFEST: SheetManifest = {
-  title: 'Growth Revenue — PT Raja Voltama Elektrik',
+  title: 'Growth Revenue',
   slug: 'growth-revenue',
   years: [2018, 2019, 2020, 2021],
   columns: { 2018: 'B', 2019: 'C', 2020: 'D', 2021: 'E' },
   growthColumns: { 2019: 'H', 2020: 'I', 2021: 'J' },
   derivations: [{ type: 'yoyGrowth', safe: true }],
   disclaimer:
-    'Data demo workbook PT Raja Voltama Elektrik. Kolom growth 2019-2021 dihitung dari primitive yoyGrowth dan divalidasi cocok dengan formula Excel (H8-J9 = IF(prior=0,0,(current−prior)/prior)).',
+    'Data demo dari workbook prototipe. Kolom growth 2019-2021 dihitung dari primitive yoyGrowth dan divalidasi cocok dengan formula Excel (H8-J9 = IF(prior=0,0,(current−prior)/prior)). Phase 3 akan menggantinya dengan input pengguna.',
   rows: [
     // ====================== PERUSAHAAN ======================
     { label: 'DATA PENJUALAN PT RAJA VOLTAMA ELEKTRIK', type: 'header' },

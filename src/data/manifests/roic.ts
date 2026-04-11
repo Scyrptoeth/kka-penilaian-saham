@@ -19,12 +19,12 @@
 import type { SheetManifest } from './types'
 
 export const ROIC_MANIFEST: SheetManifest = {
-  title: 'ROIC — PT Raja Voltama Elektrik',
+  title: 'ROIC',
   slug: 'roic',
   years: [2019, 2020, 2021],
   columns: { 2019: 'B', 2020: 'C', 2021: 'D' },
   disclaimer:
-    'Data demo workbook PT Raja Voltama Elektrik. ROIC = NOPLAT / Invested Capital (Beginning of Year). Tahun 2019 tidak memiliki ROIC karena tidak ada beginning capital baseline.',
+    'Data demo dari workbook prototipe. ROIC = NOPLAT / Invested Capital (Beginning of Year). Tahun 2019 tidak memiliki ROIC karena tidak ada beginning capital baseline. Phase 3 akan menggantinya dengan input pengguna.',
   rows: [
     { label: 'INVESTED CAPITAL', type: 'header' },
     {

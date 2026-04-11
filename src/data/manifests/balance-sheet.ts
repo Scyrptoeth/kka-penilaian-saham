@@ -18,7 +18,7 @@ const COMMON_SIZE_DESC = 'Line value ÷ TOTAL ASSETS for the same year'
 const GROWTH_DESC = 'YoY growth: (current − prior) / prior, IFERROR → 0'
 
 export const BALANCE_SHEET_MANIFEST: SheetManifest = {
-  title: 'Balance Sheet — PT Raja Voltama Elektrik',
+  title: 'Balance Sheet',
   slug: 'balance-sheet',
   years: [2018, 2019, 2020, 2021],
   columns: { 2018: 'C', 2019: 'D', 2020: 'E', 2021: 'F' },
@@ -32,7 +32,7 @@ export const BALANCE_SHEET_MANIFEST: SheetManifest = {
     { type: 'yoyGrowth', safe: true },
   ],
   disclaimer:
-    'Data demo workbook PT Raja Voltama Elektrik (kka-penilaian-saham.xlsx). Input forms pengguna menyusul di Session 2C.',
+    'Data demo dari workbook prototipe (kka-penilaian-saham.xlsx). Phase 3 akan menggantinya dengan input pengguna — nama perusahaan ditampilkan dari HOME store.',
   rows: [
     // ====================== ASSETS ======================
     { label: 'ASSETS', type: 'header' },

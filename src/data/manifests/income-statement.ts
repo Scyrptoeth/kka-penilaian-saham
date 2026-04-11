@@ -19,7 +19,7 @@ const MARGIN_DESC = 'Line value ÷ Revenue — traditional margin %'
 const GROWTH_DESC = 'YoY growth: (current − prior) / prior'
 
 export const INCOME_STATEMENT_MANIFEST: SheetManifest = {
-  title: 'Income Statement — PT Raja Voltama Elektrik',
+  title: 'Income Statement',
   slug: 'income-statement',
   years: [2018, 2019, 2020, 2021],
   columns: { 2018: 'C', 2019: 'D', 2020: 'E', 2021: 'F' },
@@ -35,7 +35,7 @@ export const INCOME_STATEMENT_MANIFEST: SheetManifest = {
     { type: 'yoyGrowth', safe: true },
   ],
   disclaimer:
-    'Data demo workbook PT Raja Voltama Elektrik. Kolom Common Size adalah margin (line / Revenue) hasil kalkulasi dari calc engine, bukan dari Excel.',
+    'Data demo dari workbook prototipe. Kolom Common Size adalah margin (line / Revenue) hasil kalkulasi dari calc engine, bukan dari Excel. Phase 3 akan menggantinya dengan input pengguna.',
   rows: [
     { label: 'REVENUE & COST', type: 'header' },
     {

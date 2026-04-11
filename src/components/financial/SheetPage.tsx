@@ -2,6 +2,7 @@ import { loadCells } from '@/data/seed/loader'
 import { buildRowsFromManifest } from '@/data/manifests/build'
 import type { SheetManifest } from '@/data/manifests/types'
 import { FinancialTable } from './FinancialTable'
+import { CompanyContextHeader } from './CompanyContextHeader'
 
 /**
  * <SheetPage> — the universal seed-mode renderer for any sheet manifest.
@@ -48,6 +49,7 @@ export function SheetPage({
 
   return (
     <div className="mx-auto max-w-[1400px]">
+      <CompanyContextHeader />
       <FinancialTable
         title={manifest.title}
         years={manifest.years}

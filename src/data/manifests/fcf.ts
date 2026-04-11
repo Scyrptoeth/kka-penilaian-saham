@@ -26,12 +26,12 @@
 import type { SheetManifest } from './types'
 
 export const FCF_MANIFEST: SheetManifest = {
-  title: 'Free Cash Flow — PT Raja Voltama Elektrik',
+  title: 'Free Cash Flow',
   slug: 'fcf',
   years: [2019, 2020, 2021],
   columns: { 2019: 'C', 2020: 'D', 2021: 'E' },
   disclaimer:
-    'Data demo workbook PT Raja Voltama Elektrik. Depreciation dan capex sudah pre-signed negatif (convention Excel source).',
+    'Data demo dari workbook prototipe. Depreciation dan capex sudah pre-signed negatif (convention Excel source). Phase 3 akan menggantinya dengan input pengguna.',
   rows: [
     {
       excelRow: 7,
