@@ -492,9 +492,18 @@ untuk 3+ sesi ke depan:
 - LESSON-024 (manifest.columns map is fully year-agnostic — any column, any year count)
 - LESSON-025 (tactical DRY helpers live inside the manifest file — never in build.ts)
 
-LESSON-014, 015, 017, 020, 022 **TIDAK** di-promote — workflow/architecture
-insights yang general ke project lain tapi terlalu luas untuk section 8
-(yang fokus KKA-specific gotchas). Tersimpan di lessons-learned saja.
+### Sessions 008 + 008.5 + 008.6 + 009 (DLOM/DLOC + hardening + Phase 3 design)
+- LESSON-026 (Cross-sheet formula divergence — DLOC formula differs from DLOM despite similar shape)
+- LESSON-028 (Always implement Zustand persist `migrate` saat bump version)
+- LESSON-029 (App harus company-agnostic dari hari satu — workbook prototype hanya 1 case study)
+- LESSON-030 (Backward-compatible additions > breaking refactor — synthesize CellMap pattern)
+- LESSON-031 (Auto-detect mode dari domain state > explicit toggles)
+- LESSON-032 (Lazy compute via `useMemo` per page > global reactive graph)
+
+LESSON-014, 015, 017, 020, 022, 027 **TIDAK** di-promote — workflow/lint
+insights yang general ke project lain tapi terlalu luas atau terlalu
+session-specific untuk section 8 (yang fokus KKA-specific gotchas).
+Tersimpan di lessons-learned saja.
 
 ---
 
@@ -780,3 +789,238 @@ Rule definisinya: **framework code** adalah kode yang multiple manifests consume
 **Anti-pattern**: Mengekstrak `categoryRows` ke `src/data/manifests/helpers.ts` "for reusability" ketika tidak ada manifest kedua yang akan pakai. Ini bikin file helper tumbuh jadi junk drawer, dan manifest file kehilangan self-containedness.
 
 **Proven at**: session-007 (2026-04-11), `src/data/manifests/fixed-asset.ts` — 6-line local helper collapses 54 rows ke 9 calls, tetap scoped ke file, manifest tetap "data-only" dari perspektif build pipeline.
+
+---
+
+## Session 008 + 008.5 + 008.6 + 009 — DLOM/DLOC + Hardening + Phase 3 Design
+
+### LESSON-026: Cross-sheet formula divergence — sheets yang look similar bisa beda formula
+
+**Kategori**: Excel | Anti-pattern
+**Sesi**: session-008
+**Tanggal**: 2026-04-12
+
+**Konteks**: DLOM dan DLOC keduanya scoring questionnaires dengan struktur similar (factors × options × scores → percentage range). Asumsi natural: formula range pasti identik (jenisPerusahaan + kepemilikan → range matrix).
+
+**Apa yang terjadi**: Saat implement `computeDlocPercentage`, fixture inspection mengungkapkan bahwa DLOC range hanya depend pada `jenisPerusahaan`, BUKAN `kepemilikan`. Excel formula `DLOC(PFC)!B22 = IF(A20=1, " 30% - 70%", " 20% - 35%")` hanya mereferensikan A20 (jenisPerusahaan code), bukan A21 (kepemilikan code yang juga di-compute tapi unused untuk range determination).
+
+DLOM berbeda: `DLOM!C32 = IF(B30+B31=6,"30%-50%",IF(B30+B31=8,"20%-40%",IF(B30+B31=7,"10%-30%","0%-20%")))` — pakai SUM dari jenisCode + kepemilikanCode untuk lookup 4-matrix combinations.
+
+**Root cause / insight**: Workbook author bisa choose berbeda formula untuk sheet yang structurally similar. Tanpa membaca formula real, kita akan implement DLOC dengan API yang accept kepemilikan parameter — yang kemudian unused — dan tests akan pass dengan happy path tapi semantic-nya wrong (kepemilikan affecting result yang seharusnya tidak).
+
+**Cara menerapkan di masa depan**:
+1. Saat implement calc function untuk sheet baru, **SELALU baca formula fixture** (`f` field di cell JSON) dari cell output, bukan hanya value
+2. Trace dependency chain: formula references → upstream cells → understand semantic
+3. Jangan asumsi sheet B = sheet A pattern, terutama untuk sheets yang structurally similar tapi domain berbeda
+4. Function signature reflect real semantic. Kalau parameter unused, **HAPUS** dari signature (jangan accept-and-ignore — itu API lying)
+5. Document deviation di JSDoc: "Note: DLOC formula intentionally does not use kepemilikan, unlike DLOM. See B22 IF formula reference."
+
+**Anti-pattern yang dihindari**: API symmetry untuk symmetry's sake. DLOC function tidak perlu accept kepemilikan hanya supaya signature matches DLOM — itu false symmetry yang misleading.
+
+**Proven at**: session-008 (2026-04-12). `src/lib/calculations/dloc.ts` `computeDlocPercentage` signature tidak include kepemilikan, dengan JSDoc comment yang explicit.
+
+---
+
+### LESSON-027: React Compiler `react-hooks/exhaustive-deps` flags local bindings derived from module constants
+
+**Kategori**: Framework | Workflow
+**Sesi**: session-008
+**Tanggal**: 2026-04-12
+
+**Konteks**: Page component dengan `const maxScore = DLOM_FACTORS.length` (where `DLOM_FACTORS` adalah module-level frozen const), dipakai di `useMemo([scores, totalScore, jenisPerusahaan, current.kepemilikan])` callback.
+
+**Apa yang terjadi**: ESLint `react-hooks/exhaustive-deps` melaporkan: "React Hook useMemo has a missing dependency: 'maxScore'." Padahal value `maxScore` adalah pure derivation dari module const yang tidak akan pernah berubah saat component runtime.
+
+**Root cause / insight**: ESLint rule conservative — ia tidak attempt prove bahwa local binding adalah immutable. Setiap variable yang appears di dependency-tracking hook dan tidak listed di deps array akan di-flag, regardless of provenance.
+
+**Solusi yang work**: Add `maxScore` ke dep array secara explicit:
+```ts
+const result = useMemo(() => { /* uses maxScore */ }, [scores, totalScore, maxScore, jenisPerusahaan, current.kepemilikan])
+```
+
+`maxScore` reference stable across renders (closure captures same module value), jadi adding to deps tidak mempengaruhi memoization correctness — purely a lint compliance fix.
+
+**Alternatif yang TIDAK bekerja**: Hoist `const DLOM_MAX_SCORE = DLOM_FACTORS.length` ke module scope dan gunakan langsung di useMemo (skip local binding) — masih flagged karena local var `const maxScore = DLOM_MAX_SCORE` di dalam component still triggers the rule.
+
+**Cara menerapkan di masa depan**:
+1. Saat React Compiler complain tentang missing dep yang derived dari const, **add to deps** — explicit listing satisfies rule dan tidak break correctness
+2. Jangan disable rule via comment — itu noise
+3. Jangan inline const di every useMemo (DRY violation)
+4. Kalau lint warning persistent setelah hoist, accept eksplisit dep entry sebagai pattern
+
+**Proven at**: session-008 (2026-04-12). `dlom/page.tsx` dan `dloc/page.tsx` use this pattern.
+
+---
+
+### LESSON-028: Always implement Zustand persist `migrate` saat bump version — silent data loss otherwise
+
+**Kategori**: Framework | Anti-pattern
+**Sesi**: session-008.5
+**Tanggal**: 2026-04-12
+
+**Konteks**: Session 008 added DLOM/DLOC slices ke Zustand store. Saya bump persist key `STORE_KEY` dari `"kka-penilaian-saham:v1"` ke `"kka-penilaian-saham:v2"` untuk avoid hydrating old shape. Tidak menambahkan `migrate` function.
+
+**Apa yang terjadi**: Self-audit Session 008.5 mengidentifikasi bahwa users dengan `home` data tersimpan di v1 localStorage akan **kehilangan data mereka** saat browser pertama load v2 deploy. Zustand persist gagal find key v2, fallback ke initial state `{home: null, dlom: null, dloc: null}`. User HOME form jadi blank, tanpa warning.
+
+**Root cause / insight**: Zustand persist `name` field adalah localStorage key. Bumping name = changing the storage location. Tanpa `migrate` function, persist tidak tahu cara map old shape → new shape, dan default ke initial state. Ini silent failure mode — tidak ada error, tidak ada warning, hanya data loss.
+
+**Solusi yang benar**: Use `version` field + `migrate` function instead of changing `name`:
+```ts
+persist(
+  (set) => ({...}),
+  {
+    name: STORE_KEY,           // unchanged across versions
+    version: 2,                // bump this when schema changes
+    migrate: (persistedState, fromVersion) => {
+      if (fromVersion === 1 && /* type guard */) {
+        // v1 → v2: carry forward home, init new slices null
+        return { ...persistedState, dlom: null, dloc: null }
+      }
+      return persistedState
+    },
+    // ... other config
+  }
+)
+```
+
+**Cara menerapkan di masa depan**:
+1. Ada perubahan persisted state shape? **WAJIB** add/bump `version` field + supply `migrate`
+2. Jangan change `name` field untuk version bumping — itu loses old data
+3. Export `migrate` sebagai named function untuk testability isolated dari persist middleware
+4. Test migration explicitly: write unit test untuk `migrate(v1State, 1) → v2State`
+5. Type guard di migrate function — `persistedState: unknown` perlu narrowing sebelum spread
+6. Future versions pass through unchanged — `if (fromVersion === N) { migrate } else return persistedState`
+
+**Proven at**: session-008.5 (2026-04-12). `src/lib/store/useKkaStore.ts` exports `migratePersistedState`, 4 unit tests cover v1→v2 + edge cases (null, garbage, future versions).
+
+---
+
+### LESSON-029: App harus company-agnostic dari hari satu — workbook prototype hanya 1 case study
+
+**Kategori**: Design | Workflow | Anti-pattern
+**Sesi**: session-008.5
+**Tanggal**: 2026-04-12
+
+**Konteks**: User repeatedly menanyakan "apakah ini system development?" dan menambahkan reminder eksplisit: "PT Raja Voltama Electric yang ada di excel adalah contoh studi kasus saja, sebab kedepannya aplikasi yang kita hasilkan akan digunakan untuk memproses dan menilai perusahaan lain."
+
+**Apa yang terjadi**: Audit menemukan 9 manifests di `src/data/manifests/*.ts` masih hardcode `title: "Balance Sheet — PT Raja Voltama Elektrik"` dan disclaimer `"Data demo workbook PT Raja Voltama Elektrik..."`. Manifest title adalah display string yang user lihat — kalau hardcoded ke 1 company name, app secara fundamental tidak bisa dipakai untuk perusahaan lain.
+
+Lebih buruk: setelah Patch 3 strip company name dari manifests, saya tambah `<CompanyContextHeader>` yang baca `home.namaPerusahaan` dari Zustand dan render "Penilaian Saham — {namaPerusahaan}" di top of every financial page. Tapi 9 financial pages **masih** read data dari seed fixture (PT Raja Voltama). Konsekuensi: user isi HOME dengan "PT Acme", header jadi "Penilaian Saham — PT Acme", tabel di bawah masih PT Raja Voltama. **Misleading UX** yang lebih buruk dari sebelum saya kerjakan Patch 3.
+
+**Root cause / insight**: Company-agnostic adalah architectural principle yang harus dipertimbangkan di **setiap layer**, bukan hanya sebagian. Tiga layer yang harus consistent:
+1. **Data source layer**: where does the data come from? (seed fixture vs user store)
+2. **Display layer**: what does the UI show? (manifest titles, headers, disclaimers)
+3. **Mode awareness**: does the UI honestly reflect data source state?
+
+Stripping hardcoded names dari layer 2 SAJA tidak cukup kalau layer 1 masih seed (showing PT Raja Voltama data) dan layer 3 lying (displaying user's company name). Semua 3 layers harus aligned.
+
+**Cara menerapkan di masa depan**:
+1. **Manifests, components, types adalah pure abstractions**. Tidak boleh ada hardcoded company-specific identifier (nama perusahaan, NPWP, year-specific numbers, dll.)
+2. **Headers / disclaimers / metadata yang menampilkan company info HARUS mode-aware**. Pattern: `<DataSourceHeader mode="seed" />` saat data dari fixture, `mode="live"` saat data dari user store. Mode menentukan apa yang ditampilkan — tidak boleh lying.
+3. **Saat mengubah satu layer, audit semua 3 layers sekaligus**. Jangan strip nama dari title tanpa juga consider apakah header masih honest, dan apakah data source consistent dengan claim.
+4. **Demo data adalah opt-in eksplisit, bukan silent default**. User harus tahu kalau yang dia lihat adalah demo, bukan data mereka. Banner warning mandatory untuk seed-mode pages.
+5. **Single switching point**: arsitektur seharusnya punya 1 tempat untuk flip seed→live (e.g., `<DataSourceHeader mode={isLive ? 'live' : 'seed'} />` di SheetPage). Phase 3 transition hanya butuh 1 line change.
+6. **Test workbook prototype adalah scaffolding**, bukan hardcoded reference. Treat it sebagai "case study #1" — production app harus jalan untuk case #2, #3, ...#1000 tanpa code changes.
+
+**Anti-pattern yang dihindari**:
+- Manifest constants dengan company-specific values
+- Hardcoded company names di display strings
+- Trusting layer-2 fix tanpa audit layer-1 dan layer-3
+- Silent demo mode (user tidak tahu kalau yang dia lihat adalah demo)
+- Multiple mode switching points (toggle scattered di banyak komponen)
+
+**Proven at**: session-008.5 + 008.6 (2026-04-12). 9 manifests stripped, `<DataSourceHeader>` mode-aware introduced, warning banner explicit untuk seed mode.
+
+---
+
+### LESSON-030: Backward-compatible additions > breaking refactor
+
+**Kategori**: Workflow | Design
+**Sesi**: session-009 (Phase 3 design)
+**Tanggal**: 2026-04-12
+
+**Konteks**: Phase 3 design brainstorm — aplikasi perlu support live data mode (user input replacing seed fixtures) tanpa breaking 9 existing financial pages, 133 existing tests, atau established build pipeline.
+
+**Insight**: Daripada refactor `build.ts`, `applyDerivations`, dan derivation primitives untuk accept new "DataSource" abstraction, **synthesize** existing CellMap interface dari live data via parallel adapter (`buildLiveCellMap(manifest, liveData, years)`). Pipeline downstream **tidak berubah sama sekali** — masih consume `CellMap = ReadonlyMap<string, FixtureCell>`.
+
+Single adapter point = single point of truth untuk seed↔live transition. Live mode purely additive: new files di `src/data/live/`, existing core untouched.
+
+**Cara menerapkan di masa depan**:
+1. Saat add new capability ke stable pipeline, **cari adapter point** instead of refactoring core
+2. Synthesize "fake" data shape yang core sudah tahu cara consume, daripada teach core a new shape
+3. Keep core APIs immutable across major feature additions — core stability = test stability = confidence
+4. **Cost-benefit**: synthesize adapter adalah 1 file (~50-100 lines). Refactor core adalah 5+ files + 50+ test updates + risk of regression. 10× cheaper untuk adapter.
+5. Pattern works untuk: data sources (seed↔live), output formats (HTML↔PDF↔xlsx), input shapes (form↔upload↔API), dll.
+
+**Trade-off accepted**: Adapter overhead per request (synthesize CellMap dari store data on every render). Bounded compute, well within performance budget.
+
+**Anti-pattern dihindari**:
+- "While we're refactoring anyway, let's also..." — scope creep yang risks core stability
+- Breaking changes untuk theoretical future flexibility
+- Modifying tested core when an adapter would suffice
+
+**Proven at**: session-009 design (2026-04-12). Will be implemented in session-010 onwards.
+
+---
+
+### LESSON-031: Auto-detect mode dari domain state > explicit toggles atau props
+
+**Kategori**: Design | Workflow
+**Sesi**: session-009 (Phase 3 design)
+**Tanggal**: 2026-04-12
+
+**Konteks**: Phase 3 design — apakah seed↔live mode harus controlled via UI toggle, URL param, page-level prop, atau auto-detect dari store state?
+
+**Insight**: Domain state sering kali sudah mengencode the answer. Untuk KKA, `home === null` adalah natural sentinel: jika user belum isi HOME form, mereka belum mulai penilaian → pasti masih demo viewing. Jika `home !== null`, mereka aktif menilai → live mode (data may be sparse but they've started).
+
+Tidak perlu mode flag, toggle button, atau URL parameter — single source of truth = `home` slice.
+
+**Cara menerapkan di masa depan**:
+1. Sebelum add mode toggle / flag / prop, ask: "apakah domain state sudah mengencode the answer?"
+2. Sentinel pattern: gunakan `null` (atau sentinel value lain) di domain state sebagai "user belum mulai" indicator
+3. Auto-detect lebih sederhana untuk user (zero cognitive load) dan untuk developer (zero state synchronization)
+4. Escape hatch: jika rare case butuh override (e.g. "lihat demo lagi setelah saya mulai"), provide reset action yang mengubah domain state — bukan parallel mode flag
+5. Sentinel + reset > toggle. User mental model lebih simpel.
+
+**Trade-off accepted**: Tidak ada per-page mode override. Kalau user perlu lihat 1 page seed sambil sisanya live, harus reset. Acceptable untuk Penilai DJP workflow (rare requirement).
+
+**Proven at**: session-009 design (2026-04-12). Will be implemented in session-010 via `<DataSourceHeader mode={home === null ? 'seed' : 'live'} />`.
+
+---
+
+### LESSON-032: Lazy compute via `useMemo` per page > global reactive graph untuk moderate compute
+
+**Kategori**: Performance | Design
+**Sesi**: session-009 (Phase 3 design)
+**Tanggal**: 2026-04-12
+
+**Konteks**: Phase 3 design — bagaimana handle cross-sheet dependencies (BS+IS → CFS, NOPLAT, FR; NOPLAT → FCF; FA → FCF)? Reactive recompute pada setiap input change, atau lazy compute saat user navigate ke page?
+
+**Insight**: Untuk app dengan moderate compute (~3000 cells × 9 sheets = 27000 cells eager), lazy compute via `useMemo` per page **9× lebih efficient**. User hanya pay compute cost untuk pages yang mereka visit, bukan untuk semua pages on every input.
+
+Pattern:
+```tsx
+const liveData = useMemo(() => {
+  if (!home || !bs || !is) return null
+  return computeCashFlowStatement(toCashFlowInput(bs, is))
+}, [home, bs, is])
+```
+
+React's existing hook system handles "what to recompute when" tanpa explicit dependency graph. Zustand selectors trigger re-render hanya saat relevant slices berubah. `useMemo` memoize compute hingga inputs berubah.
+
+**Cara menerapkan di masa depan**:
+1. Reactive global graph adalah over-engineering untuk most apps. Coba lazy + memo dulu.
+2. Performance budget: kalau target adalah <100ms per page navigation dan compute fits, lazy = simpler + faster overall
+3. Empty state handling: jika upstream incomplete, render `<EmptyState>` instead of compute on null inputs
+4. Selectors granular per slice — avoid subscribe ke seluruh store untuk satu component
+5. Memoize expensive operations dengan stable inputs. Avoid memoize cheap operations (overhead > benefit)
+
+**Anti-pattern dihindari**:
+- Global recompute graph untuk app yang fits in single tab (no SSR streaming, no infinite scroll)
+- Subscribing component ke entire store (causes re-render storms)
+- Eager compute pada sheets yang user mungkin tidak pernah visit
+
+**Trade-off accepted**: First navigation ke each downstream page mungkin spend ~10-50ms compute. Acceptable untuk client-side DJP tool dengan typical session lifecycle <30 menit.
+
+**Proven at**: session-009 design (2026-04-12). Will be implemented across session-011 + 012.
+

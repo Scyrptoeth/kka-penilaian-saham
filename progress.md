@@ -11,19 +11,23 @@
 | 005 | 2026-04-11 | Phase 2B.6 — Systematization pass (refactor-only) | ✅ Shipped | inline |
 | 006 | 2026-04-11 | Phase 2B.6.1 — Declarative derive primitives | ✅ Shipped | inline |
 | 007 | 2026-04-11/12 | Phase 2B.5 — Four remaining P1 pages (CF/FA/NOPLAT/Growth) | ✅ Shipped | [session-007](history/session-007-phase2b5-remaining-pages.md) |
+| 008 | 2026-04-11/12 | ROIC + DLOM/DLOC questionnaire forms (with 008.5 + 008.6 hardening) | ✅ Shipped | [session-008](history/session-008-roic-dlom-dloc-forms.md) |
+| 009 | 2026-04-12 | Phase 3 design brainstorm — 6 architectural decisions for live data mode | ✅ Design complete | [session-009](history/session-009-phase-3-design-brainstorm.md) |
 
 ## Current State Snapshot (latest)
 
-- **Branch**: `main` (synced with `origin/main` via `fb40612`)
-- **Tests**: 107 / 107 passing across 15 files
-- **Build**: ✅ clean, zero errors, zero warnings, **8 financial pages** prerendered as static (out of 13 total routes)
-- **Lint**: ✅ clean
+- **Branch**: `main` (synced with `origin/main` via `f035c06`)
+- **Tests**: **133 / 133** passing across 19 files
+- **Build**: ✅ clean, zero errors, zero warnings, **11 static pages** prerendered (9 financial + 2 questionnaire forms)
+- **Lint**: ✅ zero warnings
 - **Typecheck**: ✅ `tsc --noEmit` exit 0
-- **Live**: https://kka-penilaian-saham.vercel.app (HTTP 200, production deploy `d6dhb2apt` — 25s build, Ready)
-- **Pipeline proven at scale**: system scaled from 4 → 8 pages in Session 007 with zero changes to `build.ts` / `SheetPage.tsx` / `types.ts` primitives and zero new tests. Pure manifest authoring validated — adding sheet #9 onwards will follow the same ~20-min-per-sheet budget.
-- **Live pages (8)**:
-  - Historis: Balance Sheet · Income Statement · **Cash Flow** · **Fixed Asset**
-  - Analisis: Financial Ratio · FCF · **NOPLAT** · **Growth Revenue**
+- **Live**: https://kka-penilaian-saham.vercel.app (HTTP 200, latest production deploy `ltwbnrc4z`)
+- **Architecture state after 008.6**: aplikasi jujur tentang data source. 9 financial pages clearly marked sebagai "Mode Demo · Workbook Prototipe" via `<DataSourceHeader>` warning banner. HOME/DLOM/DLOC fully company-agnostic. Single mode-switching point (`<DataSourceHeader mode="seed" />` di SheetPage) ready untuk Phase 3 transition.
+- **Phase 3 design complete**: 6 architectural decisions approved + plan.md Sessions 010-014 roadmap committed. Implementation ready to start at Session 010.
+- **Live pages (11)**:
+  - Historis: Balance Sheet · Income Statement · Cash Flow · Fixed Asset
+  - Analisis: Financial Ratio · FCF · NOPLAT · Growth Revenue · **ROIC**
+  - Penilaian: **DLOM** · **DLOC (PFC)**
 
 ## Session 1 — 2026-04-11 (Scope C: Full Phase 1)
 
@@ -687,3 +691,113 @@ Every box except the top (Python extraction) and bottom (static HTML) is validat
 - **Phase 3 (blocking for all projections)**: KEY DRIVERS input form (COGS ratio, expense ratios, tax rate) — unlocks PROY L/R → PROY BS → PROY CF → PROY NOPLAT chain.
 - **Phase 3 (incremental hardening)**: `toRatiosInput` adapter + FR calc-engine wiring, FCF migration to pipeline mode via `toFcfInput` (adapter already exists), DataSource abstraction.
 - **Phase 4 (valuation)**: WACC (CAPM with Beta/Ke/Kd) → DCF (FCFF), AAM + EEM, DLOC (PFC) form, Recharts dashboard, ExcelJS export, dark mode toggle.
+
+---
+
+## Session 008 — 2026-04-11/12 (ROIC + DLOM/DLOC + Hardening)
+
+Triple-deliverable session with 2 self-audit hardening passes:
+- **Phase A (008 main)**: ROIC manifest page (#9 financial), DLOM 10-factor questionnaire form, DLOC 5-factor questionnaire form, shared `<QuestionnaireForm>` component, store extension (dlom + dloc slices), 16 new TDD tests
+- **Phase B (008.5)**: Self-audit caught 3 rough edges → fixed in 3 atomic patches:
+  1. Zustand persist v1→v2 migrate function (data preservation bug, exported `migratePersistedState` for testability, 4 unit tests)
+  2. `computeQuestionnaireScores` helper extraction (eliminated 4 inline reduces, 6 unit tests)
+  3. Stripped "PT Raja Voltama Elektrik" from 9 manifest titles + disclaimers (company-agnostic principle), introduced `<CompanyContextHeader>` client island
+- **Phase C (008.6)**: Self-audit caught misleading UX bug introduced by Phase B Patch 3 → fixed via mode-aware `<DataSourceHeader>` (replaced CompanyContextHeader). Single switching point untuk Phase 3 transition.
+
+### Verification Results
+
+```
+Tests:     133 / 133 passing (19 files) — 107 prior + 16 calc + 4 migration + 6 helpers
+Build:     ✅ 17 routes total, 11 static pages prerendered
+Typecheck: ✅ tsc --noEmit clean
+Lint:      ✅ zero warnings
+Smoke:     ✅ All 11 routes HTTP 200 on production
+           ✅ ROIC numeric 18.026.516.004 = Total Invested Capital 2019 (matches roic.json B12)
+           ✅ DataSourceHeader renders "Mode Demo · Workbook Prototipe" warning
+           ✅ Zero "PT Raja Voltama" leak di 6 sample production routes
+```
+
+### Session 008 Stats
+
+- Commits: 11 (7 main + 3 hardening 008.5 + 1 critical fix 008.6)
+- New files: 13 (manifests, calc, types, components, tests)
+- Files modified: ~15 (store, types, all 9 manifests, SheetPage, nav-tree, copy-fixtures, loader)
+- Net delta: +2200 / −300 lines
+- New tests: 26 (16 calc + 4 migration + 6 helpers)
+- 3 in-flight scope expansions (Patch 3 company-agnostic, 008.6 critical fix) — both validated by self-audit + user principle reminders
+- 1 deferred decision: KONFIRMASI text field per DLOC factor
+
+### Architecture After Session 008
+
+System sekarang **honest tentang data source**. Aplikasi bisa di-pakai untuk:
+- HOME form: any company (saved company-agnostic)
+- DLOM form: any case (interactive scoring, persists ke store, sync ke home.dlomPercent)
+- DLOC form: any case (5-factor scoring, persists, sync ke home.dlocPercent)
+- 9 financial pages: **clearly demo data** (warning banner explicit)
+
+Setelah 008.6, single switching point `<DataSourceHeader mode="seed" />` di SheetPage adalah satu-satunya tempat yang perlu diubah saat Phase 3 live mode landed.
+
+### Next — Session 009 Phase 3 Design (already executed)
+
+---
+
+## Session 009 — 2026-04-12 (Phase 3 Design Brainstorm)
+
+Pure design session (zero code execution). Output committed sebagai design reference untuk Phase 3 implementation phase.
+
+### 6 Architectural Decisions Approved
+
+1. **DataSource**: Synthesize CellMap from store via `buildLiveCellMap` adapter — zero changes ke build.ts/applyDerivations/derivation primitives
+2. **Input Forms**: Separate `/input/*` routes (BS, IS, FA), generated dari ManifestRow[], computed totals read-only, smart paste handler, debounced auto-save
+3. **Year Span**: `historicalYearCount` field di manifest + `computeHistoricalYears(tahunTransaksi, count)` runtime helper. Backward compatible.
+4. **Cross-Sheet Deps**: Lazy compute via `useMemo` per page (no global graph). 9× efficiency vs eager.
+5. **Migration**: 5 sessions (010-014), incremental, BS pilot first, downstream auto-follow, pure additive
+6. **Mode Toggle**: Auto-detect (`home === null` sentinel) + sidebar "Reset & Lihat Demo" escape hatch
+
+### Files Updated
+
+- **`design.md`**: Appended ~470 lines "Phase 3 — Live Data Mode" section dengan all 6 decisions + rationale + concrete code patterns
+- **`plan.md`**: Rewritten as "Phase 3 Roadmap (Sessions 010-014)" dengan task breakdown, acceptance criteria, deliverables per session
+
+### Session 009 Stats
+
+- Commits: 1 (`f035c06 docs: phase 3 design + sessions 010-014 roadmap`)
+- Files modified: 2 (design.md, plan.md)
+- Net delta: +681 / −113 lines
+- New code: 0 (pure design)
+- New tests: 0
+- Lesson candidates extracted: 3 (LESSON-030, 031, 032)
+
+### Phase 3 Implementation Roadmap
+
+| Session | Focus | Tests | Outcome |
+|---|---|---|---|
+| **010** | DataSource foundation + BS pilot | ~20 | Foundation, BS live mode capable |
+| **011** | IS input + 4 downstream migrations | ~10 | 5 pages live (BS, IS, CFS, FR, NOPLAT, Growth Revenue) |
+| **012** | FA input + remaining downstream | ~8 | All 9 financial pages live mode |
+| **013** | WACC + DCF | ~14 | First **share value output** |
+| **014** | AAM + EEM + Dashboard | ~15 | **Full valuation chain complete** |
+| **Cumulative** | | **+67** | **19 live pages, ~200 tests, fully company-agnostic end-to-end tool** |
+
+### Next Session — 010 (DataSource Foundation + BS Pilot)
+
+Per plan.md task breakdown:
+1. Extend Zustand store (balanceSheet/incomeStatement/fixedAsset slices, v2→v3 migration)
+2. Live data adapter (`buildLiveCellMap`, types, year helpers)
+3. Manifest extension (`historicalYearCount` field)
+4. Refactor `SheetPage` to client + mode-aware
+5. `<RowInputGrid>` reusable component (paste handler, tab nav)
+6. `/input/balance-sheet/page.tsx` form pilot
+7. Sidebar nav update ("Input Data" group)
+8. Verify gauntlet + production deploy
+
+Estimated: 3 jam, ~10 commits, ~20 new tests.
+
+### Deferred (unchanged from prior sessions)
+
+- Multi-case management (multiple companies in one localStorage) — Phase 4
+- File upload parsing (.xlsx → live data) — Phase 4 (Penilai DJP prefer manual input)
+- Cloud sync / multi-device — non-negotiable #2 (privacy-first)
+- Audit trail / change history — Phase 4
+- Recharts dashboard — Session 014
+- Export ke .xlsx via ExcelJS — Phase 4
