@@ -1,0 +1,1179 @@
+{
+  "name": "FINANCIAL RATIO",
+  "slug": "financial-ratio",
+  "visible": true,
+  "dimensions": {
+    "max_row": 30,
+    "max_col": 9,
+    "max_col_letter": "I"
+  },
+  "merged_ranges": [],
+  "cells": [
+    {
+      "addr": "A1",
+      "row": 1,
+      "col": 1,
+      "value": "PT RAJA VOLTAMA ELEKTRIK",
+      "data_type": "s",
+      "formula": "=HOME!B4"
+    },
+    {
+      "addr": "A2",
+      "row": 2,
+      "col": 1,
+      "value": "Financial Ratios",
+      "data_type": "s"
+    },
+    {
+      "addr": "B4",
+      "row": 4,
+      "col": 2,
+      "value": "Ratio",
+      "data_type": "s"
+    },
+    {
+      "addr": "C4",
+      "row": 4,
+      "col": 3,
+      "value": "Formula",
+      "data_type": "s"
+    },
+    {
+      "addr": "D4",
+      "row": 4,
+      "col": 4,
+      "value": 2019,
+      "data_type": "n",
+      "formula": "=ROIC!B5"
+    },
+    {
+      "addr": "E4",
+      "row": 4,
+      "col": 5,
+      "value": 2020,
+      "data_type": "n",
+      "formula": "=ROIC!C5"
+    },
+    {
+      "addr": "F4",
+      "row": 4,
+      "col": 6,
+      "value": 2021,
+      "data_type": "n",
+      "formula": "=ROIC!D5"
+    },
+    {
+      "addr": "G4",
+      "row": 4,
+      "col": 7,
+      "value": "Average",
+      "data_type": "s"
+    },
+    {
+      "addr": "A5",
+      "row": 5,
+      "col": 1,
+      "value": "Profitability Indicator Ratio",
+      "data_type": "s"
+    },
+    {
+      "addr": "B5",
+      "row": 5,
+      "col": 2,
+      "value": "Profitability Indicator Ratio",
+      "data_type": "s"
+    },
+    {
+      "addr": "C5",
+      "row": 5,
+      "col": 3,
+      "value": "Formula",
+      "data_type": "s"
+    },
+    {
+      "addr": "D5",
+      "row": 5,
+      "col": 4,
+      "value": "Column3",
+      "data_type": "s",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "E5",
+      "row": 5,
+      "col": 5,
+      "value": "Column4",
+      "data_type": "s",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "F5",
+      "row": 5,
+      "col": 6,
+      "value": "Column5",
+      "data_type": "s",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "G5",
+      "row": 5,
+      "col": 7,
+      "value": "Column6",
+      "data_type": "s",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "B6",
+      "row": 6,
+      "col": 2,
+      "value": "Gross Profit Margin",
+      "data_type": "s"
+    },
+    {
+      "addr": "C6",
+      "row": 6,
+      "col": 3,
+      "value": "GP/Sales",
+      "data_type": "s"
+    },
+    {
+      "addr": "D6",
+      "row": 6,
+      "col": 4,
+      "value": 0.3621214104981481,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!D9",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "E6",
+      "row": 6,
+      "col": 5,
+      "value": 0.405616165821144,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!E9",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "F6",
+      "row": 6,
+      "col": 6,
+      "value": 0.5739093087017162,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!F9",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "G6",
+      "row": 6,
+      "col": 7,
+      "value": 0.4472156283403361,
+      "data_type": "n",
+      "formula": "=AVERAGE(D6:F6)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "B7",
+      "row": 7,
+      "col": 2,
+      "value": "EBITDA Margin",
+      "data_type": "s"
+    },
+    {
+      "addr": "C7",
+      "row": 7,
+      "col": 3,
+      "value": "EBITDA/Sales",
+      "data_type": "s"
+    },
+    {
+      "addr": "D7",
+      "row": 7,
+      "col": 4,
+      "value": 0.11606908342974578,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!D19",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "E7",
+      "row": 7,
+      "col": 5,
+      "value": 0.10807895594299115,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!E19",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "F7",
+      "row": 7,
+      "col": 6,
+      "value": 0.12276366814240595,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!F19",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "G7",
+      "row": 7,
+      "col": 7,
+      "value": 0.11563723583838097,
+      "data_type": "n",
+      "formula": "=AVERAGE(D7:F7)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "B8",
+      "row": 8,
+      "col": 2,
+      "value": "EBIT Margin",
+      "data_type": "s"
+    },
+    {
+      "addr": "C8",
+      "row": 8,
+      "col": 3,
+      "value": "EBIT/Sales",
+      "data_type": "s"
+    },
+    {
+      "addr": "D8",
+      "row": 8,
+      "col": 4,
+      "value": 0.11273237050905723,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!D23",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "E8",
+      "row": 8,
+      "col": 5,
+      "value": 0.1053600035111106,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!E23",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "F8",
+      "row": 8,
+      "col": 6,
+      "value": 0.12014287026282434,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!F23",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "G8",
+      "row": 8,
+      "col": 7,
+      "value": 0.11274508142766405,
+      "data_type": "n",
+      "formula": "=AVERAGE(D8:F8)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "B9",
+      "row": 9,
+      "col": 2,
+      "value": "Net Profit Margin",
+      "data_type": "s"
+    },
+    {
+      "addr": "C9",
+      "row": 9,
+      "col": 3,
+      "value": "Net Profit/Sales",
+      "data_type": "s"
+    },
+    {
+      "addr": "D9",
+      "row": 9,
+      "col": 4,
+      "value": 0.08454927788659047,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!D36",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "E9",
+      "row": 9,
+      "col": 5,
+      "value": 0.08416123892769456,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!E36",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "F9",
+      "row": 9,
+      "col": 6,
+      "value": 0.09511572071956491,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!F36",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "G9",
+      "row": 9,
+      "col": 7,
+      "value": 0.08794207917794998,
+      "data_type": "n",
+      "formula": "=AVERAGE(D9:F9)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "B10",
+      "row": 10,
+      "col": 2,
+      "value": "Return On Asset",
+      "data_type": "s"
+    },
+    {
+      "addr": "C10",
+      "row": 10,
+      "col": 3,
+      "value": "Net Profit/Asset",
+      "data_type": "s"
+    },
+    {
+      "addr": "D10",
+      "row": 10,
+      "col": 4,
+      "value": 0.17125922125784826,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!D35/'BALANCE SHEET'!D27",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "E10",
+      "row": 10,
+      "col": 5,
+      "value": 0.16662309555504853,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!E35/'BALANCE SHEET'!E27",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "F10",
+      "row": 10,
+      "col": 6,
+      "value": 0.172606916424753,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!F35/'BALANCE SHEET'!F27",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "G10",
+      "row": 10,
+      "col": 7,
+      "value": 0.17016307774588327,
+      "data_type": "n",
+      "formula": "=AVERAGE(D10:F10)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "B11",
+      "row": 11,
+      "col": 2,
+      "value": "Return On Equity",
+      "data_type": "s"
+    },
+    {
+      "addr": "C11",
+      "row": 11,
+      "col": 3,
+      "value": "Net Profit/Equity",
+      "data_type": "s"
+    },
+    {
+      "addr": "D11",
+      "row": 11,
+      "col": 4,
+      "value": 0.23599424936543636,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!D35/'BALANCE SHEET'!D49",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "E11",
+      "row": 11,
+      "col": 5,
+      "value": 0.21104850951312393,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!E35/'BALANCE SHEET'!E49",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "F11",
+      "row": 11,
+      "col": 6,
+      "value": 0.19770249274900178,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!F35/'BALANCE SHEET'!F49",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "G11",
+      "row": 11,
+      "col": 7,
+      "value": 0.214915083875854,
+      "data_type": "n",
+      "formula": "=AVERAGE(D11:F11)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "A13",
+      "row": 13,
+      "col": 1,
+      "value": "Liquidity Measurement Ratio",
+      "data_type": "s"
+    },
+    {
+      "addr": "B13",
+      "row": 13,
+      "col": 2,
+      "value": "Liquidity Measurement Ratio",
+      "data_type": "s"
+    },
+    {
+      "addr": "C13",
+      "row": 13,
+      "col": 3,
+      "value": "Formula",
+      "data_type": "s"
+    },
+    {
+      "addr": "D13",
+      "row": 13,
+      "col": 4,
+      "value": "Column3",
+      "data_type": "s",
+      "number_format": "_(* #,##0.00_);_(* \\(#,##0.00\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E13",
+      "row": 13,
+      "col": 5,
+      "value": "Column4",
+      "data_type": "s",
+      "number_format": "_(* #,##0.00_);_(* \\(#,##0.00\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F13",
+      "row": 13,
+      "col": 6,
+      "value": "Column5",
+      "data_type": "s",
+      "number_format": "_(* #,##0.00_);_(* \\(#,##0.00\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "G13",
+      "row": 13,
+      "col": 7,
+      "value": "Column6",
+      "data_type": "s",
+      "number_format": "_-* #,##0.00_-;\\-* #,##0.00_-;_-* \"-\"_-;_-@_-"
+    },
+    {
+      "addr": "B14",
+      "row": 14,
+      "col": 2,
+      "value": "Current Ratio",
+      "data_type": "s"
+    },
+    {
+      "addr": "C14",
+      "row": 14,
+      "col": 3,
+      "value": "CA/CL",
+      "data_type": "s"
+    },
+    {
+      "addr": "D14",
+      "row": 14,
+      "col": 4,
+      "value": 2.777769689760619,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!D16/'BALANCE SHEET'!D35",
+      "number_format": "_(* #,##0.00_);_(* \\(#,##0.00\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E14",
+      "row": 14,
+      "col": 5,
+      "value": 3.797728253785967,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!E16/'BALANCE SHEET'!E35",
+      "number_format": "_(* #,##0.00_);_(* \\(#,##0.00\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F14",
+      "row": 14,
+      "col": 6,
+      "value": 6.410798342124921,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!F16/'BALANCE SHEET'!F35",
+      "number_format": "_(* #,##0.00_);_(* \\(#,##0.00\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "G14",
+      "row": 14,
+      "col": 7,
+      "value": 4.328765428557169,
+      "data_type": "n",
+      "formula": "=AVERAGE(D14:F14)",
+      "number_format": "_-* #,##0.00_-;\\-* #,##0.00_-;_-* \"-\"_-;_-@_-"
+    },
+    {
+      "addr": "B15",
+      "row": 15,
+      "col": 2,
+      "value": "Quick Ratio",
+      "data_type": "s"
+    },
+    {
+      "addr": "C15",
+      "row": 15,
+      "col": 3,
+      "value": "(Cash+A/R)/CL",
+      "data_type": "s"
+    },
+    {
+      "addr": "D15",
+      "row": 15,
+      "col": 4,
+      "value": 1.8111086442868973,
+      "data_type": "n",
+      "formula": "=('BALANCE SHEET'!D8+'BALANCE SHEET'!D9+'BALANCE SHEET'!D10)/'BALANCE SHEET'!D35",
+      "number_format": "_(* #,##0.00_);_(* \\(#,##0.00\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E15",
+      "row": 15,
+      "col": 5,
+      "value": 1.8063861176064588,
+      "data_type": "n",
+      "formula": "=('BALANCE SHEET'!E8+'BALANCE SHEET'!E9+'BALANCE SHEET'!E10)/'BALANCE SHEET'!E35",
+      "number_format": "_(* #,##0.00_);_(* \\(#,##0.00\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F15",
+      "row": 15,
+      "col": 6,
+      "value": 4.606877060094855,
+      "data_type": "n",
+      "formula": "=('BALANCE SHEET'!F8+'BALANCE SHEET'!F9+'BALANCE SHEET'!F10)/'BALANCE SHEET'!F35",
+      "number_format": "_(* #,##0.00_);_(* \\(#,##0.00\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "G15",
+      "row": 15,
+      "col": 7,
+      "value": 2.7414572739960703,
+      "data_type": "n",
+      "formula": "=AVERAGE(D15:F15)",
+      "number_format": "_-* #,##0.00_-;\\-* #,##0.00_-;_-* \"-\"_-;_-@_-"
+    },
+    {
+      "addr": "B16",
+      "row": 16,
+      "col": 2,
+      "value": "Cash Ratio",
+      "data_type": "s"
+    },
+    {
+      "addr": "C16",
+      "row": 16,
+      "col": 3,
+      "value": "Cash/CL",
+      "data_type": "s"
+    },
+    {
+      "addr": "D16",
+      "row": 16,
+      "col": 4,
+      "value": 1.1382188031219753,
+      "data_type": "n",
+      "formula": "=('BALANCE SHEET'!D8+'BALANCE SHEET'!D9)/'BALANCE SHEET'!D35",
+      "number_format": "_(* #,##0.00_);_(* \\(#,##0.00\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E16",
+      "row": 16,
+      "col": 5,
+      "value": 1.3565240117562003,
+      "data_type": "n",
+      "formula": "=('BALANCE SHEET'!E8+'BALANCE SHEET'!E9)/'BALANCE SHEET'!E35",
+      "number_format": "_(* #,##0.00_);_(* \\(#,##0.00\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F16",
+      "row": 16,
+      "col": 6,
+      "value": 3.8147485802497574,
+      "data_type": "n",
+      "formula": "=('BALANCE SHEET'!F8+'BALANCE SHEET'!F9)/'BALANCE SHEET'!F35",
+      "number_format": "_(* #,##0.00_);_(* \\(#,##0.00\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "G16",
+      "row": 16,
+      "col": 7,
+      "value": 2.1031637983759777,
+      "data_type": "n",
+      "formula": "=AVERAGE(D16:F16)",
+      "number_format": "_-* #,##0.00_-;\\-* #,##0.00_-;_-* \"-\"_-;_-@_-"
+    },
+    {
+      "addr": "A18",
+      "row": 18,
+      "col": 1,
+      "value": "Leverage Ratio",
+      "data_type": "s"
+    },
+    {
+      "addr": "B18",
+      "row": 18,
+      "col": 2,
+      "value": "Leverage Ratio",
+      "data_type": "s"
+    },
+    {
+      "addr": "C18",
+      "row": 18,
+      "col": 3,
+      "value": "Formula",
+      "data_type": "s"
+    },
+    {
+      "addr": "D18",
+      "row": 18,
+      "col": 4,
+      "value": "Column3",
+      "data_type": "s",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "E18",
+      "row": 18,
+      "col": 5,
+      "value": "Column4",
+      "data_type": "s",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "F18",
+      "row": 18,
+      "col": 6,
+      "value": "Column5",
+      "data_type": "s",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "G18",
+      "row": 18,
+      "col": 7,
+      "value": "Column6",
+      "data_type": "s",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "B19",
+      "row": 19,
+      "col": 2,
+      "value": "Debt to Assets Ratio",
+      "data_type": "s"
+    },
+    {
+      "addr": "C19",
+      "row": 19,
+      "col": 3,
+      "value": "Liabilities/Asset",
+      "data_type": "s"
+    },
+    {
+      "addr": "D19",
+      "row": 19,
+      "col": 4,
+      "value": 0.2743076506383259,
+      "data_type": "n",
+      "formula": "=('BALANCE SHEET'!D35+'BALANCE SHEET'!D40)/'BALANCE SHEET'!D27",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "E19",
+      "row": 19,
+      "col": 5,
+      "value": 0.21049859134547844,
+      "data_type": "n",
+      "formula": "=('BALANCE SHEET'!E35+'BALANCE SHEET'!E40)/'BALANCE SHEET'!E27",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "F19",
+      "row": 19,
+      "col": 6,
+      "value": 0.12693606429124385,
+      "data_type": "n",
+      "formula": "=('BALANCE SHEET'!F35+'BALANCE SHEET'!F40)/'BALANCE SHEET'!F27",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "G19",
+      "row": 19,
+      "col": 7,
+      "value": 0.20391410209168273,
+      "data_type": "n",
+      "formula": "=AVERAGE(D19:F19)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "B20",
+      "row": 20,
+      "col": 2,
+      "value": " Debt to Equity Ratio",
+      "data_type": "s"
+    },
+    {
+      "addr": "C20",
+      "row": 20,
+      "col": 3,
+      "value": "Liabilities/Equity",
+      "data_type": "s"
+    },
+    {
+      "addr": "D20",
+      "row": 20,
+      "col": 4,
+      "value": 0.37799440889739233,
+      "data_type": "n",
+      "formula": "=('BALANCE SHEET'!D35+'BALANCE SHEET'!D40)/'BALANCE SHEET'!D49",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "E20",
+      "row": 20,
+      "col": 5,
+      "value": 0.26662218589858233,
+      "data_type": "n",
+      "formula": "=('BALANCE SHEET'!E35+'BALANCE SHEET'!E40)/'BALANCE SHEET'!E49",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "F20",
+      "row": 20,
+      "col": 6,
+      "value": 0.1453914874904027,
+      "data_type": "n",
+      "formula": "=('BALANCE SHEET'!F35+'BALANCE SHEET'!F40)/'BALANCE SHEET'!F49",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "G20",
+      "row": 20,
+      "col": 7,
+      "value": 0.2633360274287924,
+      "data_type": "n",
+      "formula": "=AVERAGE(D20:F20)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "B21",
+      "row": 21,
+      "col": 2,
+      "value": "Capitalization Ratio",
+      "data_type": "s"
+    },
+    {
+      "addr": "C21",
+      "row": 21,
+      "col": 3,
+      "value": "LTD/(LTD+Equity)",
+      "data_type": "s"
+    },
+    {
+      "addr": "D21",
+      "row": 21,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!D38/('BALANCE SHEET'!D38+'BALANCE SHEET'!D49)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "E21",
+      "row": 21,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!E38/('BALANCE SHEET'!E38+'BALANCE SHEET'!E49)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "F21",
+      "row": 21,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!F38/('BALANCE SHEET'!F38+'BALANCE SHEET'!F49)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "G21",
+      "row": 21,
+      "col": 7,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=AVERAGE(D21:F21)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "B22",
+      "row": 22,
+      "col": 2,
+      "value": "Interest Coverage",
+      "data_type": "s"
+    },
+    {
+      "addr": "C22",
+      "row": 22,
+      "col": 3,
+      "value": "EBIT/Interest Expense",
+      "data_type": "s"
+    },
+    {
+      "addr": "D22",
+      "row": 22,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=IFERROR(ABS('INCOME STATEMENT'!D22/'INCOME STATEMENT'!D27),0)",
+      "number_format": "_(* #,##0.00_);_(* \\(#,##0.00\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E22",
+      "row": 22,
+      "col": 5,
+      "value": 212.80175909889152,
+      "data_type": "n",
+      "formula": "=IFERROR(ABS('INCOME STATEMENT'!E22/'INCOME STATEMENT'!E27),0)",
+      "number_format": "_(* #,##0.00_);_(* \\(#,##0.00\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F22",
+      "row": 22,
+      "col": 6,
+      "value": 376.39505554714384,
+      "data_type": "n",
+      "formula": "=IFERROR(ABS('INCOME STATEMENT'!F22/'INCOME STATEMENT'!F27),0)",
+      "number_format": "_(* #,##0.00_);_(* \\(#,##0.00\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "G22",
+      "row": 22,
+      "col": 7,
+      "value": 196.3989382153451,
+      "data_type": "n",
+      "formula": "=AVERAGE(D22:F22)",
+      "number_format": "_-* #,##0.00_-;\\-* #,##0.00_-;_-* \"-\"_-;_-@_-"
+    },
+    {
+      "addr": "B23",
+      "row": 23,
+      "col": 2,
+      "value": "Equity to Total Asset",
+      "data_type": "s"
+    },
+    {
+      "addr": "D23",
+      "row": 23,
+      "col": 4,
+      "value": 0.725692349361674,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!D49/'BALANCE SHEET'!D27",
+      "number_format": "0%"
+    },
+    {
+      "addr": "E23",
+      "row": 23,
+      "col": 5,
+      "value": 0.7895014086545216,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!E49/'BALANCE SHEET'!E27",
+      "number_format": "0%"
+    },
+    {
+      "addr": "F23",
+      "row": 23,
+      "col": 6,
+      "value": 0.8730639357384861,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!F49/'BALANCE SHEET'!F27",
+      "number_format": "0%"
+    },
+    {
+      "addr": "G23",
+      "row": 23,
+      "col": 7,
+      "value": 0.7960858979182271,
+      "data_type": "n",
+      "formula": "=AVERAGE(D23:F23)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "A25",
+      "row": 25,
+      "col": 1,
+      "value": "Cash Flow Indicator",
+      "data_type": "s"
+    },
+    {
+      "addr": "B25",
+      "row": 25,
+      "col": 2,
+      "value": "Cash Flow Indicator",
+      "data_type": "s"
+    },
+    {
+      "addr": "C25",
+      "row": 25,
+      "col": 3,
+      "value": "Column2",
+      "data_type": "s"
+    },
+    {
+      "addr": "D25",
+      "row": 25,
+      "col": 4,
+      "value": "Column3",
+      "data_type": "s",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "E25",
+      "row": 25,
+      "col": 5,
+      "value": "Column4",
+      "data_type": "s",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "F25",
+      "row": 25,
+      "col": 6,
+      "value": "Column5",
+      "data_type": "s",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "G25",
+      "row": 25,
+      "col": 7,
+      "value": "Column6",
+      "data_type": "s",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "B26",
+      "row": 26,
+      "col": 2,
+      "value": "Operating Cash Flow/Sales",
+      "data_type": "s"
+    },
+    {
+      "addr": "C26",
+      "row": 26,
+      "col": 3,
+      "value": "Operating Cash Flow/Sales",
+      "data_type": "s"
+    },
+    {
+      "addr": "D26",
+      "row": 26,
+      "col": 4,
+      "value": -0.017891635411190033,
+      "data_type": "n",
+      "formula": "='CASH FLOW STATEMENT'!C11/'INCOME STATEMENT'!D6",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "E26",
+      "row": 26,
+      "col": 5,
+      "value": 0.03127091456276289,
+      "data_type": "n",
+      "formula": "='CASH FLOW STATEMENT'!D11/'INCOME STATEMENT'!E6",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "F26",
+      "row": 26,
+      "col": 6,
+      "value": 0.09426240065624679,
+      "data_type": "n",
+      "formula": "='CASH FLOW STATEMENT'!E11/'INCOME STATEMENT'!F6",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "G26",
+      "row": 26,
+      "col": 7,
+      "value": 0.03588055993593988,
+      "data_type": "n",
+      "formula": "=AVERAGE(D26:F26)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "B27",
+      "row": 27,
+      "col": 2,
+      "value": "FCF/Operating Cash Ratio",
+      "data_type": "s"
+    },
+    {
+      "addr": "C27",
+      "row": 27,
+      "col": 3,
+      "value": "FCF/Operating Cash Flow",
+      "data_type": "s"
+    },
+    {
+      "addr": "D27",
+      "row": 27,
+      "col": 4,
+      "value": 1.372991383292068,
+      "data_type": "n",
+      "formula": "=FCF!C20/'CASH FLOW STATEMENT'!C11",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "E27",
+      "row": 27,
+      "col": 5,
+      "value": 0.7993813634717085,
+      "data_type": "n",
+      "formula": "=FCF!D20/'CASH FLOW STATEMENT'!D11",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "F27",
+      "row": 27,
+      "col": 6,
+      "value": 0.8727379118712688,
+      "data_type": "n",
+      "formula": "=FCF!E20/'CASH FLOW STATEMENT'!E11",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "G27",
+      "row": 27,
+      "col": 7,
+      "value": 1.0150368862116819,
+      "data_type": "n",
+      "formula": "=AVERAGE(D27:F27)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "B28",
+      "row": 28,
+      "col": 2,
+      "value": "Short Term Debt Coverage",
+      "data_type": "s"
+    },
+    {
+      "addr": "C28",
+      "row": 28,
+      "col": 3,
+      "value": "Operating Cash Flow/Bank Loan Short Term",
+      "data_type": "s"
+    },
+    {
+      "addr": "D28",
+      "row": 28,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=IFERROR('CASH FLOW STATEMENT'!C11/'BALANCE SHEET'!D31,0)",
+      "number_format": "0.00"
+    },
+    {
+      "addr": "E28",
+      "row": 28,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=IFERROR('CASH FLOW STATEMENT'!D11/'BALANCE SHEET'!E31,0)",
+      "number_format": "0.00"
+    },
+    {
+      "addr": "F28",
+      "row": 28,
+      "col": 6,
+      "value": 5.753740409,
+      "data_type": "n",
+      "formula": "=IFERROR('CASH FLOW STATEMENT'!E11/'BALANCE SHEET'!F31,0)",
+      "number_format": "0.00"
+    },
+    {
+      "addr": "G28",
+      "row": 28,
+      "col": 7,
+      "value": 1.9179134696666666,
+      "data_type": "n",
+      "formula": "=AVERAGE(D28:F28)",
+      "number_format": "_-* #,##0.00_-;\\-* #,##0.00_-;_-* \"-\"_-;_-@_-"
+    },
+    {
+      "addr": "B30",
+      "row": 30,
+      "col": 2,
+      "value": "Capex Coverage",
+      "data_type": "s"
+    },
+    {
+      "addr": "C30",
+      "row": 30,
+      "col": 3,
+      "value": "Operating CF/Capex",
+      "data_type": "s"
+    },
+    {
+      "addr": "D30",
+      "row": 30,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=IFERROR(ABS('CASH FLOW STATEMENT'!C11/'CASH FLOW STATEMENT'!C17),0)",
+      "number_format": "0.00"
+    },
+    {
+      "addr": "E30",
+      "row": 30,
+      "col": 5,
+      "value": 37.42225906505868,
+      "data_type": "n",
+      "formula": "=IFERROR(ABS('CASH FLOW STATEMENT'!D11/'CASH FLOW STATEMENT'!D17),0)",
+      "number_format": "0.00"
+    },
+    {
+      "addr": "F30",
+      "row": 30,
+      "col": 6,
+      "value": 13.955632458262603,
+      "data_type": "n",
+      "formula": "=IFERROR(ABS('CASH FLOW STATEMENT'!E11/'CASH FLOW STATEMENT'!E17),0)",
+      "number_format": "0.00"
+    },
+    {
+      "addr": "G30",
+      "row": 30,
+      "col": 7,
+      "value": 17.125963841107094,
+      "data_type": "n",
+      "formula": "=AVERAGE(D30:F30)",
+      "number_format": "_-* #,##0.00_-;\\-* #,##0.00_-;_-* \"-\"_-;_-@_-"
+    }
+  ],
+  "required_hidden": false
+}

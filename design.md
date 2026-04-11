@@ -1,49 +1,151 @@
-# Design — KKA Penilaian Saham (Session 2A.5: Harden Calc Engine)
+# design.md — Session 2B P1: UI Financial Tables + Navigation
+
+Branch: `feat/phase2b-ui-financial-tables`
+Target: 4 representative pages rendered end-to-end from seed → adapter → validator → calc → `<FinancialTable>` with formula tooltip. Deferred 4 pages land in Session 2B.5.
 
 ## Problem
 
-Phase 2A delivered 6 pure calculation modules validated against Excel at 12-decimal precision. Architectural review identified three rough edges that would become landmines in Session 2B (UI layer):
+The calc engine was hardened in Sessions 2A + 2A.5, but no page renders anything — Zustand only holds `home`. Phase 2B builds the UI layer so a user can open the live website and see fully-rendered financial sheets with verifiable formulas.
 
-1. **Column offset** — BS/IS use cols D/E/F for 2019–2021, while CFS/FCF use C/D/E for the same years. Current `number[]` representation forces UI callers to know these conventions; a single off-by-one mapping silently corrupts all downstream ratios.
-2. **No boundary validation** — Calc functions trust callers to provide clean numeric input. `NaN`, `Infinity`, sparse arrays, or length mismatches produce opaque runtime errors instead of actionable validation failures.
-3. **Implicit sign convention** — `computeFcf` and `computeCashFlowStatement` accept pre-negated depreciation and capex, mirroring the source workbook's `='FIXED ASSET'!*-1` pattern. Future developers (human or AI) have no compile-time signal that negation is required before the call.
+## Chosen Approach
 
-## Approach
+1. **Data source**: fixture-as-seed from the reference workbook `kka-penilaian-saham.xlsx`. Fixtures already exist under `__tests__/fixtures/*.json` (34 sheets). Session 2B copies the relevant ones into `src/data/seed/fixtures/` at build time and provides a typed loader that reshapes them into `YearKeyedSeries`. A small disclaimer ("Data demo workbook PT Raja Voltama Elektrik") is shown per page.
+2. **Row mapping**: full TypeScript manifests, English labels (matches workbook). One manifest file per sheet under `src/data/manifests/`. Each entry points to an Excel row and declares its `indent`, `type`, and optional human-readable `formula` description. Cell values and raw Excel formulas are pulled live from the fixture index.
+3. **Formula tooltip**: Level C hybrid — description authored in manifest + raw Excel formula auto-pulled from fixture cell. Shown on hover AND keyboard-focus for a11y. Rendered only on derived / subtotal / total rows.
+4. **Mobile**: hamburger drawer pattern. Single `<Sidebar>` component, fixed on `lg+`, slide-in drawer `<lg`, toggled from a top bar hamburger button. Tailwind-only, no framework.
+5. **Pages**: 4 in this session — Balance Sheet, Income Statement, Financial Ratio, FCF. Cover both layout "shapes": 4-year historical with common-size/growth (BS/IS) and 3-year sectioned tables (Ratios/FCF).
 
-Introduce three narrow system layers around the existing pure calc engine:
+## Architecture
 
-1. **Year-keyed series** — Replace `readonly number[]` in all 6 Phase 2A modules with `YearKeyedSeries = Record<number, number>`. Years become data, not axes. Caller code reads `series[2020]` and cannot confuse year ordering or column offsets. BS/IS keep `YearlySeries {y0..y3}` for now since they are already type-safe and share the same column layout; migration of Phase 1 modules is deferred as a separate cleanup.
+### Per-page render flow (Server Component default)
+```
+src/app/historical/balance-sheet/page.tsx  (Server)
+  │
+  ├─ loadCells('balance-sheet')            ← src/data/seed/loader.ts
+  ├─ buildRowsFromManifest(manifest, cells)
+  │    ├─ for each data row: pull num(cells, col+row) per year
+  │    ├─ for derived rows: call commonSizeBalanceSheet / growthBalanceSheet
+  │    └─ attach formula tooltip metadata from manifest + raw fixture formula
+  └─ <FinancialTable title=… years=[2018,2019,2020,2021] rows=rows
+                     showCommonSize showGrowth disclaimer=… />
+```
 
-2. **Zod validation layer** — New `src/lib/validation/` module wraps each calc function with a Zod schema at the boundary between the UI/store and the pure calc engine. Rejects `NaN`, `Infinity`, mismatched year sets, or empty inputs with readable error messages. Validation runs once at the boundary; calc functions remain pure and unannotated.
+Only `<FormulaTooltip>` and `<SidebarDrawer>` are client components. Everything else stays on the server for best bundle size.
 
-3. **Adapter layer** — New `src/lib/adapters/` module converts raw financial data into properly signed calc inputs. Each adapter has JSDoc explaining *why* each sign flip exists (e.g., "FCF subtracts depreciation because the Excel source pre-negates via `*-1`"). Adapters are the single place that touches sign conventions.
+### Key types
 
-## Key Decisions
+```ts
+// src/data/seed/loader.ts
+export interface FixtureCell {
+  addr: string
+  row: number
+  col: number
+  value: number | string | boolean | null
+  formula?: string
+}
+export type CellMap = Map<string, FixtureCell>
+export function loadCells(slug: SheetSlug): CellMap
+export function num(cells: CellMap, addr: string): number
+export function numOpt(cells: CellMap, addr: string): number | undefined
+export function formulaOf(cells: CellMap, addr: string): string | undefined
+```
 
-1. **YearKeyedSeries = `Record<number, number>`** — plain object keyed by 4-digit year. No wrapping class. TypeScript-friendly, JSON-serializable, easy to iterate. Helper `yearsOf(series)` returns sorted ascending.
-2. **Single canonical year set per call** — every function derives its year axis from the first required input, then asserts that all other inputs have the identical year set via `assertSameYears`. No silent intersection/union. A clean error if caller mixes data from different periods.
-3. **BS/IS untouched** — they already use explicit `{y0..y3}` names which give the same guarantees as year-keying within their 4-year domain. Migrating them is a separate cleanup, not required for this session's goals.
-4. **`growth-revenue.ts` shape change** — input is `YearKeyedSeries` of N years, output is `YearKeyedSeries` of N−1 years (growth rates keyed by the *current* year of the YoY pair). Skipped-year input still produces meaningful growth sequences.
-5. **Validation is additive, not a replacement** — calc functions keep their existing runtime guards (length assertions, zero-divide). Zod layer adds *boundary* guarantees on top. Users can still call a calc function directly with well-formed data.
-6. **Adapters are typed and narrow** — one adapter per module, each accepting a plain-data input shape (raw from store) and returning the calc function's input shape. No "universal adapter" generic.
-7. **Tests are rewritten, not ported** — new tests read fixtures into YearKeyedSeries directly via a small `seriesFromRow` helper. Old `number[]` style helpers stay in the fixture file for BS/IS compatibility.
+```ts
+// src/data/manifests/types.ts
+export interface ManifestRow {
+  excelRow: number
+  label: string
+  indent?: 0 | 1 | 2
+  type?: 'normal' | 'subtotal' | 'total' | 'header' | 'separator'
+  formula?: {
+    values?: string       // description for input rows (usually omitted)
+    commonSize?: string
+    growth?: string
+  }
+  /** Optional pointer to which cells supply common-size/growth data.
+   *  If omitted and row has derived columns, columns are auto-computed from the calc engine. */
+  derived?: 'commonSize' | 'growth' | 'both'
+}
 
-## Success Criteria
+export interface SheetManifest {
+  title: string
+  slug: 'balance-sheet' | 'income-statement' | 'financial-ratio' | 'fcf'
+  years: number[]
+  // col letter per year for each column group
+  columns: Record<number, string>          // values cols (e.g. 2018:'C', 2019:'D', ...)
+  commonSizeColumns?: Record<number, string>
+  growthColumns?: Record<number, string>
+  totalAssetsRow?: number                   // anchor for common-size denominator
+  rows: ManifestRow[]
+}
+```
 
-- 6 Phase 2A modules refactored to `YearKeyedSeries` inputs/outputs
-- 5 validation schemas in `src/lib/validation/` + passing tests for NaN/Infinity/length-mismatch/empty edge cases
-- 3 adapter functions in `src/lib/adapters/` (FCF, CashFlow, NOPLAT) + passing tests asserting sign-flip behavior against Excel fixtures
-- At least one end-to-end integration test: raw data → validate → adapt → calc → assertion against fixture
-- `npm test -- --run` — ≥60 tests passing, zero failures
-- `npm run build 2>&1 | tail -25` — clean
-- `npm run lint` + `npx tsc --noEmit` — clean
-- Merged to main and pushed
+```ts
+// src/components/financial/FinancialTable.tsx
+export interface FinancialRow {
+  label: string
+  values: YearKeyedSeries
+  indent?: 0 | 1 | 2
+  type?: 'normal' | 'subtotal' | 'total' | 'header' | 'separator'
+  commonSize?: YearKeyedSeries
+  growth?: YearKeyedSeries
+  formula?: {
+    values?: { description: string; excelByYear?: Record<number, string> }
+    commonSize?: { description: string; excelByYear?: Record<number, string> }
+    growth?: { description: string; excelByYear?: Record<number, string> }
+  }
+}
 
-## Out of Scope
+export interface FinancialTableProps {
+  title: string
+  years: number[]            // main-value columns
+  rows: FinancialRow[]
+  showCommonSize?: boolean   // add common-size columns for years[1..]
+  showGrowth?: boolean       // add growth columns for years[1..]
+  currency?: string          // default 'IDR'
+  disclaimer?: string
+}
+```
 
-- BS/IS migration to YearKeyedSeries
-- UI layer (Session 2B)
-- New calc modules (Session 2B+)
-- Store-side Zod schemas for `HomeInputs` (already exists from Phase 1)
-- Performance tuning
-- Observability / logging
+## Visual rules (taste-ui + design-system compliant)
+
+- **Sticky first column** (label) + sticky header row
+- **Numbers**: `font-mono tabular-nums`, right-aligned. IDR via `Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 })`.
+- **Negatives**: `(1.234.567)` in `text-negative` red.
+- **Percentages**: `maximumFractionDigits: 1` with `%` suffix.
+- **Indent**: `pl-2` / `pl-6` / `pl-10` for levels 0/1/2.
+- `subtotal`: `font-semibold border-t border-grid-strong`
+- `total`: `font-bold border-t-2 border-ink bg-canvas-raised`
+- `header`: `uppercase tracking-wider text-[11px] bg-grid text-ink-soft`
+- `separator`: thin gap row
+- Alternating row tint, subtle
+- Hover: `hover:bg-accent-soft/50`
+- Focus-visible rings on tooltip triggers
+
+## Mobile behavior
+
+- Container: `overflow-x-auto` wrap around `<table>`
+- First column: `sticky left-0 bg-inherit` + right shadow border
+- `<lg`: sidebar hidden; top bar shows hamburger + page title; drawer slides from left when tapped
+- `lg+`: sidebar fixed 256px left; top bar hidden
+
+## Out of scope (deferred)
+
+- Pages: `/historical/cash-flow`, `/historical/fixed-asset`, `/analysis/noplat`, `/analysis/growth` → Session 2B.5
+- Input forms (user replaces seed data) → Session 2C
+- Per-section accent colors — uniform navy+gold in P1
+- Collapsible sidebar groups — all expanded in P1
+- Recharts visualisation
+- Dark mode
+- Excel export
+
+## Verification gates
+
+1. `npm run build 2>&1 | tail -25` → zero errors
+2. `npm test` → all prior 90 tests + new ones green
+3. `npm run lint` → zero warnings
+4. `npx tsc --noEmit` → exit 0
+5. Manual: navigate sidebar to 4 P1 pages, data renders
+6. Manual: hover cell → tooltip with description + raw Excel formula
+7. Manual: mobile width 375px → first column sticky, hamburger works
+8. Live: push `main` → Vercel auto-deploy → verify `https://kka-penilaian-saham.vercel.app` returns 200 with new pages

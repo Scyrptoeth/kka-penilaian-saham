@@ -1,0 +1,374 @@
+{
+  "name": "FCF",
+  "slug": "fcf",
+  "visible": true,
+  "dimensions": {
+    "max_row": 29,
+    "max_col": 5,
+    "max_col_letter": "E"
+  },
+  "merged_ranges": [],
+  "cells": [
+    {
+      "addr": "A1",
+      "row": 1,
+      "col": 1,
+      "value": "PT RAJA VOLTAMA ELEKTRIK",
+      "data_type": "s",
+      "formula": "=HOME!B4"
+    },
+    {
+      "addr": "A2",
+      "row": 2,
+      "col": 1,
+      "value": "Free Cash Flow",
+      "data_type": "s"
+    },
+    {
+      "addr": "A3",
+      "row": 3,
+      "col": 1,
+      "value": "(IDR)",
+      "data_type": "s",
+      "formula": "='BALANCE SHEET'!A3"
+    },
+    {
+      "addr": "C5",
+      "row": 5,
+      "col": 3,
+      "value": 2019,
+      "data_type": "n",
+      "formula": "=NOPLAT!C5"
+    },
+    {
+      "addr": "D5",
+      "row": 5,
+      "col": 4,
+      "value": 2020,
+      "data_type": "n",
+      "formula": "=NOPLAT!D5"
+    },
+    {
+      "addr": "E5",
+      "row": 5,
+      "col": 5,
+      "value": 2021,
+      "data_type": "n",
+      "formula": "=NOPLAT!E5"
+    },
+    {
+      "addr": "A7",
+      "row": 7,
+      "col": 1,
+      "value": "NOPLAT",
+      "data_type": "s"
+    },
+    {
+      "addr": "C7",
+      "row": 7,
+      "col": 3,
+      "value": 4405853437,
+      "data_type": "n",
+      "formula": "=NOPLAT!C19",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D7",
+      "row": 7,
+      "col": 4,
+      "value": 4876619594,
+      "data_type": "n",
+      "formula": "=NOPLAT!D19",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E7",
+      "row": 7,
+      "col": 5,
+      "value": 5720109965,
+      "data_type": "n",
+      "formula": "=NOPLAT!E19",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A8",
+      "row": 8,
+      "col": 1,
+      "value": "Add: Depreciation",
+      "data_type": "s"
+    },
+    {
+      "addr": "C8",
+      "row": 8,
+      "col": 3,
+      "value": -173875738,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!C51*-1",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D8",
+      "row": 8,
+      "col": 4,
+      "value": -161342991,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!D51*-1",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E8",
+      "row": 8,
+      "col": 5,
+      "value": -159972488,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E51*-1",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A9",
+      "row": 9,
+      "col": 1,
+      "value": "Gross Cash Flow",
+      "data_type": "s"
+    },
+    {
+      "addr": "C9",
+      "row": 9,
+      "col": 3,
+      "value": 4231977699,
+      "data_type": "n",
+      "formula": "=+C7+C8",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D9",
+      "row": 9,
+      "col": 4,
+      "value": 4715276603,
+      "data_type": "n",
+      "formula": "=+D7+D8",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E9",
+      "row": 9,
+      "col": 5,
+      "value": 5560137477,
+      "data_type": "n",
+      "formula": "=+E7+E8",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A11",
+      "row": 11,
+      "col": 1,
+      "value": "Changes in Working Capital",
+      "data_type": "s"
+    },
+    {
+      "addr": "A12",
+      "row": 12,
+      "col": 1,
+      "value": "(Increase) Decrease in Current Asset",
+      "data_type": "s"
+    },
+    {
+      "addr": "C12",
+      "row": 12,
+      "col": 3,
+      "value": -7632127401,
+      "data_type": "n",
+      "formula": "='CASH FLOW STATEMENT'!C8",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D12",
+      "row": 12,
+      "col": 4,
+      "value": -2434646395,
+      "data_type": "n",
+      "formula": "='CASH FLOW STATEMENT'!D8",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E12",
+      "row": 12,
+      "col": 5,
+      "value": 1913225999,
+      "data_type": "n",
+      "formula": "='CASH FLOW STATEMENT'!E8",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A13",
+      "row": 13,
+      "col": 1,
+      "value": "Increase (Decrease) in Current Liabilities",
+      "data_type": "s"
+    },
+    {
+      "addr": "C13",
+      "row": 13,
+      "col": 3,
+      "value": 2120067101,
+      "data_type": "n",
+      "formula": "='CASH FLOW STATEMENT'!C9",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D13",
+      "row": 13,
+      "col": 4,
+      "value": -747696052,
+      "data_type": "n",
+      "formula": "='CASH FLOW STATEMENT'!D9",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E13",
+      "row": 13,
+      "col": 5,
+      "value": -2039568042,
+      "data_type": "n",
+      "formula": "='CASH FLOW STATEMENT'!E9",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A14",
+      "row": 14,
+      "col": 1,
+      "value": "Total Net Changes in Working Capital",
+      "data_type": "s"
+    },
+    {
+      "addr": "C14",
+      "row": 14,
+      "col": 3,
+      "value": -5512060300,
+      "data_type": "n",
+      "formula": "='CASH FLOW STATEMENT'!C10",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D14",
+      "row": 14,
+      "col": 4,
+      "value": -3182342447,
+      "data_type": "n",
+      "formula": "='CASH FLOW STATEMENT'!D10",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E14",
+      "row": 14,
+      "col": 5,
+      "value": -126342043,
+      "data_type": "n",
+      "formula": "='CASH FLOW STATEMENT'!E10",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A16",
+      "row": 16,
+      "col": 1,
+      "value": "Less: Capital Expenditures",
+      "data_type": "s"
+    },
+    {
+      "addr": "C16",
+      "row": 16,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!C23*-1",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D16",
+      "row": 16,
+      "col": 4,
+      "value": -49586000,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!D23*-1",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E16",
+      "row": 16,
+      "col": 5,
+      "value": -412288044,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E23*-1",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A18",
+      "row": 18,
+      "col": 1,
+      "value": "Gross Investment",
+      "data_type": "s"
+    },
+    {
+      "addr": "C18",
+      "row": 18,
+      "col": 3,
+      "value": -5512060300,
+      "data_type": "n",
+      "formula": "=+C14+C16",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D18",
+      "row": 18,
+      "col": 4,
+      "value": -3231928447,
+      "data_type": "n",
+      "formula": "=+D14+D16",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E18",
+      "row": 18,
+      "col": 5,
+      "value": -538630087,
+      "data_type": "n",
+      "formula": "=+E14+E16",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A20",
+      "row": 20,
+      "col": 1,
+      "value": "Free Cash Flow",
+      "data_type": "s"
+    },
+    {
+      "addr": "C20",
+      "row": 20,
+      "col": 3,
+      "value": -1280082601,
+      "data_type": "n",
+      "formula": "=+C9+C18",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D20",
+      "row": 20,
+      "col": 4,
+      "value": 1483348156,
+      "data_type": "n",
+      "formula": "=+D9+D18",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E20",
+      "row": 20,
+      "col": 5,
+      "value": 5021507390,
+      "data_type": "n",
+      "formula": "=+E9+E18",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    }
+  ],
+  "required_hidden": false
+}

@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
-    "extract:fixtures": "python3 scripts/extract-fixtures.py"
+    "extract:fixtures": "python3 scripts/extract-fixtures.py",
+    "seed:sync": "node scripts/copy-fixtures.cjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
