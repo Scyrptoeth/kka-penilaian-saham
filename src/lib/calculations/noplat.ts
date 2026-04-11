@@ -4,82 +4,96 @@
  * Mirrors the `NOPLAT` worksheet of kka-penilaian-saham.xlsx.
  *
  *   EBIT              = PBT + InterestExpense + InterestIncome + NonOperatingIncome
- *                       (Excel uses SUM with pre-signed values; InterestIncome is
+ *                       (Excel SUM with pre-signed values; InterestIncome is
  *                        typically entered as a negative number.)
  *   TotalTaxesOnEBIT  = TaxProvision + TaxShieldInterestExpense
  *                     + TaxOnInterestIncome + TaxOnNonOperatingIncome
  *   NOPLAT            = EBIT − TotalTaxesOnEBIT
  *
- * All inputs/outputs are year-indexed arrays (length N = number of historical
- * years). Function is pure and deterministic.
+ * All inputs/outputs are {@link YearKeyedSeries}. The primary input
+ * `profitBeforeTax` defines the year axis; all other series must share the
+ * same year set (validated via {@link assertSameYears}).
+ *
+ * Function is pure. Tax-adjustment inputs are optional — when omitted, they
+ * default to a zero-valued series for every year in the axis.
  */
 
+import type { YearKeyedSeries } from '@/types/financial'
+import { assertSameYears, emptySeriesLike, yearsOf } from './helpers'
+
 export interface NoplatInput {
-  profitBeforeTax: readonly number[]
-  interestExpense: readonly number[]
-  interestIncome: readonly number[]
-  nonOperatingIncome: readonly number[]
-  taxProvision: readonly number[]
-  taxShieldInterestExpense?: readonly number[]
-  taxOnInterestIncome?: readonly number[]
-  taxOnNonOperatingIncome?: readonly number[]
+  profitBeforeTax: YearKeyedSeries
+  interestExpense: YearKeyedSeries
+  interestIncome: YearKeyedSeries
+  nonOperatingIncome: YearKeyedSeries
+  taxProvision: YearKeyedSeries
+  taxShieldInterestExpense?: YearKeyedSeries
+  taxOnInterestIncome?: YearKeyedSeries
+  taxOnNonOperatingIncome?: YearKeyedSeries
 }
 
 export interface NoplatResult {
-  ebit: number[]
-  totalTaxesOnEbit: number[]
-  noplat: number[]
+  ebit: YearKeyedSeries
+  totalTaxesOnEbit: YearKeyedSeries
+  noplat: YearKeyedSeries
 }
 
-function assertSameLength(label: string, arr: readonly number[], expected: number): void {
-  if (arr.length !== expected) {
-    throw new RangeError(
-      `noplat: ${label} length ${arr.length} does not match expected ${expected}`,
-    )
-  }
-}
-
-function defaulted(
-  source: readonly number[] | undefined,
-  length: number,
-): readonly number[] {
-  if (!source) return Array.from({ length }, () => 0)
-  assertSameLength('optional series', source, length)
+function optionalOrZeros(
+  source: YearKeyedSeries | undefined,
+  anchor: YearKeyedSeries,
+  label: string,
+): YearKeyedSeries {
+  if (!source) return emptySeriesLike(anchor)
+  assertSameYears(label, anchor, source)
   return source
 }
 
 export function computeNoplat(input: NoplatInput): NoplatResult {
-  const years = input.profitBeforeTax.length
-  if (years === 0) {
+  const anchor = input.profitBeforeTax
+  const years = yearsOf(anchor)
+  if (years.length === 0) {
     throw new RangeError('noplat: profitBeforeTax must not be empty')
   }
-  assertSameLength('interestExpense', input.interestExpense, years)
-  assertSameLength('interestIncome', input.interestIncome, years)
-  assertSameLength('nonOperatingIncome', input.nonOperatingIncome, years)
-  assertSameLength('taxProvision', input.taxProvision, years)
 
-  const taxShieldInterestExpense = defaulted(input.taxShieldInterestExpense, years)
-  const taxOnInterestIncome = defaulted(input.taxOnInterestIncome, years)
-  const taxOnNonOperatingIncome = defaulted(input.taxOnNonOperatingIncome, years)
+  assertSameYears('noplat.interestExpense', anchor, input.interestExpense)
+  assertSameYears('noplat.interestIncome', anchor, input.interestIncome)
+  assertSameYears('noplat.nonOperatingIncome', anchor, input.nonOperatingIncome)
+  assertSameYears('noplat.taxProvision', anchor, input.taxProvision)
 
-  const ebit: number[] = new Array(years)
-  const totalTaxesOnEbit: number[] = new Array(years)
-  const noplat: number[] = new Array(years)
+  const taxShieldInterestExpense = optionalOrZeros(
+    input.taxShieldInterestExpense,
+    anchor,
+    'noplat.taxShieldInterestExpense',
+  )
+  const taxOnInterestIncome = optionalOrZeros(
+    input.taxOnInterestIncome,
+    anchor,
+    'noplat.taxOnInterestIncome',
+  )
+  const taxOnNonOperatingIncome = optionalOrZeros(
+    input.taxOnNonOperatingIncome,
+    anchor,
+    'noplat.taxOnNonOperatingIncome',
+  )
 
-  for (let i = 0; i < years; i++) {
-    ebit[i] =
-      input.profitBeforeTax[i] +
-      input.interestExpense[i] +
-      input.interestIncome[i] +
-      input.nonOperatingIncome[i]
+  const ebit: YearKeyedSeries = {}
+  const totalTaxesOnEbit: YearKeyedSeries = {}
+  const noplat: YearKeyedSeries = {}
 
-    totalTaxesOnEbit[i] =
-      input.taxProvision[i] +
-      taxShieldInterestExpense[i] +
-      taxOnInterestIncome[i] +
-      taxOnNonOperatingIncome[i]
+  for (const y of years) {
+    ebit[y] =
+      input.profitBeforeTax[y] +
+      input.interestExpense[y] +
+      input.interestIncome[y] +
+      input.nonOperatingIncome[y]
 
-    noplat[i] = ebit[i] - totalTaxesOnEbit[i]
+    totalTaxesOnEbit[y] =
+      input.taxProvision[y] +
+      taxShieldInterestExpense[y] +
+      taxOnInterestIncome[y] +
+      taxOnNonOperatingIncome[y]
+
+    noplat[y] = ebit[y] - totalTaxesOnEbit[y]
   }
 
   return { ebit, totalTaxesOnEbit, noplat }
