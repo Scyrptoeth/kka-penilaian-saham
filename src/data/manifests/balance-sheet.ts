@@ -13,7 +13,6 @@
  */
 
 import type { SheetManifest } from './types'
-import { deriveBalanceSheetColumns } from './historical-derive'
 
 const COMMON_SIZE_DESC = 'Line value ÷ TOTAL ASSETS for the same year'
 const GROWTH_DESC = 'YoY growth: (current − prior) / prior, IFERROR → 0'
@@ -26,7 +25,12 @@ export const BALANCE_SHEET_MANIFEST: SheetManifest = {
   commonSizeColumns: { 2019: 'H', 2020: 'I', 2021: 'J' },
   growthColumns: { 2019: 'N', 2020: 'O', 2021: 'P' },
   totalAssetsRow: 27,
-  derive: deriveBalanceSheetColumns,
+  derivations: [
+    // Common-size ratio against TOTAL ASSETS (row 27 — declared above).
+    { type: 'commonSize' },
+    // IFERROR-safe YoY growth per Excel convention for BS.
+    { type: 'yoyGrowth', safe: true },
+  ],
   disclaimer:
     'Data demo workbook PT Raja Voltama Elektrik (kka-penilaian-saham.xlsx). Input forms pengguna menyusul di Session 2C.',
   rows: [

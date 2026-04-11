@@ -14,7 +14,6 @@
  */
 
 import type { SheetManifest } from './types'
-import { deriveIncomeStatementColumns } from './historical-derive'
 
 const MARGIN_DESC = 'Line value ÷ Revenue — traditional margin %'
 const GROWTH_DESC = 'YoY growth: (current − prior) / prior'
@@ -29,7 +28,12 @@ export const INCOME_STATEMENT_MANIFEST: SheetManifest = {
   growthColumns: { 2019: 'H', 2020: 'I', 2021: 'J' },
   // Revenue row — denominator for margin / common-size derivation.
   anchorRow: 6,
-  derive: deriveIncomeStatementColumns,
+  derivations: [
+    // Margin = line / Revenue (uses anchorRow above).
+    { type: 'marginVsAnchor' },
+    // IFERROR-safe YoY growth — revenue may be zero for non-operating lines.
+    { type: 'yoyGrowth', safe: true },
+  ],
   disclaimer:
     'Data demo workbook PT Raja Voltama Elektrik. Kolom Common Size adalah margin (line / Revenue) hasil kalkulasi dari calc engine, bukan dari Excel.',
   rows: [

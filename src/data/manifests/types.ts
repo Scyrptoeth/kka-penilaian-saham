@@ -9,16 +9,15 @@
  *   - lists each row to render, pointing to an Excel row number, an optional
  *     indent level, a type (normal/subtotal/total/header/separator), and an
  *     optional human-readable formula description used by the tooltip layer
- *   - optionally declares a `derive` callback that produces common-size
- *     and growth column maps via the calc engine — auto-invoked by
- *     `buildRowsFromManifest` so pages do not need to know which function
- *     to call per sheet
+ *   - optionally declares a `derivations` array — a list of declarative
+ *     primitives (commonSize, marginVsAnchor, yoyGrowth) that are
+ *     interpreted by `buildRowsFromManifest` to produce common-size and
+ *     growth column groups. Pages never need sheet-specific helpers.
  *
  * The builder in `./build.ts` takes a manifest + a loaded cell map and
  * produces `FinancialRow[]` ready for <FinancialTable>.
  */
 
-import type { CellMap } from '@/data/seed/loader'
 import type { YearKeyedSeries } from '@/types/financial'
 
 export type RowType =
@@ -69,13 +68,55 @@ export interface ManifestDerivedColumnMap {
   growth?: Record<number, YearKeyedSeries>
 }
 
-/** Derivation callback invoked by `buildRowsFromManifest` — sheet-specific
- *  logic that pulls data from cells + manifest and runs it through the
- *  pure calc engine. */
-export type ManifestDeriveFn = (
-  cells: CellMap,
-  manifest: SheetManifest,
-) => ManifestDerivedColumnMap
+/* ────────────────────────── Declarative derivations ─────────────────────
+ *
+ * `derivations: DerivationSpec[]` on a manifest replaces hand-written
+ * sheet-specific derive functions. The builder interprets each spec using
+ * generic primitives (ratioOfBase, yoyChangeSafe) so adding a new sheet
+ * becomes pure data authoring — zero new code.
+ *
+ * Current primitives (add more only when a real sheet needs them — YAGNI):
+ *   • commonSize        — ratio of each row against a denominator row
+ *                         (e.g. Total Assets for Balance Sheet)
+ *   • marginVsAnchor    — ratio of each row against an anchor row
+ *                         (e.g. Revenue for Income Statement)
+ *   • yoyGrowth         — year-over-year growth, IFERROR-safe by default
+ */
+
+/** Ratio of each row / denominator row for derived years. */
+export interface CommonSizeDeriveSpec {
+  type: 'commonSize'
+  /**
+   * Excel row of the denominator. Falls back to `manifest.totalAssetsRow`
+   * if omitted — Balance Sheet convention uses row 27 (TOTAL ASSETS).
+   */
+  denominatorRow?: number
+}
+
+/** Margin-style ratio of each row / anchor row for derived years. */
+export interface MarginVsAnchorDeriveSpec {
+  type: 'marginVsAnchor'
+  /**
+   * Excel row of the anchor line. Falls back to `manifest.anchorRow`
+   * if omitted — Income Statement convention uses row 6 (Revenue).
+   */
+  anchorRow?: number
+}
+
+/** Year-over-year growth for the values series of each row. */
+export interface YoyGrowthDeriveSpec {
+  type: 'yoyGrowth'
+  /**
+   * If true (default), use the IFERROR-safe variant that returns 0 when
+   * the previous-year value is zero. Set false to allow the raw variant.
+   */
+  safe?: boolean
+}
+
+export type DerivationSpec =
+  | CommonSizeDeriveSpec
+  | MarginVsAnchorDeriveSpec
+  | YoyGrowthDeriveSpec
 
 export interface SheetManifest {
   /** Sheet display title shown in the table caption. */
@@ -116,9 +157,14 @@ export interface SheetManifest {
   /** Optional disclaimer shown in the table caption (seed data marker). */
   disclaimer?: string
   /**
-   * Optional sheet-specific derivation callback. When set, `buildRowsFromManifest`
-   * auto-invokes it with the loaded cells to produce common-size and growth
-   * column groups — page files never need to import sheet-specific helpers.
+   * Declarative derivation specs. Each entry produces either a common-size
+   * or growth column-group via the generic primitives in `./build.ts`.
+   * Interpret order does not matter.
+   *
+   *   derivations: [
+   *     { type: 'commonSize', denominatorRow: 27 },
+   *     { type: 'yoyGrowth', safe: true },
+   *   ]
    */
-  derive?: ManifestDeriveFn
+  derivations?: DerivationSpec[]
 }
