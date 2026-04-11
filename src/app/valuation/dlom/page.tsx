@@ -5,6 +5,7 @@ import { useKkaStore, type DlomState } from '@/lib/store/useKkaStore'
 import { QuestionnaireForm } from '@/components/forms/QuestionnaireForm'
 import { DLOM_FACTORS } from '@/data/questionnaires/dlom-factors'
 import { computeDlomPercentage } from '@/lib/calculations/dlom'
+import { computeQuestionnaireScores } from '@/lib/calculations/questionnaire-helpers'
 import type { KepemilikanType, QuestionnaireResult } from '@/types/questionnaire'
 
 const DEFAULT_DLOM: DlomState = {
@@ -27,24 +28,14 @@ export default function DlomPage() {
   // Default to "tertutup" until HOME is filled — most KKA cases are private companies.
   const jenisPerusahaan = home?.jenisPerusahaan ?? 'tertutup'
   const current = dlom ?? DEFAULT_DLOM
-
-  // Score map per factor — sourced from selected option label.
-  const scores: Record<number, number> = useMemo(() => {
-    const out: Record<number, number> = {}
-    for (const factor of DLOM_FACTORS) {
-      const selected = current.answers[factor.number]
-      if (selected === undefined) continue
-      const option = factor.options.find((o) => o.label === selected)
-      if (option) out[factor.number] = option.score
-    }
-    return out
-  }, [current.answers])
-
-  const totalScore = useMemo(
-    () => Object.values(scores).reduce((sum, s) => sum + s, 0),
-    [scores],
-  )
   const maxScore = DLOM_MAX_SCORE
+
+  // Single source of truth for scoring — used by both display memo and
+  // persistence callback. Replaces 2 inline reduce loops per page.
+  const { scores, totalScore } = useMemo(
+    () => computeQuestionnaireScores(DLOM_FACTORS, current.answers),
+    [current.answers],
+  )
 
   const result: QuestionnaireResult = useMemo(() => {
     const computed = computeDlomPercentage({
@@ -62,16 +53,17 @@ export default function DlomPage() {
     }
   }, [scores, totalScore, maxScore, jenisPerusahaan, current.kepemilikan])
 
-  // Persist whenever answers/kepemilikan change. Result.percentage is the
-  // single source of truth for home.dlomPercent (sync handled inside store).
+  // Persist whenever answers/kepemilikan change. Helper centralizes the
+  // score reduction so the persistence path uses identical logic to the
+  // display path.
   const persistDlom = useCallback(
     (next: Pick<DlomState, 'answers' | 'kepemilikan'>) => {
+      const { totalScore: nextTotal } = computeQuestionnaireScores(
+        DLOM_FACTORS,
+        next.answers,
+      )
       const computed = computeDlomPercentage({
-        totalScore: Object.entries(next.answers).reduce((sum, [num, label]) => {
-          const factor = DLOM_FACTORS.find((f) => f.number === Number(num))
-          const opt = factor?.options.find((o) => o.label === label)
-          return sum + (opt?.score ?? 0)
-        }, 0),
+        totalScore: nextTotal,
         maxScore,
         jenisPerusahaan,
         kepemilikan: next.kepemilikan,

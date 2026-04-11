@@ -5,6 +5,7 @@ import { useKkaStore, type DlocState } from '@/lib/store/useKkaStore'
 import { QuestionnaireForm } from '@/components/forms/QuestionnaireForm'
 import { DLOC_FACTORS } from '@/data/questionnaires/dloc-factors'
 import { computeDlocPercentage } from '@/lib/calculations/dloc'
+import { computeQuestionnaireScores } from '@/lib/calculations/questionnaire-helpers'
 import type { QuestionnaireResult } from '@/types/questionnaire'
 
 const DEFAULT_DLOC: DlocState = {
@@ -24,23 +25,12 @@ export default function DlocPage() {
 
   const jenisPerusahaan = home?.jenisPerusahaan ?? 'tertutup'
   const current = dloc ?? DEFAULT_DLOC
-
-  const scores: Record<number, number> = useMemo(() => {
-    const out: Record<number, number> = {}
-    for (const factor of DLOC_FACTORS) {
-      const selected = current.answers[factor.number]
-      if (selected === undefined) continue
-      const option = factor.options.find((o) => o.label === selected)
-      if (option) out[factor.number] = option.score
-    }
-    return out
-  }, [current.answers])
-
-  const totalScore = useMemo(
-    () => Object.values(scores).reduce((sum, s) => sum + s, 0),
-    [scores],
-  )
   const maxScore = DLOC_MAX_SCORE
+
+  const { scores, totalScore } = useMemo(
+    () => computeQuestionnaireScores(DLOC_FACTORS, current.answers),
+    [current.answers],
+  )
 
   const result: QuestionnaireResult = useMemo(() => {
     const computed = computeDlocPercentage({
@@ -62,12 +52,12 @@ export default function DlocPage() {
   const handleAnswerChange = useCallback(
     (factorNumber: number, optionLabel: string) => {
       const nextAnswers = { ...current.answers, [factorNumber]: optionLabel }
+      const { totalScore: nextTotal } = computeQuestionnaireScores(
+        DLOC_FACTORS,
+        nextAnswers,
+      )
       const computed = computeDlocPercentage({
-        totalScore: Object.entries(nextAnswers).reduce((sum, [num, label]) => {
-          const factor = DLOC_FACTORS.find((f) => f.number === Number(num))
-          const opt = factor?.options.find((o) => o.label === label)
-          return sum + (opt?.score ?? 0)
-        }, 0),
+        totalScore: nextTotal,
         maxScore,
         jenisPerusahaan,
       })
