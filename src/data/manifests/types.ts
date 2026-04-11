@@ -77,9 +77,15 @@ export interface SheetManifest {
   /**
    * Excel row that holds the Total Assets / denominator line for common-size.
    * Only used when commonSize is derived via the calc engine rather than
-   * read directly from a fixture cell.
+   * read directly from a fixture cell. Balance Sheet: row 27.
    */
   totalAssetsRow?: number
+  /**
+   * Excel row that holds the anchor line for sheet-specific derivations —
+   * e.g. Income Statement's Revenue (row 6) is the denominator for margin
+   * calculations. Prefer this over hardcoding row numbers in page files.
+   */
+  anchorRow?: number
   /** Ordered list of rows to render. */
   rows: ManifestRow[]
   /** Optional disclaimer shown in the table caption (seed data marker). */

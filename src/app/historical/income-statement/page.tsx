@@ -9,15 +9,9 @@ export const metadata: Metadata = {
   title: 'Income Statement — KKA Penilaian Saham',
 }
 
-const REVENUE_ROW = 6
-
 export default function IncomeStatementPage() {
   const cells = loadCells('income-statement')
-  const derived = deriveIncomeStatementColumns(
-    cells,
-    INCOME_STATEMENT_MANIFEST,
-    REVENUE_ROW,
-  )
+  const derived = deriveIncomeStatementColumns(cells, INCOME_STATEMENT_MANIFEST)
   const rows = buildRowsFromManifest(
     INCOME_STATEMENT_MANIFEST,
     cells,

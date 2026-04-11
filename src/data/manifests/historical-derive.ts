@@ -93,14 +93,18 @@ export function deriveBalanceSheetColumns(
 
 /**
  * Derive the common-size column for Income Statement (margin = line / revenue)
- * and the YoY growth column. Revenue denominator is read from `revenueRow`.
+ * and the YoY growth column. Revenue row is declared via `manifest.anchorRow`.
  */
 export function deriveIncomeStatementColumns(
   cells: CellMap,
   manifest: SheetManifest,
-  revenueRow: number,
 ): DerivedColumnMap {
-  const revenue = readYearlySeries(cells, manifest, revenueRow)
+  if (manifest.anchorRow === undefined) {
+    throw new Error(
+      'deriveIncomeStatementColumns: manifest.anchorRow is required (revenue row)',
+    )
+  }
+  const revenue = readYearlySeries(cells, manifest, manifest.anchorRow)
   const commonSize: Record<number, YearKeyedSeries> = {}
   const growth: Record<number, YearKeyedSeries> = {}
   const [, y1, y2, y3] = manifest.years

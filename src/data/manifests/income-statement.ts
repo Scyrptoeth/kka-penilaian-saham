@@ -26,6 +26,8 @@ export const INCOME_STATEMENT_MANIFEST: SheetManifest = {
   // commonSizeColumns intentionally omitted — the derived common-size values
   // come from the calc engine and have no corresponding Excel cells.
   growthColumns: { 2019: 'H', 2020: 'I', 2021: 'J' },
+  // Revenue row — denominator for margin / common-size derivation.
+  anchorRow: 6,
   disclaimer:
     'Data demo workbook PT Raja Voltama Elektrik. Kolom Common Size adalah margin (line / Revenue) hasil kalkulasi dari calc engine, bukan dari Excel.',
   rows: [
