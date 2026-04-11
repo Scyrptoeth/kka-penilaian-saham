@@ -7,6 +7,20 @@
  * Note column-offset: the FCF sheet uses cols C/D/E for 2019/2020/2021 —
  * one column LEFT of the Balance Sheet / Income Statement layout (which
  * use D/E/F). This is handled transparently by the manifest's columns map.
+ *
+ * SEED-MODE CONVENTION — IMPORTANT:
+ * In Session 2B P1 (seed demo mode) this page renders values directly
+ * from the fixture cells — the workbook already contains the full FCF
+ * schedule pre-computed. No recomputation is needed here.
+ *
+ * When Phase 3+ introduces user input, this manifest will need to route
+ * through the existing hardened pipeline:
+ *     raw data (store) → toFcfInput adapter → validatedFcf → render
+ * The adapter (`src/lib/adapters/fcf-adapter.ts`) and validator
+ * (`src/lib/validation/index.ts`) are already in place from Session 2A.5;
+ * only the manifest's derive hook and the page's data source need
+ * updating. Pre-signed convention (negative depreciation + capex) is
+ * handled by the adapter.
  */
 
 import type { SheetManifest } from './types'

@@ -12,6 +12,25 @@
  *
  * Formula descriptions are authored to match the exact Excel formulas
  * cited in fixture cell formulas (auto-pulled into the tooltip).
+ *
+ * SEED-MODE CONVENTION — IMPORTANT:
+ * In Session 2B P1 (seed demo mode) this page renders values directly
+ * from the fixture cells, which already hold the ratios pre-computed by
+ * the workbook. This is intentional: the seed data IS the Excel source
+ * of truth, so no recomputation is needed.
+ *
+ * When Phase 3+ introduces user input (Zustand-backed editable raw data),
+ * this manifest will need a `derive` callback that:
+ *   1. Extracts 18 input series from BS + IS + CFS + FCF raw data
+ *   2. Calls `toRatiosInput` adapter (not yet created — see src/lib/adapters/)
+ *   3. Calls `validatedFinancialRatios` from src/lib/validation/
+ *   4. Returns the 18 computed ratios as values (not commonSize/growth)
+ *
+ * The FinancialRow shape does not currently carry pre-computed values
+ * through `derive` — that signature returns { commonSize, growth } only.
+ * Phase 3+ will likely extend `derive` to also produce `values` maps, or
+ * route FR through a sibling mechanism. Flagged here so the Phase 3 author
+ * does not silently miss the hardened pipeline.
  */
 
 import type { SheetManifest } from './types'
