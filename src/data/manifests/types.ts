@@ -69,13 +69,65 @@ export interface ManifestDerivedColumnMap {
   growth?: Record<number, YearKeyedSeries>
 }
 
-/** Derivation callback invoked by `buildRowsFromManifest` — sheet-specific
- *  logic that pulls data from cells + manifest and runs it through the
- *  pure calc engine. */
+/**
+ * @deprecated Use `SheetManifest.derivations` (declarative) instead.
+ * The callback form is kept transiently for migration; it will be removed
+ * once all manifests are migrated in Session 2B.6.1.
+ */
 export type ManifestDeriveFn = (
   cells: CellMap,
   manifest: SheetManifest,
 ) => ManifestDerivedColumnMap
+
+/* ────────────────────────── Declarative derivations ─────────────────────
+ *
+ * `derivations: DerivationSpec[]` on a manifest replaces hand-written
+ * sheet-specific derive functions. The builder interprets each spec using
+ * generic primitives (ratioOfBase, yoyChangeSafe) so adding a new sheet
+ * becomes pure data authoring — zero new code.
+ *
+ * Current primitives (add more only when a real sheet needs them — YAGNI):
+ *   • commonSize        — ratio of each row against a denominator row
+ *                         (e.g. Total Assets for Balance Sheet)
+ *   • marginVsAnchor    — ratio of each row against an anchor row
+ *                         (e.g. Revenue for Income Statement)
+ *   • yoyGrowth         — year-over-year growth, IFERROR-safe by default
+ */
+
+/** Ratio of each row / denominator row for derived years. */
+export interface CommonSizeDeriveSpec {
+  type: 'commonSize'
+  /**
+   * Excel row of the denominator. Falls back to `manifest.totalAssetsRow`
+   * if omitted — Balance Sheet convention uses row 27 (TOTAL ASSETS).
+   */
+  denominatorRow?: number
+}
+
+/** Margin-style ratio of each row / anchor row for derived years. */
+export interface MarginVsAnchorDeriveSpec {
+  type: 'marginVsAnchor'
+  /**
+   * Excel row of the anchor line. Falls back to `manifest.anchorRow`
+   * if omitted — Income Statement convention uses row 6 (Revenue).
+   */
+  anchorRow?: number
+}
+
+/** Year-over-year growth for the values series of each row. */
+export interface YoyGrowthDeriveSpec {
+  type: 'yoyGrowth'
+  /**
+   * If true (default), use the IFERROR-safe variant that returns 0 when
+   * the previous-year value is zero. Set false to allow the raw variant.
+   */
+  safe?: boolean
+}
+
+export type DerivationSpec =
+  | CommonSizeDeriveSpec
+  | MarginVsAnchorDeriveSpec
+  | YoyGrowthDeriveSpec
 
 export interface SheetManifest {
   /** Sheet display title shown in the table caption. */
@@ -116,9 +168,20 @@ export interface SheetManifest {
   /** Optional disclaimer shown in the table caption (seed data marker). */
   disclaimer?: string
   /**
-   * Optional sheet-specific derivation callback. When set, `buildRowsFromManifest`
-   * auto-invokes it with the loaded cells to produce common-size and growth
-   * column groups — page files never need to import sheet-specific helpers.
+   * Declarative derivation specs — the preferred form. Each entry produces
+   * either a common-size or growth column-group via the generic primitives
+   * in `./build.ts`. Interpret order does not matter.
+   *
+   *   derivations: [
+   *     { type: 'commonSize', denominatorRow: 27 },
+   *     { type: 'yoyGrowth', safe: true },
+   *   ]
+   */
+  derivations?: DerivationSpec[]
+  /**
+   * @deprecated Use `derivations` instead. Kept transiently while manifests
+   * migrate to the declarative form (Session 2B.6.1). Ignored when
+   * `derivations` is set.
    */
   derive?: ManifestDeriveFn
 }
