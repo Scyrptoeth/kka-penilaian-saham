@@ -8,6 +8,7 @@
 | 002 | 2026-04-11 | Phase 2A — 6 calc engines | ✅ Shipped | [session-002](history/session-002-phase2-calc-engines.md) |
 | 003 | 2026-04-11 | Phase 2A.5 — Harden calc engine (YearKeyedSeries + Zod + adapters) | ✅ Shipped | [session-003](history/session-003-harden-calc-engine.md) |
 | 004 | 2026-04-11 | Phase 2B P1 — UI financial tables + navigation | ✅ Shipped | inline |
+| 005 | 2026-04-11 | Phase 2B.6 — Systematization pass (refactor-only) | ✅ Shipped | inline |
 
 ## Current State Snapshot (latest)
 
@@ -350,3 +351,102 @@ Quality over quantity principle held: 4 P1 pages shipped with full formula toolt
 - Dark mode toggle
 - Per-section accent colors (blue/teal/amber)
 - Collapsible sidebar groups
+
+---
+
+## Session 005 — 2026-04-11 (Phase 2B.6: Systematization Pass)
+
+### Motivation
+
+Post-Session-004 audit identified 4 patch-mode items that would become multiplied technical debt if Session 2B.5 duplicated the same patterns for 4 more pages. Session 2B.6 is a **refactor-only** pass that normalises every pattern before scaling.
+
+### Delivered — 4 patches, 1 commit per patch
+
+**Patch 1 — `anchorRow` di manifest** (`2f11766`)
+- `SheetManifest.anchorRow?: number` field added
+- `INCOME_STATEMENT_MANIFEST.anchorRow = 6` (revenue row)
+- `deriveIncomeStatementColumns` reads `manifest.anchorRow` instead of taking a parameter
+- Hardcoded `const REVENUE_ROW = 6` removed from page file
+- **Result**: sheet-specific constants no longer hide in page files
+
+**Patch 2 — `derive` callback di manifest** (`7c977cd`)
+- `SheetManifest.derive?: ManifestDeriveFn` callback field
+- `buildRowsFromManifest` auto-invokes `manifest.derive?.(cells, manifest)` when no override passed
+- BS + IS manifests assign their `derive*Columns` functions directly
+- BS + IS pages no longer import or call derive helpers — the builder does it
+- **Result**: every page shares the identical pattern, no sheet-specific function imports
+
+**Patch 3 — seed-mode convention documented on FR + FCF** (`626db58`)
+- JSDoc blocks added to `FINANCIAL_RATIO_MANIFEST` and `FCF_MANIFEST`
+- Explicitly flags that seed-mode renders pre-computed fixture values by design
+- Phase 3+ migration path spelled out: wire through existing `toFcfInput` adapter + `validatedFcf`, create `toRatiosInput` adapter as future task
+- **Result**: Phase 3 author will not silently bypass the hardened pipeline
+
+**Patch 4 — `<SheetPage>` helper + all pages simplified** (`8e7f9be`)
+- New `src/components/financial/SheetPage.tsx` Server Component
+- Encapsulates `loadCells` + `buildRowsFromManifest` + `<FinancialTable>` + column-group auto-inference
+- All 4 P1 pages shrunk to 11 lines each (~70% line reduction)
+- Adding a new sheet = author manifest + 11-line page file, zero boilerplate
+- **Result**: page files are fully derivable from the manifest
+
+**Bonus — `chore: gitignore .claude/`** (`2fbdcf0`) — prevents Claude Code scratch state (session lock file) from being committed accidentally.
+
+### Verification Results
+
+```
+Tests:     107 / 107 passing (15 files) — identical to before refactor
+Build:     ✅ Compiled successfully, zero errors, 9 routes, 4 P1 pages static
+Lint:      ✅ Zero warnings
+Typecheck: ✅ tsc --noEmit clean
+Smoke:     ✅ All 4 P1 pages serve identical content as pre-refactor (Cash on Hands 14.216.370.131, NET PROFIT, Current Ratio, FREE CASH FLOW markers all present)
+```
+
+### Session 005 Stats
+
+- Commits: 5 (4 patches + 1 gitignore fix)
+- New files: 1 (`src/components/financial/SheetPage.tsx`)
+- Files modified: 12
+- Net delta: +74 lines (mostly Patch 3 JSDoc + SheetPage helper) — but every FUTURE page only needs ~11 lines
+- Visual output: **identical** before ↔ after (verified by curl diff on all 4 pages)
+- No test changes needed — refactor preserves all existing contracts
+
+### Architecture After 2B.6
+
+Every sheet now follows this single pattern:
+
+```ts
+// src/data/manifests/<sheet>.ts
+export const X_MANIFEST: SheetManifest = {
+  title, slug, years, columns,
+  commonSizeColumns?, growthColumns?,   // when cells hold derived values
+  anchorRow?, totalAssetsRow?,          // derivation anchors
+  derive?: fn,                          // sheet-specific calc engine bridge
+  rows: [...],
+  disclaimer?: '...',
+}
+```
+
+```ts
+// src/app/<section>/<sheet>/page.tsx — ALWAYS 11 lines
+import type { Metadata } from 'next'
+import { SheetPage } from '@/components/financial/SheetPage'
+import { X_MANIFEST } from '@/data/manifests/x'
+
+export const metadata: Metadata = { title: '...' }
+export default function XPage() {
+  return <SheetPage manifest={X_MANIFEST} />
+}
+```
+
+No per-page logic. No derive function imports. No hardcoded row numbers. No per-sheet specialization anywhere outside the manifest.
+
+### Session 2B.5 Unblocked
+
+With 2B.6 shipped, adding the remaining 4 P1-deferred pages (cash-flow, fixed-asset, noplat, growth-revenue) becomes pure manifest-authoring work + an optional `derive` callback per sheet. Estimated scope: ~4 commits (1 per page), ~400 lines of manifest data, 0 new component logic, 0 new patterns.
+
+### Deferred (unchanged)
+
+- Input forms replacing seed data (Session 3+)
+- `toRatiosInput` adapter + FR calc-engine wiring (Session 3+)
+- FCF migration to pipeline mode via `toFcfInput` (Session 3+, adapter already exists)
+- Projection sheets, WACC/DCF/AAM/EEM, DLOM/DLOC, Recharts, Excel export, dark mode

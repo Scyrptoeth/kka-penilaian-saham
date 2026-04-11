@@ -68,19 +68,23 @@ function buildFormulaMeta(
 }
 
 /**
- * Build a FinancialRow[] from a sheet manifest, a loaded cell map, and
- * optional derived column maps.
+ * Build a FinancialRow[] from a sheet manifest and a loaded cell map.
  *
- *   const rows = buildRowsFromManifest(balanceSheetManifest, cells, {
- *     commonSize: commonSizeByExcelRow,
- *     growth:     growthByExcelRow,
- *   })
+ * If the manifest declares a `derive` callback, it is auto-invoked to
+ * produce the common-size and growth column groups. Callers can still
+ * override via the optional `overrideDerived` parameter — useful for
+ * tests and ad-hoc synthesis.
+ *
+ *   const rows = buildRowsFromManifest(balanceSheetManifest, cells)
+ *   // → manifest.derive runs automatically; page stays one line.
  */
 export function buildRowsFromManifest(
   manifest: SheetManifest,
   cells: CellMap,
-  derived?: DerivedColumnMap,
+  overrideDerived?: DerivedColumnMap,
 ): FinancialRow[] {
+  const derived: DerivedColumnMap | undefined =
+    overrideDerived ?? manifest.derive?.(cells, manifest)
   const out: FinancialRow[] = []
   for (const row of manifest.rows) {
     out.push(buildOne(manifest, cells, row, derived))
