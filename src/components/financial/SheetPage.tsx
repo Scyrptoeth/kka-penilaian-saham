@@ -2,7 +2,7 @@ import { loadCells } from '@/data/seed/loader'
 import { buildRowsFromManifest } from '@/data/manifests/build'
 import type { SheetManifest } from '@/data/manifests/types'
 import { FinancialTable } from './FinancialTable'
-import { CompanyContextHeader } from './CompanyContextHeader'
+import { DataSourceHeader } from './DataSourceHeader'
 
 /**
  * <SheetPage> — the universal seed-mode renderer for any sheet manifest.
@@ -49,7 +49,18 @@ export function SheetPage({
 
   return (
     <div className="mx-auto max-w-[1400px]">
-      <CompanyContextHeader />
+      {/*
+        All current SheetPage consumers read from seed fixtures backed by
+        the prototype workbook. We pass mode="seed" explicitly so the
+        header renders the demo-mode warning instead of the user's
+        namaPerusahaan from HOME (which would mismatch the table data).
+
+        Phase 3 will introduce a live data source — at that point pages
+        consuming real user input will flip this to mode="live" (or
+        SheetPage will accept a prop). This is the single switching
+        point for the entire seed→live transition.
+      */}
+      <DataSourceHeader mode="seed" />
       <FinancialTable
         title={manifest.title}
         years={manifest.years}
