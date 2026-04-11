@@ -47,7 +47,43 @@ interface KkaState {
   _setHasHydrated: (hydrated: boolean) => void
 }
 
-const STORE_KEY = 'kka-penilaian-saham:v2'
+const STORE_KEY = 'kka-penilaian-saham'
+const STORE_VERSION = 2
+
+/**
+ * v1 state shape — only `home` slice existed before Session 008.
+ * Kept here as a type guard so the migrate function can narrow safely.
+ */
+interface PersistedV1State {
+  home: HomeInputs | null
+}
+
+/**
+ * Migrate persisted state from older versions to the current schema.
+ *
+ * v1 → v2: Session 008 added `dlom` and `dloc` slices. We carry forward
+ * any existing `home` data and initialize the new slices as null. Without
+ * this function, Zustand persist would discard the entire v1 entry and
+ * users would lose their HOME form data on first deploy of v2.
+ *
+ * Exported as a named function so it can be unit-tested in isolation —
+ * Zustand persist middleware does not expose a synchronous test path.
+ */
+export function migratePersistedState(
+  persistedState: unknown,
+  fromVersion: number,
+): unknown {
+  if (
+    fromVersion === 1 &&
+    persistedState !== null &&
+    typeof persistedState === 'object'
+  ) {
+    const v1 = persistedState as PersistedV1State
+    return { home: v1.home, dlom: null, dloc: null }
+  }
+  // Future versions or unknown shapes pass through unchanged.
+  return persistedState
+}
 
 export const useKkaStore = create<KkaState>()(
   persist(
@@ -72,12 +108,14 @@ export const useKkaStore = create<KkaState>()(
     }),
     {
       name: STORE_KEY,
+      version: STORE_VERSION,
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         home: state.home,
         dlom: state.dlom,
         dloc: state.dloc,
       }),
+      migrate: migratePersistedState,
       onRehydrateStorage: () => (state) => {
         state?._setHasHydrated(true)
       },
