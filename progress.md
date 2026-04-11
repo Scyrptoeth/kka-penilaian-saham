@@ -9,6 +9,7 @@
 | 003 | 2026-04-11 | Phase 2A.5 — Harden calc engine (YearKeyedSeries + Zod + adapters) | ✅ Shipped | [session-003](history/session-003-harden-calc-engine.md) |
 | 004 | 2026-04-11 | Phase 2B P1 — UI financial tables + navigation | ✅ Shipped | inline |
 | 005 | 2026-04-11 | Phase 2B.6 — Systematization pass (refactor-only) | ✅ Shipped | inline |
+| 006 | 2026-04-11 | Phase 2B.6.1 — Declarative derive primitives | ✅ Shipped | inline |
 
 ## Current State Snapshot (latest)
 
@@ -449,4 +450,114 @@ With 2B.6 shipped, adding the remaining 4 P1-deferred pages (cash-flow, fixed-as
 - Input forms replacing seed data (Session 3+)
 - `toRatiosInput` adapter + FR calc-engine wiring (Session 3+)
 - FCF migration to pipeline mode via `toFcfInput` (Session 3+, adapter already exists)
+- Projection sheets, WACC/DCF/AAM/EEM, DLOM/DLOC, Recharts, Excel export, dark mode
+
+---
+
+## Session 006 — 2026-04-11 (Phase 2B.6.1: Declarative Derive Primitives)
+
+### Motivation
+
+Session 2B.6 left one real patch-mode gap: `historical-derive.ts` with 2 hand-written sheet-specific derive functions. Session 2B.5 would have added 3 more such functions (cash-flow, noplat, growth-revenue) nearly-identical to the existing pair. This sesi replaces the callback form with a declarative `DerivationSpec[]` array interpreted by generic primitives in `build.ts`, eliminating the pattern before it scales.
+
+Refactor-only. Output verified bit-identical on all 4 P1 pages.
+
+### Delivered — 4 commits
+
+**Commit 1 — `DerivationSpec` + `applyDerivations` engine** (`c8961e2`)
+- Discriminated union `DerivationSpec`: `commonSize`, `marginVsAnchor`, `yoyGrowth`
+- `applyDerivations(specs, manifest, cells)` pure function
+- Helper primitives `readRowSeries`, `computeRatioSeries`, `computeGrowthSeries`
+- All primitives reuse `ratioOfBase` / `yoyChangeSafe` / `yoyChange` from the calc engine — zero duplication
+- `buildRowsFromManifest` prefers `manifest.derivations`, falls back to legacy `derive` callback for backward compatibility
+
+**Commit 2 — Balance Sheet migrated** (`e78f63e`)
+- `derive: deriveBalanceSheetColumns` → `derivations: [{ type: 'commonSize' }, { type: 'yoyGrowth', safe: true }]`
+- `commonSize` uses `manifest.totalAssetsRow: 27` (declared above)
+- Import of `historical-derive` removed from BS manifest
+- Verified BS 2018 Cash = `14.216.370.131`, common-size 2019 = `29,9%`, growth 2019 = `(45,8%)` — bit-identical
+
+**Commit 3 — Income Statement migrated** (`41cfd94`)
+- `derive: deriveIncomeStatementColumns` → `derivations: [{ type: 'marginVsAnchor' }, { type: 'yoyGrowth', safe: true }]`
+- `marginVsAnchor` uses `manifest.anchorRow: 6` (Revenue)
+- Verified Gross Profit Margin 2019 = `36,2%`, EBITDA Margin 2019 = `11,6%` — matches FR fixture exactly
+
+**Commit 4 — Delete `historical-derive.ts` + cleanup types** (`5d2f964`)
+- `src/data/manifests/historical-derive.ts` deleted (132 lines)
+- `SheetManifest.derive` field removed
+- `ManifestDeriveFn` type removed
+- Unused `CellMap` import dropped from `types.ts`
+- Stale JSDoc mentioning legacy callback pattern updated to reference declarative form
+
+### Verification Results
+
+```
+Tests:     107 / 107 passing (15 files) — unchanged
+Build:     ✅ 9 routes, 4 P1 pages static, zero errors
+Lint:      ✅ zero warnings
+Typecheck: ✅ tsc --noEmit clean
+Smoke:     ✅ all 4 live pages HTTP 200 with identical output
+           ✅ BS 2018 Cash = 14.216.370.131 (raw)
+           ✅ BS common-size 2019 Cash = 29,9% (matches H8 formula = D8/D$27)
+           ✅ BS growth 2019 Cash = (45,8%) (matches N8 formula = IFERROR((D8-C8)/C8,0))
+           ✅ IS Gross Profit Margin 2019 = 36,2% (matches FR D6)
+           ✅ IS EBITDA Margin 2019 = 11,6% (matches FR D7)
+```
+
+### Session 006 Stats
+
+- Commits: 4 (clean, atomic, per-patch)
+- Files deleted: 1 (`historical-derive.ts`, 132 lines)
+- Files modified: 4 (`build.ts`, `types.ts`, 2 manifests)
+- Net delta: +225 / -159 lines (new engine > old callback implementations by ~66 lines — one-time cost, future sheets add 0)
+- Visual output: **bit-identical** before ↔ after across all 4 pages
+
+### Architecture After 2B.6.1
+
+**Before**: `derive: deriveBalanceSheetColumns` (where `deriveBalanceSheetColumns` is a 40-line function in a separate file, specific to BS)
+
+**After**:
+```ts
+derivations: [
+  { type: 'commonSize' },           // data, not code
+  { type: 'yoyGrowth', safe: true },
+]
+```
+
+The `DerivationSpec` library lives in one place (`build.ts`). Sheets compose primitives; they never write new derive logic.
+
+### Impact on Session 2B.5 — now pure data authoring
+
+Adding the remaining 4 P1-deferred pages (cash-flow, fixed-asset, noplat, growth-revenue) is now:
+
+```ts
+// Example: Cash Flow Statement — 3 years, growth-only
+export const CASH_FLOW_MANIFEST: SheetManifest = {
+  title: 'Cash Flow Statement',
+  slug: 'cash-flow-statement',
+  years: [2019, 2020, 2021],
+  columns: { 2019: 'C', 2020: 'D', 2021: 'E' },
+  derivations: [{ type: 'yoyGrowth', safe: true }],
+  rows: [ /* manifest rows */ ],
+}
+```
+
+Zero new TypeScript functions. Zero new imports. Zero new files in `src/data/manifests/` beyond the new manifest file + its page (which is already 11 lines identical to the existing ones).
+
+### Growth of the primitive library (only when a real sheet needs it — YAGNI)
+
+Current `DerivationSpec` has 3 variants. Add more only when a new sheet cannot be expressed with them:
+- **NOPLAT** — probably needs `yoyGrowth` only, unless it wants NOPLAT / Revenue margin → `marginVsAnchor`. No new primitive needed.
+- **Growth Revenue** — by definition `yoyGrowth`. No new primitive needed.
+- **Fixed Asset** — may not need derivation at all (raw schedule). If it does, pattern is `yoyGrowth`.
+- **Cash Flow Statement** — `yoyGrowth` only.
+
+Reasonably, all 4 Session 2B.5 sheets fit the existing 3-primitive library. If Session 3 (projections) needs something like "growth vs fixed base year" or "year-over-year delta in absolute units", add a new spec type then.
+
+### Deferred (unchanged from 2B.6)
+
+- Input forms replacing seed data (Session 3+)
+- `toRatiosInput` adapter + FR calc-engine wiring (Session 3+)
+- FCF migration to pipeline mode via `toFcfInput` (Session 3+, adapter already exists)
+- DataSource abstraction (Session 3+, defer until user-input requirement concrete)
 - Projection sheets, WACC/DCF/AAM/EEM, DLOM/DLOC, Recharts, Excel export, dark mode
