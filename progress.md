@@ -7,17 +7,17 @@
 | 001 | 2026-04-11 | Scaffold + Foundation (Phase 1) | ✅ Shipped | [session-001](history/session-001-scaffold-foundation.md) |
 | 002 | 2026-04-11 | Phase 2A — 6 calc engines | ✅ Shipped | [session-002](history/session-002-phase2-calc-engines.md) |
 | 003 | 2026-04-11 | Phase 2A.5 — Harden calc engine (YearKeyedSeries + Zod + adapters) | ✅ Shipped | [session-003](history/session-003-harden-calc-engine.md) |
-| 004 | — | Phase 2B — UI layer (FinancialTable + historical/analysis pages) | 📋 Planned | — |
+| 004 | 2026-04-11 | Phase 2B P1 — UI financial tables + navigation | ✅ Shipped | inline |
 
 ## Current State Snapshot (latest)
 
 - **Branch**: `main` (synced with `origin/main`)
-- **Tests**: 90 / 90 passing across 13 files
-- **Build**: ✅ clean, zero errors, zero warnings
+- **Tests**: 107 / 107 passing across 15 files
+- **Build**: ✅ clean, zero errors, zero warnings, 4 new P1 pages prerendered as static
 - **Lint**: ✅ clean
 - **Typecheck**: ✅ `tsc --noEmit` exit 0
 - **Live**: https://kka-penilaian-saham.vercel.app (HTTP 200)
-- **Pipeline proven end-to-end**: `raw data → adapter → Zod validator → pure calc → result` (integration test green)
+- **Pipeline proven end-to-end**: `seed fixture → adapter → Zod validator → calc engine → manifest builder → <FinancialTable>` — all 4 P1 pages render real workbook data with formula tooltips.
 
 ## Session 1 — 2026-04-11 (Scope C: Full Phase 1)
 
@@ -269,3 +269,84 @@ With the calc engine now hardened, UI layer can trust validated year-keyed data:
 - Export to .xlsx via ExcelJS
 - Dark mode toggle
 - BS/IS migration to YearKeyedSeries (tech debt, non-blocking)
+
+---
+
+## Session 004 — 2026-04-11 (Phase 2B P1: UI Financial Tables + Navigation)
+
+### Delivered
+
+**Foundation (Tasks 1-4)**
+- **Seed loader** at `src/data/seed/` — `loadCells(slug)` + helpers (`num`, `numOpt`, `formulaOf`, `textOf`). Fixtures synced from `__tests__/fixtures/` via `scripts/copy-fixtures.cjs` (+ `npm run seed:sync` script). 6 sheets bundled statically into the src tree so Next.js can import them at build time with zero runtime I/O.
+- **Manifest layer** at `src/data/manifests/` — `types.ts`, `build.ts`, plus `historical-derive.ts`. `buildRowsFromManifest(manifest, cells, derived?)` turns a typed row descriptor into `FinancialRow[]`, auto-pulling raw Excel formulas from fixture cells and attaching derived common-size/growth column maps from the calc engine.
+- **`<FinancialTable>`** Server Component at `src/components/financial/` — sticky first column + sticky header, IDR formatting with parenthesised negatives, tabular-nums, alternating rows, subtotal/total/header/separator row types, optional common-size + growth column groups, per-row `valueKind` ('idr' | 'percent' | 'ratio') for financial ratios. `<FormulaTooltip>` client island shows description + raw Excel formula on hover/focus with accessible popover.
+- **Responsive Shell** — `<Sidebar>` (desktop, fixed 256px on `lg+`) + `<MobileShell>` (client drawer + hamburger top-bar `<lg`). Drawer open state derived from `(openedAt === pathname)` so route change auto-closes without setState-in-effect (React Compiler compatible). Shared `NAV_TREE` pure-data module, `<SidebarNav>` client wrapper with active-link highlighting via `usePathname`, WIP badges on unimplemented routes.
+
+**Pages (Tasks 5-8)** — 4 Tier P1 pages, all Server Components statically prerendered:
+
+| Route | Source sheet | Rows | Highlights |
+|---|---|---|---|
+| `/historical/balance-sheet` | BALANCE SHEET | ~35 | 4-year values + derived common-size (via `commonSizeBalanceSheet`) + derived growth (via `growthBalanceSheet`). Formula tooltip on every derived cell citing raw Excel formula (`=D8/D$27` etc.) |
+| `/historical/income-statement` | INCOME STATEMENT | ~20 | 4-year values + margin (via calc engine, description-only tooltip since workbook mislabels) + YoY growth (raw Excel from cols H/I/J) |
+| `/analysis/financial-ratio` | FINANCIAL RATIO | 18 | 4 grouped sections (Profitability, Liquidity, Leverage, Cash Flow). Per-row percent vs ratio formatting |
+| `/analysis/fcf` | FCF | 10 | 3-year pre-signed schedule (NOPLAT → Depr → Gross CF → ΔWC → Capex → Gross Investment → Free Cash Flow) |
+
+**Components & tests**
+- 13 new component tests for `<FinancialTable>`: format helpers (IDR/percent/ratio, negatives in parens), negative-in-red rendering, header/subtotal/total row types, common-size & growth column groups, missing-value fallback
+- 4 new manifest-builder tests covering value series extraction, auto-pulled Excel formulas, derived column attachment, graceful missing-cell handling
+- Total: **+17 new tests (90 → 107)**, 0 existing tests broken
+
+### Verification Results
+
+```
+Tests:     107 / 107 passing (15 files)
+Build:     ✅ Compiled successfully in 1.9s, 9 routes total, 4 new P1 pages as static
+Lint:      ✅ Zero warnings (React Compiler rule-compliant)
+Typecheck: ✅ tsc --noEmit clean (exit 0)
+Smoke:     ✅ All 4 P1 pages HTTP 200 with correct content (e.g. BS 2018 Cash on Hands = 14.216.370.131 matches fixture exactly)
+```
+
+### Session 004 Stats
+
+- New files: 20
+  - 1 seed loader module
+  - 3 manifest modules (types, build, historical-derive)
+  - 4 sheet manifests (BS, IS, FR, FCF)
+  - 4 Server Component pages
+  - 5 layout components (Shell updated, Sidebar, SidebarHeader, SidebarNav, MobileShell, nav-tree)
+  - 3 financial component modules (FinancialTable, FormulaTooltip, format)
+- Lines added: ~2000
+- Commits: 8 feature commits (1 per task)
+- Dependencies: 0 new runtime deps — everything built with existing stack
+- Files removed: 0
+
+### Architectural Decisions (Session 004)
+
+- **Seed via static JSON import** — Fixtures live in `src/data/seed/fixtures/` so Next.js bundles them at compile time. No runtime file I/O, no API routes, no dynamic data fetching. Pages are fully prerenderable as static.
+- **Manifests as typed data, not JSX** — Each sheet's row layout is a `SheetManifest` constant, not hand-written TSX. Reduces duplication across pages and makes adding new sheets an incremental manifest-authoring task rather than component work.
+- **Formula tooltip: description + raw Excel** — The authored `formula.*.description` in the manifest gives semantics; the raw Excel formula is auto-pulled from the fixture cell to keep the tooltip verifiable against the source workbook without double-maintenance.
+- **Derived state over setState-in-effect** — Mobile drawer open state is derived from `(openedAt === pathname)` rather than `useEffect(setOpen(false), [pathname])`. React Compiler compliant, no stale state.
+- **`valueKind` per row** — Single `<FinancialTable>` handles both currency (BS/IS) and ratio (FR) pages via a per-row format switch, avoiding a second component.
+- **BS/IS margin computed independently of IS sheet layout** — The Income Statement workbook mislabels its YoY growth column as "COMMON SIZE" (formulas show growth, header says margin). We computed actual margins from the calc engine and render them as our own common-size column group, with description-only tooltip since the workbook has no corresponding cells.
+- **Skipped rows as a design decision** — Margin percentage rows (R9/R19/R23/R36 on IS) are not rendered because our derived common-size column already shows them. The workbook blow-up is avoided.
+
+### Next Session — 2B.5 Priorities
+
+Quality over quantity principle held: 4 P1 pages shipped with full formula tooltip + mobile responsive + test coverage. Remaining 4 historical/analysis pages follow the same pattern and can be landed in a shorter follow-up session:
+
+1. `/historical/cash-flow` — Cash Flow Statement manifest + page. Note CFS/FCF column offset (C/D/E for 2019-2021 vs BS/IS D/E/F).
+2. `/historical/fixed-asset` — FA schedule with 6 asset categories.
+3. `/analysis/noplat` — NOPLAT breakdown using `toNoplatInput` adapter + `computeNoplat`.
+4. `/analysis/growth-revenue` — Growth schedule + optional Recharts sparkline.
+
+### Deferred (unchanged from Session 2A.5)
+
+- Input forms (user replaces seed data with their own) — Session 2C
+- Projection sheets (PROY LR, PROY BS, PROY CF, PROY NOPLAT) — requires KEY DRIVERS form
+- WACC / Discount Rate, DCF / AAM / EEM valuation methods
+- DLOM / DLOC questionnaire forms
+- Dashboard charts (Recharts)
+- Export to .xlsx via ExcelJS
+- Dark mode toggle
+- Per-section accent colors (blue/teal/amber)
+- Collapsible sidebar groups

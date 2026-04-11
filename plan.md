@@ -79,13 +79,13 @@ Target: 4 historical/analysis pages rendered end-to-end with `<FinancialTable>` 
 
 ## Progress
 
-- [ ] Task 1 — Seed loader foundation
-- [ ] Task 2 — Manifest type + builder utility
-- [ ] Task 3 — FinancialTable + FormulaTooltip
-- [ ] Task 4 — Responsive Shell + Sidebar drawer
-- [ ] Task 5 — Balance Sheet manifest + page
-- [ ] Task 6 — Income Statement manifest + page
-- [ ] Task 7 — Financial Ratio manifest + page
-- [ ] Task 8 — FCF manifest + page
-- [ ] Task 9 — Full verification gate
-- [ ] Task 10 — Ship to main + Vercel deploy verification
+- [x] Task 1 — Seed loader foundation
+- [x] Task 2 — Manifest type + builder utility
+- [x] Task 3 — FinancialTable + FormulaTooltip
+- [x] Task 4 — Responsive Shell + Sidebar drawer
+- [x] Task 5 — Balance Sheet manifest + page
+- [x] Task 6 — Income Statement manifest + page
+- [x] Task 7 — Financial Ratio manifest + page
+- [x] Task 8 — FCF manifest + page
+- [x] Task 9 — Full verification gate
+- [x] Task 10 — Ship to main + Vercel deploy verification
