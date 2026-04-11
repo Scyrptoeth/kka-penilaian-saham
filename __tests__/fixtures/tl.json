@@ -1,0 +1,287 @@
+{
+  "name": "TL",
+  "slug": "tl",
+  "visible": true,
+  "dimensions": {
+    "max_row": 14,
+    "max_col": 19,
+    "max_col_letter": "S"
+  },
+  "merged_ranges": [
+    "I12:J12",
+    "M11:N11",
+    "M12:N12",
+    "D11:E11",
+    "R11:S11",
+    "N2:O2",
+    "I11:J11",
+    "D12:E12",
+    "R12:S12"
+  ],
+  "cells": [
+    {
+      "addr": "N2",
+      "row": 2,
+      "col": 14,
+      "value": "Cuti Off Date",
+      "data_type": "s"
+    },
+    {
+      "addr": "P9",
+      "row": 9,
+      "col": 16,
+      "value": "SUBSEQUENT EVENT",
+      "data_type": "s"
+    },
+    {
+      "addr": "C10",
+      "row": 10,
+      "col": 3,
+      "value": 2020,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!E4"
+    },
+    {
+      "addr": "H10",
+      "row": 10,
+      "col": 8,
+      "value": "?",
+      "data_type": "s"
+    },
+    {
+      "addr": "L10",
+      "row": 10,
+      "col": 12,
+      "value": 2021,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!F4"
+    },
+    {
+      "addr": "Q10",
+      "row": 10,
+      "col": 17,
+      "value": 2022,
+      "data_type": "n",
+      "formula": "=L10+1"
+    },
+    {
+      "addr": "C11",
+      "row": 11,
+      "col": 3,
+      "value": "Net Profit",
+      "data_type": "s"
+    },
+    {
+      "addr": "D11",
+      "row": 11,
+      "col": 4,
+      "value": 4994138866,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!E35",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "H11",
+      "row": 11,
+      "col": 8,
+      "value": "Net Profit",
+      "data_type": "s"
+    },
+    {
+      "addr": "L11",
+      "row": 11,
+      "col": 12,
+      "value": "Net Profit",
+      "data_type": "s"
+    },
+    {
+      "addr": "M11",
+      "row": 11,
+      "col": 13,
+      "value": 5805826735,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!F35",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "Q11",
+      "row": 11,
+      "col": 17,
+      "value": "Net Profit",
+      "data_type": "s"
+    },
+    {
+      "addr": "R11",
+      "row": 11,
+      "col": 18,
+      "value": 135354171907,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "C12",
+      "row": 12,
+      "col": 3,
+      "value": "Ekuitas",
+      "data_type": "s"
+    },
+    {
+      "addr": "D12",
+      "row": 12,
+      "col": 4,
+      "value": 23663464279,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!E49",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "H12",
+      "row": 12,
+      "col": 8,
+      "value": "Ekuitas",
+      "data_type": "s"
+    },
+    {
+      "addr": "L12",
+      "row": 12,
+      "col": 12,
+      "value": "Ekuitas",
+      "data_type": "s"
+    },
+    {
+      "addr": "M12",
+      "row": 12,
+      "col": 13,
+      "value": 29366482204,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!F49",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "Q12",
+      "row": 12,
+      "col": 17,
+      "value": "Ekuitas",
+      "data_type": "s"
+    },
+    {
+      "addr": "R12",
+      "row": 12,
+      "col": 18,
+      "value": 635570945239,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "C13",
+      "row": 13,
+      "col": 3,
+      "value": "DER",
+      "data_type": "s"
+    },
+    {
+      "addr": "D13",
+      "row": 13,
+      "col": 4,
+      "value": 0.26662218589858233,
+      "data_type": "n",
+      "formula": "='FINANCIAL RATIO'!E20",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "H13",
+      "row": 13,
+      "col": 8,
+      "value": "DER",
+      "data_type": "s"
+    },
+    {
+      "addr": "L13",
+      "row": 13,
+      "col": 12,
+      "value": "DER",
+      "data_type": "s"
+    },
+    {
+      "addr": "M13",
+      "row": 13,
+      "col": 13,
+      "value": 0.1453914874904027,
+      "data_type": "n",
+      "formula": "='FINANCIAL RATIO'!F20",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "Q13",
+      "row": 13,
+      "col": 17,
+      "value": "DER",
+      "data_type": "s"
+    },
+    {
+      "addr": "R13",
+      "row": 13,
+      "col": 18,
+      "value": 0.3383631765484988,
+      "data_type": "n",
+      "formula": "=215053803953/R12",
+      "number_format": "0%"
+    },
+    {
+      "addr": "C14",
+      "row": 14,
+      "col": 3,
+      "value": "NPM",
+      "data_type": "s"
+    },
+    {
+      "addr": "D14",
+      "row": 14,
+      "col": 4,
+      "value": 0.08416123892769456,
+      "data_type": "n",
+      "formula": "='FINANCIAL RATIO'!E9",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "H14",
+      "row": 14,
+      "col": 8,
+      "value": "NPM",
+      "data_type": "s"
+    },
+    {
+      "addr": "L14",
+      "row": 14,
+      "col": 12,
+      "value": "NPM",
+      "data_type": "s"
+    },
+    {
+      "addr": "M14",
+      "row": 14,
+      "col": 13,
+      "value": 0.09511572071956491,
+      "data_type": "n",
+      "formula": "='FINANCIAL RATIO'!F9",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "Q14",
+      "row": 14,
+      "col": 17,
+      "value": "NPM",
+      "data_type": "s"
+    },
+    {
+      "addr": "R14",
+      "row": 14,
+      "col": 18,
+      "value": 0.09695867478871532,
+      "data_type": "n",
+      "formula": "=R11/1395998575702",
+      "number_format": "0%"
+    }
+  ],
+  "required_hidden": false
+}

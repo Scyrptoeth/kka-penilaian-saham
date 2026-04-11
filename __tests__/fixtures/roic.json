@@ -1,0 +1,313 @@
+{
+  "name": "ROIC",
+  "slug": "roic",
+  "visible": true,
+  "dimensions": {
+    "max_row": 28,
+    "max_col": 9,
+    "max_col_letter": "I"
+  },
+  "merged_ranges": [],
+  "cells": [
+    {
+      "addr": "A1",
+      "row": 1,
+      "col": 1,
+      "value": "PT RAJA VOLTAMA ELEKTRIK",
+      "data_type": "s",
+      "formula": "=HOME!B4"
+    },
+    {
+      "addr": "A2",
+      "row": 2,
+      "col": 1,
+      "value": "ROIC",
+      "data_type": "s"
+    },
+    {
+      "addr": "A3",
+      "row": 3,
+      "col": 1,
+      "value": "(IDR)",
+      "data_type": "s",
+      "formula": "='BALANCE SHEET'!A3"
+    },
+    {
+      "addr": "B5",
+      "row": 5,
+      "col": 2,
+      "value": 2019,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!D4"
+    },
+    {
+      "addr": "C5",
+      "row": 5,
+      "col": 3,
+      "value": 2020,
+      "data_type": "n",
+      "formula": "=B5+1"
+    },
+    {
+      "addr": "D5",
+      "row": 5,
+      "col": 4,
+      "value": 2021,
+      "data_type": "n",
+      "formula": "=C5+1"
+    },
+    {
+      "addr": "A7",
+      "row": 7,
+      "col": 1,
+      "value": "NOPLAT",
+      "data_type": "s"
+    },
+    {
+      "addr": "B7",
+      "row": 7,
+      "col": 2,
+      "value": -1280082601,
+      "data_type": "n",
+      "formula": "=FCF!C20",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "C7",
+      "row": 7,
+      "col": 3,
+      "value": 1483348156,
+      "data_type": "n",
+      "formula": "=FCF!D20",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D7",
+      "row": 7,
+      "col": 4,
+      "value": 5021507390,
+      "data_type": "n",
+      "formula": "=FCF!E20",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A8",
+      "row": 8,
+      "col": 1,
+      "value": "Total Asset in Balance Sheet",
+      "data_type": "s"
+    },
+    {
+      "addr": "B8",
+      "row": 8,
+      "col": 2,
+      "value": 25726226037,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!D27",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "C8",
+      "row": 8,
+      "col": 3,
+      "value": 29972668851,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!E27",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D8",
+      "row": 8,
+      "col": 4,
+      "value": 33636118733,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!F27",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A9",
+      "row": 9,
+      "col": 1,
+      "value": "Less Non Operating Fixed Assets *)",
+      "data_type": "s"
+    },
+    {
+      "addr": "F9",
+      "row": 9,
+      "col": 6,
+      "value": "Asumsi ini sesuai dengan Laporan Penilaian Wajib Pajak bahwa Kas dan Deposito adalah Non Operating Asset",
+      "data_type": "s"
+    },
+    {
+      "addr": "A10",
+      "row": 10,
+      "col": 1,
+      "value": "Less Excess Cash **)",
+      "data_type": "s"
+    },
+    {
+      "addr": "B10",
+      "row": 10,
+      "col": 2,
+      "value": -7699710033,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!D8*-1",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "C10",
+      "row": 10,
+      "col": 3,
+      "value": -3334698915,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!E8*-1",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D10",
+      "row": 10,
+      "col": 4,
+      "value": -6635142218,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!F8*-1",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A11",
+      "row": 11,
+      "col": 1,
+      "value": "Less Marketable Securities",
+      "data_type": "s"
+    },
+    {
+      "addr": "B11",
+      "row": 11,
+      "col": 2,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "C11",
+      "row": 11,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D11",
+      "row": 11,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A12",
+      "row": 12,
+      "col": 1,
+      "value": "Total Invested Capital at End of Year",
+      "data_type": "s"
+    },
+    {
+      "addr": "B12",
+      "row": 12,
+      "col": 2,
+      "value": 18026516004,
+      "data_type": "n",
+      "formula": "=SUM(B8:B11)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "C12",
+      "row": 12,
+      "col": 3,
+      "value": 26637969936,
+      "data_type": "n",
+      "formula": "=SUM(C8:C11)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D12",
+      "row": 12,
+      "col": 4,
+      "value": 27000976515,
+      "data_type": "n",
+      "formula": "=SUM(D8:D11)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A13",
+      "row": 13,
+      "col": 1,
+      "value": "Total Invested Capital at Beginning of Year",
+      "data_type": "s"
+    },
+    {
+      "addr": "C13",
+      "row": 13,
+      "col": 3,
+      "value": 18026516004,
+      "data_type": "n",
+      "formula": "=B12",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D13",
+      "row": 13,
+      "col": 4,
+      "value": 26637969936,
+      "data_type": "n",
+      "formula": "=C12",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A15",
+      "row": 15,
+      "col": 1,
+      "value": "ROIC = NOPLAT/Inves Capital Beginning of Year",
+      "data_type": "s"
+    },
+    {
+      "addr": "C15",
+      "row": 15,
+      "col": 3,
+      "value": 0.08228701295751503,
+      "data_type": "n",
+      "formula": "=C7/C13",
+      "number_format": "0%"
+    },
+    {
+      "addr": "D15",
+      "row": 15,
+      "col": 4,
+      "value": 0.18850938724176808,
+      "data_type": "n",
+      "formula": "=D7/D13",
+      "number_format": "0%"
+    },
+    {
+      "addr": "A18",
+      "row": 18,
+      "col": 1,
+      "value": "Catatan",
+      "data_type": "s"
+    },
+    {
+      "addr": "A19",
+      "row": 19,
+      "col": 1,
+      "value": "*)Book Value Asset yang menganggur (idle) tidak digunakan untuk operasional",
+      "data_type": "s"
+    },
+    {
+      "addr": "A20",
+      "row": 20,
+      "col": 1,
+      "value": "**)Asumsi Idle Cash tiap tahun",
+      "data_type": "s"
+    }
+  ],
+  "required_hidden": false
+}

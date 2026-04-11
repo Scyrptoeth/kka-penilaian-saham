@@ -1,0 +1,422 @@
+{
+  "name": "SIMULASI POTENSI (AAM)",
+  "slug": "simulasi-potensi-aam",
+  "visible": true,
+  "dimensions": {
+    "max_row": 18,
+    "max_col": 5,
+    "max_col_letter": "E"
+  },
+  "merged_ranges": [],
+  "cells": [
+    {
+      "addr": "A1",
+      "row": 1,
+      "col": 1,
+      "value": "Nett Asset Value",
+      "data_type": "s"
+    },
+    {
+      "addr": "E1",
+      "row": 1,
+      "col": 5,
+      "value": 27435841103,
+      "data_type": "n",
+      "formula": "=AAM!E51",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"_);_(@_)"
+    },
+    {
+      "addr": "A2",
+      "row": 2,
+      "col": 1,
+      "value": "Interest Bearing Debt",
+      "data_type": "s"
+    },
+    {
+      "addr": "E2",
+      "row": 2,
+      "col": 5,
+      "value": 1000000000,
+      "data_type": "n",
+      "formula": "=AAM!E52",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"_);_(@_)"
+    },
+    {
+      "addr": "A3",
+      "row": 3,
+      "col": 1,
+      "value": "Equity Value",
+      "data_type": "s"
+    },
+    {
+      "addr": "E3",
+      "row": 3,
+      "col": 5,
+      "value": 26435841103,
+      "data_type": "n",
+      "formula": "=AAM!E53",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"_);_(@_)"
+    },
+    {
+      "addr": "A4",
+      "row": 4,
+      "col": 1,
+      "value": "DLOM",
+      "data_type": "s"
+    },
+    {
+      "addr": "C4",
+      "row": 4,
+      "col": 3,
+      "value": "Moderat",
+      "data_type": "s"
+    },
+    {
+      "addr": "D4",
+      "row": 4,
+      "col": 4,
+      "value": -0.3,
+      "data_type": "n",
+      "formula": "=IF(C4=\"Paling Tinggi (Resiko Rendah)\",-40%,IF(C4=\"Moderat\",-30%,-20%))",
+      "number_format": "0%"
+    },
+    {
+      "addr": "E4",
+      "row": 4,
+      "col": 5,
+      "value": -7930752330.9,
+      "data_type": "n",
+      "formula": "=+E3*D4",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"_);_(@_)"
+    },
+    {
+      "addr": "A5",
+      "row": 5,
+      "col": 1,
+      "value": "Equity Value (100%) Less DLOM",
+      "data_type": "s"
+    },
+    {
+      "addr": "E5",
+      "row": 5,
+      "col": 5,
+      "value": 18505088772.1,
+      "data_type": "n",
+      "formula": "=+E3+E4",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"_);_(@_)"
+    },
+    {
+      "addr": "A6",
+      "row": 6,
+      "col": 1,
+      "value": "DISCOUNT LACK OF CONTROL/PREMIUM FOR CONTROL",
+      "data_type": "s",
+      "formula": "=HOME!A16"
+    },
+    {
+      "addr": "C6",
+      "row": 6,
+      "col": 3,
+      "value": "Moderat",
+      "data_type": "s"
+    },
+    {
+      "addr": "D6",
+      "row": 6,
+      "col": 4,
+      "value": -0.5,
+      "data_type": "n",
+      "formula": "=IF(C6=\"Paling Tinggi (Resiko Rendah)\",-70%,IF(C6=\"Moderat\",-50%,-30%))",
+      "number_format": "0%"
+    },
+    {
+      "addr": "E6",
+      "row": 6,
+      "col": 5,
+      "value": -9252544386.05,
+      "data_type": "n",
+      "formula": "=+E5*D6",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"_);_(@_)"
+    },
+    {
+      "addr": "A7",
+      "row": 7,
+      "col": 1,
+      "value": "Resistensi WP",
+      "data_type": "s"
+    },
+    {
+      "addr": "C7",
+      "row": 7,
+      "col": 3,
+      "value": "Moderat",
+      "data_type": "s",
+      "formula": "=IF(AND(C4=\"Paling Rendah (Resiko Tinggi)\", C6=\"Paling Rendah (Resiko Tinggi)\"), \"Resiko Tinggi\", IF(AND(C4=\"Paling Rendah (Resiko Tinggi)\", C6=\"Moderat\"), \"Resiko Tinggi\", IF(AND(C4=\"Paling Rendah (Resiko Tinggi)\", C6=\"Paling Tinggi (Resiko Rendah)\"), \"Moderat\", IF(AND(C4=\"Moderat\", C6=\"Paling Rendah (Resiko Tinggi)\"), \"Resiko Tinggi\", IF(AND(C4=\"Moderat\", C6=\"Moderat\"), \"Moderat\", IF(AND(C4=\"Moderat\", C6=\"Paling Tinggi (Resiko Rendah)\"), \"Moderat\", IF(AND(C4=\"Paling Tinggi (Resiko Rendah)\", C6=\"Paling Rendah (Resiko Tinggi)\"), \"Moderat\", IF(AND(C4=\"Paling Tinggi (Resiko Rendah)\", C6=\"Moderat\"), \"Moderat\", IF(AND(C4=\"Paling Tinggi (Resiko Rendah)\", C6=\"Paling Tinggi (Resiko Rendah)\"), \"Resiko Rendah\", \"\")))))))))"
+    },
+    {
+      "addr": "A8",
+      "row": 8,
+      "col": 1,
+      "value": "Market Value of Equity (100%)",
+      "data_type": "s"
+    },
+    {
+      "addr": "E8",
+      "row": 8,
+      "col": 5,
+      "value": 9252544386.05,
+      "data_type": "n",
+      "formula": "=+E5+E6",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"_);_(@_)"
+    },
+    {
+      "addr": "A9",
+      "row": 9,
+      "col": 1,
+      "value": "Percentage of Shares",
+      "data_type": "s"
+    },
+    {
+      "addr": "E9",
+      "row": 9,
+      "col": 5,
+      "value": 0.3,
+      "data_type": "n",
+      "formula": "=HOME!B8",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "A10",
+      "row": 10,
+      "col": 1,
+      "value": "Market Value of 0.0% Equity",
+      "data_type": "s",
+      "formula": "=\"Market Value of \"&TEXT(G9,\"0.0%\")&\" Equity\""
+    },
+    {
+      "addr": "E10",
+      "row": 10,
+      "col": 5,
+      "value": 2775763315.8149996,
+      "data_type": "n",
+      "formula": "=+E8*E9",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"_);_(@_)"
+    },
+    {
+      "addr": "A11",
+      "row": 11,
+      "col": 1,
+      "value": "Nilai Pengalihan Saham yang Dilaporkan",
+      "data_type": "s"
+    },
+    {
+      "addr": "E11",
+      "row": 11,
+      "col": 5,
+      "value": 600000000,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"_);_(@_)"
+    },
+    {
+      "addr": "A12",
+      "row": 12,
+      "col": 1,
+      "value": "Potensi Pengalihan Saham yang Belum Dikenakan Pajak",
+      "data_type": "s"
+    },
+    {
+      "addr": "E12",
+      "row": 12,
+      "col": 5,
+      "value": 2175763315.8149996,
+      "data_type": "n",
+      "formula": "=E10-E11",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"_);_(@_)"
+    },
+    {
+      "addr": "A13",
+      "row": 13,
+      "col": 1,
+      "value": "Potensi Pajak Penghasilan Kurang Bayar",
+      "data_type": "s"
+    },
+    {
+      "addr": "B13",
+      "row": 13,
+      "col": 2,
+      "value": 0.05,
+      "data_type": "n",
+      "number_format": "0%"
+    },
+    {
+      "addr": "C13",
+      "row": 13,
+      "col": 3,
+      "value": 2115763315.8149996,
+      "data_type": "n",
+      "formula": "=IF(E12-D13>0,E12-D13,E12)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"_);_(@_)"
+    },
+    {
+      "addr": "D13",
+      "row": 13,
+      "col": 4,
+      "value": 60000000,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"_);_(@_)"
+    },
+    {
+      "addr": "E13",
+      "row": 13,
+      "col": 5,
+      "value": 3000000,
+      "data_type": "n",
+      "formula": "=IF(C13=E12,B13*E12,B13*D13)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"_);_(@_)"
+    },
+    {
+      "addr": "B14",
+      "row": 14,
+      "col": 2,
+      "value": 0.15,
+      "data_type": "n",
+      "number_format": "0%"
+    },
+    {
+      "addr": "C14",
+      "row": 14,
+      "col": 3,
+      "value": 1925763315.8149996,
+      "data_type": "n",
+      "formula": "=IF(C13-D14>0,C13-D14,C13)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"_);_(@_)"
+    },
+    {
+      "addr": "D14",
+      "row": 14,
+      "col": 4,
+      "value": 190000000,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"_);_(@_)"
+    },
+    {
+      "addr": "E14",
+      "row": 14,
+      "col": 5,
+      "value": 28500000,
+      "data_type": "n",
+      "formula": "=IF(C14=C13,B14*C14,B14*D14)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"_);_(@_)"
+    },
+    {
+      "addr": "B15",
+      "row": 15,
+      "col": 2,
+      "value": 0.25,
+      "data_type": "n",
+      "number_format": "0%"
+    },
+    {
+      "addr": "C15",
+      "row": 15,
+      "col": 3,
+      "value": 1675763315.8149996,
+      "data_type": "n",
+      "formula": "=IF(C14-D15>0,C14-D15,C14)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"_);_(@_)"
+    },
+    {
+      "addr": "D15",
+      "row": 15,
+      "col": 4,
+      "value": 250000000,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"_);_(@_)"
+    },
+    {
+      "addr": "E15",
+      "row": 15,
+      "col": 5,
+      "value": 62500000,
+      "data_type": "n",
+      "formula": "=IF(C15=C14,B15*C15,B15*D15)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"_);_(@_)"
+    },
+    {
+      "addr": "B16",
+      "row": 16,
+      "col": 2,
+      "value": 0.3,
+      "data_type": "n",
+      "number_format": "0%"
+    },
+    {
+      "addr": "C16",
+      "row": 16,
+      "col": 3,
+      "value": 1675763315.8149996,
+      "data_type": "n",
+      "formula": "=IF(C15-D16>0,C15-D16,C15)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"_);_(@_)"
+    },
+    {
+      "addr": "D16",
+      "row": 16,
+      "col": 4,
+      "value": 4500000000,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"_);_(@_)"
+    },
+    {
+      "addr": "E16",
+      "row": 16,
+      "col": 5,
+      "value": 502728994.74449986,
+      "data_type": "n",
+      "formula": "=IF(C16=C15,B16*C16,B16*D16)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"_);_(@_)"
+    },
+    {
+      "addr": "B17",
+      "row": 17,
+      "col": 2,
+      "value": 0.35,
+      "data_type": "n",
+      "number_format": "0%"
+    },
+    {
+      "addr": "D17",
+      "row": 17,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=IF(C16=C15,0,C16)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"_);_(@_)"
+    },
+    {
+      "addr": "E17",
+      "row": 17,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=B17*D17"
+    },
+    {
+      "addr": "A18",
+      "row": 18,
+      "col": 1,
+      "value": "Total Potensi Pajak Penghasilan Kurang Bayar",
+      "data_type": "s"
+    },
+    {
+      "addr": "E18",
+      "row": 18,
+      "col": 5,
+      "value": 596728994.7444999,
+      "data_type": "n",
+      "formula": "=SUM(E13:E17)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"_);_(@_)"
+    }
+  ],
+  "required_hidden": false
+}

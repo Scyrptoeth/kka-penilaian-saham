@@ -1,0 +1,974 @@
+{
+  "name": "PROY ACC PAYABLES",
+  "slug": "proy-acc-payables",
+  "visible": false,
+  "dimensions": {
+    "max_row": 27,
+    "max_col": 10,
+    "max_col_letter": "J"
+  },
+  "merged_ranges": [
+    "A1:J1"
+  ],
+  "cells": [
+    {
+      "addr": "A1",
+      "row": 1,
+      "col": 1,
+      "value": "Proyeksi Skedul Utang",
+      "data_type": "s"
+    },
+    {
+      "addr": "A2",
+      "row": 2,
+      "col": 1,
+      "value": "PT RAJA VOLTAMA ELEKTRIK",
+      "data_type": "s",
+      "formula": "=HOME!B4"
+    },
+    {
+      "addr": "A3",
+      "row": 3,
+      "col": 1,
+      "value": "Bank Loan Schedules",
+      "data_type": "s"
+    },
+    {
+      "addr": "A4",
+      "row": 4,
+      "col": 1,
+      "value": "(IDR)",
+      "data_type": "s",
+      "formula": "='BALANCE SHEET'!A3"
+    },
+    {
+      "addr": "C6",
+      "row": 6,
+      "col": 3,
+      "value": 2021,
+      "data_type": "n",
+      "formula": "='ACC PAYABLES'!E5"
+    },
+    {
+      "addr": "D6",
+      "row": 6,
+      "col": 4,
+      "value": 2022,
+      "data_type": "n",
+      "formula": "=C6+1"
+    },
+    {
+      "addr": "E6",
+      "row": 6,
+      "col": 5,
+      "value": 2023,
+      "data_type": "n",
+      "formula": "=D6+1"
+    },
+    {
+      "addr": "F6",
+      "row": 6,
+      "col": 6,
+      "value": 2024,
+      "data_type": "n",
+      "formula": "=E6+1"
+    },
+    {
+      "addr": "G6",
+      "row": 6,
+      "col": 7,
+      "value": 2025,
+      "data_type": "n",
+      "formula": "=F6+1"
+    },
+    {
+      "addr": "H6",
+      "row": 6,
+      "col": 8,
+      "value": 2026,
+      "data_type": "n",
+      "formula": "=G6+1"
+    },
+    {
+      "addr": "I6",
+      "row": 6,
+      "col": 9,
+      "value": 2027,
+      "data_type": "n",
+      "formula": "=H6+1"
+    },
+    {
+      "addr": "J6",
+      "row": 6,
+      "col": 10,
+      "value": 2028,
+      "data_type": "n",
+      "formula": "=I6+1"
+    },
+    {
+      "addr": "A8",
+      "row": 8,
+      "col": 1,
+      "value": "Bank loan-SHORT TERM",
+      "data_type": "s"
+    },
+    {
+      "addr": "A9",
+      "row": 9,
+      "col": 1,
+      "value": "Principal",
+      "data_type": "s"
+    },
+    {
+      "addr": "A10",
+      "row": 10,
+      "col": 1,
+      "value": "Beginning",
+      "data_type": "s"
+    },
+    {
+      "addr": "C10",
+      "row": 10,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='ACC PAYABLES'!E9",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D10",
+      "row": 10,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=C13",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E10",
+      "row": 10,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=D13",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F10",
+      "row": 10,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=E13",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "G10",
+      "row": 10,
+      "col": 7,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=F13",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "H10",
+      "row": 10,
+      "col": 8,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=G13",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "I10",
+      "row": 10,
+      "col": 9,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=H13",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "J10",
+      "row": 10,
+      "col": 10,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=I13",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B11",
+      "row": 11,
+      "col": 2,
+      "value": "Addition",
+      "data_type": "s"
+    },
+    {
+      "addr": "C11",
+      "row": 11,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='ACC PAYABLES'!E10",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D11",
+      "row": 11,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E11",
+      "row": 11,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F11",
+      "row": 11,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "G11",
+      "row": 11,
+      "col": 7,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "H11",
+      "row": 11,
+      "col": 8,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "I11",
+      "row": 11,
+      "col": 9,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "J11",
+      "row": 11,
+      "col": 10,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B12",
+      "row": 12,
+      "col": 2,
+      "value": "Repayment",
+      "data_type": "s"
+    },
+    {
+      "addr": "C12",
+      "row": 12,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='ACC PAYABLES'!E11",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D12",
+      "row": 12,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E12",
+      "row": 12,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F12",
+      "row": 12,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "G12",
+      "row": 12,
+      "col": 7,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "H12",
+      "row": 12,
+      "col": 8,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "I12",
+      "row": 12,
+      "col": 9,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "J12",
+      "row": 12,
+      "col": 10,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A13",
+      "row": 13,
+      "col": 1,
+      "value": "Ending",
+      "data_type": "s"
+    },
+    {
+      "addr": "C13",
+      "row": 13,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=SUM(C10:C12)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D13",
+      "row": 13,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=SUM(D10:D12)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E13",
+      "row": 13,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=SUM(E10:E12)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F13",
+      "row": 13,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=SUM(F10:F12)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "G13",
+      "row": 13,
+      "col": 7,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=SUM(G10:G12)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "H13",
+      "row": 13,
+      "col": 8,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=SUM(H10:H12)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "I13",
+      "row": 13,
+      "col": 9,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=SUM(I10:I12)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "J13",
+      "row": 13,
+      "col": 10,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=SUM(J10:J12)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A15",
+      "row": 15,
+      "col": 1,
+      "value": "Interest Payable",
+      "data_type": "s"
+    },
+    {
+      "addr": "B15",
+      "row": 15,
+      "col": 2,
+      "value": "interest rate 14%",
+      "data_type": "s",
+      "number_format": "0%"
+    },
+    {
+      "addr": "C15",
+      "row": 15,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='ACC PAYABLES'!E14",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D15",
+      "row": 15,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=D13*(RIGHT($B$15,3))*-1",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E15",
+      "row": 15,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=E13*(RIGHT($B$15,3))*-1",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F15",
+      "row": 15,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=F13*(RIGHT($B$15,3))*-1",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "G15",
+      "row": 15,
+      "col": 7,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=G13*(RIGHT($B$15,3))*-1",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "H15",
+      "row": 15,
+      "col": 8,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=H13*(RIGHT($B$15,3))*-1",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "I15",
+      "row": 15,
+      "col": 9,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=I13*(RIGHT($B$15,3))*-1",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "J15",
+      "row": 15,
+      "col": 10,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=J13*(RIGHT($B$15,3))*-1",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A17",
+      "row": 17,
+      "col": 1,
+      "value": "Bank loan-LONG TERM",
+      "data_type": "s"
+    },
+    {
+      "addr": "C17",
+      "row": 17,
+      "col": 3,
+      "value": 8,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A18",
+      "row": 18,
+      "col": 1,
+      "value": "Principal",
+      "data_type": "s"
+    },
+    {
+      "addr": "C18",
+      "row": 18,
+      "col": 3,
+      "value": 0.13,
+      "data_type": "n",
+      "formula": "='ACC PAYABLES'!E17",
+      "number_format": "0%"
+    },
+    {
+      "addr": "D18",
+      "row": 18,
+      "col": 4,
+      "value": 0.13,
+      "data_type": "n",
+      "number_format": "0%"
+    },
+    {
+      "addr": "E18",
+      "row": 18,
+      "col": 5,
+      "value": 0.13,
+      "data_type": "n",
+      "number_format": "0%"
+    },
+    {
+      "addr": "F18",
+      "row": 18,
+      "col": 6,
+      "value": 0.13,
+      "data_type": "n",
+      "number_format": "0%"
+    },
+    {
+      "addr": "G18",
+      "row": 18,
+      "col": 7,
+      "value": 0.13,
+      "data_type": "n",
+      "number_format": "0%"
+    },
+    {
+      "addr": "H18",
+      "row": 18,
+      "col": 8,
+      "value": 0.13,
+      "data_type": "n",
+      "number_format": "0%"
+    },
+    {
+      "addr": "I18",
+      "row": 18,
+      "col": 9,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "0%"
+    },
+    {
+      "addr": "J18",
+      "row": 18,
+      "col": 10,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "0%"
+    },
+    {
+      "addr": "A19",
+      "row": 19,
+      "col": 1,
+      "value": "Beginning",
+      "data_type": "s"
+    },
+    {
+      "addr": "C19",
+      "row": 19,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='ACC PAYABLES'!E18",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D19",
+      "row": 19,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=C22",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E19",
+      "row": 19,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=D22",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F19",
+      "row": 19,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=E22",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "G19",
+      "row": 19,
+      "col": 7,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=F22",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "H19",
+      "row": 19,
+      "col": 8,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=G22",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "I19",
+      "row": 19,
+      "col": 9,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=H22",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "J19",
+      "row": 19,
+      "col": 10,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=I22",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B20",
+      "row": 20,
+      "col": 2,
+      "value": "Addition",
+      "data_type": "s"
+    },
+    {
+      "addr": "C20",
+      "row": 20,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='ACC PAYABLES'!E19",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D20",
+      "row": 20,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E20",
+      "row": 20,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F20",
+      "row": 20,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "G20",
+      "row": 20,
+      "col": 7,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "H20",
+      "row": 20,
+      "col": 8,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "I20",
+      "row": 20,
+      "col": 9,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "J20",
+      "row": 20,
+      "col": 10,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B21",
+      "row": 21,
+      "col": 2,
+      "value": "Repayment",
+      "data_type": "s"
+    },
+    {
+      "addr": "C21",
+      "row": 21,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='ACC PAYABLES'!E20",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D21",
+      "row": 21,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E21",
+      "row": 21,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F21",
+      "row": 21,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "G21",
+      "row": 21,
+      "col": 7,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "H21",
+      "row": 21,
+      "col": 8,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "I21",
+      "row": 21,
+      "col": 9,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "J21",
+      "row": 21,
+      "col": 10,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A22",
+      "row": 22,
+      "col": 1,
+      "value": "Ending",
+      "data_type": "s"
+    },
+    {
+      "addr": "C22",
+      "row": 22,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=SUM(C19:C21)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D22",
+      "row": 22,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=SUM(D19:D21)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E22",
+      "row": 22,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=SUM(E19:E21)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F22",
+      "row": 22,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=SUM(F19:F21)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "G22",
+      "row": 22,
+      "col": 7,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=SUM(G19:G21)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "H22",
+      "row": 22,
+      "col": 8,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=SUM(H19:H21)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "I22",
+      "row": 22,
+      "col": 9,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=SUM(I19:I21)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "J22",
+      "row": 22,
+      "col": 10,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=SUM(J19:J21)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A24",
+      "row": 24,
+      "col": 1,
+      "value": "Interest Payable",
+      "data_type": "s"
+    },
+    {
+      "addr": "C24",
+      "row": 24,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='ACC PAYABLES'!E23",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D24",
+      "row": 24,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E24",
+      "row": 24,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F24",
+      "row": 24,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "G24",
+      "row": 24,
+      "col": 7,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "H24",
+      "row": 24,
+      "col": 8,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "I24",
+      "row": 24,
+      "col": 9,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "J24",
+      "row": 24,
+      "col": 10,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    }
+  ],
+  "required_hidden": true
+}

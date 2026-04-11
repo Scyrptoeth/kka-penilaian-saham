@@ -1,0 +1,1027 @@
+{
+  "name": "DLOM",
+  "slug": "dlom",
+  "visible": true,
+  "dimensions": {
+    "max_row": 61,
+    "max_col": 14,
+    "max_col_letter": "N"
+  },
+  "merged_ranges": [
+    "F15:F16",
+    "B2:G2",
+    "D4:D6",
+    "G17:G18",
+    "G23:G24",
+    "F25:F26",
+    "B17:B18",
+    "D21:D22",
+    "G13:G14",
+    "D17:D18",
+    "B11:B12",
+    "G7:G8",
+    "D11:D12",
+    "F4:G6",
+    "G19:G20",
+    "B27:F27",
+    "B23:B24",
+    "C9:C10",
+    "F21:F22",
+    "B4:B6",
+    "B13:B14",
+    "C25:C26",
+    "F17:F18",
+    "D13:D14",
+    "C21:C22",
+    "D7:D8",
+    "G15:G16",
+    "C11:C12",
+    "F23:F24",
+    "B19:B20",
+    "B15:B16",
+    "D15:D16",
+    "F13:F14",
+    "B9:B10",
+    "C23:C24",
+    "D9:D10",
+    "F9:F10",
+    "C17:C18",
+    "E4:E6",
+    "D25:D26",
+    "C7:C8",
+    "G25:G26",
+    "F11:F12",
+    "C4:C6",
+    "C19:C20",
+    "C13:C14",
+    "D19:D20",
+    "G9:G10",
+    "F19:F20",
+    "D23:D24",
+    "B25:B26",
+    "G21:G22",
+    "C15:C16",
+    "B7:B8",
+    "F7:F8",
+    "G11:G12",
+    "B21:B22"
+  ],
+  "cells": [
+    {
+      "addr": "B2",
+      "row": 2,
+      "col": 2,
+      "value": "PERTIMBANGAN DISCOUNT LACK OF MARKETABILITY (DLOM)",
+      "data_type": "s"
+    },
+    {
+      "addr": "B4",
+      "row": 4,
+      "col": 2,
+      "value": "NO",
+      "data_type": "s"
+    },
+    {
+      "addr": "C4",
+      "row": 4,
+      "col": 3,
+      "value": "FAKTOR PERTIMBANGAN",
+      "data_type": "s"
+    },
+    {
+      "addr": "D4",
+      "row": 4,
+      "col": 4,
+      "value": "KONDISI PERUSAHAAN DALAM INDUSTRI",
+      "data_type": "s"
+    },
+    {
+      "addr": "E4",
+      "row": 4,
+      "col": 5,
+      "value": "KONFIRMASI",
+      "data_type": "s"
+    },
+    {
+      "addr": "F4",
+      "row": 4,
+      "col": 6,
+      "value": "NILAI MAKETABILITAS",
+      "data_type": "s"
+    },
+    {
+      "addr": "B7",
+      "row": 7,
+      "col": 2,
+      "value": 1,
+      "data_type": "n"
+    },
+    {
+      "addr": "C7",
+      "row": 7,
+      "col": 3,
+      "value": "Entry Barier Perijinan Usaha",
+      "data_type": "s"
+    },
+    {
+      "addr": "D7",
+      "row": 7,
+      "col": 4,
+      "value": "Apakah telah ada pembatasan atas perijinan usaha, namun banyak investor yang berminat disebabkan prospek usaha dibidang industri tersebut memiliki prospek yang cerah?\n(Ada, Terbatas atau Tidak Ada)",
+      "data_type": "s"
+    },
+    {
+      "addr": "F7",
+      "row": 7,
+      "col": 6,
+      "value": "Tidak Ada",
+      "data_type": "s"
+    },
+    {
+      "addr": "G7",
+      "row": 7,
+      "col": 7,
+      "value": 1,
+      "data_type": "n",
+      "formula": "=IF(F7=\"Ada\",0,IF(F7=\"Terbatas\",0.5,1))"
+    },
+    {
+      "addr": "I7",
+      "row": 7,
+      "col": 9,
+      "value": "Ada",
+      "data_type": "s"
+    },
+    {
+      "addr": "J7",
+      "row": 7,
+      "col": 10,
+      "value": "Tidak Terbatas",
+      "data_type": "s"
+    },
+    {
+      "addr": "K7",
+      "row": 7,
+      "col": 11,
+      "value": "Ya",
+      "data_type": "s"
+    },
+    {
+      "addr": "L7",
+      "row": 7,
+      "col": 12,
+      "value": "Diatas",
+      "data_type": "s"
+    },
+    {
+      "addr": "M7",
+      "row": 7,
+      "col": 13,
+      "value": "Tidak, Meningkat",
+      "data_type": "s"
+    },
+    {
+      "addr": "I8",
+      "row": 8,
+      "col": 9,
+      "value": "Terbatas",
+      "data_type": "s"
+    },
+    {
+      "addr": "J8",
+      "row": 8,
+      "col": 10,
+      "value": "Segmen Tertentu",
+      "data_type": "s"
+    },
+    {
+      "addr": "K8",
+      "row": 8,
+      "col": 11,
+      "value": "Kadang-kadang",
+      "data_type": "s"
+    },
+    {
+      "addr": "L8",
+      "row": 8,
+      "col": 12,
+      "value": "Rata-rata",
+      "data_type": "s"
+    },
+    {
+      "addr": "M8",
+      "row": 8,
+      "col": 13,
+      "value": "Sedang, Stabil",
+      "data_type": "s"
+    },
+    {
+      "addr": "B9",
+      "row": 9,
+      "col": 2,
+      "value": 2,
+      "data_type": "n"
+    },
+    {
+      "addr": "C9",
+      "row": 9,
+      "col": 3,
+      "value": "Entry Barier Skala Ekonomis Usaha",
+      "data_type": "s"
+    },
+    {
+      "addr": "D9",
+      "row": 9,
+      "col": 4,
+      "value": "Apakah untuk industri tersebut membutuhkan skala ekonomis usaha yang besar, sehingga hanya investor tertentu dengan modal besar yang dapat masuk dibidang industri tersebut? \n(Tidak Terbatas, Segmen Tertentu atau Skala Besar)",
+      "data_type": "s"
+    },
+    {
+      "addr": "F9",
+      "row": 9,
+      "col": 6,
+      "value": "Skala Besar",
+      "data_type": "s"
+    },
+    {
+      "addr": "G9",
+      "row": 9,
+      "col": 7,
+      "value": 1,
+      "data_type": "n",
+      "formula": "=IF(F9=\"Tidak Terbatas\",0,IF(F9=\"Segmen Tertentu\",0.5,1))"
+    },
+    {
+      "addr": "I9",
+      "row": 9,
+      "col": 9,
+      "value": "Tidak Ada",
+      "data_type": "s"
+    },
+    {
+      "addr": "J9",
+      "row": 9,
+      "col": 10,
+      "value": "Skala Besar",
+      "data_type": "s"
+    },
+    {
+      "addr": "K9",
+      "row": 9,
+      "col": 11,
+      "value": "Tidak Ada",
+      "data_type": "s"
+    },
+    {
+      "addr": "L9",
+      "row": 9,
+      "col": 12,
+      "value": "Dibawah",
+      "data_type": "s"
+    },
+    {
+      "addr": "M9",
+      "row": 9,
+      "col": 13,
+      "value": "Ya, Menurun",
+      "data_type": "s"
+    },
+    {
+      "addr": "B11",
+      "row": 11,
+      "col": 2,
+      "value": 3,
+      "data_type": "n"
+    },
+    {
+      "addr": "C11",
+      "row": 11,
+      "col": 3,
+      "value": "Dividen",
+      "data_type": "s"
+    },
+    {
+      "addr": "D11",
+      "row": 11,
+      "col": 4,
+      "value": "Apakah kebijakan dividen perusahaan telah diputuskan setiap tahun melalui RUPS, serta ada pembagian dividen setiap tahun?\n(Ya, Kadang-kadang atau Tidak Ada)",
+      "data_type": "s"
+    },
+    {
+      "addr": "F11",
+      "row": 11,
+      "col": 6,
+      "value": "Tidak Ada",
+      "data_type": "s"
+    },
+    {
+      "addr": "G11",
+      "row": 11,
+      "col": 7,
+      "value": 1,
+      "data_type": "n",
+      "formula": "=IF(F11=\"Ya\",0,IF(F11=\"Kadang-kadang\",0.5,1))"
+    },
+    {
+      "addr": "I11",
+      "row": 11,
+      "col": 9,
+      "value": "Dibawah",
+      "data_type": "s"
+    },
+    {
+      "addr": "J11",
+      "row": 11,
+      "col": 10,
+      "value": "Diatas",
+      "data_type": "s"
+    },
+    {
+      "addr": "K11",
+      "row": 11,
+      "col": 11,
+      "value": "Lebih Besar",
+      "data_type": "s"
+    },
+    {
+      "addr": "L11",
+      "row": 11,
+      "col": 12,
+      "value": "Meningkat",
+      "data_type": "s"
+    },
+    {
+      "addr": "M11",
+      "row": 11,
+      "col": 13,
+      "value": "Ya",
+      "data_type": "s"
+    },
+    {
+      "addr": "I12",
+      "row": 12,
+      "col": 9,
+      "value": "Rata-rata",
+      "data_type": "s"
+    },
+    {
+      "addr": "J12",
+      "row": 12,
+      "col": 10,
+      "value": "Rata-rata",
+      "data_type": "s"
+    },
+    {
+      "addr": "K12",
+      "row": 12,
+      "col": 11,
+      "value": "Rata-rata",
+      "data_type": "s"
+    },
+    {
+      "addr": "L12",
+      "row": 12,
+      "col": 12,
+      "value": "Seperti Saat Ini",
+      "data_type": "s"
+    },
+    {
+      "addr": "M12",
+      "row": 12,
+      "col": 13,
+      "value": "Seperti Saat Ini",
+      "data_type": "s"
+    },
+    {
+      "addr": "B13",
+      "row": 13,
+      "col": 2,
+      "value": 4,
+      "data_type": "n"
+    },
+    {
+      "addr": "C13",
+      "row": 13,
+      "col": 3,
+      "value": "Profitabilitas (EBITDA)",
+      "data_type": "s"
+    },
+    {
+      "addr": "D13",
+      "row": 13,
+      "col": 4,
+      "value": "Apakah tingkat profitabilitas (EBITDA) perusahaan sesuai dengan tingkat profitabilitas industri sejenis?\n(Diatas, Rata-Rata atau Dibawah)",
+      "data_type": "s"
+    },
+    {
+      "addr": "F13",
+      "row": 13,
+      "col": 6,
+      "value": "Dibawah",
+      "data_type": "s"
+    },
+    {
+      "addr": "G13",
+      "row": 13,
+      "col": 7,
+      "value": 1,
+      "data_type": "n",
+      "formula": "=IF(F13=\"Diatas\",0,IF(F13=\"Rata-rata\",0.5,1))"
+    },
+    {
+      "addr": "I13",
+      "row": 13,
+      "col": 9,
+      "value": "Diatas",
+      "data_type": "s"
+    },
+    {
+      "addr": "J13",
+      "row": 13,
+      "col": 10,
+      "value": "Dibawah",
+      "data_type": "s"
+    },
+    {
+      "addr": "K13",
+      "row": 13,
+      "col": 11,
+      "value": "Lebih Kecil",
+      "data_type": "s"
+    },
+    {
+      "addr": "L13",
+      "row": 13,
+      "col": 12,
+      "value": "Menurun",
+      "data_type": "s"
+    },
+    {
+      "addr": "M13",
+      "row": 13,
+      "col": 13,
+      "value": "Tidak",
+      "data_type": "s"
+    },
+    {
+      "addr": "B15",
+      "row": 15,
+      "col": 2,
+      "value": 5,
+      "data_type": "n"
+    },
+    {
+      "addr": "C15",
+      "row": 15,
+      "col": 3,
+      "value": "Fluktuasi Laba Bersih",
+      "data_type": "s"
+    },
+    {
+      "addr": "D15",
+      "row": 15,
+      "col": 4,
+      "value": "Apakah laba bersih perusahaan berfluktuasi?\n(Tidak, Meningkat; Sedang, Stabil; atau, Ya, Menurun)",
+      "data_type": "s"
+    },
+    {
+      "addr": "F15",
+      "row": 15,
+      "col": 6,
+      "value": "Ya, Menurun",
+      "data_type": "s"
+    },
+    {
+      "addr": "G15",
+      "row": 15,
+      "col": 7,
+      "value": 1,
+      "data_type": "n",
+      "formula": "=IF(F15=\"Tidak, Meningkat\",0,IF(F15=\"Sedang, Stabil\",0.5,1))"
+    },
+    {
+      "addr": "B17",
+      "row": 17,
+      "col": 2,
+      "value": 6,
+      "data_type": "n"
+    },
+    {
+      "addr": "C17",
+      "row": 17,
+      "col": 3,
+      "value": "Struktur Permodalan",
+      "data_type": "s"
+    },
+    {
+      "addr": "D17",
+      "row": 17,
+      "col": 4,
+      "value": "Apakah struktur permodalan (Debt to Equity Ratio) perusahaan sesuai dengan rata-rata industri sejenis?\n(Dibawah, Rata-Rata atau Diatas)",
+      "data_type": "s"
+    },
+    {
+      "addr": "F17",
+      "row": 17,
+      "col": 6,
+      "value": "Diatas",
+      "data_type": "s"
+    },
+    {
+      "addr": "G17",
+      "row": 17,
+      "col": 7,
+      "value": 1,
+      "data_type": "n",
+      "formula": "=IF(F17=\"Dibawah\",0,IF(F17=\"Rata-rata\",0.5,1))"
+    },
+    {
+      "addr": "B19",
+      "row": 19,
+      "col": 2,
+      "value": 7,
+      "data_type": "n"
+    },
+    {
+      "addr": "C19",
+      "row": 19,
+      "col": 3,
+      "value": "Liquiditas",
+      "data_type": "s"
+    },
+    {
+      "addr": "D19",
+      "row": 19,
+      "col": 4,
+      "value": "Apakah liquiditas (Current Ratio) perusahaan sesuai dengan rata-rata industri sejenis?\n(Diatas, Rata-Rata atau Dibawah)",
+      "data_type": "s"
+    },
+    {
+      "addr": "F19",
+      "row": 19,
+      "col": 6,
+      "value": "Dibawah",
+      "data_type": "s"
+    },
+    {
+      "addr": "G19",
+      "row": 19,
+      "col": 7,
+      "value": 1,
+      "data_type": "n",
+      "formula": "=IF(F19=\"Diatas\",0,IF(F19=\"Rata-rata\",0.5,1))"
+    },
+    {
+      "addr": "B21",
+      "row": 21,
+      "col": 2,
+      "value": 8,
+      "data_type": "n"
+    },
+    {
+      "addr": "C21",
+      "row": 21,
+      "col": 3,
+      "value": "Pertumbuhan Penjualan",
+      "data_type": "s"
+    },
+    {
+      "addr": "D21",
+      "row": 21,
+      "col": 4,
+      "value": "Pertumbuhan penjualan perusahaan dibandingkan dengan rata-rata industri sejenis?\n(Lebih Besar, Rata-Rata atau Lebih Kecil)",
+      "data_type": "s"
+    },
+    {
+      "addr": "F21",
+      "row": 21,
+      "col": 6,
+      "value": "Lebih Kecil",
+      "data_type": "s"
+    },
+    {
+      "addr": "G21",
+      "row": 21,
+      "col": 7,
+      "value": 1,
+      "data_type": "n",
+      "formula": "=IF(F21=\"Lebih Besar\",0,IF(F21=\"Rata-rata\",0.5,1))"
+    },
+    {
+      "addr": "B23",
+      "row": 23,
+      "col": 2,
+      "value": 9,
+      "data_type": "n"
+    },
+    {
+      "addr": "C23",
+      "row": 23,
+      "col": 3,
+      "value": "Prospek Perusahaan dan Industri",
+      "data_type": "s"
+    },
+    {
+      "addr": "D23",
+      "row": 23,
+      "col": 4,
+      "value": "Bagaimana Prospek perusahaan maupun industrinya dimasa mendatang?\n(Meningkat, Seperti saat ini atau Menurun)",
+      "data_type": "s"
+    },
+    {
+      "addr": "F23",
+      "row": 23,
+      "col": 6,
+      "value": "Menurun",
+      "data_type": "s"
+    },
+    {
+      "addr": "G23",
+      "row": 23,
+      "col": 7,
+      "value": 1,
+      "data_type": "n",
+      "formula": "=IF(F23=\"Meningkat\",0,IF(F23=\"Seperti Saat Ini\",0.5,1))"
+    },
+    {
+      "addr": "B25",
+      "row": 25,
+      "col": 2,
+      "value": 10,
+      "data_type": "n"
+    },
+    {
+      "addr": "C25",
+      "row": 25,
+      "col": 3,
+      "value": "Kualitas Manajemen",
+      "data_type": "s"
+    },
+    {
+      "addr": "D25",
+      "row": 25,
+      "col": 4,
+      "value": "Apakah kualitas manajemen perusahaan dapat mencapai tingkat keberhasilan operasi dan keuangan perusahaan serta mempunyai probabilitas yang tinggi untuk memperoleh hasil yang diharapkan? \n(Ya, Seperti Saat Ini atau Tidak)",
+      "data_type": "s"
+    },
+    {
+      "addr": "F25",
+      "row": 25,
+      "col": 6,
+      "value": "Tidak",
+      "data_type": "s"
+    },
+    {
+      "addr": "G25",
+      "row": 25,
+      "col": 7,
+      "value": 1,
+      "data_type": "n",
+      "formula": "=IF(F25=\"Ya\",0,IF(F25=\"Seperti Saat Ini\",0.5,1))"
+    },
+    {
+      "addr": "B27",
+      "row": 27,
+      "col": 2,
+      "value": "JUMLAH",
+      "data_type": "s"
+    },
+    {
+      "addr": "G27",
+      "row": 27,
+      "col": 7,
+      "value": 10,
+      "data_type": "n",
+      "formula": "=SUM(G7:G26)"
+    },
+    {
+      "addr": "B30",
+      "row": 30,
+      "col": 2,
+      "value": 1,
+      "data_type": "n",
+      "formula": "=IF(C30=\"DLOM Perusahaan tertutup \",1,2)"
+    },
+    {
+      "addr": "C30",
+      "row": 30,
+      "col": 3,
+      "value": "DLOM Perusahaan tertutup ",
+      "data_type": "s"
+    },
+    {
+      "addr": "D30",
+      "row": 30,
+      "col": 4,
+      "value": "Perhitungan DLOM",
+      "data_type": "s"
+    },
+    {
+      "addr": "B31",
+      "row": 31,
+      "col": 2,
+      "value": 7,
+      "data_type": "n",
+      "formula": "=IF(C31=\"Minoritas\",5,7)"
+    },
+    {
+      "addr": "C31",
+      "row": 31,
+      "col": 3,
+      "value": "Mayoritas",
+      "data_type": "s"
+    },
+    {
+      "addr": "D31",
+      "row": 31,
+      "col": 4,
+      "value": "Maksimum Skor",
+      "data_type": "s"
+    },
+    {
+      "addr": "F31",
+      "row": 31,
+      "col": 6,
+      "value": 10,
+      "data_type": "n"
+    },
+    {
+      "addr": "C32",
+      "row": 32,
+      "col": 3,
+      "value": "20% - 40%",
+      "data_type": "s",
+      "formula": "=IF(B30+B31=6,\"30% - 50%\",IF(B30+B31=8,\"20% - 40%\",IF(B30+B31=7,\"10% - 30%\",IF(B30+B31=9,\"0% - 20%\",\"-\"))))"
+    },
+    {
+      "addr": "D32",
+      "row": 32,
+      "col": 4,
+      "value": "DLOM Perusahaan tertutup 20% - 40%",
+      "data_type": "s",
+      "formula": "=C30&C32"
+    },
+    {
+      "addr": "F32",
+      "row": 32,
+      "col": 6,
+      "value": 0.2,
+      "data_type": "n",
+      "formula": "=RIGHT(C32,3)-LEFT(C32,3)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "D33",
+      "row": 33,
+      "col": 4,
+      "value": "Jumlah Skor",
+      "data_type": "s"
+    },
+    {
+      "addr": "F33",
+      "row": 33,
+      "col": 6,
+      "value": 10,
+      "data_type": "n",
+      "formula": "=G27"
+    },
+    {
+      "addr": "D34",
+      "row": 34,
+      "col": 4,
+      "value": "DLOM Objek Penilaian",
+      "data_type": "s"
+    },
+    {
+      "addr": "F34",
+      "row": 34,
+      "col": 6,
+      "value": 0.4,
+      "data_type": "n",
+      "formula": "=LEFT(C32,3)+(F33/F31*F32)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "F37",
+      "row": 37,
+      "col": 6,
+      "value": "DER PERUSAHAAN GARMEN STATISTIK 30 JUNI 2020",
+      "data_type": "s"
+    },
+    {
+      "addr": "C38",
+      "row": 38,
+      "col": 3,
+      "value": "Paling Tinggi",
+      "data_type": "s"
+    },
+    {
+      "addr": "D38",
+      "row": 38,
+      "col": 4,
+      "value": 0.2,
+      "data_type": "n",
+      "number_format": "0%"
+    },
+    {
+      "addr": "F38",
+      "row": 38,
+      "col": 6,
+      "value": -1.94,
+      "data_type": "n"
+    },
+    {
+      "addr": "C39",
+      "row": 39,
+      "col": 3,
+      "value": "Moderat",
+      "data_type": "s"
+    },
+    {
+      "addr": "D39",
+      "row": 39,
+      "col": 4,
+      "value": 0.3,
+      "data_type": "n",
+      "number_format": "0%"
+    },
+    {
+      "addr": "F39",
+      "row": 39,
+      "col": 6,
+      "value": 1.35,
+      "data_type": "n"
+    },
+    {
+      "addr": "C40",
+      "row": 40,
+      "col": 3,
+      "value": "Paling Rendah",
+      "data_type": "s"
+    },
+    {
+      "addr": "D40",
+      "row": 40,
+      "col": 4,
+      "value": 0.4,
+      "data_type": "n",
+      "number_format": "0%"
+    },
+    {
+      "addr": "F40",
+      "row": 40,
+      "col": 6,
+      "value": -11.4,
+      "data_type": "n"
+    },
+    {
+      "addr": "F41",
+      "row": 41,
+      "col": 6,
+      "value": -11.4,
+      "data_type": "n"
+    },
+    {
+      "addr": "E42",
+      "row": 42,
+      "col": 5,
+      "value": "ERATEX",
+      "data_type": "s"
+    },
+    {
+      "addr": "F42",
+      "row": 42,
+      "col": 6,
+      "value": 2.68,
+      "data_type": "n"
+    },
+    {
+      "addr": "F43",
+      "row": 43,
+      "col": 6,
+      "value": 3.27,
+      "data_type": "n"
+    },
+    {
+      "addr": "F44",
+      "row": 44,
+      "col": 6,
+      "value": 8.12,
+      "data_type": "n"
+    },
+    {
+      "addr": "F45",
+      "row": 45,
+      "col": 6,
+      "value": 1.02,
+      "data_type": "n"
+    },
+    {
+      "addr": "F46",
+      "row": 46,
+      "col": 6,
+      "value": 11.7,
+      "data_type": "n"
+    },
+    {
+      "addr": "F47",
+      "row": 47,
+      "col": 6,
+      "value": 1.37,
+      "data_type": "n"
+    },
+    {
+      "addr": "F48",
+      "row": 48,
+      "col": 6,
+      "value": 1.05,
+      "data_type": "n"
+    },
+    {
+      "addr": "F49",
+      "row": 49,
+      "col": 6,
+      "value": -1.24,
+      "data_type": "n"
+    },
+    {
+      "addr": "F50",
+      "row": 50,
+      "col": 6,
+      "value": 3.03,
+      "data_type": "n"
+    },
+    {
+      "addr": "F51",
+      "row": 51,
+      "col": 6,
+      "value": 2.02,
+      "data_type": "n"
+    },
+    {
+      "addr": "F52",
+      "row": 52,
+      "col": 6,
+      "value": 1.6,
+      "data_type": "n"
+    },
+    {
+      "addr": "F53",
+      "row": 53,
+      "col": 6,
+      "value": 1.24,
+      "data_type": "n"
+    },
+    {
+      "addr": "F54",
+      "row": 54,
+      "col": 6,
+      "value": 0.18,
+      "data_type": "n"
+    },
+    {
+      "addr": "F55",
+      "row": 55,
+      "col": 6,
+      "value": 0.04,
+      "data_type": "n"
+    },
+    {
+      "addr": "F56",
+      "row": 56,
+      "col": 6,
+      "value": 0.87,
+      "data_type": "n"
+    },
+    {
+      "addr": "F57",
+      "row": 57,
+      "col": 6,
+      "value": 0.9,
+      "data_type": "n"
+    },
+    {
+      "addr": "F58",
+      "row": 58,
+      "col": 6,
+      "value": 0.47,
+      "data_type": "n"
+    },
+    {
+      "addr": "F59",
+      "row": 59,
+      "col": 6,
+      "value": 1.19,
+      "data_type": "n"
+    },
+    {
+      "addr": "F60",
+      "row": 60,
+      "col": 6,
+      "value": 0.7327272727272724,
+      "data_type": "n",
+      "formula": "=AVERAGE(F38:F59)"
+    }
+  ],
+  "required_hidden": false
+}

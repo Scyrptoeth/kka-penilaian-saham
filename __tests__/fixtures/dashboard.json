@@ -1,0 +1,345 @@
+{
+  "name": "DASHBOARD",
+  "slug": "dashboard",
+  "visible": true,
+  "dimensions": {
+    "max_row": 64,
+    "max_col": 28,
+    "max_col_letter": "AB"
+  },
+  "merged_ranges": [
+    "Q60:R60",
+    "H59:I59",
+    "M60:N60",
+    "M59:N59",
+    "Q59:R59",
+    "M2:T2",
+    "H60:I60",
+    "V60:W60",
+    "U2:AB2",
+    "V59:W59"
+  ],
+  "cells": [
+    {
+      "addr": "M2",
+      "row": 2,
+      "col": 13,
+      "value": "HISTORIS",
+      "data_type": "s"
+    },
+    {
+      "addr": "U2",
+      "row": 2,
+      "col": 21,
+      "value": "PROYEKSI",
+      "data_type": "s"
+    },
+    {
+      "addr": "R50",
+      "row": 50,
+      "col": 18,
+      "value": "Cuti Off Date",
+      "data_type": "s"
+    },
+    {
+      "addr": "T57",
+      "row": 57,
+      "col": 20,
+      "value": "SUBSEQUENT EVENT",
+      "data_type": "s"
+    },
+    {
+      "addr": "G58",
+      "row": 58,
+      "col": 7,
+      "value": 2020,
+      "data_type": "n",
+      "formula": "=TL!C10"
+    },
+    {
+      "addr": "L58",
+      "row": 58,
+      "col": 12,
+      "value": "?",
+      "data_type": "s",
+      "formula": "=TL!H10"
+    },
+    {
+      "addr": "P58",
+      "row": 58,
+      "col": 16,
+      "value": 2021,
+      "data_type": "n",
+      "formula": "=TL!L10"
+    },
+    {
+      "addr": "U58",
+      "row": 58,
+      "col": 21,
+      "value": 2022,
+      "data_type": "n",
+      "formula": "=P58+1"
+    },
+    {
+      "addr": "G59",
+      "row": 59,
+      "col": 7,
+      "value": "Net Profit",
+      "data_type": "s"
+    },
+    {
+      "addr": "H59",
+      "row": 59,
+      "col": 8,
+      "value": 4994138866,
+      "data_type": "n",
+      "formula": "=TL!D11",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "L59",
+      "row": 59,
+      "col": 12,
+      "value": "Net Profit",
+      "data_type": "s",
+      "formula": "=TL!H11"
+    },
+    {
+      "addr": "M59",
+      "row": 59,
+      "col": 13,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=TL!I11",
+      "number_format": "0"
+    },
+    {
+      "addr": "P59",
+      "row": 59,
+      "col": 16,
+      "value": "Net Profit",
+      "data_type": "s"
+    },
+    {
+      "addr": "Q59",
+      "row": 59,
+      "col": 17,
+      "value": 5805826735,
+      "data_type": "n",
+      "formula": "=TL!M11",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "U59",
+      "row": 59,
+      "col": 21,
+      "value": "Net Profit",
+      "data_type": "s"
+    },
+    {
+      "addr": "V59",
+      "row": 59,
+      "col": 22,
+      "value": 135354171907,
+      "data_type": "n",
+      "formula": "=TL!R11",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "G60",
+      "row": 60,
+      "col": 7,
+      "value": "Ekuitas",
+      "data_type": "s"
+    },
+    {
+      "addr": "H60",
+      "row": 60,
+      "col": 8,
+      "value": 23663464279,
+      "data_type": "n",
+      "formula": "=TL!D12",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "L60",
+      "row": 60,
+      "col": 12,
+      "value": "Ekuitas",
+      "data_type": "s",
+      "formula": "=TL!H12"
+    },
+    {
+      "addr": "M60",
+      "row": 60,
+      "col": 13,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=TL!I12",
+      "number_format": "0"
+    },
+    {
+      "addr": "P60",
+      "row": 60,
+      "col": 16,
+      "value": "Ekuitas",
+      "data_type": "s"
+    },
+    {
+      "addr": "Q60",
+      "row": 60,
+      "col": 17,
+      "value": 29366482204,
+      "data_type": "n",
+      "formula": "=TL!M12",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "U60",
+      "row": 60,
+      "col": 21,
+      "value": "Ekuitas",
+      "data_type": "s"
+    },
+    {
+      "addr": "V60",
+      "row": 60,
+      "col": 22,
+      "value": 635570945239,
+      "data_type": "n",
+      "formula": "=TL!R12",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "G61",
+      "row": 61,
+      "col": 7,
+      "value": "DER",
+      "data_type": "s"
+    },
+    {
+      "addr": "H61",
+      "row": 61,
+      "col": 8,
+      "value": 0.26662218589858233,
+      "data_type": "n",
+      "formula": "=TL!D13",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "L61",
+      "row": 61,
+      "col": 12,
+      "value": "DER",
+      "data_type": "s",
+      "formula": "=TL!H13"
+    },
+    {
+      "addr": "M61",
+      "row": 61,
+      "col": 13,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=TL!I13",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "P61",
+      "row": 61,
+      "col": 16,
+      "value": "DER",
+      "data_type": "s"
+    },
+    {
+      "addr": "Q61",
+      "row": 61,
+      "col": 17,
+      "value": 0.1453914874904027,
+      "data_type": "n",
+      "formula": "=TL!M13",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "U61",
+      "row": 61,
+      "col": 21,
+      "value": "DER",
+      "data_type": "s"
+    },
+    {
+      "addr": "V61",
+      "row": 61,
+      "col": 22,
+      "value": 0.3383631765484988,
+      "data_type": "n",
+      "formula": "=TL!R13",
+      "number_format": "0%"
+    },
+    {
+      "addr": "G62",
+      "row": 62,
+      "col": 7,
+      "value": "NPM",
+      "data_type": "s"
+    },
+    {
+      "addr": "H62",
+      "row": 62,
+      "col": 8,
+      "value": 0.08416123892769456,
+      "data_type": "n",
+      "formula": "=TL!D14",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "L62",
+      "row": 62,
+      "col": 12,
+      "value": "NPM",
+      "data_type": "s",
+      "formula": "=TL!H14"
+    },
+    {
+      "addr": "M62",
+      "row": 62,
+      "col": 13,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=TL!I14",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "P62",
+      "row": 62,
+      "col": 16,
+      "value": "NPM",
+      "data_type": "s"
+    },
+    {
+      "addr": "Q62",
+      "row": 62,
+      "col": 17,
+      "value": 0.09511572071956491,
+      "data_type": "n",
+      "formula": "=TL!M14",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "U62",
+      "row": 62,
+      "col": 21,
+      "value": "NPM",
+      "data_type": "s"
+    },
+    {
+      "addr": "V62",
+      "row": 62,
+      "col": 22,
+      "value": 0.09695867478871532,
+      "data_type": "n",
+      "formula": "=TL!R14",
+      "number_format": "0%"
+    }
+  ],
+  "required_hidden": false
+}

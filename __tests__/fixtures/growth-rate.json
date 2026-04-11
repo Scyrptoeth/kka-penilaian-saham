@@ -1,0 +1,236 @@
+{
+  "name": "GROWTH RATE",
+  "slug": "growth-rate",
+  "visible": true,
+  "dimensions": {
+    "max_row": 23,
+    "max_col": 5,
+    "max_col_letter": "E"
+  },
+  "merged_ranges": [],
+  "cells": [
+    {
+      "addr": "A1",
+      "row": 1,
+      "col": 1,
+      "value": "PT RAJA VOLTAMA ELEKTRIK",
+      "data_type": "s",
+      "formula": "=HOME!B4"
+    },
+    {
+      "addr": "A2",
+      "row": 2,
+      "col": 1,
+      "value": "Growth Rate",
+      "data_type": "s"
+    },
+    {
+      "addr": "B4",
+      "row": 4,
+      "col": 2,
+      "value": 2020,
+      "data_type": "n",
+      "formula": "=ROIC!C5"
+    },
+    {
+      "addr": "C4",
+      "row": 4,
+      "col": 3,
+      "value": 2021,
+      "data_type": "n",
+      "formula": "=ROIC!D5"
+    },
+    {
+      "addr": "A6",
+      "row": 6,
+      "col": 1,
+      "value": "Net Fixed Assets at the End of  Year",
+      "data_type": "s"
+    },
+    {
+      "addr": "B6",
+      "row": 6,
+      "col": 2,
+      "value": 6012024389,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!D69",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "C6",
+      "row": 6,
+      "col": 3,
+      "value": 6264339945,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E69",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A7",
+      "row": 7,
+      "col": 1,
+      "value": "Add: Net Current Asset at the End of Year",
+      "data_type": "s"
+    },
+    {
+      "addr": "B7",
+      "row": 7,
+      "col": 2,
+      "value": 23960644462,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!E16",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "C7",
+      "row": 7,
+      "col": 3,
+      "value": 27371778788,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!F16",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A8",
+      "row": 8,
+      "col": 1,
+      "value": "Less: Net Fixed Assets at the Beginning of Year",
+      "data_type": "s"
+    },
+    {
+      "addr": "B8",
+      "row": 8,
+      "col": 2,
+      "value": -6123781380,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!D22*-1",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "C8",
+      "row": 8,
+      "col": 3,
+      "value": -6012024389,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!E22*-1",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A9",
+      "row": 9,
+      "col": 1,
+      "value": "Less: Net Current Assets at the Beginning of Year",
+      "data_type": "s"
+    },
+    {
+      "addr": "B9",
+      "row": 9,
+      "col": 2,
+      "value": -19602444657,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!D16*-1",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "C9",
+      "row": 9,
+      "col": 3,
+      "value": -23960644462,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!E16*-1",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A10",
+      "row": 10,
+      "col": 1,
+      "value": "Total Net Investment",
+      "data_type": "s"
+    },
+    {
+      "addr": "B10",
+      "row": 10,
+      "col": 2,
+      "value": 4246442814,
+      "data_type": "n",
+      "formula": "=SUM(B6:B9)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "C10",
+      "row": 10,
+      "col": 3,
+      "value": 3663449882,
+      "data_type": "n",
+      "formula": "=SUM(C6:C9)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A12",
+      "row": 12,
+      "col": 1,
+      "value": "Total Invested Capital Beginning of Year",
+      "data_type": "s"
+    },
+    {
+      "addr": "B12",
+      "row": 12,
+      "col": 2,
+      "value": 18026516004,
+      "data_type": "n",
+      "formula": "=ROIC!B12",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "C12",
+      "row": 12,
+      "col": 3,
+      "value": 26637969936,
+      "data_type": "n",
+      "formula": "=ROIC!C12",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A14",
+      "row": 14,
+      "col": 1,
+      "value": "Growth Rate = Net Investment/Invested Capital",
+      "data_type": "s"
+    },
+    {
+      "addr": "B14",
+      "row": 14,
+      "col": 2,
+      "value": 0.2355664740240285,
+      "data_type": "n",
+      "formula": "=B10/B12",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "C14",
+      "row": 14,
+      "col": 3,
+      "value": 0.1375273675434634,
+      "data_type": "n",
+      "formula": "=C10/C12",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "A15",
+      "row": 15,
+      "col": 1,
+      "value": "Average",
+      "data_type": "s"
+    },
+    {
+      "addr": "B15",
+      "row": 15,
+      "col": 2,
+      "value": 0.18654692078374596,
+      "data_type": "n",
+      "formula": "=AVERAGE(B14:C14)",
+      "number_format": "0.00%"
+    }
+  ],
+  "required_hidden": false
+}

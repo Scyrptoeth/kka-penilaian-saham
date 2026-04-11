@@ -1,0 +1,570 @@
+{
+  "name": "DLOC(PFC)",
+  "slug": "dloc-pfc",
+  "visible": true,
+  "dimensions": {
+    "max_row": 31,
+    "max_col": 12,
+    "max_col_letter": "L"
+  },
+  "merged_ranges": [
+    "F15:F16",
+    "D4:D6",
+    "E13:E14",
+    "A7:A8",
+    "B11:B12",
+    "C9:C10",
+    "A2:F2",
+    "E9:E10",
+    "A4:A6",
+    "B4:B6",
+    "E4:F6",
+    "B13:B14",
+    "E15:E16",
+    "C11:C12",
+    "E11:E12",
+    "B15:B16",
+    "F13:F14",
+    "B9:B10",
+    "F9:F10",
+    "A13:A14",
+    "C7:C8",
+    "E7:E8",
+    "F11:F12",
+    "A17:E17",
+    "C4:C6",
+    "C13:C14",
+    "A9:A10",
+    "A15:A16",
+    "B7:B8",
+    "C15:C16",
+    "F7:F8",
+    "A11:A12"
+  ],
+  "cells": [
+    {
+      "addr": "A2",
+      "row": 2,
+      "col": 1,
+      "value": "PERTIMBANGAN PREMI FOR CONTROL (PFC)",
+      "data_type": "s"
+    },
+    {
+      "addr": "A4",
+      "row": 4,
+      "col": 1,
+      "value": "NO",
+      "data_type": "s"
+    },
+    {
+      "addr": "B4",
+      "row": 4,
+      "col": 2,
+      "value": "FAKTOR PERTIMBANGAN",
+      "data_type": "s"
+    },
+    {
+      "addr": "C4",
+      "row": 4,
+      "col": 3,
+      "value": "KONDISI PERUSAHAAN DENGAN PEMEGANG SAHAM",
+      "data_type": "s"
+    },
+    {
+      "addr": "D4",
+      "row": 4,
+      "col": 4,
+      "value": "KONFIRMASI",
+      "data_type": "s"
+    },
+    {
+      "addr": "E4",
+      "row": 4,
+      "col": 5,
+      "value": "NILAI KENDALI ",
+      "data_type": "s"
+    },
+    {
+      "addr": "A7",
+      "row": 7,
+      "col": 1,
+      "value": 1,
+      "data_type": "n"
+    },
+    {
+      "addr": "B7",
+      "row": 7,
+      "col": 2,
+      "value": "Perjanjian antara Pemegang Saham",
+      "data_type": "s"
+    },
+    {
+      "addr": "C7",
+      "row": 7,
+      "col": 3,
+      "value": "Apakah terdapat perjanjian dari pemegang saham yang mengatur posisi dalam susunan manajemen perusahaan yang akan menjalankan perusahaan tanpa melihat jumlah kepemilikan saham? \n(Ada/Tidak Ada)",
+      "data_type": "s"
+    },
+    {
+      "addr": "E7",
+      "row": 7,
+      "col": 5,
+      "value": "Tidak Ada",
+      "data_type": "s"
+    },
+    {
+      "addr": "F7",
+      "row": 7,
+      "col": 6,
+      "value": 1,
+      "data_type": "n",
+      "formula": "=IF(E7=\"Ada\",0,1)"
+    },
+    {
+      "addr": "G7",
+      "row": 7,
+      "col": 7,
+      "value": "Belum ada dokumen yang mendukung jawaban \"Ada\"",
+      "data_type": "s"
+    },
+    {
+      "addr": "H7",
+      "row": 7,
+      "col": 8,
+      "value": "Ada",
+      "data_type": "s"
+    },
+    {
+      "addr": "I7",
+      "row": 7,
+      "col": 9,
+      "value": "Rendah",
+      "data_type": "s"
+    },
+    {
+      "addr": "J7",
+      "row": 7,
+      "col": 10,
+      "value": "Rendah",
+      "data_type": "s"
+    },
+    {
+      "addr": "K7",
+      "row": 7,
+      "col": 11,
+      "value": "Tidak Ada",
+      "data_type": "s"
+    },
+    {
+      "addr": "L7",
+      "row": 7,
+      "col": 12,
+      "value": "Tidak",
+      "data_type": "s"
+    },
+    {
+      "addr": "H8",
+      "row": 8,
+      "col": 8,
+      "value": "Tidak Ada",
+      "data_type": "s"
+    },
+    {
+      "addr": "I8",
+      "row": 8,
+      "col": 9,
+      "value": "Sedang",
+      "data_type": "s"
+    },
+    {
+      "addr": "J8",
+      "row": 8,
+      "col": 10,
+      "value": "Moderat",
+      "data_type": "s"
+    },
+    {
+      "addr": "K8",
+      "row": 8,
+      "col": 11,
+      "value": "Sebagian",
+      "data_type": "s"
+    },
+    {
+      "addr": "L8",
+      "row": 8,
+      "col": 12,
+      "value": "Sebagian",
+      "data_type": "s"
+    },
+    {
+      "addr": "A9",
+      "row": 9,
+      "col": 1,
+      "value": 2,
+      "data_type": "n"
+    },
+    {
+      "addr": "B9",
+      "row": 9,
+      "col": 2,
+      "value": "Kerugian Saham Minoritas",
+      "data_type": "s"
+    },
+    {
+      "addr": "C9",
+      "row": 9,
+      "col": 3,
+      "value": "Besarnya kerugian pemegang saham minoritas dari perusahaan tertutup apabila dibandingkan dengan pemegang saham minoritas perusahaan terbuka?\n(Rendah, Sedang atau Tinggi)",
+      "data_type": "s"
+    },
+    {
+      "addr": "E9",
+      "row": 9,
+      "col": 5,
+      "value": "Sedang",
+      "data_type": "s"
+    },
+    {
+      "addr": "F9",
+      "row": 9,
+      "col": 6,
+      "value": 0.5,
+      "data_type": "n",
+      "formula": "=IF(E9=\"Rendah\",0,IF(E9=\"Sedang\",0.5,1))"
+    },
+    {
+      "addr": "G9",
+      "row": 9,
+      "col": 7,
+      "value": "Perusahaan tidak pernah rugi sejak 2018-2021",
+      "data_type": "s"
+    },
+    {
+      "addr": "I9",
+      "row": 9,
+      "col": 9,
+      "value": "Tinggi",
+      "data_type": "s"
+    },
+    {
+      "addr": "J9",
+      "row": 9,
+      "col": 10,
+      "value": "Dominan",
+      "data_type": "s"
+    },
+    {
+      "addr": "K9",
+      "row": 9,
+      "col": 11,
+      "value": "Seluruhnya",
+      "data_type": "s"
+    },
+    {
+      "addr": "L9",
+      "row": 9,
+      "col": 12,
+      "value": "Ya",
+      "data_type": "s"
+    },
+    {
+      "addr": "A11",
+      "row": 11,
+      "col": 1,
+      "value": 3,
+      "data_type": "n"
+    },
+    {
+      "addr": "B11",
+      "row": 11,
+      "col": 2,
+      "value": "Pemegang Saham Pengendali",
+      "data_type": "s"
+    },
+    {
+      "addr": "C11",
+      "row": 11,
+      "col": 3,
+      "value": "Hal-hal yang dilakukan oleh pemegang saham pengendali terhadap perusahaan yang dikendalikan untuk membuat saham yang dimilikinya lebih menguntungkan? \n(Rendah, Moderat atau Dominan)",
+      "data_type": "s"
+    },
+    {
+      "addr": "E11",
+      "row": 11,
+      "col": 5,
+      "value": "Moderat",
+      "data_type": "s"
+    },
+    {
+      "addr": "F11",
+      "row": 11,
+      "col": 6,
+      "value": 0.5,
+      "data_type": "n",
+      "formula": "=IF(E11=\"Rendah\",0,IF(E11=\"Moderat\",0.5,1))"
+    },
+    {
+      "addr": "G11",
+      "row": 11,
+      "col": 7,
+      "value": "Pemegang Saham Mayoritas juga bertindak sebagai Direktur sejak 2018-2021",
+      "data_type": "s"
+    },
+    {
+      "addr": "A13",
+      "row": 13,
+      "col": 1,
+      "value": 4,
+      "data_type": "n"
+    },
+    {
+      "addr": "B13",
+      "row": 13,
+      "col": 2,
+      "value": "Penunjukkan Manajemen",
+      "data_type": "s"
+    },
+    {
+      "addr": "C13",
+      "row": 13,
+      "col": 3,
+      "value": "Apakah manajemen perusahaan ditunjuk oleh pemegang saham mayoritas?\n(Tidak Ada, Sebagian atau Seluruhnya)",
+      "data_type": "s"
+    },
+    {
+      "addr": "E13",
+      "row": 13,
+      "col": 5,
+      "value": "Sebagian",
+      "data_type": "s"
+    },
+    {
+      "addr": "F13",
+      "row": 13,
+      "col": 6,
+      "value": 0.5,
+      "data_type": "n",
+      "formula": "=IF(E13=\"Tidak Ada\",0,IF(E13=\"Sebagian\",0.5,1))"
+    },
+    {
+      "addr": "G13",
+      "row": 13,
+      "col": 7,
+      "value": "Pemegang Saham Mayoritas juga bertindak sebagai Direktur sejak 2018-2021 namun Pemegang Saham Minoritas tidak bertindak sebagai Pengurus",
+      "data_type": "s"
+    },
+    {
+      "addr": "A15",
+      "row": 15,
+      "col": 1,
+      "value": 5,
+      "data_type": "n"
+    },
+    {
+      "addr": "B15",
+      "row": 15,
+      "col": 2,
+      "value": "Pengendalian Operasional Perusahaan",
+      "data_type": "s"
+    },
+    {
+      "addr": "C15",
+      "row": 15,
+      "col": 3,
+      "value": "Apakah pemegang saham mayoritas sebagai pengendali operasional perusahaan?\n(Tidak, Sebagian atau Ya)",
+      "data_type": "s"
+    },
+    {
+      "addr": "E15",
+      "row": 15,
+      "col": 5,
+      "value": "Sebagian",
+      "data_type": "s"
+    },
+    {
+      "addr": "F15",
+      "row": 15,
+      "col": 6,
+      "value": 0.5,
+      "data_type": "n",
+      "formula": "=IF(E15=\"Tidak\",0,IF(E15=\"Sebagian\",0.5,1))"
+    },
+    {
+      "addr": "G15",
+      "row": 15,
+      "col": 7,
+      "value": "Pengurus terdiri dari Pemegang Saham Mayoritas (sebagai Direktur) dan Non-Pemegang Saham (sebagai Komisaris)",
+      "data_type": "s"
+    },
+    {
+      "addr": "A17",
+      "row": 17,
+      "col": 1,
+      "value": "JUMLAH",
+      "data_type": "s"
+    },
+    {
+      "addr": "F17",
+      "row": 17,
+      "col": 6,
+      "value": 3,
+      "data_type": "n",
+      "formula": "=SUM(F7:F16)"
+    },
+    {
+      "addr": "A20",
+      "row": 20,
+      "col": 1,
+      "value": 1,
+      "data_type": "n",
+      "formula": "=IF(B20=\"DLOC Perusahaan tertutup \",1,2)"
+    },
+    {
+      "addr": "B20",
+      "row": 20,
+      "col": 2,
+      "value": "DLOC Perusahaan tertutup ",
+      "data_type": "s",
+      "formula": "=IF(HOME!B5=\"tertutup\",\"DLOC Perusahaan tertutup \",\"DLOC Perusahaan terbuka \")"
+    },
+    {
+      "addr": "C20",
+      "row": 20,
+      "col": 3,
+      "value": "Perhitungan  (PFC)",
+      "data_type": "s",
+      "formula": "=\"Perhitungan \"&RIGHT(A2,6)"
+    },
+    {
+      "addr": "A21",
+      "row": 21,
+      "col": 1,
+      "value": 7,
+      "data_type": "n",
+      "formula": "=IF(B31=\"Minoritas\",5,7)"
+    },
+    {
+      "addr": "B21",
+      "row": 21,
+      "col": 2,
+      "value": "Mayoritas",
+      "data_type": "s"
+    },
+    {
+      "addr": "C21",
+      "row": 21,
+      "col": 3,
+      "value": "Maksimum Skor",
+      "data_type": "s"
+    },
+    {
+      "addr": "E21",
+      "row": 21,
+      "col": 5,
+      "value": 5,
+      "data_type": "n"
+    },
+    {
+      "addr": "B22",
+      "row": 22,
+      "col": 2,
+      "value": " 30% - 70%",
+      "data_type": "s",
+      "formula": "=IF(A20=1,\" 30% - 70%\",\" 20% - 35%\")"
+    },
+    {
+      "addr": "C22",
+      "row": 22,
+      "col": 3,
+      "value": "PREMI FOR CONTROL (PFC) 30% - 70%",
+      "data_type": "s"
+    },
+    {
+      "addr": "E22",
+      "row": 22,
+      "col": 5,
+      "value": 0.39999999999999997,
+      "data_type": "n",
+      "formula": "=RIGHT(B22,3)-LEFT(B22,4)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "C23",
+      "row": 23,
+      "col": 3,
+      "value": "Jumlah Skor",
+      "data_type": "s"
+    },
+    {
+      "addr": "E23",
+      "row": 23,
+      "col": 5,
+      "value": 3,
+      "data_type": "n",
+      "formula": "=F17"
+    },
+    {
+      "addr": "C24",
+      "row": 24,
+      "col": 3,
+      "value": "DLOC Objek Penilaian",
+      "data_type": "s"
+    },
+    {
+      "addr": "E24",
+      "row": 24,
+      "col": 5,
+      "value": 0.5399999999999999,
+      "data_type": "n",
+      "formula": "=LEFT(B22,4)+(E23/E21*E22)",
+      "number_format": "0%"
+    },
+    {
+      "addr": "D26",
+      "row": 26,
+      "col": 4,
+      "value": "Paling Tinggi",
+      "data_type": "s"
+    },
+    {
+      "addr": "E26",
+      "row": 26,
+      "col": 5,
+      "value": 0.7,
+      "data_type": "n",
+      "number_format": "0%"
+    },
+    {
+      "addr": "D27",
+      "row": 27,
+      "col": 4,
+      "value": "Moderat",
+      "data_type": "s"
+    },
+    {
+      "addr": "E27",
+      "row": 27,
+      "col": 5,
+      "value": 0.5,
+      "data_type": "n",
+      "number_format": "0%"
+    },
+    {
+      "addr": "D28",
+      "row": 28,
+      "col": 4,
+      "value": "Paling Rendah",
+      "data_type": "s"
+    },
+    {
+      "addr": "E28",
+      "row": 28,
+      "col": 5,
+      "value": 0.3,
+      "data_type": "n",
+      "number_format": "0%"
+    }
+  ],
+  "required_hidden": false
+}

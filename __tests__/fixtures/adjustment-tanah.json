@@ -1,0 +1,236 @@
+{
+  "name": "ADJUSTMENT TANAH",
+  "slug": "adjustment-tanah",
+  "visible": false,
+  "dimensions": {
+    "max_row": 10,
+    "max_col": 10,
+    "max_col_letter": "J"
+  },
+  "merged_ranges": [
+    "G10:I10"
+  ],
+  "cells": [
+    {
+      "addr": "E2",
+      "row": 2,
+      "col": 5,
+      "value": "November",
+      "data_type": "s"
+    },
+    {
+      "addr": "G2",
+      "row": 2,
+      "col": 7,
+      "value": "No.",
+      "data_type": "s"
+    },
+    {
+      "addr": "H2",
+      "row": 2,
+      "col": 8,
+      "value": "Lokasi Tanah",
+      "data_type": "s"
+    },
+    {
+      "addr": "I2",
+      "row": 2,
+      "col": 9,
+      "value": "Nomor SHGB",
+      "data_type": "s"
+    },
+    {
+      "addr": "J2",
+      "row": 2,
+      "col": 10,
+      "value": "Nilai Hak Tanggungan",
+      "data_type": "s"
+    },
+    {
+      "addr": "E3",
+      "row": 3,
+      "col": 5,
+      "value": "Desember",
+      "data_type": "s"
+    },
+    {
+      "addr": "G3",
+      "row": 3,
+      "col": 7,
+      "value": 1,
+      "data_type": "n"
+    },
+    {
+      "addr": "I3",
+      "row": 3,
+      "col": 9,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "J3",
+      "row": 3,
+      "col": 10,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "G4",
+      "row": 4,
+      "col": 7,
+      "value": 2,
+      "data_type": "n"
+    },
+    {
+      "addr": "I4",
+      "row": 4,
+      "col": 9,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "J4",
+      "row": 4,
+      "col": 10,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "G5",
+      "row": 5,
+      "col": 7,
+      "value": 3,
+      "data_type": "n"
+    },
+    {
+      "addr": "I5",
+      "row": 5,
+      "col": 9,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "J5",
+      "row": 5,
+      "col": 10,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "G6",
+      "row": 6,
+      "col": 7,
+      "value": 4,
+      "data_type": "n"
+    },
+    {
+      "addr": "I6",
+      "row": 6,
+      "col": 9,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "J6",
+      "row": 6,
+      "col": 10,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "G7",
+      "row": 7,
+      "col": 7,
+      "value": 5,
+      "data_type": "n"
+    },
+    {
+      "addr": "I7",
+      "row": 7,
+      "col": 9,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "J7",
+      "row": 7,
+      "col": 10,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "G8",
+      "row": 8,
+      "col": 7,
+      "value": 6,
+      "data_type": "n"
+    },
+    {
+      "addr": "I8",
+      "row": 8,
+      "col": 9,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "J8",
+      "row": 8,
+      "col": 10,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "G9",
+      "row": 9,
+      "col": 7,
+      "value": 7,
+      "data_type": "n"
+    },
+    {
+      "addr": "I9",
+      "row": 9,
+      "col": 9,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "J9",
+      "row": 9,
+      "col": 10,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "G10",
+      "row": 10,
+      "col": 7,
+      "value": "Jumlah",
+      "data_type": "s",
+      "number_format": "_(* #,##0.00_);_(* \\(#,##0.00\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "J10",
+      "row": 10,
+      "col": 10,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=SUM(J3:J9)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    }
+  ],
+  "required_hidden": true
+}

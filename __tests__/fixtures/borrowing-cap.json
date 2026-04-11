@@ -1,0 +1,364 @@
+{
+  "name": "BORROWING CAP",
+  "slug": "borrowing-cap",
+  "visible": true,
+  "dimensions": {
+    "max_row": 47,
+    "max_col": 7,
+    "max_col_letter": "G"
+  },
+  "merged_ranges": [],
+  "cells": [
+    {
+      "addr": "B1",
+      "row": 1,
+      "col": 2,
+      "value": "RATE OF RETURN ON NETT TANGIBLE ASSET",
+      "data_type": "s"
+    },
+    {
+      "addr": "B3",
+      "row": 3,
+      "col": 2,
+      "value": "BORROWING CAPACITY",
+      "data_type": "s"
+    },
+    {
+      "addr": "B4",
+      "row": 4,
+      "col": 2,
+      "value": "No",
+      "data_type": "s"
+    },
+    {
+      "addr": "C4",
+      "row": 4,
+      "col": 3,
+      "value": "Jenis Aktiva",
+      "data_type": "s"
+    },
+    {
+      "addr": "D4",
+      "row": 4,
+      "col": 4,
+      "value": "Jumlah",
+      "data_type": "s"
+    },
+    {
+      "addr": "E4",
+      "row": 4,
+      "col": 5,
+      "value": "Borrowing Capacity (%)",
+      "data_type": "s"
+    },
+    {
+      "addr": "F4",
+      "row": 4,
+      "col": 6,
+      "value": "Borrowing Capacity",
+      "data_type": "s"
+    },
+    {
+      "addr": "B5",
+      "row": 5,
+      "col": 2,
+      "value": 1,
+      "data_type": "n"
+    },
+    {
+      "addr": "C5",
+      "row": 5,
+      "col": 3,
+      "value": "Piutang",
+      "data_type": "s"
+    },
+    {
+      "addr": "D5",
+      "row": 5,
+      "col": 4,
+      "value": 333625997484,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E5",
+      "row": 5,
+      "col": 5,
+      "value": 0.013134769853210125,
+      "data_type": "n",
+      "formula": "=F5/D5",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "F5",
+      "row": 5,
+      "col": 6,
+      "value": 4382100694,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!F10+'BALANCE SHEET'!F11",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "G5",
+      "row": 5,
+      "col": 7,
+      "value": "CALK 5",
+      "data_type": "s"
+    },
+    {
+      "addr": "B6",
+      "row": 6,
+      "col": 2,
+      "value": 2,
+      "data_type": "n"
+    },
+    {
+      "addr": "C6",
+      "row": 6,
+      "col": 3,
+      "value": "Persediaan",
+      "data_type": "s"
+    },
+    {
+      "addr": "D6",
+      "row": 6,
+      "col": 4,
+      "value": 425521174257,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E6",
+      "row": 6,
+      "col": 5,
+      "value": 0.003345633235492465,
+      "data_type": "n",
+      "formula": "=F6/D6",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "F6",
+      "row": 6,
+      "col": 6,
+      "value": 1423637783,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!F12",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "G6",
+      "row": 6,
+      "col": 7,
+      "value": "CALK 7",
+      "data_type": "s"
+    },
+    {
+      "addr": "B7",
+      "row": 7,
+      "col": 2,
+      "value": 3,
+      "data_type": "n"
+    },
+    {
+      "addr": "C7",
+      "row": 7,
+      "col": 3,
+      "value": "Aktiva Tetap",
+      "data_type": "s"
+    },
+    {
+      "addr": "D7",
+      "row": 7,
+      "col": 4,
+      "value": 6264339945,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!F22",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E7",
+      "row": 7,
+      "col": 5,
+      "value": 0.7,
+      "data_type": "n",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "F7",
+      "row": 7,
+      "col": 6,
+      "value": 4385037961.5,
+      "data_type": "n",
+      "formula": "=D7*E7",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "C8",
+      "row": 8,
+      "col": 3,
+      "value": "Jumlah",
+      "data_type": "s"
+    },
+    {
+      "addr": "D8",
+      "row": 8,
+      "col": 4,
+      "value": 765411511686,
+      "data_type": "n",
+      "formula": "=SUM(D5:D7)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F8",
+      "row": 8,
+      "col": 6,
+      "value": 10190776438.5,
+      "data_type": "n",
+      "formula": "=SUM(F5:F7)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B10",
+      "row": 10,
+      "col": 2,
+      "value": "TINGKAT BALIKAN RATA-RATA TERTIMBANG",
+      "data_type": "s"
+    },
+    {
+      "addr": "B11",
+      "row": 11,
+      "col": 2,
+      "value": "No",
+      "data_type": "s"
+    },
+    {
+      "addr": "C11",
+      "row": 11,
+      "col": 3,
+      "value": "Jenis Modal",
+      "data_type": "s"
+    },
+    {
+      "addr": "D11",
+      "row": 11,
+      "col": 4,
+      "value": "Biaya Modal",
+      "data_type": "s"
+    },
+    {
+      "addr": "E11",
+      "row": 11,
+      "col": 5,
+      "value": "Bobot",
+      "data_type": "s"
+    },
+    {
+      "addr": "F11",
+      "row": 11,
+      "col": 6,
+      "value": "Biaya Modal Tertimbang",
+      "data_type": "s"
+    },
+    {
+      "addr": "B12",
+      "row": 12,
+      "col": 2,
+      "value": 1,
+      "data_type": "n"
+    },
+    {
+      "addr": "C12",
+      "row": 12,
+      "col": 3,
+      "value": "Hutang",
+      "data_type": "s"
+    },
+    {
+      "addr": "D12",
+      "row": 12,
+      "col": 4,
+      "value": 0.06863999999999999,
+      "data_type": "n",
+      "formula": "='DISCOUNT RATE'!G7",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "E12",
+      "row": 12,
+      "col": 5,
+      "value": 0.01331411441154367,
+      "data_type": "n",
+      "formula": "=F8/D8",
+      "number_format": "0%"
+    },
+    {
+      "addr": "F12",
+      "row": 12,
+      "col": 6,
+      "value": 0.0009138808132083575,
+      "data_type": "n",
+      "formula": "=E12*D12",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "B13",
+      "row": 13,
+      "col": 2,
+      "value": 2,
+      "data_type": "n"
+    },
+    {
+      "addr": "C13",
+      "row": 13,
+      "col": 3,
+      "value": "Ekuitas",
+      "data_type": "s"
+    },
+    {
+      "addr": "D13",
+      "row": 13,
+      "col": 4,
+      "value": 0.12453700000000001,
+      "data_type": "n",
+      "formula": "='DISCOUNT RATE'!G8",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "E13",
+      "row": 13,
+      "col": 5,
+      "value": 0.9866858855884564,
+      "data_type": "n",
+      "formula": "=1-E12",
+      "number_format": "0%"
+    },
+    {
+      "addr": "F13",
+      "row": 13,
+      "col": 6,
+      "value": 0.1228789001335296,
+      "data_type": "n",
+      "formula": "=E13*D13",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "F14",
+      "row": 14,
+      "col": 6,
+      "value": 0.12379278094673796,
+      "data_type": "n",
+      "formula": "=+F12+F13",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "F16",
+      "row": 16,
+      "col": 6,
+      "value": 9102541000,
+      "data_type": "n",
+      "formula": "=EEM!D43",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    }
+  ],
+  "required_hidden": false
+}

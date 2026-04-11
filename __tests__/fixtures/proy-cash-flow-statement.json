@@ -1,0 +1,952 @@
+{
+  "name": "PROY CASH FLOW STATEMENT",
+  "slug": "proy-cash-flow-statement",
+  "visible": true,
+  "dimensions": {
+    "max_row": 51,
+    "max_col": 13,
+    "max_col_letter": "M"
+  },
+  "merged_ranges": [],
+  "cells": [
+    {
+      "addr": "A1",
+      "row": 1,
+      "col": 1,
+      "value": "PT RAJA VOLTAMA ELEKTRIK",
+      "data_type": "s",
+      "formula": "=HOME!B4"
+    },
+    {
+      "addr": "A2",
+      "row": 2,
+      "col": 1,
+      "value": "Cash Flow Statement",
+      "data_type": "s"
+    },
+    {
+      "addr": "A3",
+      "row": 3,
+      "col": 1,
+      "value": "(IDR)",
+      "data_type": "s",
+      "formula": "='BALANCE SHEET'!A3"
+    },
+    {
+      "addr": "C4",
+      "row": 4,
+      "col": 3,
+      "value": 2021,
+      "data_type": "n",
+      "formula": "='CASH FLOW STATEMENT'!E4"
+    },
+    {
+      "addr": "D4",
+      "row": 4,
+      "col": 4,
+      "value": 2022,
+      "data_type": "n",
+      "formula": "=C4+1"
+    },
+    {
+      "addr": "E4",
+      "row": 4,
+      "col": 5,
+      "value": 2023,
+      "data_type": "n",
+      "formula": "=D4+1"
+    },
+    {
+      "addr": "F4",
+      "row": 4,
+      "col": 6,
+      "value": 2024,
+      "data_type": "n",
+      "formula": "=E4+1"
+    },
+    {
+      "addr": "G4",
+      "row": 4,
+      "col": 7,
+      "value": 2025,
+      "data_type": "n",
+      "formula": "=F4+1"
+    },
+    {
+      "addr": "A5",
+      "row": 5,
+      "col": 1,
+      "value": "EBITDA",
+      "data_type": "s"
+    },
+    {
+      "addr": "C5",
+      "row": 5,
+      "col": 3,
+      "value": 7493446732,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!F18",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D5",
+      "row": 5,
+      "col": 4,
+      "value": 8685100649.744667,
+      "data_type": "n",
+      "formula": "='PROY LR'!D19",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E5",
+      "row": 5,
+      "col": 5,
+      "value": 10686616923.124352,
+      "data_type": "n",
+      "formula": "='PROY LR'!E19",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F5",
+      "row": 5,
+      "col": 6,
+      "value": 13149390648.105576,
+      "data_type": "n",
+      "formula": "='PROY LR'!F19",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A6",
+      "row": 6,
+      "col": 1,
+      "value": "Corporate Tax",
+      "data_type": "s"
+    },
+    {
+      "addr": "C6",
+      "row": 6,
+      "col": 3,
+      "value": -1613364280,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!F33",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D6",
+      "row": 6,
+      "col": 4,
+      "value": -1870717422.5808384,
+      "data_type": "n",
+      "formula": "='PROY LR'!D37",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E6",
+      "row": 6,
+      "col": 5,
+      "value": -2228342316.4956985,
+      "data_type": "n",
+      "formula": "='PROY LR'!E37",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F6",
+      "row": 6,
+      "col": 6,
+      "value": -2511628017.8949795,
+      "data_type": "n",
+      "formula": "='PROY LR'!F37",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A7",
+      "row": 7,
+      "col": 1,
+      "value": "Changes in Working Capital",
+      "data_type": "s"
+    },
+    {
+      "addr": "B8",
+      "row": 8,
+      "col": 2,
+      "value": "Current Assets",
+      "data_type": "s"
+    },
+    {
+      "addr": "C8",
+      "row": 8,
+      "col": 3,
+      "value": 1913225999,
+      "data_type": "n",
+      "formula": "='CASH FLOW STATEMENT'!E8",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D8",
+      "row": 8,
+      "col": 4,
+      "value": -41220345927.22062,
+      "data_type": "n",
+      "formula": "=(('PROY BALANCE SHEET'!D13+'PROY BALANCE SHEET'!D15+'PROY BALANCE SHEET'!D17+'PROY BALANCE SHEET'!D19)-('PROY BALANCE SHEET'!C13+'PROY BALANCE SHEET'!C15+'PROY BALANCE SHEET'!C17+'PROY BALANCE SHEET'!C19))*-1",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E8",
+      "row": 8,
+      "col": 5,
+      "value": -637016612558.0105,
+      "data_type": "n",
+      "formula": "=(('PROY BALANCE SHEET'!E13+'PROY BALANCE SHEET'!E15+'PROY BALANCE SHEET'!E17+'PROY BALANCE SHEET'!E19)-('PROY BALANCE SHEET'!D13+'PROY BALANCE SHEET'!D15+'PROY BALANCE SHEET'!D17+'PROY BALANCE SHEET'!D19))*-1",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F8",
+      "row": 8,
+      "col": 6,
+      "value": -9834491109505.791,
+      "data_type": "n",
+      "formula": "=(('PROY BALANCE SHEET'!F13+'PROY BALANCE SHEET'!F15+'PROY BALANCE SHEET'!F17+'PROY BALANCE SHEET'!F19)-('PROY BALANCE SHEET'!E13+'PROY BALANCE SHEET'!E15+'PROY BALANCE SHEET'!E17+'PROY BALANCE SHEET'!E19))*-1",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B9",
+      "row": 9,
+      "col": 2,
+      "value": "Current Liabilities",
+      "data_type": "s"
+    },
+    {
+      "addr": "C9",
+      "row": 9,
+      "col": 3,
+      "value": -2039568042,
+      "data_type": "n",
+      "formula": "='CASH FLOW STATEMENT'!E9",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D9",
+      "row": 9,
+      "col": 4,
+      "value": -717762194.2992687,
+      "data_type": "n",
+      "formula": "='PROY BALANCE SHEET'!D45-'PROY BALANCE SHEET'!C45",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E9",
+      "row": 9,
+      "col": 5,
+      "value": -498795868.0355153,
+      "data_type": "n",
+      "formula": "='PROY BALANCE SHEET'!E45-'PROY BALANCE SHEET'!D45",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F9",
+      "row": 9,
+      "col": 6,
+      "value": -327776528.3118696,
+      "data_type": "n",
+      "formula": "='PROY BALANCE SHEET'!F45-'PROY BALANCE SHEET'!E45",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A10",
+      "row": 10,
+      "col": 1,
+      "value": "Working Capital",
+      "data_type": "s"
+    },
+    {
+      "addr": "C10",
+      "row": 10,
+      "col": 3,
+      "value": -126342043,
+      "data_type": "n",
+      "formula": "=+C8+C9",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D10",
+      "row": 10,
+      "col": 4,
+      "value": -41938108121.51989,
+      "data_type": "n",
+      "formula": "=+D8+D9",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E10",
+      "row": 10,
+      "col": 5,
+      "value": -637515408426.046,
+      "data_type": "n",
+      "formula": "=+E8+E9",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F10",
+      "row": 10,
+      "col": 6,
+      "value": -9834818886034.104,
+      "data_type": "n",
+      "formula": "=+F8+F9",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "M10",
+      "row": 10,
+      "col": 13,
+      "value": "DCF, Changes Working Capital",
+      "data_type": "s"
+    },
+    {
+      "addr": "A11",
+      "row": 11,
+      "col": 1,
+      "value": "Cash Flow from Operations",
+      "data_type": "s"
+    },
+    {
+      "addr": "C11",
+      "row": 11,
+      "col": 3,
+      "value": 5753740409,
+      "data_type": "n",
+      "formula": "=SUM(C5:C9)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D11",
+      "row": 11,
+      "col": 4,
+      "value": -35123724894.356064,
+      "data_type": "n",
+      "formula": "=SUM(D5:D9)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E11",
+      "row": 11,
+      "col": 5,
+      "value": -629057133819.4174,
+      "data_type": "n",
+      "formula": "=SUM(E5:E9)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F11",
+      "row": 11,
+      "col": 6,
+      "value": -9824181123403.893,
+      "data_type": "n",
+      "formula": "=SUM(F5:F9)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A13",
+      "row": 13,
+      "col": 1,
+      "value": "Cash Flow from Non Operations",
+      "data_type": "s"
+    },
+    {
+      "addr": "C13",
+      "row": 13,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!F30",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D13",
+      "row": 13,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='PROY LR'!D34",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E13",
+      "row": 13,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='PROY LR'!E34",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F13",
+      "row": 13,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='PROY LR'!F34",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A17",
+      "row": 17,
+      "col": 1,
+      "value": "Cash Flow from Investment (Capital Expenditure)",
+      "data_type": "s"
+    },
+    {
+      "addr": "C17",
+      "row": 17,
+      "col": 3,
+      "value": -412288044,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E23*-1",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D17",
+      "row": 17,
+      "col": 4,
+      "value": -1423817993.311922,
+      "data_type": "n",
+      "formula": "='PROY FIXED ASSETS'!D23*-1",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E17",
+      "row": 17,
+      "col": 5,
+      "value": -5422876576.922622,
+      "data_type": "n",
+      "formula": "='PROY FIXED ASSETS'!E23*-1",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F17",
+      "row": 17,
+      "col": 6,
+      "value": -21233055569.6742,
+      "data_type": "n",
+      "formula": "='PROY FIXED ASSETS'!F23*-1",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A19",
+      "row": 19,
+      "col": 1,
+      "value": "Cash Flow before Financing",
+      "data_type": "s"
+    },
+    {
+      "addr": "C19",
+      "row": 19,
+      "col": 3,
+      "value": 5341452365,
+      "data_type": "n",
+      "formula": "=C11+C13+C17",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D19",
+      "row": 19,
+      "col": 4,
+      "value": -36547542887.667984,
+      "data_type": "n",
+      "formula": "=D11+D13+D17",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E19",
+      "row": 19,
+      "col": 5,
+      "value": -634480010396.34,
+      "data_type": "n",
+      "formula": "=E11+E13+E17",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F19",
+      "row": 19,
+      "col": 6,
+      "value": -9845414178973.566,
+      "data_type": "n",
+      "formula": "=F11+F13+F17",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A21",
+      "row": 21,
+      "col": 1,
+      "value": "Financing",
+      "data_type": "s"
+    },
+    {
+      "addr": "B22",
+      "row": 22,
+      "col": 2,
+      "value": "Equity Injection",
+      "data_type": "s"
+    },
+    {
+      "addr": "C22",
+      "row": 22,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='CASH FLOW STATEMENT'!E22",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D22",
+      "row": 22,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E22",
+      "row": 22,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F22",
+      "row": 22,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B23",
+      "row": 23,
+      "col": 2,
+      "value": "New Loan",
+      "data_type": "s"
+    },
+    {
+      "addr": "C23",
+      "row": 23,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='CASH FLOW STATEMENT'!E23",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D23",
+      "row": 23,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E23",
+      "row": 23,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F23",
+      "row": 23,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B24",
+      "row": 24,
+      "col": 2,
+      "value": "Interest Expense",
+      "data_type": "s"
+    },
+    {
+      "addr": "C24",
+      "row": 24,
+      "col": 3,
+      "value": -19483450,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!F27",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D24",
+      "row": 24,
+      "col": 4,
+      "value": -19478161.527636457,
+      "data_type": "n",
+      "formula": "='PROY LR'!D31",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E24",
+      "row": 24,
+      "col": 5,
+      "value": -19472874.490744554,
+      "data_type": "n",
+      "formula": "='PROY LR'!E31",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F24",
+      "row": 24,
+      "col": 6,
+      "value": -19467588.888934657,
+      "data_type": "n",
+      "formula": "='PROY LR'!F31",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B25",
+      "row": 25,
+      "col": 2,
+      "value": "Interest Income",
+      "data_type": "s"
+    },
+    {
+      "addr": "C25",
+      "row": 25,
+      "col": 3,
+      "value": 105200220,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!F26",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D25",
+      "row": 25,
+      "col": 4,
+      "value": 105347465.88305867,
+      "data_type": "n",
+      "formula": "='PROY LR'!D29",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E25",
+      "row": 25,
+      "col": 5,
+      "value": 105494917.86216997,
+      "data_type": "n",
+      "formula": "='PROY LR'!E29",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F25",
+      "row": 25,
+      "col": 6,
+      "value": 105642576.22580093,
+      "data_type": "n",
+      "formula": "='PROY LR'!F29",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B26",
+      "row": 26,
+      "col": 2,
+      "value": "Principal Repayment",
+      "data_type": "s"
+    },
+    {
+      "addr": "C26",
+      "row": 26,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='ACC PAYABLES'!E20",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D26",
+      "row": 26,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='PROY ACC PAYABLES'!D21",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E26",
+      "row": 26,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='PROY ACC PAYABLES'!E21",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F26",
+      "row": 26,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='PROY ACC PAYABLES'!F21",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A28",
+      "row": 28,
+      "col": 1,
+      "value": "Cash Flow from Financing",
+      "data_type": "s"
+    },
+    {
+      "addr": "C28",
+      "row": 28,
+      "col": 3,
+      "value": 85716770,
+      "data_type": "n",
+      "formula": "=SUM(C22:C26)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D28",
+      "row": 28,
+      "col": 4,
+      "value": 85869304.35542221,
+      "data_type": "n",
+      "formula": "=SUM(D22:D26)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E28",
+      "row": 28,
+      "col": 5,
+      "value": 86022043.37142542,
+      "data_type": "n",
+      "formula": "=SUM(E22:E26)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F28",
+      "row": 28,
+      "col": 6,
+      "value": 86174987.33686627,
+      "data_type": "n",
+      "formula": "=SUM(F22:F26)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A30",
+      "row": 30,
+      "col": 1,
+      "value": "Net Cash Flow",
+      "data_type": "s"
+    },
+    {
+      "addr": "C30",
+      "row": 30,
+      "col": 3,
+      "value": 5427169135,
+      "data_type": "n",
+      "formula": "=+C11+C13+C17+C28",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D30",
+      "row": 30,
+      "col": 4,
+      "value": -36461673583.31256,
+      "data_type": "n",
+      "formula": "=+D11+D13+D17+D28",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E30",
+      "row": 30,
+      "col": 5,
+      "value": -634393988352.9685,
+      "data_type": "n",
+      "formula": "=+E11+E13+E17+E28",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F30",
+      "row": 30,
+      "col": 6,
+      "value": -9845328003986.23,
+      "data_type": "n",
+      "formula": "=+F11+F13+F17+F28",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A32",
+      "row": 32,
+      "col": 1,
+      "value": "Cash-Beginning Balance",
+      "data_type": "s"
+    },
+    {
+      "addr": "C32",
+      "row": 32,
+      "col": 3,
+      "value": 8558587497,
+      "data_type": "n",
+      "formula": "='CASH FLOW STATEMENT'!D33",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D32",
+      "row": 32,
+      "col": 4,
+      "value": 16287589891,
+      "data_type": "n",
+      "formula": "=C33",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E32",
+      "row": 32,
+      "col": 5,
+      "value": 6556472290.801667,
+      "data_type": "n",
+      "formula": "=D33",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F32",
+      "row": 32,
+      "col": 6,
+      "value": 6478735117.904908,
+      "data_type": "n",
+      "formula": "=E33",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A33",
+      "row": 33,
+      "col": 1,
+      "value": "Cash-Ending Balance",
+      "data_type": "s"
+    },
+    {
+      "addr": "C33",
+      "row": 33,
+      "col": 3,
+      "value": 16287589891,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!F8+'BALANCE SHEET'!F9",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D33",
+      "row": 33,
+      "col": 4,
+      "value": 6556472290.801667,
+      "data_type": "n",
+      "formula": "='PROY BALANCE SHEET'!D9+'PROY BALANCE SHEET'!D11",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E33",
+      "row": 33,
+      "col": 5,
+      "value": 6478735117.904908,
+      "data_type": "n",
+      "formula": "='PROY BALANCE SHEET'!E9+'PROY BALANCE SHEET'!E11",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F33",
+      "row": 33,
+      "col": 6,
+      "value": 6401919640.057247,
+      "data_type": "n",
+      "formula": "='PROY BALANCE SHEET'!F9+'PROY BALANCE SHEET'!F11",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A35",
+      "row": 35,
+      "col": 1,
+      "value": "Cash Ending in Bank",
+      "data_type": "s"
+    },
+    {
+      "addr": "C35",
+      "row": 35,
+      "col": 3,
+      "value": 9652447673,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!F9",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D35",
+      "row": 35,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='PROY BALANCE SHEET'!D11",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E35",
+      "row": 35,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='PROY BALANCE SHEET'!E11",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F35",
+      "row": 35,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='PROY BALANCE SHEET'!F11",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A36",
+      "row": 36,
+      "col": 1,
+      "value": "Cash Ending in Cash on Hand",
+      "data_type": "s"
+    },
+    {
+      "addr": "C36",
+      "row": 36,
+      "col": 3,
+      "value": 6635142218,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!F8",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D36",
+      "row": 36,
+      "col": 4,
+      "value": 6556472290.801667,
+      "data_type": "n",
+      "formula": "='PROY BALANCE SHEET'!D9",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E36",
+      "row": 36,
+      "col": 5,
+      "value": 6478735117.904908,
+      "data_type": "n",
+      "formula": "='PROY BALANCE SHEET'!E9",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F36",
+      "row": 36,
+      "col": 6,
+      "value": 6401919640.057247,
+      "data_type": "n",
+      "formula": "='PROY BALANCE SHEET'!F9",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    }
+  ],
+  "required_hidden": false
+}

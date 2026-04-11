@@ -1,0 +1,513 @@
+{
+  "name": "WACC",
+  "slug": "wacc",
+  "visible": true,
+  "dimensions": {
+    "max_row": 30,
+    "max_col": 9,
+    "max_col_letter": "I"
+  },
+  "merged_ranges": [
+    "A22:D22",
+    "A15:D15"
+  ],
+  "cells": [
+    {
+      "addr": "A1",
+      "row": 1,
+      "col": 1,
+      "value": "PT RAJA VOLTAMA ELEKTRIK",
+      "data_type": "s",
+      "formula": "=HOME!B4"
+    },
+    {
+      "addr": "A2",
+      "row": 2,
+      "col": 1,
+      "value": "Beta Levered",
+      "data_type": "s"
+    },
+    {
+      "addr": "A4",
+      "row": 4,
+      "col": 1,
+      "value": "Equity Risk Premium",
+      "data_type": "s"
+    },
+    {
+      "addr": "B4",
+      "row": 4,
+      "col": 2,
+      "value": 0.0762,
+      "data_type": "n",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "A5",
+      "row": 5,
+      "col": 1,
+      "value": "Rating Based Default Spread",
+      "data_type": "s"
+    },
+    {
+      "addr": "B5",
+      "row": 5,
+      "col": 2,
+      "value": 0.0226,
+      "data_type": "n",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "A6",
+      "row": 6,
+      "col": 1,
+      "value": "Risk Free (SUN)",
+      "data_type": "s"
+    },
+    {
+      "addr": "B6",
+      "row": 6,
+      "col": 2,
+      "value": 0.027,
+      "data_type": "n",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "A10",
+      "row": 10,
+      "col": 1,
+      "value": "Perusahaan Pembanding",
+      "data_type": "s"
+    },
+    {
+      "addr": "B10",
+      "row": 10,
+      "col": 2,
+      "value": "BL",
+      "data_type": "s"
+    },
+    {
+      "addr": "C10",
+      "row": 10,
+      "col": 3,
+      "value": "Market Cap*)",
+      "data_type": "s"
+    },
+    {
+      "addr": "D10",
+      "row": 10,
+      "col": 4,
+      "value": "Debt",
+      "data_type": "s"
+    },
+    {
+      "addr": "E10",
+      "row": 10,
+      "col": 5,
+      "value": "BU",
+      "data_type": "s"
+    },
+    {
+      "addr": "H10",
+      "row": 10,
+      "col": 8,
+      "value": "*) Market Cap :",
+      "data_type": "s"
+    },
+    {
+      "addr": "I10",
+      "row": 10,
+      "col": 9,
+      "value": "Jumlah Lembar Saham x Harga Pasar Saham saat Cut Off Date (Lihat di Stockbit)",
+      "data_type": "s"
+    },
+    {
+      "addr": "A11",
+      "row": 11,
+      "col": 1,
+      "value": "PT Ancol Makanan, Tbk",
+      "data_type": "s"
+    },
+    {
+      "addr": "B11",
+      "row": 11,
+      "col": 2,
+      "value": 1.2,
+      "data_type": "n"
+    },
+    {
+      "addr": "C11",
+      "row": 11,
+      "col": 3,
+      "value": 1000000000,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D11",
+      "row": 11,
+      "col": 4,
+      "value": 800000000,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E11",
+      "row": 11,
+      "col": 5,
+      "value": 0.6666666666666666,
+      "data_type": "n",
+      "formula": "=B11/(1+((1-'INCOME STATEMENT'!$B$33)*(D11/C11)))",
+      "number_format": "0.0000"
+    },
+    {
+      "addr": "A12",
+      "row": 12,
+      "col": 1,
+      "value": "PT Citra Dara Food, Tbk",
+      "data_type": "s"
+    },
+    {
+      "addr": "B12",
+      "row": 12,
+      "col": 2,
+      "value": 0.7,
+      "data_type": "n"
+    },
+    {
+      "addr": "C12",
+      "row": 12,
+      "col": 3,
+      "value": 1000000000,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D12",
+      "row": 12,
+      "col": 4,
+      "value": 850000000,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E12",
+      "row": 12,
+      "col": 5,
+      "value": 0.37837837837837834,
+      "data_type": "n",
+      "formula": "=B12/(1+((1-'INCOME STATEMENT'!$B$33)*(D12/C12)))",
+      "number_format": "0.0000"
+    },
+    {
+      "addr": "A13",
+      "row": 13,
+      "col": 1,
+      "value": "PT Surya Sehat, Tbk",
+      "data_type": "s"
+    },
+    {
+      "addr": "B13",
+      "row": 13,
+      "col": 2,
+      "value": 0.6,
+      "data_type": "n"
+    },
+    {
+      "addr": "C13",
+      "row": 13,
+      "col": 3,
+      "value": 1000000000,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D13",
+      "row": 13,
+      "col": 4,
+      "value": 2700000000,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E13",
+      "row": 13,
+      "col": 5,
+      "value": 0.16216216216216214,
+      "data_type": "n",
+      "formula": "=B13/(1+((1-'INCOME STATEMENT'!$B$33)*(D13/C13)))",
+      "number_format": "0.0000"
+    },
+    {
+      "addr": "A14",
+      "row": 14,
+      "col": 1,
+      "value": "Rata-rata",
+      "data_type": "s"
+    },
+    {
+      "addr": "B14",
+      "row": 14,
+      "col": 2,
+      "value": 0.8333333333333334,
+      "data_type": "n",
+      "formula": "=AVERAGE(B11:B13)",
+      "number_format": "0.00"
+    },
+    {
+      "addr": "C14",
+      "row": 14,
+      "col": 3,
+      "value": 3000000000,
+      "data_type": "n",
+      "formula": "=SUM(C11:C13)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D14",
+      "row": 14,
+      "col": 4,
+      "value": 4350000000,
+      "data_type": "n",
+      "formula": "=SUM(D11:D13)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E14",
+      "row": 14,
+      "col": 5,
+      "value": 0.4024024024024024,
+      "data_type": "n",
+      "formula": "=AVERAGE(E11:E13)",
+      "number_format": "0.00"
+    },
+    {
+      "addr": "A15",
+      "row": 15,
+      "col": 1,
+      "value": "Relevered Beta",
+      "data_type": "s"
+    },
+    {
+      "addr": "E15",
+      "row": 15,
+      "col": 5,
+      "value": 0.9858858858858859,
+      "data_type": "n",
+      "formula": "=E14*(1+((1-'INCOME STATEMENT'!B33)*(D14/C14)))",
+      "number_format": "0.0000"
+    },
+    {
+      "addr": "A17",
+      "row": 17,
+      "col": 1,
+      "value": "Struktur Kapital",
+      "data_type": "s"
+    },
+    {
+      "addr": "B17",
+      "row": 17,
+      "col": 2,
+      "value": "Nilai",
+      "data_type": "s"
+    },
+    {
+      "addr": "C17",
+      "row": 17,
+      "col": 3,
+      "value": "Bobot (%) Pasar",
+      "data_type": "s"
+    },
+    {
+      "addr": "D17",
+      "row": 17,
+      "col": 4,
+      "value": "Biaya Mdl (%)",
+      "data_type": "s"
+    },
+    {
+      "addr": "E17",
+      "row": 17,
+      "col": 5,
+      "value": "WACC",
+      "data_type": "s"
+    },
+    {
+      "addr": "A19",
+      "row": 19,
+      "col": 1,
+      "value": "Hutang",
+      "data_type": "s"
+    },
+    {
+      "addr": "B19",
+      "row": 19,
+      "col": 2,
+      "value": 7056900624,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!D35+'BALANCE SHEET'!D40",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \\-??_);_(@_)"
+    },
+    {
+      "addr": "C19",
+      "row": 19,
+      "col": 3,
+      "value": 0.5918367346938775,
+      "data_type": "n",
+      "formula": "=D14/(D14+C14)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "D19",
+      "row": 19,
+      "col": 4,
+      "value": 0.13,
+      "data_type": "n",
+      "formula": "=B30*(1-'INCOME STATEMENT'!B33)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "E19",
+      "row": 19,
+      "col": 5,
+      "value": 0.07693877551020409,
+      "data_type": "n",
+      "formula": "=C19*D19",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "A20",
+      "row": 20,
+      "col": 1,
+      "value": "Ekuitas",
+      "data_type": "s"
+    },
+    {
+      "addr": "B20",
+      "row": 20,
+      "col": 2,
+      "value": 18669325413,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!D49",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \\-??_);_(@_)"
+    },
+    {
+      "addr": "C20",
+      "row": 20,
+      "col": 3,
+      "value": 0.40816326530612246,
+      "data_type": "n",
+      "formula": "=1-C19",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "D20",
+      "row": 20,
+      "col": 4,
+      "value": 0.0795245045045045,
+      "data_type": "n",
+      "formula": "=B6+(E15*B4)-B5",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "E20",
+      "row": 20,
+      "col": 5,
+      "value": 0.032458981430410004,
+      "data_type": "n",
+      "formula": "=C20*D20",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "A22",
+      "row": 22,
+      "col": 1,
+      "value": "Weighted Average Cost of Capital (WACC)",
+      "data_type": "s"
+    },
+    {
+      "addr": "E22",
+      "row": 22,
+      "col": 5,
+      "value": 0.1031,
+      "data_type": "n",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "F22",
+      "row": 22,
+      "col": 6,
+      "value": "**) Menurut Wajib Pajak",
+      "data_type": "s"
+    },
+    {
+      "addr": "A26",
+      "row": 26,
+      "col": 1,
+      "value": "Bunga Pinjaman Investasi",
+      "data_type": "s"
+    },
+    {
+      "addr": "A27",
+      "row": 27,
+      "col": 1,
+      "value": "1. Bank Persero",
+      "data_type": "s"
+    },
+    {
+      "addr": "B27",
+      "row": 27,
+      "col": 2,
+      "value": 0.12,
+      "data_type": "n",
+      "number_format": "0%"
+    },
+    {
+      "addr": "A28",
+      "row": 28,
+      "col": 1,
+      "value": "2. Bank Swasta",
+      "data_type": "s"
+    },
+    {
+      "addr": "B28",
+      "row": 28,
+      "col": 2,
+      "value": 0.13,
+      "data_type": "n",
+      "number_format": "0%"
+    },
+    {
+      "addr": "A29",
+      "row": 29,
+      "col": 1,
+      "value": "3. Bank Umum",
+      "data_type": "s"
+    },
+    {
+      "addr": "B29",
+      "row": 29,
+      "col": 2,
+      "value": 0.14,
+      "data_type": "n",
+      "number_format": "0%"
+    },
+    {
+      "addr": "A30",
+      "row": 30,
+      "col": 1,
+      "value": "rata-rata",
+      "data_type": "s"
+    },
+    {
+      "addr": "B30",
+      "row": 30,
+      "col": 2,
+      "value": 0.13,
+      "data_type": "n",
+      "formula": "=+AVERAGE(B27:B29)",
+      "number_format": "0%"
+    }
+  ],
+  "required_hidden": false
+}

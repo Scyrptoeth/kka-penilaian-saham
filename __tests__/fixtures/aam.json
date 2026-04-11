@@ -1,0 +1,1181 @@
+{
+  "name": "AAM",
+  "slug": "aam",
+  "visible": true,
+  "dimensions": {
+    "max_row": 75,
+    "max_col": 10,
+    "max_col_letter": "J"
+  },
+  "merged_ranges": [
+    "C70:C72",
+    "C67:C69"
+  ],
+  "cells": [
+    {
+      "addr": "A1",
+      "row": 1,
+      "col": 1,
+      "value": "PT RAJA VOLTAMA ELEKTRIK",
+      "data_type": "s",
+      "formula": "='BALANCE SHEET'!A1"
+    },
+    {
+      "addr": "A2",
+      "row": 2,
+      "col": 1,
+      "value": "Metode Penyesuaian Aset Bersih",
+      "data_type": "s"
+    },
+    {
+      "addr": "A3",
+      "row": 3,
+      "col": 1,
+      "value": "(IDR)",
+      "data_type": "s",
+      "formula": "='BALANCE SHEET'!A3"
+    },
+    {
+      "addr": "C5",
+      "row": 5,
+      "col": 3,
+      "value": 2021,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!F4"
+    },
+    {
+      "addr": "D5",
+      "row": 5,
+      "col": 4,
+      "value": "Penyesuaian",
+      "data_type": "s"
+    },
+    {
+      "addr": "E5",
+      "row": 5,
+      "col": 5,
+      "value": "2021*)",
+      "data_type": "s",
+      "formula": "=C5&\"*)\""
+    },
+    {
+      "addr": "A6",
+      "row": 6,
+      "col": 1,
+      "value": "ASSETS",
+      "data_type": "s"
+    },
+    {
+      "addr": "A8",
+      "row": 8,
+      "col": 1,
+      "value": "Current Assets",
+      "data_type": "s"
+    },
+    {
+      "addr": "B9",
+      "row": 9,
+      "col": 2,
+      "value": "Cash on Hands",
+      "data_type": "s"
+    },
+    {
+      "addr": "C9",
+      "row": 9,
+      "col": 3,
+      "value": 6635142218,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!F8",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E9",
+      "row": 9,
+      "col": 5,
+      "value": 6635142218,
+      "data_type": "n",
+      "formula": "=C9+D9",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B10",
+      "row": 10,
+      "col": 2,
+      "value": "Cash on Bank (Deposit)",
+      "data_type": "s"
+    },
+    {
+      "addr": "C10",
+      "row": 10,
+      "col": 3,
+      "value": 9652447673,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!F9",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E10",
+      "row": 10,
+      "col": 5,
+      "value": 9652447673,
+      "data_type": "n",
+      "formula": "=C10+D10",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B11",
+      "row": 11,
+      "col": 2,
+      "value": "Account Receivable",
+      "data_type": "s"
+    },
+    {
+      "addr": "C11",
+      "row": 11,
+      "col": 3,
+      "value": 3382100694,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!F10",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E11",
+      "row": 11,
+      "col": 5,
+      "value": 3382100694,
+      "data_type": "n",
+      "formula": "=C11+D11",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B12",
+      "row": 12,
+      "col": 2,
+      "value": "Other Receivable",
+      "data_type": "s"
+    },
+    {
+      "addr": "C12",
+      "row": 12,
+      "col": 3,
+      "value": 1000000000,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!F11",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E12",
+      "row": 12,
+      "col": 5,
+      "value": 1000000000,
+      "data_type": "n",
+      "formula": "=C12+D12",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B13",
+      "row": 13,
+      "col": 2,
+      "value": "Inventory",
+      "data_type": "s"
+    },
+    {
+      "addr": "C13",
+      "row": 13,
+      "col": 3,
+      "value": 1423637783,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!F12",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E13",
+      "row": 13,
+      "col": 5,
+      "value": 1423637783,
+      "data_type": "n",
+      "formula": "=C13+D13",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B14",
+      "row": 14,
+      "col": 2,
+      "value": "Others",
+      "data_type": "s"
+    },
+    {
+      "addr": "C14",
+      "row": 14,
+      "col": 3,
+      "value": 2347809320,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!F14",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D14",
+      "row": 14,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E14",
+      "row": 14,
+      "col": 5,
+      "value": 2347809320,
+      "data_type": "n",
+      "formula": "=C14+D14",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A16",
+      "row": 16,
+      "col": 1,
+      "value": "Current Assets",
+      "data_type": "s"
+    },
+    {
+      "addr": "C16",
+      "row": 16,
+      "col": 3,
+      "value": 24441137688,
+      "data_type": "n",
+      "formula": "=SUM(C9:C14)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E16",
+      "row": 16,
+      "col": 5,
+      "value": 24441137688,
+      "data_type": "n",
+      "formula": "=SUM(E9:E14)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A18",
+      "row": 18,
+      "col": 1,
+      "value": "Non Current Assets",
+      "data_type": "s"
+    },
+    {
+      "addr": "A19",
+      "row": 19,
+      "col": 1,
+      "value": "Fixed Asset",
+      "data_type": "s"
+    },
+    {
+      "addr": "B19",
+      "row": 19,
+      "col": 2,
+      "value": "Beginning",
+      "data_type": "s"
+    },
+    {
+      "addr": "C19",
+      "row": 19,
+      "col": 3,
+      "value": 6989653544,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!F20",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E19",
+      "row": 19,
+      "col": 5,
+      "value": 6989653544,
+      "data_type": "n",
+      "formula": "=C19+D19",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B20",
+      "row": 20,
+      "col": 2,
+      "value": "Fixed Assets, Net",
+      "data_type": "s"
+    },
+    {
+      "addr": "C20",
+      "row": 20,
+      "col": 3,
+      "value": 6264339945,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!F22",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D20",
+      "row": 20,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!H74",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E20",
+      "row": 20,
+      "col": 5,
+      "value": 6264339945,
+      "data_type": "n",
+      "formula": "=C20+D20",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A21",
+      "row": 21,
+      "col": 1,
+      "value": "Non Current Assets",
+      "data_type": "s"
+    },
+    {
+      "addr": "C21",
+      "row": 21,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!F23",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E21",
+      "row": 21,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=C21+D21",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A22",
+      "row": 22,
+      "col": 1,
+      "value": "Total Non Current Asset",
+      "data_type": "s"
+    },
+    {
+      "addr": "C22",
+      "row": 22,
+      "col": 3,
+      "value": 6264339945,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!F25",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E22",
+      "row": 22,
+      "col": 5,
+      "value": 6264339945,
+      "data_type": "n",
+      "formula": "=SUM(E20:E21)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A23",
+      "row": 23,
+      "col": 1,
+      "value": "Intangible Asset",
+      "data_type": "s"
+    },
+    {
+      "addr": "C23",
+      "row": 23,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!F24",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E23",
+      "row": 23,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=C23",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A24",
+      "row": 24,
+      "col": 1,
+      "value": "ASSETS",
+      "data_type": "s"
+    },
+    {
+      "addr": "C24",
+      "row": 24,
+      "col": 3,
+      "value": 30705477633,
+      "data_type": "n",
+      "formula": "=+C16+C22",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E24",
+      "row": 24,
+      "col": 5,
+      "value": 30705477633,
+      "data_type": "n",
+      "formula": "=+E16+E22+E23",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A26",
+      "row": 26,
+      "col": 1,
+      "value": "LIABILITIES & EQUITY",
+      "data_type": "s"
+    },
+    {
+      "addr": "A27",
+      "row": 27,
+      "col": 1,
+      "value": "Current Liabilities",
+      "data_type": "s"
+    },
+    {
+      "addr": "B28",
+      "row": 28,
+      "col": 2,
+      "value": "Bank Loan-Short Term",
+      "data_type": "s"
+    },
+    {
+      "addr": "C28",
+      "row": 28,
+      "col": 3,
+      "value": 1000000000,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!F31",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E28",
+      "row": 28,
+      "col": 5,
+      "value": 1000000000,
+      "data_type": "n",
+      "formula": "=+C28+D28",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B29",
+      "row": 29,
+      "col": 2,
+      "value": "Account Payables",
+      "data_type": "s"
+    },
+    {
+      "addr": "C29",
+      "row": 29,
+      "col": 3,
+      "value": 1096222695,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!F32",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E29",
+      "row": 29,
+      "col": 5,
+      "value": 1096222695,
+      "data_type": "n",
+      "formula": "=+C29+D29",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B30",
+      "row": 30,
+      "col": 2,
+      "value": "Tax Payable",
+      "data_type": "s"
+    },
+    {
+      "addr": "C30",
+      "row": 30,
+      "col": 3,
+      "value": 480490835,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!F33",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E30",
+      "row": 30,
+      "col": 5,
+      "value": 480490835,
+      "data_type": "n",
+      "formula": "=+C30+D30",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B31",
+      "row": 31,
+      "col": 2,
+      "value": "Others",
+      "data_type": "s"
+    },
+    {
+      "addr": "C31",
+      "row": 31,
+      "col": 3,
+      "value": 1692923000,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!F34",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E31",
+      "row": 31,
+      "col": 5,
+      "value": 1692923000,
+      "data_type": "n",
+      "formula": "=+C31+D31",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A32",
+      "row": 32,
+      "col": 1,
+      "value": "Current Liabilities",
+      "data_type": "s"
+    },
+    {
+      "addr": "C32",
+      "row": 32,
+      "col": 3,
+      "value": 4269636530,
+      "data_type": "n",
+      "formula": "=SUM(C28:C31)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E32",
+      "row": 32,
+      "col": 5,
+      "value": 4269636530,
+      "data_type": "n",
+      "formula": "=SUM(E28:E31)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A34",
+      "row": 34,
+      "col": 1,
+      "value": "Non Current Liabilities",
+      "data_type": "s"
+    },
+    {
+      "addr": "B35",
+      "row": 35,
+      "col": 2,
+      "value": "Bank Loan-Long Term",
+      "data_type": "s"
+    },
+    {
+      "addr": "C35",
+      "row": 35,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!F38",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E35",
+      "row": 35,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=+C35+D35",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B36",
+      "row": 36,
+      "col": 2,
+      "value": "Related Party acc. Payable & Employee Benefits",
+      "data_type": "s"
+    },
+    {
+      "addr": "C36",
+      "row": 36,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!F39",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E36",
+      "row": 36,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=+C36+D36",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A37",
+      "row": 37,
+      "col": 1,
+      "value": "Non Current Liabilities",
+      "data_type": "s"
+    },
+    {
+      "addr": "C37",
+      "row": 37,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=+C35+C36",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E37",
+      "row": 37,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=+E35+E36",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A39",
+      "row": 39,
+      "col": 1,
+      "value": "Shareholders' Equity",
+      "data_type": "s"
+    },
+    {
+      "addr": "A40",
+      "row": 40,
+      "col": 1,
+      "value": "Paid Up Capital",
+      "data_type": "s"
+    },
+    {
+      "addr": "C40",
+      "row": 40,
+      "col": 3,
+      "value": 2000000000,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!F43",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E40",
+      "row": 40,
+      "col": 5,
+      "value": 2000000000,
+      "data_type": "n",
+      "formula": "=+C40+D40",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A41",
+      "row": 41,
+      "col": 1,
+      "value": "Addition",
+      "data_type": "s"
+    },
+    {
+      "addr": "C41",
+      "row": 41,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!F44",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E41",
+      "row": 41,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=+C41+D41",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A42",
+      "row": 42,
+      "col": 1,
+      "value": "Retained Earnings",
+      "data_type": "s"
+    },
+    {
+      "addr": "B43",
+      "row": 43,
+      "col": 2,
+      "value": "Deficit",
+      "data_type": "s"
+    },
+    {
+      "addr": "C43",
+      "row": 43,
+      "col": 3,
+      "value": 5805826735,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!F46",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D43",
+      "row": 43,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E43",
+      "row": 43,
+      "col": 5,
+      "value": 5805826735,
+      "data_type": "n",
+      "formula": "=+C43+D43",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B44",
+      "row": 44,
+      "col": 2,
+      "value": "Current profit",
+      "data_type": "s"
+    },
+    {
+      "addr": "C44",
+      "row": 44,
+      "col": 3,
+      "value": 21560655469,
+      "data_type": "n",
+      "formula": "='BALANCE SHEET'!F47",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E44",
+      "row": 44,
+      "col": 5,
+      "value": 21560655469,
+      "data_type": "n",
+      "formula": "=+C44+D44",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A45",
+      "row": 45,
+      "col": 1,
+      "value": "Retained Earnings, Ending Balance",
+      "data_type": "s"
+    },
+    {
+      "addr": "C45",
+      "row": 45,
+      "col": 3,
+      "value": 27366482204,
+      "data_type": "n",
+      "formula": "=C43+C44",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E45",
+      "row": 45,
+      "col": 5,
+      "value": 27366482204,
+      "data_type": "n",
+      "formula": "=+C45+D45",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A46",
+      "row": 46,
+      "col": 1,
+      "value": "Changes on Asset Revaluation",
+      "data_type": "s"
+    },
+    {
+      "addr": "C46",
+      "row": 46,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D46",
+      "row": 46,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=D20+D21",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E46",
+      "row": 46,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=+C46+D46",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A47",
+      "row": 47,
+      "col": 1,
+      "value": "Shareholders' Equity",
+      "data_type": "s"
+    },
+    {
+      "addr": "C47",
+      "row": 47,
+      "col": 3,
+      "value": 29366482204,
+      "data_type": "n",
+      "formula": "=C40+C45+C41",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E47",
+      "row": 47,
+      "col": 5,
+      "value": 29366482204,
+      "data_type": "n",
+      "formula": "=E40+E45+E41+E46",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A49",
+      "row": 49,
+      "col": 1,
+      "value": "LIABILITES & EQUITY",
+      "data_type": "s"
+    },
+    {
+      "addr": "C49",
+      "row": 49,
+      "col": 3,
+      "value": 33636118734,
+      "data_type": "n",
+      "formula": "=C32+C37+C47",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E49",
+      "row": 49,
+      "col": 5,
+      "value": 33636118734,
+      "data_type": "n",
+      "formula": "=E32+E37+E47",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A51",
+      "row": 51,
+      "col": 1,
+      "value": "Nett Asset Value",
+      "data_type": "s"
+    },
+    {
+      "addr": "E51",
+      "row": 51,
+      "col": 5,
+      "value": 27435841103,
+      "data_type": "n",
+      "formula": "=+E24-(E29+E30+E31)-E36",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A52",
+      "row": 52,
+      "col": 1,
+      "value": "Interest Bearing Debt",
+      "data_type": "s"
+    },
+    {
+      "addr": "E52",
+      "row": 52,
+      "col": 5,
+      "value": 1000000000,
+      "data_type": "n",
+      "formula": "=+C28+C35",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A53",
+      "row": 53,
+      "col": 1,
+      "value": "Equity Value",
+      "data_type": "s"
+    },
+    {
+      "addr": "E53",
+      "row": 53,
+      "col": 5,
+      "value": 26435841103,
+      "data_type": "n",
+      "formula": "=E51-E52",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A54",
+      "row": 54,
+      "col": 1,
+      "value": "DLOM",
+      "data_type": "s"
+    },
+    {
+      "addr": "D54",
+      "row": 54,
+      "col": 4,
+      "value": -0.3,
+      "data_type": "n",
+      "formula": "=E68",
+      "number_format": "0%"
+    },
+    {
+      "addr": "E54",
+      "row": 54,
+      "col": 5,
+      "value": -7930752330.9,
+      "data_type": "n",
+      "formula": "=+E53*D54",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F54",
+      "row": 54,
+      "col": 6,
+      "value": "*)",
+      "data_type": "s"
+    },
+    {
+      "addr": "A55",
+      "row": 55,
+      "col": 1,
+      "value": "Equity Value (100%) Less DLOM",
+      "data_type": "s"
+    },
+    {
+      "addr": "E55",
+      "row": 55,
+      "col": 5,
+      "value": 18505088772.1,
+      "data_type": "n",
+      "formula": "=+E53+E54",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A56",
+      "row": 56,
+      "col": 1,
+      "value": "DISCOUNT LACK OF CONTROL/PREMIUM FOR CONTROL",
+      "data_type": "s",
+      "formula": "=HOME!A16"
+    },
+    {
+      "addr": "D56",
+      "row": 56,
+      "col": 4,
+      "value": -0.5399999999999999,
+      "data_type": "n",
+      "formula": "='DLOC(PFC)'!E24*-1",
+      "number_format": "0%"
+    },
+    {
+      "addr": "E56",
+      "row": 56,
+      "col": 5,
+      "value": -9992747936.933998,
+      "data_type": "n",
+      "formula": "=+E55*D56",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A57",
+      "row": 57,
+      "col": 1,
+      "value": "Market Value of Equity (100%)",
+      "data_type": "s"
+    },
+    {
+      "addr": "E57",
+      "row": 57,
+      "col": 5,
+      "value": 8512340835.166,
+      "data_type": "n",
+      "formula": "=+E55+E56",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A58",
+      "row": 58,
+      "col": 1,
+      "value": "Percentage of Shares",
+      "data_type": "s"
+    },
+    {
+      "addr": "D58",
+      "row": 58,
+      "col": 4,
+      "value": 0.3,
+      "data_type": "n",
+      "formula": "=HOME!B8",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "A59",
+      "row": 59,
+      "col": 1,
+      "value": "Market Value of 30.0% Equity",
+      "data_type": "s",
+      "formula": "=\"Market Value of \"&TEXT(D58,\"0.0%\")&\" Equity\""
+    },
+    {
+      "addr": "E59",
+      "row": 59,
+      "col": 5,
+      "value": 2553702250.5498,
+      "data_type": "n",
+      "formula": "=+E57*D58",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E60",
+      "row": 60,
+      "col": 5,
+      "value": 1953702250.5498,
+      "data_type": "n",
+      "formula": "=E59-600000000",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "C67",
+      "row": 67,
+      "col": 3,
+      "value": "DLOM",
+      "data_type": "s"
+    },
+    {
+      "addr": "D67",
+      "row": 67,
+      "col": 4,
+      "value": "Paling Tinggi (Resiko Rendah)",
+      "data_type": "s"
+    },
+    {
+      "addr": "E67",
+      "row": 67,
+      "col": 5,
+      "value": -0.4,
+      "data_type": "n",
+      "formula": "=40%*-1",
+      "number_format": "0%"
+    },
+    {
+      "addr": "D68",
+      "row": 68,
+      "col": 4,
+      "value": "Moderat",
+      "data_type": "s"
+    },
+    {
+      "addr": "E68",
+      "row": 68,
+      "col": 5,
+      "value": -0.3,
+      "data_type": "n",
+      "formula": "=30%*-1",
+      "number_format": "0%"
+    },
+    {
+      "addr": "D69",
+      "row": 69,
+      "col": 4,
+      "value": "Paling Rendah (Resiko Tinggi)",
+      "data_type": "s"
+    },
+    {
+      "addr": "E69",
+      "row": 69,
+      "col": 5,
+      "value": -0.2,
+      "data_type": "n",
+      "formula": "=20%*-1",
+      "number_format": "0%"
+    },
+    {
+      "addr": "C70",
+      "row": 70,
+      "col": 3,
+      "value": "DLOC (PFC)",
+      "data_type": "s"
+    },
+    {
+      "addr": "D70",
+      "row": 70,
+      "col": 4,
+      "value": "Paling Tinggi (Resiko Rendah)",
+      "data_type": "s"
+    },
+    {
+      "addr": "E70",
+      "row": 70,
+      "col": 5,
+      "value": -0.7,
+      "data_type": "n",
+      "formula": "=70%*-1",
+      "number_format": "0%"
+    },
+    {
+      "addr": "D71",
+      "row": 71,
+      "col": 4,
+      "value": "Moderat",
+      "data_type": "s"
+    },
+    {
+      "addr": "E71",
+      "row": 71,
+      "col": 5,
+      "value": -0.5,
+      "data_type": "n",
+      "formula": "=50%*-1",
+      "number_format": "0%"
+    },
+    {
+      "addr": "D72",
+      "row": 72,
+      "col": 4,
+      "value": "Paling Rendah (Resiko Tinggi)",
+      "data_type": "s"
+    },
+    {
+      "addr": "E72",
+      "row": 72,
+      "col": 5,
+      "value": -0.3,
+      "data_type": "n",
+      "formula": "=30%*-1",
+      "number_format": "0%"
+    },
+    {
+      "addr": "A75",
+      "row": 75,
+      "col": 1,
+      "value": "*)DLOM perusahaan terbuka pemegang saham mayoritas maksimal 20% (pasal 41 huruf b ayat 1 POJK 35)",
+      "data_type": "s"
+    }
+  ],
+  "required_hidden": false
+}

@@ -1,0 +1,518 @@
+{
+  "name": "DISCOUNT RATE",
+  "slug": "discount-rate",
+  "visible": true,
+  "dimensions": {
+    "max_row": 12,
+    "max_col": 12,
+    "max_col_letter": "L"
+  },
+  "merged_ranges": [
+    "K5:L5"
+  ],
+  "cells": [
+    {
+      "addr": "A1",
+      "row": 1,
+      "col": 1,
+      "value": "Discount Rate Analysis (CAPM)",
+      "data_type": "s",
+      "number_format": "_-* #,##0_-;\\(#,##0\\)_-;_-* \"-\"_-;_-@_-"
+    },
+    {
+      "addr": "E1",
+      "row": 1,
+      "col": 5,
+      "value": "BU = B/(1+ ( (1-t)x DER))",
+      "data_type": "s",
+      "number_format": "0%"
+    },
+    {
+      "addr": "G1",
+      "row": 1,
+      "col": 7,
+      "value": "=",
+      "data_type": "s",
+      "formula": "=",
+      "number_format": "_-* #,##0_-;\\(#,##0\\)_-;_-* \"-\"_-;_-@_-"
+    },
+    {
+      "addr": "H1",
+      "row": 1,
+      "col": 8,
+      "value": 0.9332095903124283,
+      "data_type": "n",
+      "formula": "=C4/(1+((1-C2)*C8))",
+      "number_format": "_-* #,##0.0000_-;\\(#,##0.0000\\)_-;_-* \"-\"_-;_-@_-"
+    },
+    {
+      "addr": "A2",
+      "row": 2,
+      "col": 1,
+      "value": "Tax Rate",
+      "data_type": "s",
+      "number_format": "_-* #,##0_-;\\(#,##0\\)_-;_-* \"-\"_-;_-@_-"
+    },
+    {
+      "addr": "C2",
+      "row": 2,
+      "col": 3,
+      "value": 0.22,
+      "data_type": "n",
+      "number_format": "0%"
+    },
+    {
+      "addr": "E2",
+      "row": 2,
+      "col": 5,
+      "value": "BL = BU x ( 1+ ((1-t)x DER ))",
+      "data_type": "s",
+      "number_format": "0%"
+    },
+    {
+      "addr": "G2",
+      "row": 2,
+      "col": 7,
+      "value": "=",
+      "data_type": "s",
+      "formula": "=",
+      "number_format": "_-* #,##0_-;\\(#,##0\\)_-;_-* \"-\"_-;_-@_-"
+    },
+    {
+      "addr": "H2",
+      "row": 2,
+      "col": 8,
+      "value": 1.09,
+      "data_type": "n",
+      "formula": "=H1*(1+((1-C2)*C8))",
+      "number_format": "_-* #,##0.0000_-;\\(#,##0.0000\\)_-;_-* \"-\"_-;_-@_-"
+    },
+    {
+      "addr": "A3",
+      "row": 3,
+      "col": 1,
+      "value": "Risk Free",
+      "data_type": "s",
+      "number_format": "_-* #,##0_-;\\(#,##0\\)_-;_-* \"-\"_-;_-@_-"
+    },
+    {
+      "addr": "C3",
+      "row": 3,
+      "col": 3,
+      "value": 0.064795,
+      "data_type": "n",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "E3",
+      "row": 3,
+      "col": 5,
+      "value": "Ke = Rf + (β.Rp) - RBDS",
+      "data_type": "s",
+      "number_format": "0%"
+    },
+    {
+      "addr": "G3",
+      "row": 3,
+      "col": 7,
+      "value": "=",
+      "data_type": "s",
+      "formula": "=",
+      "number_format": "_-* #,##0_-;\\(#,##0\\)_-;_-* \"-\"_-;_-@_-"
+    },
+    {
+      "addr": "H3",
+      "row": 3,
+      "col": 8,
+      "value": 0.12453700000000001,
+      "data_type": "n",
+      "formula": "=C3+(H2*C5)-C6",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "A4",
+      "row": 4,
+      "col": 1,
+      "value": "Beta",
+      "data_type": "s",
+      "number_format": "_-* #,##0_-;\\(#,##0\\)_-;_-* \"-\"_-;_-@_-"
+    },
+    {
+      "addr": "C4",
+      "row": 4,
+      "col": 3,
+      "value": 1.09,
+      "data_type": "n",
+      "number_format": "_(* #,##0.000_);_(* \\(#,##0.000\\);_(* \"-\"_);_(@_)"
+    },
+    {
+      "addr": "E4",
+      "row": 4,
+      "col": 5,
+      "value": "Kd = i x (1 - t)",
+      "data_type": "s"
+    },
+    {
+      "addr": "G4",
+      "row": 4,
+      "col": 7,
+      "value": "=",
+      "data_type": "s",
+      "formula": "=",
+      "number_format": "_-* #,##0_-;\\(#,##0\\)_-;_-* \"-\"_-;_-@_-"
+    },
+    {
+      "addr": "H4",
+      "row": 4,
+      "col": 8,
+      "value": 0.06863999999999999,
+      "data_type": "n",
+      "formula": "=C7*(1-C2)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "A5",
+      "row": 5,
+      "col": 1,
+      "value": "Equity Risk Premium (Rating)",
+      "data_type": "s",
+      "number_format": "_-* #,##0_-;\\(#,##0\\)_-;_-* \"-\"_-;_-@_-"
+    },
+    {
+      "addr": "C5",
+      "row": 5,
+      "col": 3,
+      "value": 0.0738,
+      "data_type": "n",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "E5",
+      "row": 5,
+      "col": 5,
+      "value": "Struktur Kapital",
+      "data_type": "s",
+      "number_format": "_-* #,##0_-;\\(#,##0\\)_-;_-* \"-\"_-;_-@_-"
+    },
+    {
+      "addr": "F5",
+      "row": 5,
+      "col": 6,
+      "value": "Bobot (%) Pasar",
+      "data_type": "s",
+      "number_format": "_-* #,##0_-;\\(#,##0\\)_-;_-* \"-\"_-;_-@_-"
+    },
+    {
+      "addr": "G5",
+      "row": 5,
+      "col": 7,
+      "value": "Biaya Mdl (%)",
+      "data_type": "s",
+      "number_format": "_-* #,##0_-;\\(#,##0\\)_-;_-* \"-\"_-;_-@_-"
+    },
+    {
+      "addr": "H5",
+      "row": 5,
+      "col": 8,
+      "value": "WACC (%)",
+      "data_type": "s",
+      "number_format": "_-* #,##0_-;\\(#,##0\\)_-;_-* \"-\"_-;_-@_-"
+    },
+    {
+      "addr": "K5",
+      "row": 5,
+      "col": 11,
+      "value": "pinjaman inves",
+      "data_type": "s",
+      "number_format": "_-* #,##0_-;\\(#,##0\\)_-;_-* \"-\"_-;_-@_-"
+    },
+    {
+      "addr": "A6",
+      "row": 6,
+      "col": 1,
+      "value": "Country Default Spread (Based on Rating)",
+      "data_type": "s",
+      "number_format": "_-* #,##0_-;\\(#,##0\\)_-;_-* \"-\"_-;_-@_-"
+    },
+    {
+      "addr": "C6",
+      "row": 6,
+      "col": 3,
+      "value": 0.0207,
+      "data_type": "n",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "K6",
+      "row": 6,
+      "col": 11,
+      "value": "BANK PERSERO",
+      "data_type": "s"
+    },
+    {
+      "addr": "L6",
+      "row": 6,
+      "col": 12,
+      "value": 9.41,
+      "data_type": "n"
+    },
+    {
+      "addr": "A7",
+      "row": 7,
+      "col": 1,
+      "value": "Debt Rate",
+      "data_type": "s",
+      "number_format": "_-* #,##0_-;\\(#,##0\\)_-;_-* \"-\"_-;_-@_-"
+    },
+    {
+      "addr": "C7",
+      "row": 7,
+      "col": 3,
+      "value": 0.088,
+      "data_type": "n",
+      "formula": "=ROUND(L11/100,3)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "E7",
+      "row": 7,
+      "col": 5,
+      "value": "Hutang ",
+      "data_type": "s"
+    },
+    {
+      "addr": "F7",
+      "row": 7,
+      "col": 6,
+      "value": 0.17722560473918053,
+      "data_type": "n",
+      "formula": "=C8/(1+C8)",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "G7",
+      "row": 7,
+      "col": 7,
+      "value": 0.06863999999999999,
+      "data_type": "n",
+      "formula": "=H4",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "H7",
+      "row": 7,
+      "col": 8,
+      "value": 0.01216476550929735,
+      "data_type": "n",
+      "formula": "=F7*G7",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "K7",
+      "row": 7,
+      "col": 11,
+      "value": "BANK PEMDAS",
+      "data_type": "s"
+    },
+    {
+      "addr": "L7",
+      "row": 7,
+      "col": 12,
+      "value": 9.06,
+      "data_type": "n"
+    },
+    {
+      "addr": "A8",
+      "row": 8,
+      "col": 1,
+      "value": "DER industry",
+      "data_type": "s",
+      "number_format": "_-* #,##0_-;\\(#,##0\\)_-;_-* \"-\"_-;_-@_-"
+    },
+    {
+      "addr": "C8",
+      "row": 8,
+      "col": 3,
+      "value": 0.2154,
+      "data_type": "n",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "E8",
+      "row": 8,
+      "col": 5,
+      "value": "Ekuitas ",
+      "data_type": "s"
+    },
+    {
+      "addr": "F8",
+      "row": 8,
+      "col": 6,
+      "value": 0.8227743952608195,
+      "data_type": "n",
+      "formula": "=1-F7",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "G8",
+      "row": 8,
+      "col": 7,
+      "value": 0.12453700000000001,
+      "data_type": "n",
+      "formula": "=H3",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "H8",
+      "row": 8,
+      "col": 8,
+      "value": 0.10246585486259668,
+      "data_type": "n",
+      "formula": "=F8*G8",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "K8",
+      "row": 8,
+      "col": 11,
+      "value": "BANK SWASNAS",
+      "data_type": "s"
+    },
+    {
+      "addr": "L8",
+      "row": 8,
+      "col": 12,
+      "value": 8.23,
+      "data_type": "n"
+    },
+    {
+      "addr": "A9",
+      "row": 9,
+      "col": 1,
+      "value": "CoE",
+      "data_type": "s",
+      "number_format": "_-* #,##0_-;\\(#,##0\\)_-;_-* \"-\"_-;_-@_-"
+    },
+    {
+      "addr": "C9",
+      "row": 9,
+      "col": 3,
+      "value": 0.12453700000000001,
+      "data_type": "n",
+      "formula": "=H3",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "K9",
+      "row": 9,
+      "col": 11,
+      "value": "BANK ASENG",
+      "data_type": "s"
+    },
+    {
+      "addr": "L9",
+      "row": 9,
+      "col": 12,
+      "value": 8.51,
+      "data_type": "n"
+    },
+    {
+      "addr": "A10",
+      "row": 10,
+      "col": 1,
+      "value": "CoD",
+      "data_type": "s",
+      "number_format": "_-* #,##0_-;\\(#,##0\\)_-;_-* \"-\"_-;_-@_-"
+    },
+    {
+      "addr": "C10",
+      "row": 10,
+      "col": 3,
+      "value": 0.06863999999999999,
+      "data_type": "n",
+      "formula": "=H4",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "E10",
+      "row": 10,
+      "col": 5,
+      "value": "Weighted Average Cost of Capital (WACC)",
+      "data_type": "s",
+      "number_format": "_-* #,##0_-;\\(#,##0\\)_-;_-* \"-\"_-;_-@_-"
+    },
+    {
+      "addr": "H10",
+      "row": 10,
+      "col": 8,
+      "value": 0.11463062037189403,
+      "data_type": "n",
+      "formula": "=+H7+H8",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "K10",
+      "row": 10,
+      "col": 11,
+      "value": "BANK OM OM",
+      "data_type": "s"
+    },
+    {
+      "addr": "L10",
+      "row": 10,
+      "col": 12,
+      "value": 8.81,
+      "data_type": "n"
+    },
+    {
+      "addr": "A11",
+      "row": 11,
+      "col": 1,
+      "value": "WACC",
+      "data_type": "s",
+      "number_format": "_-* #,##0_-;\\(#,##0\\)_-;_-* \"-\"_-;_-@_-"
+    },
+    {
+      "addr": "C11",
+      "row": 11,
+      "col": 3,
+      "value": 0.11463062037189403,
+      "data_type": "n",
+      "formula": "=H10",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "K11",
+      "row": 11,
+      "col": 11,
+      "value": "AVERAGE",
+      "data_type": "s"
+    },
+    {
+      "addr": "L11",
+      "row": 11,
+      "col": 12,
+      "value": 8.804,
+      "data_type": "n",
+      "formula": "=AVERAGE(L6:L10)"
+    },
+    {
+      "addr": "A12",
+      "row": 12,
+      "col": 1,
+      "value": "Growth",
+      "data_type": "s",
+      "number_format": "_-* #,##0_-;\\(#,##0\\)_-;_-* \"-\"_-;_-@_-"
+    },
+    {
+      "addr": "C12",
+      "row": 12,
+      "col": 3,
+      "value": 0.18654692078374596,
+      "data_type": "n",
+      "formula": "='GROWTH RATE'!B15",
+      "number_format": "0.00%"
+    }
+  ],
+  "required_hidden": false
+}

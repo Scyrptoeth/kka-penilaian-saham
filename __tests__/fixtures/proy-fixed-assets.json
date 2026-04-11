@@ -1,0 +1,2217 @@
+{
+  "name": "PROY FIXED ASSETS",
+  "slug": "proy-fixed-assets",
+  "visible": true,
+  "dimensions": {
+    "max_row": 69,
+    "max_col": 10,
+    "max_col_letter": "J"
+  },
+  "merged_ranges": [],
+  "cells": [
+    {
+      "addr": "A1",
+      "row": 1,
+      "col": 1,
+      "value": "PT RAJA VOLTAMA ELEKTRIK",
+      "data_type": "s",
+      "formula": "='INCOME STATEMENT'!A1"
+    },
+    {
+      "addr": "A2",
+      "row": 2,
+      "col": 1,
+      "value": "Fixed Asset Schedules",
+      "data_type": "s"
+    },
+    {
+      "addr": "A3",
+      "row": 3,
+      "col": 1,
+      "value": "(IDR)",
+      "data_type": "s",
+      "formula": "='[3]BALANCE SHEET'!A3"
+    },
+    {
+      "addr": "C5",
+      "row": 5,
+      "col": 3,
+      "value": 2023,
+      "data_type": "n"
+    },
+    {
+      "addr": "D5",
+      "row": 5,
+      "col": 4,
+      "value": 2024,
+      "data_type": "n",
+      "formula": "=C5+1"
+    },
+    {
+      "addr": "E5",
+      "row": 5,
+      "col": 5,
+      "value": 2025,
+      "data_type": "n",
+      "formula": "=D5+1"
+    },
+    {
+      "addr": "F5",
+      "row": 5,
+      "col": 6,
+      "value": 2026,
+      "data_type": "n",
+      "formula": "=E5+1"
+    },
+    {
+      "addr": "A6",
+      "row": 6,
+      "col": 1,
+      "value": "A. Acquisition Costs",
+      "data_type": "s"
+    },
+    {
+      "addr": "A7",
+      "row": 7,
+      "col": 1,
+      "value": "Beginning",
+      "data_type": "s"
+    },
+    {
+      "addr": "B8",
+      "row": 8,
+      "col": 2,
+      "value": "Land",
+      "data_type": "s"
+    },
+    {
+      "addr": "C8",
+      "row": 8,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E8",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D8",
+      "row": 8,
+      "col": 4,
+      "value": 105632336296,
+      "data_type": "n",
+      "formula": "=C26",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E8",
+      "row": 8,
+      "col": 5,
+      "value": 105632336296,
+      "data_type": "n",
+      "formula": "=D26",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F8",
+      "row": 8,
+      "col": 6,
+      "value": 105632336296,
+      "data_type": "n",
+      "formula": "=E26",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B9",
+      "row": 9,
+      "col": 2,
+      "value": "Building",
+      "data_type": "s"
+    },
+    {
+      "addr": "C9",
+      "row": 9,
+      "col": 3,
+      "value": 4947437500,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E9",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D9",
+      "row": 9,
+      "col": 4,
+      "value": 163209838554,
+      "data_type": "n",
+      "formula": "=C27",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E9",
+      "row": 9,
+      "col": 5,
+      "value": 163209838554,
+      "data_type": "n",
+      "formula": "=D27",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F9",
+      "row": 9,
+      "col": 6,
+      "value": 163209838554,
+      "data_type": "n",
+      "formula": "=E27",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B10",
+      "row": 10,
+      "col": 2,
+      "value": "Equipment, Laboratory, & Machinery",
+      "data_type": "s"
+    },
+    {
+      "addr": "C10",
+      "row": 10,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E10",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D10",
+      "row": 10,
+      "col": 4,
+      "value": 247378342663,
+      "data_type": "n",
+      "formula": "=C28",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E10",
+      "row": 10,
+      "col": 5,
+      "value": 247378342663,
+      "data_type": "n",
+      "formula": "=D28",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F10",
+      "row": 10,
+      "col": 6,
+      "value": 247378342663,
+      "data_type": "n",
+      "formula": "=E28",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B11",
+      "row": 11,
+      "col": 2,
+      "value": "Vehicle & Heavy Equipment",
+      "data_type": "s"
+    },
+    {
+      "addr": "C11",
+      "row": 11,
+      "col": 3,
+      "value": 1490000000,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E11",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D11",
+      "row": 11,
+      "col": 4,
+      "value": 62213825211,
+      "data_type": "n",
+      "formula": "=C29",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E11",
+      "row": 11,
+      "col": 5,
+      "value": 62283625211,
+      "data_type": "n",
+      "formula": "=D29",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F11",
+      "row": 11,
+      "col": 6,
+      "value": 62353425211,
+      "data_type": "n",
+      "formula": "=E29",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B12",
+      "row": 12,
+      "col": 2,
+      "value": "Office Inventory",
+      "data_type": "s"
+    },
+    {
+      "addr": "C12",
+      "row": 12,
+      "col": 3,
+      "value": 139928000,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E12",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D12",
+      "row": 12,
+      "col": 4,
+      "value": 7581348746,
+      "data_type": "n",
+      "formula": "=C30",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E12",
+      "row": 12,
+      "col": 5,
+      "value": 8935366739.311922,
+      "data_type": "n",
+      "formula": "=D30",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F12",
+      "row": 12,
+      "col": 6,
+      "value": 14288443316.234543,
+      "data_type": "n",
+      "formula": "=E30",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B13",
+      "row": 13,
+      "col": 2,
+      "value": "Electrical",
+      "data_type": "s"
+    },
+    {
+      "addr": "C13",
+      "row": 13,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E13",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D13",
+      "row": 13,
+      "col": 4,
+      "value": 6014871960,
+      "data_type": "n",
+      "formula": "=C31",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E13",
+      "row": 13,
+      "col": 5,
+      "value": 6014871960,
+      "data_type": "n",
+      "formula": "=D31",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F13",
+      "row": 13,
+      "col": 6,
+      "value": 6014871960,
+      "data_type": "n",
+      "formula": "=E31",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A14",
+      "row": 14,
+      "col": 1,
+      "value": "Total",
+      "data_type": "s"
+    },
+    {
+      "addr": "C14",
+      "row": 14,
+      "col": 3,
+      "value": 6577365500,
+      "data_type": "n",
+      "formula": "=SUM(C8:C13)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D14",
+      "row": 14,
+      "col": 4,
+      "value": 592030563430,
+      "data_type": "n",
+      "formula": "=SUM(D8:D13)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E14",
+      "row": 14,
+      "col": 5,
+      "value": 593454381423.3119,
+      "data_type": "n",
+      "formula": "=SUM(E8:E13)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F14",
+      "row": 14,
+      "col": 6,
+      "value": 598877258000.2345,
+      "data_type": "n",
+      "formula": "=SUM(F8:F13)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A16",
+      "row": 16,
+      "col": 1,
+      "value": "Additions",
+      "data_type": "s"
+    },
+    {
+      "addr": "B17",
+      "row": 17,
+      "col": 2,
+      "value": "Land",
+      "data_type": "s"
+    },
+    {
+      "addr": "C17",
+      "row": 17,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E17",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D17",
+      "row": 17,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=C17*(1+'FIXED ASSET'!$I17)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E17",
+      "row": 17,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=D17*(1+'FIXED ASSET'!$I17)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F17",
+      "row": 17,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=E17*(1+'FIXED ASSET'!$I17)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B18",
+      "row": 18,
+      "col": 2,
+      "value": "Building & CIP",
+      "data_type": "s"
+    },
+    {
+      "addr": "C18",
+      "row": 18,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E18",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D18",
+      "row": 18,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=C18*(1+'FIXED ASSET'!$I18)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E18",
+      "row": 18,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=D18*(1+'FIXED ASSET'!$I18)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F18",
+      "row": 18,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=E18*(1+'FIXED ASSET'!$I18)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B19",
+      "row": 19,
+      "col": 2,
+      "value": "Equipment, Laboratory, & Machinery",
+      "data_type": "s"
+    },
+    {
+      "addr": "C19",
+      "row": 19,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E19",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D19",
+      "row": 19,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=C19*(1+'FIXED ASSET'!$I19)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E19",
+      "row": 19,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=D19*(1+'FIXED ASSET'!$I19)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F19",
+      "row": 19,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=E19*(1+'FIXED ASSET'!$I19)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B20",
+      "row": 20,
+      "col": 2,
+      "value": "Vehicle & Heavy Equipment",
+      "data_type": "s"
+    },
+    {
+      "addr": "C20",
+      "row": 20,
+      "col": 3,
+      "value": 69800000,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E20",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D20",
+      "row": 20,
+      "col": 4,
+      "value": 69800000,
+      "data_type": "n",
+      "formula": "=C20*(1+'FIXED ASSET'!$I20)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E20",
+      "row": 20,
+      "col": 5,
+      "value": 69800000,
+      "data_type": "n",
+      "formula": "=D20*(1+'FIXED ASSET'!$I20)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F20",
+      "row": 20,
+      "col": 6,
+      "value": 69800000,
+      "data_type": "n",
+      "formula": "=E20*(1+'FIXED ASSET'!$I20)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B21",
+      "row": 21,
+      "col": 2,
+      "value": "Office Inventory",
+      "data_type": "s"
+    },
+    {
+      "addr": "C21",
+      "row": 21,
+      "col": 3,
+      "value": 342488044,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E21",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D21",
+      "row": 21,
+      "col": 4,
+      "value": 1354017993.311922,
+      "data_type": "n",
+      "formula": "=C21*(1+'FIXED ASSET'!$I21)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E21",
+      "row": 21,
+      "col": 5,
+      "value": 5353076576.922622,
+      "data_type": "n",
+      "formula": "=D21*(1+'FIXED ASSET'!$I21)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F21",
+      "row": 21,
+      "col": 6,
+      "value": 21163255569.6742,
+      "data_type": "n",
+      "formula": "=E21*(1+'FIXED ASSET'!$I21)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B22",
+      "row": 22,
+      "col": 2,
+      "value": "Electrical",
+      "data_type": "s"
+    },
+    {
+      "addr": "A23",
+      "row": 23,
+      "col": 1,
+      "value": "Total",
+      "data_type": "s"
+    },
+    {
+      "addr": "C23",
+      "row": 23,
+      "col": 3,
+      "value": 15247506076,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D23",
+      "row": 23,
+      "col": 4,
+      "value": 1423817993.311922,
+      "data_type": "n",
+      "formula": "=SUM(D17:D22)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E23",
+      "row": 23,
+      "col": 5,
+      "value": 5422876576.922622,
+      "data_type": "n",
+      "formula": "=SUM(E17:E22)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F23",
+      "row": 23,
+      "col": 6,
+      "value": 21233055569.6742,
+      "data_type": "n",
+      "formula": "=SUM(F17:F22)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A25",
+      "row": 25,
+      "col": 1,
+      "value": "Ending",
+      "data_type": "s"
+    },
+    {
+      "addr": "B26",
+      "row": 26,
+      "col": 2,
+      "value": "Land",
+      "data_type": "s"
+    },
+    {
+      "addr": "C26",
+      "row": 26,
+      "col": 3,
+      "value": 105632336296,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D26",
+      "row": 26,
+      "col": 4,
+      "value": 105632336296,
+      "data_type": "n",
+      "formula": "=+D8+D17",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E26",
+      "row": 26,
+      "col": 5,
+      "value": 105632336296,
+      "data_type": "n",
+      "formula": "=+E8+E17",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F26",
+      "row": 26,
+      "col": 6,
+      "value": 105632336296,
+      "data_type": "n",
+      "formula": "=+F8+F17",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B27",
+      "row": 27,
+      "col": 2,
+      "value": "Building",
+      "data_type": "s"
+    },
+    {
+      "addr": "C27",
+      "row": 27,
+      "col": 3,
+      "value": 163209838554,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D27",
+      "row": 27,
+      "col": 4,
+      "value": 163209838554,
+      "data_type": "n",
+      "formula": "=+D9+D18",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E27",
+      "row": 27,
+      "col": 5,
+      "value": 163209838554,
+      "data_type": "n",
+      "formula": "=+E9+E18",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F27",
+      "row": 27,
+      "col": 6,
+      "value": 163209838554,
+      "data_type": "n",
+      "formula": "=+F9+F18",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B28",
+      "row": 28,
+      "col": 2,
+      "value": "Equipment, Laboratory, & Machinery",
+      "data_type": "s"
+    },
+    {
+      "addr": "C28",
+      "row": 28,
+      "col": 3,
+      "value": 247378342663,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D28",
+      "row": 28,
+      "col": 4,
+      "value": 247378342663,
+      "data_type": "n",
+      "formula": "=+D10+D19",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E28",
+      "row": 28,
+      "col": 5,
+      "value": 247378342663,
+      "data_type": "n",
+      "formula": "=+E10+E19",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F28",
+      "row": 28,
+      "col": 6,
+      "value": 247378342663,
+      "data_type": "n",
+      "formula": "=+F10+F19",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B29",
+      "row": 29,
+      "col": 2,
+      "value": "Vehicle & Heavy Equipment",
+      "data_type": "s"
+    },
+    {
+      "addr": "C29",
+      "row": 29,
+      "col": 3,
+      "value": 62213825211,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D29",
+      "row": 29,
+      "col": 4,
+      "value": 62283625211,
+      "data_type": "n",
+      "formula": "=+D11+D20",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E29",
+      "row": 29,
+      "col": 5,
+      "value": 62353425211,
+      "data_type": "n",
+      "formula": "=+E11+E20",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F29",
+      "row": 29,
+      "col": 6,
+      "value": 62423225211,
+      "data_type": "n",
+      "formula": "=+F11+F20",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B30",
+      "row": 30,
+      "col": 2,
+      "value": "Office Inventory",
+      "data_type": "s"
+    },
+    {
+      "addr": "C30",
+      "row": 30,
+      "col": 3,
+      "value": 7581348746,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D30",
+      "row": 30,
+      "col": 4,
+      "value": 8935366739.311922,
+      "data_type": "n",
+      "formula": "=+D12+D21",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E30",
+      "row": 30,
+      "col": 5,
+      "value": 14288443316.234543,
+      "data_type": "n",
+      "formula": "=+E12+E21",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F30",
+      "row": 30,
+      "col": 6,
+      "value": 35451698885.90874,
+      "data_type": "n",
+      "formula": "=+F12+F21",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B31",
+      "row": 31,
+      "col": 2,
+      "value": "Electrical",
+      "data_type": "s"
+    },
+    {
+      "addr": "C31",
+      "row": 31,
+      "col": 3,
+      "value": 6014871960,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D31",
+      "row": 31,
+      "col": 4,
+      "value": 6014871960,
+      "data_type": "n",
+      "formula": "=+D13+D22",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E31",
+      "row": 31,
+      "col": 5,
+      "value": 6014871960,
+      "data_type": "n",
+      "formula": "=+E13+E22",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F31",
+      "row": 31,
+      "col": 6,
+      "value": 6014871960,
+      "data_type": "n",
+      "formula": "=+F13+F22",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A32",
+      "row": 32,
+      "col": 1,
+      "value": "Total",
+      "data_type": "s"
+    },
+    {
+      "addr": "C32",
+      "row": 32,
+      "col": 3,
+      "value": 592030563430,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D32",
+      "row": 32,
+      "col": 4,
+      "value": 593454381423.3119,
+      "data_type": "n",
+      "formula": "=+D14+D23",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E32",
+      "row": 32,
+      "col": 5,
+      "value": 598877258000.2345,
+      "data_type": "n",
+      "formula": "=+E14+E23",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F32",
+      "row": 32,
+      "col": 6,
+      "value": 620110313569.9087,
+      "data_type": "n",
+      "formula": "=+F14+F23",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A34",
+      "row": 34,
+      "col": 1,
+      "value": "B. Depreciation",
+      "data_type": "s"
+    },
+    {
+      "addr": "A35",
+      "row": 35,
+      "col": 1,
+      "value": "Beginning",
+      "data_type": "s"
+    },
+    {
+      "addr": "B36",
+      "row": 36,
+      "col": 2,
+      "value": "Land",
+      "data_type": "s"
+    },
+    {
+      "addr": "C36",
+      "row": 36,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E36",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E36",
+      "row": 36,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=D54",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F36",
+      "row": 36,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=E54",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B37",
+      "row": 37,
+      "col": 2,
+      "value": "Building",
+      "data_type": "s"
+    },
+    {
+      "addr": "C37",
+      "row": 37,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E37",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D37",
+      "row": 37,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=C55",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E37",
+      "row": 37,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=D55",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F37",
+      "row": 37,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=E55",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B38",
+      "row": 38,
+      "col": 2,
+      "value": "Equipment, Laboratory, & Machinery",
+      "data_type": "s"
+    },
+    {
+      "addr": "C38",
+      "row": 38,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E38",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D38",
+      "row": 38,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=C56",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E38",
+      "row": 38,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=D56",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F38",
+      "row": 38,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=E56",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B39",
+      "row": 39,
+      "col": 2,
+      "value": "Vehicle & Heavy Equipment",
+      "data_type": "s"
+    },
+    {
+      "addr": "C39",
+      "row": 39,
+      "col": 3,
+      "value": 491220093,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E39",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D39",
+      "row": 39,
+      "col": 4,
+      "value": 586835382,
+      "data_type": "n",
+      "formula": "=C57",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E39",
+      "row": 39,
+      "col": 5,
+      "value": 660057603.1173875,
+      "data_type": "n",
+      "formula": "=D57",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F39",
+      "row": 39,
+      "col": 6,
+      "value": 716131205.1682436,
+      "data_type": "n",
+      "formula": "=E57",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B40",
+      "row": 40,
+      "col": 2,
+      "value": "Office Inventory",
+      "data_type": "s"
+    },
+    {
+      "addr": "C40",
+      "row": 40,
+      "col": 3,
+      "value": 74121018,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E40",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D40",
+      "row": 40,
+      "col": 4,
+      "value": 138478217,
+      "data_type": "n",
+      "formula": "=C58",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E40",
+      "row": 40,
+      "col": 5,
+      "value": 332964938.25161815,
+      "data_type": "n",
+      "formula": "=D58",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F40",
+      "row": 40,
+      "col": 6,
+      "value": 920701591.3524562,
+      "data_type": "n",
+      "formula": "=E58",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B41",
+      "row": 41,
+      "col": 2,
+      "value": "Electrical",
+      "data_type": "s"
+    },
+    {
+      "addr": "C41",
+      "row": 41,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E41",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D41",
+      "row": 41,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=C59",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E41",
+      "row": 41,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=D59",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F41",
+      "row": 41,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=E59",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A42",
+      "row": 42,
+      "col": 1,
+      "value": "Total",
+      "data_type": "s"
+    },
+    {
+      "addr": "C42",
+      "row": 42,
+      "col": 3,
+      "value": 303324750539,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D42",
+      "row": 42,
+      "col": 4,
+      "value": 725313599,
+      "data_type": "n",
+      "formula": "=SUM(D36:D41)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E42",
+      "row": 42,
+      "col": 5,
+      "value": 993022541.3690057,
+      "data_type": "n",
+      "formula": "=SUM(E36:E41)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F42",
+      "row": 42,
+      "col": 6,
+      "value": 1636832796.5207,
+      "data_type": "n",
+      "formula": "=SUM(F36:F41)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A44",
+      "row": 44,
+      "col": 1,
+      "value": "Additions",
+      "data_type": "s"
+    },
+    {
+      "addr": "B45",
+      "row": 45,
+      "col": 2,
+      "value": "Land",
+      "data_type": "s"
+    },
+    {
+      "addr": "C45",
+      "row": 45,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E45",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D45",
+      "row": 45,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=C45*(1+'FIXED ASSET'!$I45)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E45",
+      "row": 45,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=D45*(1+'FIXED ASSET'!$I45)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F45",
+      "row": 45,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=E45*(1+'FIXED ASSET'!$I45)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B46",
+      "row": 46,
+      "col": 2,
+      "value": "Building",
+      "data_type": "s"
+    },
+    {
+      "addr": "C46",
+      "row": 46,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E46",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D46",
+      "row": 46,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=C46*(1+'FIXED ASSET'!$I46)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E46",
+      "row": 46,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=D46*(1+'FIXED ASSET'!$I46)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F46",
+      "row": 46,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=E46*(1+'FIXED ASSET'!$I46)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B47",
+      "row": 47,
+      "col": 2,
+      "value": "Equipment, Laboratory, & Machinery",
+      "data_type": "s"
+    },
+    {
+      "addr": "C47",
+      "row": 47,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E47",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D47",
+      "row": 47,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=C47*(1+'FIXED ASSET'!$I47)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E47",
+      "row": 47,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=D47*(1+'FIXED ASSET'!$I47)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F47",
+      "row": 47,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=E47*(1+'FIXED ASSET'!$I47)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B48",
+      "row": 48,
+      "col": 2,
+      "value": "Vehicle & Heavy Equipment",
+      "data_type": "s"
+    },
+    {
+      "addr": "C48",
+      "row": 48,
+      "col": 3,
+      "value": 95615289,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E48",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D48",
+      "row": 48,
+      "col": 4,
+      "value": 73222221.11738756,
+      "data_type": "n",
+      "formula": "=C48*(1+'FIXED ASSET'!$I48)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E48",
+      "row": 48,
+      "col": 5,
+      "value": 56073602.05085609,
+      "data_type": "n",
+      "formula": "=D48*(1+'FIXED ASSET'!$I48)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F48",
+      "row": 48,
+      "col": 6,
+      "value": 42941183.68680747,
+      "data_type": "n",
+      "formula": "=E48*(1+'FIXED ASSET'!$I48)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B49",
+      "row": 49,
+      "col": 2,
+      "value": "Office Inventory",
+      "data_type": "s"
+    },
+    {
+      "addr": "C49",
+      "row": 49,
+      "col": 3,
+      "value": 64357199,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E49",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D49",
+      "row": 49,
+      "col": 4,
+      "value": 194486721.25161812,
+      "data_type": "n",
+      "formula": "=C49*(1+'FIXED ASSET'!$I49)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E49",
+      "row": 49,
+      "col": 5,
+      "value": 587736653.1008381,
+      "data_type": "n",
+      "formula": "=D49*(1+'FIXED ASSET'!$I49)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F49",
+      "row": 49,
+      "col": 6,
+      "value": 1776133461.3239098,
+      "data_type": "n",
+      "formula": "=E49*(1+'FIXED ASSET'!$I49)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B50",
+      "row": 50,
+      "col": 2,
+      "value": "Electrical",
+      "data_type": "s"
+    },
+    {
+      "addr": "C50",
+      "row": 50,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E50",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D50",
+      "row": 50,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=C50*(1+'FIXED ASSET'!$I50)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E50",
+      "row": 50,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=D50*(1+'FIXED ASSET'!$I50)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F50",
+      "row": 50,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=E50*(1+'FIXED ASSET'!$I50)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A51",
+      "row": 51,
+      "col": 1,
+      "value": "Total",
+      "data_type": "s"
+    },
+    {
+      "addr": "C51",
+      "row": 51,
+      "col": 3,
+      "value": 30135944850,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D51",
+      "row": 51,
+      "col": 4,
+      "value": 267708942.36900568,
+      "data_type": "n",
+      "formula": "=SUM(D45:D50)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E51",
+      "row": 51,
+      "col": 5,
+      "value": 643810255.1516942,
+      "data_type": "n",
+      "formula": "=SUM(E45:E50)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F51",
+      "row": 51,
+      "col": 6,
+      "value": 1819074645.0107172,
+      "data_type": "n",
+      "formula": "=SUM(F45:F50)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "C52",
+      "row": 52,
+      "col": 3,
+      "value": -0.008494344820965914,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E52",
+      "number_format": "0%"
+    },
+    {
+      "addr": "D52",
+      "row": 52,
+      "col": 4,
+      "value": -0.9911166235636044,
+      "data_type": "n",
+      "formula": "=(D51-C51)/C51",
+      "number_format": "0%"
+    },
+    {
+      "addr": "E52",
+      "row": 52,
+      "col": 5,
+      "value": 1.4048888671947182,
+      "data_type": "n",
+      "formula": "=(E51-D51)/D51",
+      "number_format": "0%"
+    },
+    {
+      "addr": "F52",
+      "row": 52,
+      "col": 6,
+      "value": 1.825482555542872,
+      "data_type": "n",
+      "formula": "=(F51-E51)/E51",
+      "number_format": "0%"
+    },
+    {
+      "addr": "A53",
+      "row": 53,
+      "col": 1,
+      "value": "Ending",
+      "data_type": "s"
+    },
+    {
+      "addr": "B54",
+      "row": 54,
+      "col": 2,
+      "value": "Land",
+      "data_type": "s"
+    },
+    {
+      "addr": "C54",
+      "row": 54,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E54",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D54",
+      "row": 54,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=+D36+D45",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E54",
+      "row": 54,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=+E36+E45",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F54",
+      "row": 54,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=+F36+F45",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B55",
+      "row": 55,
+      "col": 2,
+      "value": "Building",
+      "data_type": "s"
+    },
+    {
+      "addr": "C55",
+      "row": 55,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E55",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D55",
+      "row": 55,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=+D37+D46",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E55",
+      "row": 55,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=+E37+E46",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F55",
+      "row": 55,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=+F37+F46",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B56",
+      "row": 56,
+      "col": 2,
+      "value": "Equipment, Laboratory, & Machinery",
+      "data_type": "s"
+    },
+    {
+      "addr": "C56",
+      "row": 56,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E56",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D56",
+      "row": 56,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=+D38+D47",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E56",
+      "row": 56,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=+E38+E47",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F56",
+      "row": 56,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=+F38+F47",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B57",
+      "row": 57,
+      "col": 2,
+      "value": "Vehicle & Heavy Equipment",
+      "data_type": "s"
+    },
+    {
+      "addr": "C57",
+      "row": 57,
+      "col": 3,
+      "value": 586835382,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E57",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D57",
+      "row": 57,
+      "col": 4,
+      "value": 660057603.1173875,
+      "data_type": "n",
+      "formula": "=+D39+D48",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E57",
+      "row": 57,
+      "col": 5,
+      "value": 716131205.1682436,
+      "data_type": "n",
+      "formula": "=+E39+E48",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F57",
+      "row": 57,
+      "col": 6,
+      "value": 759072388.8550512,
+      "data_type": "n",
+      "formula": "=+F39+F48",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B58",
+      "row": 58,
+      "col": 2,
+      "value": "Office Inventory",
+      "data_type": "s"
+    },
+    {
+      "addr": "C58",
+      "row": 58,
+      "col": 3,
+      "value": 138478217,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E58",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D58",
+      "row": 58,
+      "col": 4,
+      "value": 332964938.25161815,
+      "data_type": "n",
+      "formula": "=+D40+D49",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E58",
+      "row": 58,
+      "col": 5,
+      "value": 920701591.3524562,
+      "data_type": "n",
+      "formula": "=+E40+E49",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F58",
+      "row": 58,
+      "col": 6,
+      "value": 2696835052.676366,
+      "data_type": "n",
+      "formula": "=+F40+F49",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B59",
+      "row": 59,
+      "col": 2,
+      "value": "Electrical",
+      "data_type": "s"
+    },
+    {
+      "addr": "C59",
+      "row": 59,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E59",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D59",
+      "row": 59,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=+D41+D50",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E59",
+      "row": 59,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=+E41+E50",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F59",
+      "row": 59,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=+F41+F50",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A60",
+      "row": 60,
+      "col": 1,
+      "value": "Total",
+      "data_type": "s"
+    },
+    {
+      "addr": "C60",
+      "row": 60,
+      "col": 3,
+      "value": 333460695389,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D60",
+      "row": 60,
+      "col": 4,
+      "value": 993022541.3690057,
+      "data_type": "n",
+      "formula": "=+D42+D51",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E60",
+      "row": 60,
+      "col": 5,
+      "value": 1636832796.5207,
+      "data_type": "n",
+      "formula": "=+E42+E51",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F60",
+      "row": 60,
+      "col": 6,
+      "value": 3455907441.531417,
+      "data_type": "n",
+      "formula": "=+F42+F51",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A62",
+      "row": 62,
+      "col": 1,
+      "value": "Net Value Fixed Assets",
+      "data_type": "s"
+    },
+    {
+      "addr": "B63",
+      "row": 63,
+      "col": 2,
+      "value": "Land",
+      "data_type": "s"
+    },
+    {
+      "addr": "C63",
+      "row": 63,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E63",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D63",
+      "row": 63,
+      "col": 4,
+      "value": 105632336296,
+      "data_type": "n",
+      "formula": "=+D26-D54",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E63",
+      "row": 63,
+      "col": 5,
+      "value": 105632336296,
+      "data_type": "n",
+      "formula": "=+E26-E54",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F63",
+      "row": 63,
+      "col": 6,
+      "value": 105632336296,
+      "data_type": "n",
+      "formula": "=+F26-F54",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B64",
+      "row": 64,
+      "col": 2,
+      "value": "Building",
+      "data_type": "s"
+    },
+    {
+      "addr": "C64",
+      "row": 64,
+      "col": 3,
+      "value": 4947437500,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E64",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D64",
+      "row": 64,
+      "col": 4,
+      "value": 163209838554,
+      "data_type": "n",
+      "formula": "=+D27-D55",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E64",
+      "row": 64,
+      "col": 5,
+      "value": 163209838554,
+      "data_type": "n",
+      "formula": "=+E27-E55",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F64",
+      "row": 64,
+      "col": 6,
+      "value": 163209838554,
+      "data_type": "n",
+      "formula": "=+F27-F55",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B65",
+      "row": 65,
+      "col": 2,
+      "value": "Equipment, Laboratory, & Machinery",
+      "data_type": "s"
+    },
+    {
+      "addr": "C65",
+      "row": 65,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E65",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D65",
+      "row": 65,
+      "col": 4,
+      "value": 247378342663,
+      "data_type": "n",
+      "formula": "=+D28-D56",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E65",
+      "row": 65,
+      "col": 5,
+      "value": 247378342663,
+      "data_type": "n",
+      "formula": "=+E28-E56",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F65",
+      "row": 65,
+      "col": 6,
+      "value": 247378342663,
+      "data_type": "n",
+      "formula": "=+F28-F56",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B66",
+      "row": 66,
+      "col": 2,
+      "value": "Vehicle & Heavy Equipment",
+      "data_type": "s"
+    },
+    {
+      "addr": "C66",
+      "row": 66,
+      "col": 3,
+      "value": 972964618,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E66",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D66",
+      "row": 66,
+      "col": 4,
+      "value": 61623567607.882614,
+      "data_type": "n",
+      "formula": "=+D29-D57",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E66",
+      "row": 66,
+      "col": 5,
+      "value": 61637294005.83176,
+      "data_type": "n",
+      "formula": "=+E29-E57",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F66",
+      "row": 66,
+      "col": 6,
+      "value": 61664152822.14495,
+      "data_type": "n",
+      "formula": "=+F29-F57",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B67",
+      "row": 67,
+      "col": 2,
+      "value": "Office Inventory",
+      "data_type": "s"
+    },
+    {
+      "addr": "C67",
+      "row": 67,
+      "col": 3,
+      "value": 343937827,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E67",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D67",
+      "row": 67,
+      "col": 4,
+      "value": 8602401801.060305,
+      "data_type": "n",
+      "formula": "=+D30-D58",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E67",
+      "row": 67,
+      "col": 5,
+      "value": 13367741724.882086,
+      "data_type": "n",
+      "formula": "=+E30-E58",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F67",
+      "row": 67,
+      "col": 6,
+      "value": 32754863833.232372,
+      "data_type": "n",
+      "formula": "=+F30-F58",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B68",
+      "row": 68,
+      "col": 2,
+      "value": "Electrical",
+      "data_type": "s"
+    },
+    {
+      "addr": "C68",
+      "row": 68,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E68",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D68",
+      "row": 68,
+      "col": 4,
+      "value": 6014871960,
+      "data_type": "n",
+      "formula": "=+D31-D59",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E68",
+      "row": 68,
+      "col": 5,
+      "value": 6014871960,
+      "data_type": "n",
+      "formula": "=+E31-E59",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F68",
+      "row": 68,
+      "col": 6,
+      "value": 6014871960,
+      "data_type": "n",
+      "formula": "=+F31-F59",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A69",
+      "row": 69,
+      "col": 1,
+      "value": "Total",
+      "data_type": "s"
+    },
+    {
+      "addr": "C69",
+      "row": 69,
+      "col": 3,
+      "value": 258569868041,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D69",
+      "row": 69,
+      "col": 4,
+      "value": 592461358881.9429,
+      "data_type": "n",
+      "formula": "=SUM(D63:D68)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E69",
+      "row": 69,
+      "col": 5,
+      "value": 597240425203.7139,
+      "data_type": "n",
+      "formula": "=SUM(E63:E68)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F69",
+      "row": 69,
+      "col": 6,
+      "value": 616654406128.3773,
+      "data_type": "n",
+      "formula": "=SUM(F63:F68)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    }
+  ],
+  "required_hidden": false
+}

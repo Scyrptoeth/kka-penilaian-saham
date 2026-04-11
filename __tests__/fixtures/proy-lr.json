@@ -1,0 +1,1129 @@
+{
+  "name": "PROY LR",
+  "slug": "proy-lr",
+  "visible": true,
+  "dimensions": {
+    "max_row": 40,
+    "max_col": 13,
+    "max_col_letter": "M"
+  },
+  "merged_ranges": [],
+  "cells": [
+    {
+      "addr": "E1",
+      "row": 1,
+      "col": 5,
+      "value": "Laporan Proyeksi Laba Rugi",
+      "data_type": "s"
+    },
+    {
+      "addr": "A2",
+      "row": 2,
+      "col": 1,
+      "value": "PT RAJA VOLTAMA ELEKTRIK",
+      "data_type": "s",
+      "formula": "=HOME!B4"
+    },
+    {
+      "addr": "A3",
+      "row": 3,
+      "col": 1,
+      "value": "Income Statement",
+      "data_type": "s"
+    },
+    {
+      "addr": "A4",
+      "row": 4,
+      "col": 1,
+      "value": "(IDR)",
+      "data_type": "s",
+      "formula": "='BALANCE SHEET'!A3"
+    },
+    {
+      "addr": "D4",
+      "row": 4,
+      "col": 4,
+      "value": 5,
+      "data_type": "n"
+    },
+    {
+      "addr": "E4",
+      "row": 4,
+      "col": 5,
+      "value": 6,
+      "data_type": "n"
+    },
+    {
+      "addr": "F4",
+      "row": 4,
+      "col": 6,
+      "value": 7,
+      "data_type": "n"
+    },
+    {
+      "addr": "C6",
+      "row": 6,
+      "col": 3,
+      "value": 2021,
+      "data_type": "n",
+      "formula": "='PROY BALANCE SHEET'!C5"
+    },
+    {
+      "addr": "D6",
+      "row": 6,
+      "col": 4,
+      "value": 2022,
+      "data_type": "n",
+      "formula": "='PROY BALANCE SHEET'!D5"
+    },
+    {
+      "addr": "E6",
+      "row": 6,
+      "col": 5,
+      "value": 2023,
+      "data_type": "n",
+      "formula": "='PROY BALANCE SHEET'!E5"
+    },
+    {
+      "addr": "F6",
+      "row": 6,
+      "col": 6,
+      "value": 2024,
+      "data_type": "n",
+      "formula": "='PROY BALANCE SHEET'!F5"
+    },
+    {
+      "addr": "M7",
+      "row": 7,
+      "col": 13,
+      "value": "diisi sesuai proyeksi penilai",
+      "data_type": "s"
+    },
+    {
+      "addr": "A8",
+      "row": 8,
+      "col": 1,
+      "value": "Revenue",
+      "data_type": "s"
+    },
+    {
+      "addr": "C8",
+      "row": 8,
+      "col": 3,
+      "value": 61039612496,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!F6",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D8",
+      "row": 8,
+      "col": 4,
+      "value": 75106435974.33751,
+      "data_type": "n",
+      "formula": "=C8*(1+$C$9)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E8",
+      "row": 8,
+      "col": 5,
+      "value": 92415015333.47578,
+      "data_type": "n",
+      "formula": "=D8*(1+$C$9)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F8",
+      "row": 8,
+      "col": 6,
+      "value": 113712426216.10628,
+      "data_type": "n",
+      "formula": "=E8*(1+$C$9)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "K8",
+      "row": 8,
+      "col": 11,
+      "value": "'-1e+07x + 9e+07",
+      "data_type": "s"
+    },
+    {
+      "addr": "A9",
+      "row": 9,
+      "col": 1,
+      "value": "Revenue Growth",
+      "data_type": "s"
+    },
+    {
+      "addr": "C9",
+      "row": 9,
+      "col": 3,
+      "value": 0.23045401016035838,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!K6",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "D9",
+      "row": 9,
+      "col": 4,
+      "value": 0.23045401016035816,
+      "data_type": "n",
+      "formula": "=(D8-C8)/C8",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "E9",
+      "row": 9,
+      "col": 5,
+      "value": 0.23045401016035827,
+      "data_type": "n",
+      "formula": "=(E8-D8)/D8",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "F9",
+      "row": 9,
+      "col": 6,
+      "value": 0.23045401016035827,
+      "data_type": "n",
+      "formula": "=(F8-E8)/E8",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "A10",
+      "row": 10,
+      "col": 1,
+      "value": "Cost of Good Sold",
+      "data_type": "s"
+    },
+    {
+      "addr": "C10",
+      "row": 10,
+      "col": 3,
+      "value": -26008410685,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!F7",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D10",
+      "row": 10,
+      "col": 4,
+      "value": -41517664017.671,
+      "data_type": "n",
+      "formula": "=ROUNDUP('KEY DRIVERS'!D20*D8,3)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E10",
+      "row": 10,
+      "col": 5,
+      "value": -51085576183.034,
+      "data_type": "n",
+      "formula": "=ROUNDUP('KEY DRIVERS'!E20*E8,3)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F10",
+      "row": 10,
+      "col": 6,
+      "value": -62858452075.767,
+      "data_type": "n",
+      "formula": "=ROUNDUP('KEY DRIVERS'!F20*F8,3)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A11",
+      "row": 11,
+      "col": 1,
+      "value": "Gross Profit",
+      "data_type": "s"
+    },
+    {
+      "addr": "C11",
+      "row": 11,
+      "col": 3,
+      "value": 35031201811,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!F8",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D11",
+      "row": 11,
+      "col": 4,
+      "value": 33588771956.66651,
+      "data_type": "n",
+      "formula": "=+D8+D10",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E11",
+      "row": 11,
+      "col": 5,
+      "value": 41329439150.44179,
+      "data_type": "n",
+      "formula": "=+E8+E10",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F11",
+      "row": 11,
+      "col": 6,
+      "value": 50853974140.33928,
+      "data_type": "n",
+      "formula": "=+F8+F10",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B12",
+      "row": 12,
+      "col": 2,
+      "value": "Gross Profit Margin",
+      "data_type": "s"
+    },
+    {
+      "addr": "C12",
+      "row": 12,
+      "col": 3,
+      "value": 0.5739093087017162,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!F9",
+      "number_format": "0%"
+    },
+    {
+      "addr": "D12",
+      "row": 12,
+      "col": 4,
+      "value": 0.4472156283403353,
+      "data_type": "n",
+      "formula": "=+D11/D8",
+      "number_format": "0%"
+    },
+    {
+      "addr": "E12",
+      "row": 12,
+      "col": 5,
+      "value": 0.44721562834033196,
+      "data_type": "n",
+      "formula": "=+E11/E8",
+      "number_format": "0%"
+    },
+    {
+      "addr": "F12",
+      "row": 12,
+      "col": 6,
+      "value": 0.4472156283403291,
+      "data_type": "n",
+      "formula": "=+F11/F8",
+      "number_format": "0%"
+    },
+    {
+      "addr": "A14",
+      "row": 14,
+      "col": 1,
+      "value": "Operating Expenses:",
+      "data_type": "s"
+    },
+    {
+      "addr": "B15",
+      "row": 15,
+      "col": 2,
+      "value": "Others",
+      "data_type": "s"
+    },
+    {
+      "addr": "C15",
+      "row": 15,
+      "col": 3,
+      "value": -20131113884,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!F12",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D15",
+      "row": 15,
+      "col": 4,
+      "value": -16065495848.675655,
+      "data_type": "n",
+      "formula": "=D8*'KEY DRIVERS'!D23",
+      "number_format": "_(* #,##0.00_);_(* \\(#,##0.00\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E15",
+      "row": 15,
+      "col": 5,
+      "value": -19767853792.21755,
+      "data_type": "n",
+      "formula": "=E8*'KEY DRIVERS'!E23",
+      "number_format": "_(* #,##0.00_);_(* \\(#,##0.00\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F15",
+      "row": 15,
+      "col": 6,
+      "value": -24323434970.897728,
+      "data_type": "n",
+      "formula": "=F8*'KEY DRIVERS'!F23",
+      "number_format": "_(* #,##0.00_);_(* \\(#,##0.00\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "B16",
+      "row": 16,
+      "col": 2,
+      "value": "General & Administrative Overheads",
+      "data_type": "s"
+    },
+    {
+      "addr": "C16",
+      "row": 16,
+      "col": 3,
+      "value": -7406641195,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!F13",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D16",
+      "row": 16,
+      "col": 4,
+      "value": -8838175458.246191,
+      "data_type": "n",
+      "formula": "=D8*'KEY DRIVERS'!D24",
+      "number_format": "_(* #,##0.00_);_(* \\(#,##0.00\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E16",
+      "row": 16,
+      "col": 5,
+      "value": -10874968435.099888,
+      "data_type": "n",
+      "formula": "=E8*'KEY DRIVERS'!E24",
+      "number_format": "_(* #,##0.00_);_(* \\(#,##0.00\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F16",
+      "row": 16,
+      "col": 6,
+      "value": -13381148521.335972,
+      "data_type": "n",
+      "formula": "=F8*'KEY DRIVERS'!F24",
+      "number_format": "_(* #,##0.00_);_(* \\(#,##0.00\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A17",
+      "row": 17,
+      "col": 1,
+      "value": "Operating Expenses (Exclude Depreciation)",
+      "data_type": "s"
+    },
+    {
+      "addr": "C17",
+      "row": 17,
+      "col": 3,
+      "value": -27537755079,
+      "data_type": "n",
+      "formula": "=SUM(C15:C16)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D17",
+      "row": 17,
+      "col": 4,
+      "value": -24903671306.921844,
+      "data_type": "n",
+      "formula": "=SUM(D15:D16)",
+      "number_format": "_(* #,##0.00_);_(* \\(#,##0.00\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E17",
+      "row": 17,
+      "col": 5,
+      "value": -30642822227.317436,
+      "data_type": "n",
+      "formula": "=SUM(E15:E16)",
+      "number_format": "_(* #,##0.00_);_(* \\(#,##0.00\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F17",
+      "row": 17,
+      "col": 6,
+      "value": -37704583492.2337,
+      "data_type": "n",
+      "formula": "=SUM(F15:F16)",
+      "number_format": "_(* #,##0.00_);_(* \\(#,##0.00\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A19",
+      "row": 19,
+      "col": 1,
+      "value": "EBITDA",
+      "data_type": "s"
+    },
+    {
+      "addr": "C19",
+      "row": 19,
+      "col": 3,
+      "value": 7493446732,
+      "data_type": "n",
+      "formula": "=C11+C17",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D19",
+      "row": 19,
+      "col": 4,
+      "value": 8685100649.744667,
+      "data_type": "n",
+      "formula": "=D11+D17",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E19",
+      "row": 19,
+      "col": 5,
+      "value": 10686616923.124352,
+      "data_type": "n",
+      "formula": "=E11+E17",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F19",
+      "row": 19,
+      "col": 6,
+      "value": 13149390648.105576,
+      "data_type": "n",
+      "formula": "=F11+F17",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "C20",
+      "row": 20,
+      "col": 3,
+      "value": 0.12276366814240595,
+      "data_type": "n",
+      "formula": "=C19/C8",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "D20",
+      "row": 20,
+      "col": 4,
+      "value": 0.11563723583838018,
+      "data_type": "n",
+      "formula": "=D19/D8",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "E20",
+      "row": 20,
+      "col": 5,
+      "value": 0.11563723583837685,
+      "data_type": "n",
+      "formula": "=E19/E8",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "F20",
+      "row": 20,
+      "col": 6,
+      "value": 0.11563723583837393,
+      "data_type": "n",
+      "formula": "=F19/F8",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "A22",
+      "row": 22,
+      "col": 1,
+      "value": "Depreciation",
+      "data_type": "s"
+    },
+    {
+      "addr": "C22",
+      "row": 22,
+      "col": 3,
+      "value": -159972488,
+      "data_type": "n",
+      "formula": "='FIXED ASSET'!E51*-1",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D22",
+      "row": 22,
+      "col": 4,
+      "value": -267708942.36900568,
+      "data_type": "n",
+      "formula": "='PROY FIXED ASSETS'!D51*-1",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E22",
+      "row": 22,
+      "col": 5,
+      "value": -643810255.1516942,
+      "data_type": "n",
+      "formula": "='PROY FIXED ASSETS'!E51*-1",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F22",
+      "row": 22,
+      "col": 6,
+      "value": -1819074645.0107172,
+      "data_type": "n",
+      "formula": "='PROY FIXED ASSETS'!F51*-1",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A23",
+      "row": 23,
+      "col": 1,
+      "value": "Depreciation Growth",
+      "data_type": "s"
+    },
+    {
+      "addr": "A25",
+      "row": 25,
+      "col": 1,
+      "value": "EBIT",
+      "data_type": "s"
+    },
+    {
+      "addr": "C25",
+      "row": 25,
+      "col": 3,
+      "value": 5874471249,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!D22",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D25",
+      "row": 25,
+      "col": 4,
+      "value": 8417391707.375662,
+      "data_type": "n",
+      "formula": "=D19+D22",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E25",
+      "row": 25,
+      "col": 5,
+      "value": 10042806667.972658,
+      "data_type": "n",
+      "formula": "=E19+E22",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F25",
+      "row": 25,
+      "col": 6,
+      "value": 11330316003.094858,
+      "data_type": "n",
+      "formula": "=F19+F22",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A26",
+      "row": 26,
+      "col": 1,
+      "value": "EBIT Margin",
+      "data_type": "s"
+    },
+    {
+      "addr": "C26",
+      "row": 26,
+      "col": 3,
+      "value": 0.11273237050905723,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!D23",
+      "number_format": "0%"
+    },
+    {
+      "addr": "D26",
+      "row": 26,
+      "col": 4,
+      "value": 0.11207284167034275,
+      "data_type": "n",
+      "formula": "=D25/D8",
+      "number_format": "0%"
+    },
+    {
+      "addr": "E26",
+      "row": 26,
+      "col": 5,
+      "value": 0.10867072446759439,
+      "data_type": "n",
+      "formula": "=E25/E8",
+      "number_format": "0%"
+    },
+    {
+      "addr": "F26",
+      "row": 26,
+      "col": 6,
+      "value": 0.09964008666530437,
+      "data_type": "n",
+      "formula": "=F25/F8",
+      "number_format": "0%"
+    },
+    {
+      "addr": "A28",
+      "row": 28,
+      "col": 1,
+      "value": "Other Income/(Charge)",
+      "data_type": "s"
+    },
+    {
+      "addr": "A29",
+      "row": 29,
+      "col": 1,
+      "value": "Interest Income",
+      "data_type": "s"
+    },
+    {
+      "addr": "C29",
+      "row": 29,
+      "col": 3,
+      "value": 105200220,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!F26"
+    },
+    {
+      "addr": "D29",
+      "row": 29,
+      "col": 4,
+      "value": 105347465.88305867,
+      "data_type": "n",
+      "formula": "=C29*(1+'INCOME STATEMENT'!$K26)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E29",
+      "row": 29,
+      "col": 5,
+      "value": 105494917.86216997,
+      "data_type": "n",
+      "formula": "=D29*(1+'INCOME STATEMENT'!$K26)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F29",
+      "row": 29,
+      "col": 6,
+      "value": 105642576.22580093,
+      "data_type": "n",
+      "formula": "=E29*(1+'INCOME STATEMENT'!$K26)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A30",
+      "row": 30,
+      "col": 1,
+      "value": "Interest Income Growth",
+      "data_type": "s"
+    },
+    {
+      "addr": "C30",
+      "row": 30,
+      "col": 3,
+      "value": -0.2838606273979089,
+      "data_type": "n",
+      "formula": "=('INCOME STATEMENT'!F26-'INCOME STATEMENT'!E26)/'INCOME STATEMENT'!E26",
+      "number_format": "0%"
+    },
+    {
+      "addr": "D30",
+      "row": 30,
+      "col": 4,
+      "value": 0.0013996727674016954,
+      "data_type": "n",
+      "formula": "=(D29-C29)/C29",
+      "number_format": "0%"
+    },
+    {
+      "addr": "E30",
+      "row": 30,
+      "col": 5,
+      "value": 0.0013996727674017192,
+      "data_type": "n",
+      "formula": "=(E29-D29)/D29",
+      "number_format": "0%"
+    },
+    {
+      "addr": "F30",
+      "row": 30,
+      "col": 6,
+      "value": 0.0013996727674017652,
+      "data_type": "n",
+      "formula": "=(F29-E29)/E29",
+      "number_format": "0%"
+    },
+    {
+      "addr": "A31",
+      "row": 31,
+      "col": 1,
+      "value": "Interest Expense",
+      "data_type": "s"
+    },
+    {
+      "addr": "C31",
+      "row": 31,
+      "col": 3,
+      "value": -19483450,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!F27",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D31",
+      "row": 31,
+      "col": 4,
+      "value": -19478161.527636457,
+      "data_type": "n",
+      "formula": "=C31*(1+'INCOME STATEMENT'!$K27)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E31",
+      "row": 31,
+      "col": 5,
+      "value": -19472874.490744554,
+      "data_type": "n",
+      "formula": "=D31*(1+'INCOME STATEMENT'!$K27)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F31",
+      "row": 31,
+      "col": 6,
+      "value": -19467588.888934657,
+      "data_type": "n",
+      "formula": "=E31*(1+'INCOME STATEMENT'!$K27)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A32",
+      "row": 32,
+      "col": 1,
+      "value": "Interest Expense Growth",
+      "data_type": "s"
+    },
+    {
+      "addr": "C32",
+      "row": 32,
+      "col": 3,
+      "value": -0.3368423184421005,
+      "data_type": "n",
+      "formula": "=('INCOME STATEMENT'!F27-'INCOME STATEMENT'!E27)/'INCOME STATEMENT'!E27",
+      "number_format": "0%"
+    },
+    {
+      "addr": "D32",
+      "row": 32,
+      "col": 4,
+      "value": -0.0002714340819281372,
+      "data_type": "n",
+      "formula": "=(D31-C31)/C31",
+      "number_format": "0%"
+    },
+    {
+      "addr": "E32",
+      "row": 32,
+      "col": 5,
+      "value": -0.00027143408192822774,
+      "data_type": "n",
+      "formula": "=(E31-D31)/D31",
+      "number_format": "0%"
+    },
+    {
+      "addr": "F32",
+      "row": 32,
+      "col": 6,
+      "value": -0.00027143408192810837,
+      "data_type": "n",
+      "formula": "=(F31-E31)/E31",
+      "number_format": "0%"
+    },
+    {
+      "addr": "A33",
+      "row": 33,
+      "col": 1,
+      "value": "Other Income/(Charge)",
+      "data_type": "s"
+    },
+    {
+      "addr": "C33",
+      "row": 33,
+      "col": 3,
+      "value": 85716770,
+      "data_type": "n",
+      "formula": "=C29+C31",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D33",
+      "row": 33,
+      "col": 4,
+      "value": 85869304.35542221,
+      "data_type": "n",
+      "formula": "=D29+D31",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E33",
+      "row": 33,
+      "col": 5,
+      "value": 86022043.37142542,
+      "data_type": "n",
+      "formula": "=E29+E31",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F33",
+      "row": 33,
+      "col": 6,
+      "value": 86174987.33686627,
+      "data_type": "n",
+      "formula": "=F29+F31",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A34",
+      "row": 34,
+      "col": 1,
+      "value": "Non Operating Income",
+      "data_type": "s"
+    },
+    {
+      "addr": "C34",
+      "row": 34,
+      "col": 3,
+      "value": 0,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!F30",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D34",
+      "row": 34,
+      "col": 4,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=C34*(1+'INCOME STATEMENT'!$K30)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E34",
+      "row": 34,
+      "col": 5,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=D34*(1+'INCOME STATEMENT'!$K30)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F34",
+      "row": 34,
+      "col": 6,
+      "value": 0,
+      "data_type": "n",
+      "formula": "=E34*(1+'INCOME STATEMENT'!$K30)",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A36",
+      "row": 36,
+      "col": 1,
+      "value": "Profit Before Tax",
+      "data_type": "s"
+    },
+    {
+      "addr": "C36",
+      "row": 36,
+      "col": 3,
+      "value": 5960188019,
+      "data_type": "n",
+      "formula": "=C25+C33+C34",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D36",
+      "row": 36,
+      "col": 4,
+      "value": 8503261011.731084,
+      "data_type": "n",
+      "formula": "=D25+D33+D34",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E36",
+      "row": 36,
+      "col": 5,
+      "value": 10128828711.344084,
+      "data_type": "n",
+      "formula": "=E25+E33+E34",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F36",
+      "row": 36,
+      "col": 6,
+      "value": 11416490990.431725,
+      "data_type": "n",
+      "formula": "=F25+F33+F34",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A37",
+      "row": 37,
+      "col": 1,
+      "value": "Corporate Tax",
+      "data_type": "s"
+    },
+    {
+      "addr": "B37",
+      "row": 37,
+      "col": 2,
+      "value": 0.22,
+      "data_type": "n",
+      "formula": "='KEY DRIVERS'!C11",
+      "number_format": "0%"
+    },
+    {
+      "addr": "C37",
+      "row": 37,
+      "col": 3,
+      "value": -1613364280,
+      "data_type": "n",
+      "formula": "='INCOME STATEMENT'!F33",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D37",
+      "row": 37,
+      "col": 4,
+      "value": -1870717422.5808384,
+      "data_type": "n",
+      "formula": "=$B$37*D36*-1",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E37",
+      "row": 37,
+      "col": 5,
+      "value": -2228342316.4956985,
+      "data_type": "n",
+      "formula": "=$B$37*E36*-1",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F37",
+      "row": 37,
+      "col": 6,
+      "value": -2511628017.8949795,
+      "data_type": "n",
+      "formula": "=$B$37*F36*-1",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A39",
+      "row": 39,
+      "col": 1,
+      "value": "Net Profit After Tax",
+      "data_type": "s"
+    },
+    {
+      "addr": "B39",
+      "row": 39,
+      "col": 2,
+      "value": "NOPLAT",
+      "data_type": "s"
+    },
+    {
+      "addr": "C39",
+      "row": 39,
+      "col": 3,
+      "value": 4346823739,
+      "data_type": "n",
+      "formula": "=C36+C37",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "D39",
+      "row": 39,
+      "col": 4,
+      "value": 6632543589.150246,
+      "data_type": "n",
+      "formula": "=D36+D37",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "E39",
+      "row": 39,
+      "col": 5,
+      "value": 7900486394.848385,
+      "data_type": "n",
+      "formula": "=E36+E37",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "F39",
+      "row": 39,
+      "col": 6,
+      "value": 8904862972.536745,
+      "data_type": "n",
+      "formula": "=F36+F37",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A40",
+      "row": 40,
+      "col": 1,
+      "value": "Net Profit After Tax Margin",
+      "data_type": "s"
+    },
+    {
+      "addr": "C40",
+      "row": 40,
+      "col": 3,
+      "value": 0.07121316078611824,
+      "data_type": "n",
+      "formula": "=C39/C8",
+      "number_format": "0%"
+    },
+    {
+      "addr": "D40",
+      "row": 40,
+      "col": 4,
+      "value": 0.08830859170865815,
+      "data_type": "n",
+      "formula": "=D39/D8",
+      "number_format": "0%"
+    },
+    {
+      "addr": "E40",
+      "row": 40,
+      "col": 5,
+      "value": 0.08548920720664066,
+      "data_type": "n",
+      "formula": "=E39/E8",
+      "number_format": "0%"
+    },
+    {
+      "addr": "F40",
+      "row": 40,
+      "col": 6,
+      "value": 0.07831037705249012,
+      "data_type": "n",
+      "formula": "=F39/F8",
+      "number_format": "0%"
+    }
+  ],
+  "required_hidden": false
+}

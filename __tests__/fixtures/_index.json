@@ -1,0 +1,448 @@
+{
+  "source": "kka-penilaian-saham.xlsx",
+  "sheet_count": 34,
+  "sheets": [
+    {
+      "name": "HOME",
+      "slug": "home",
+      "visible": true,
+      "required_hidden": false,
+      "dimensions": {
+        "max_row": 33,
+        "max_col": 5,
+        "max_col_letter": "E"
+      },
+      "cell_count": 30,
+      "file": "home.json"
+    },
+    {
+      "name": "BALANCE SHEET",
+      "slug": "balance-sheet",
+      "visible": true,
+      "required_hidden": false,
+      "dimensions": {
+        "max_row": 69,
+        "max_col": 17,
+        "max_col_letter": "Q"
+      },
+      "cell_count": 357,
+      "file": "balance-sheet.json"
+    },
+    {
+      "name": "INCOME STATEMENT",
+      "slug": "income-statement",
+      "visible": true,
+      "required_hidden": false,
+      "dimensions": {
+        "max_row": 38,
+        "max_col": 16,
+        "max_col_letter": "P"
+      },
+      "cell_count": 228,
+      "file": "income-statement.json"
+    },
+    {
+      "name": "CASH FLOW STATEMENT",
+      "slug": "cash-flow-statement",
+      "visible": true,
+      "required_hidden": false,
+      "dimensions": {
+        "max_row": 51,
+        "max_col": 10,
+        "max_col_letter": "J"
+      },
+      "cell_count": 90,
+      "file": "cash-flow-statement.json"
+    },
+    {
+      "name": "FIXED ASSET",
+      "slug": "fixed-asset",
+      "visible": true,
+      "required_hidden": false,
+      "dimensions": {
+        "max_row": 75,
+        "max_col": 10,
+        "max_col_letter": "J"
+      },
+      "cell_count": 271,
+      "file": "fixed-asset.json"
+    },
+    {
+      "name": "FINANCIAL RATIO",
+      "slug": "financial-ratio",
+      "visible": true,
+      "required_hidden": false,
+      "dimensions": {
+        "max_row": 30,
+        "max_col": 9,
+        "max_col_letter": "I"
+      },
+      "cell_count": 143,
+      "file": "financial-ratio.json"
+    },
+    {
+      "name": "FCF",
+      "slug": "fcf",
+      "visible": true,
+      "required_hidden": false,
+      "dimensions": {
+        "max_row": 29,
+        "max_col": 5,
+        "max_col_letter": "E"
+      },
+      "cell_count": 43,
+      "file": "fcf.json"
+    },
+    {
+      "name": "NOPLAT",
+      "slug": "noplat",
+      "visible": true,
+      "required_hidden": false,
+      "dimensions": {
+        "max_row": 19,
+        "max_col": 5,
+        "max_col_letter": "E"
+      },
+      "cell_count": 50,
+      "file": "noplat.json"
+    },
+    {
+      "name": "ROIC",
+      "slug": "roic",
+      "visible": true,
+      "required_hidden": false,
+      "dimensions": {
+        "max_row": 28,
+        "max_col": 9,
+        "max_col_letter": "I"
+      },
+      "cell_count": 37,
+      "file": "roic.json"
+    },
+    {
+      "name": "DLOC(PFC)",
+      "slug": "dloc-pfc",
+      "visible": true,
+      "required_hidden": false,
+      "dimensions": {
+        "max_row": 31,
+        "max_col": 12,
+        "max_col_letter": "L"
+      },
+      "cell_count": 72,
+      "file": "dloc-pfc.json"
+    },
+    {
+      "name": "DLOM",
+      "slug": "dlom",
+      "visible": true,
+      "required_hidden": false,
+      "dimensions": {
+        "max_row": 61,
+        "max_col": 14,
+        "max_col_letter": "N"
+      },
+      "cell_count": 133,
+      "file": "dlom.json"
+    },
+    {
+      "name": "TL",
+      "slug": "tl",
+      "visible": true,
+      "required_hidden": false,
+      "dimensions": {
+        "max_row": 14,
+        "max_col": 19,
+        "max_col_letter": "S"
+      },
+      "cell_count": 34,
+      "file": "tl.json"
+    },
+    {
+      "name": "DASHBOARD",
+      "slug": "dashboard",
+      "visible": true,
+      "required_hidden": false,
+      "dimensions": {
+        "max_row": 64,
+        "max_col": 28,
+        "max_col_letter": "AB"
+      },
+      "cell_count": 40,
+      "file": "dashboard.json"
+    },
+    {
+      "name": "ACC PAYABLES",
+      "slug": "acc-payables",
+      "visible": false,
+      "required_hidden": true,
+      "dimensions": {
+        "max_row": 26,
+        "max_col": 7,
+        "max_col_letter": "G"
+      },
+      "cell_count": 54,
+      "file": "acc-payables.json"
+    },
+    {
+      "name": "RESUME",
+      "slug": "resume",
+      "visible": true,
+      "required_hidden": false,
+      "dimensions": {
+        "max_row": 33,
+        "max_col": 24,
+        "max_col_letter": "X"
+      },
+      "cell_count": 189,
+      "file": "resume.json"
+    },
+    {
+      "name": "CFI",
+      "slug": "cfi",
+      "visible": true,
+      "required_hidden": false,
+      "dimensions": {
+        "max_row": 9,
+        "max_col": 11,
+        "max_col_letter": "K"
+      },
+      "cell_count": 47,
+      "file": "cfi.json"
+    },
+    {
+      "name": "ADJUSTMENT TANAH",
+      "slug": "adjustment-tanah",
+      "visible": false,
+      "required_hidden": true,
+      "dimensions": {
+        "max_row": 10,
+        "max_col": 10,
+        "max_col_letter": "J"
+      },
+      "cell_count": 29,
+      "file": "adjustment-tanah.json"
+    },
+    {
+      "name": "KEY DRIVERS",
+      "slug": "key-drivers",
+      "visible": false,
+      "required_hidden": true,
+      "dimensions": {
+        "max_row": 37,
+        "max_col": 13,
+        "max_col_letter": "M"
+      },
+      "cell_count": 141,
+      "file": "key-drivers.json"
+    },
+    {
+      "name": "PROY LR",
+      "slug": "proy-lr",
+      "visible": true,
+      "required_hidden": false,
+      "dimensions": {
+        "max_row": 40,
+        "max_col": 13,
+        "max_col_letter": "M"
+      },
+      "cell_count": 132,
+      "file": "proy-lr.json"
+    },
+    {
+      "name": "PROY BALANCE SHEET",
+      "slug": "proy-balance-sheet",
+      "visible": true,
+      "required_hidden": false,
+      "dimensions": {
+        "max_row": 80,
+        "max_col": 26,
+        "max_col_letter": "Z"
+      },
+      "cell_count": 236,
+      "file": "proy-balance-sheet.json"
+    },
+    {
+      "name": "PROY CASH FLOW STATEMENT",
+      "slug": "proy-cash-flow-statement",
+      "visible": true,
+      "required_hidden": false,
+      "dimensions": {
+        "max_row": 51,
+        "max_col": 13,
+        "max_col_letter": "M"
+      },
+      "cell_count": 111,
+      "file": "proy-cash-flow-statement.json"
+    },
+    {
+      "name": "PROY FIXED ASSETS",
+      "slug": "proy-fixed-assets",
+      "visible": true,
+      "required_hidden": false,
+      "dimensions": {
+        "max_row": 69,
+        "max_col": 10,
+        "max_col_letter": "J"
+      },
+      "cell_count": 260,
+      "file": "proy-fixed-assets.json"
+    },
+    {
+      "name": "PROY ACC PAYABLES",
+      "slug": "proy-acc-payables",
+      "visible": false,
+      "required_hidden": true,
+      "dimensions": {
+        "max_row": 27,
+        "max_col": 10,
+        "max_col_letter": "J"
+      },
+      "cell_count": 116,
+      "file": "proy-acc-payables.json"
+    },
+    {
+      "name": "PROY NOPLAT",
+      "slug": "proy-noplat",
+      "visible": true,
+      "required_hidden": false,
+      "dimensions": {
+        "max_row": 19,
+        "max_col": 13,
+        "max_col_letter": "M"
+      },
+      "cell_count": 63,
+      "file": "proy-noplat.json"
+    },
+    {
+      "name": "WACC",
+      "slug": "wacc",
+      "visible": true,
+      "required_hidden": false,
+      "dimensions": {
+        "max_row": 30,
+        "max_col": 9,
+        "max_col_letter": "I"
+      },
+      "cell_count": 64,
+      "file": "wacc.json"
+    },
+    {
+      "name": "GROWTH REVENUE",
+      "slug": "growth-revenue",
+      "visible": true,
+      "required_hidden": false,
+      "dimensions": {
+        "max_row": 69,
+        "max_col": 17,
+        "max_col_letter": "Q"
+      },
+      "cell_count": 160,
+      "file": "growth-revenue.json"
+    },
+    {
+      "name": "AAM",
+      "slug": "aam",
+      "visible": true,
+      "required_hidden": false,
+      "dimensions": {
+        "max_row": 75,
+        "max_col": 10,
+        "max_col_letter": "J"
+      },
+      "cell_count": 143,
+      "file": "aam.json"
+    },
+    {
+      "name": "SIMULASI POTENSI (AAM)",
+      "slug": "simulasi-potensi-aam",
+      "visible": true,
+      "required_hidden": false,
+      "dimensions": {
+        "max_row": 18,
+        "max_col": 5,
+        "max_col_letter": "E"
+      },
+      "cell_count": 50,
+      "file": "simulasi-potensi-aam.json"
+    },
+    {
+      "name": "BORROWING CAP",
+      "slug": "borrowing-cap",
+      "visible": true,
+      "required_hidden": false,
+      "dimensions": {
+        "max_row": 47,
+        "max_col": 7,
+        "max_col_letter": "G"
+      },
+      "cell_count": 45,
+      "file": "borrowing-cap.json"
+    },
+    {
+      "name": "DISCOUNT RATE",
+      "slug": "discount-rate",
+      "visible": true,
+      "required_hidden": false,
+      "dimensions": {
+        "max_row": 12,
+        "max_col": 12,
+        "max_col_letter": "L"
+      },
+      "cell_count": 62,
+      "file": "discount-rate.json"
+    },
+    {
+      "name": "EEM",
+      "slug": "eem",
+      "visible": true,
+      "required_hidden": false,
+      "dimensions": {
+        "max_row": 52,
+        "max_col": 6,
+        "max_col_letter": "F"
+      },
+      "cell_count": 75,
+      "file": "eem.json"
+    },
+    {
+      "name": "GROWTH RATE",
+      "slug": "growth-rate",
+      "visible": true,
+      "required_hidden": false,
+      "dimensions": {
+        "max_row": 23,
+        "max_col": 5,
+        "max_col_letter": "E"
+      },
+      "cell_count": 27,
+      "file": "growth-rate.json"
+    },
+    {
+      "name": "DCF",
+      "slug": "dcf",
+      "visible": true,
+      "required_hidden": false,
+      "dimensions": {
+        "max_row": 47,
+        "max_col": 10,
+        "max_col_letter": "J"
+      },
+      "cell_count": 107,
+      "file": "dcf.json"
+    },
+    {
+      "name": "DIVIDEND DISCOUNT MODEL",
+      "slug": "dividend-discount-model",
+      "visible": true,
+      "required_hidden": false,
+      "dimensions": {
+        "max_row": 13,
+        "max_col": 4,
+        "max_col_letter": "D"
+      },
+      "cell_count": 27,
+      "file": "dividend-discount-model.json"
+    }
+  ]
+}

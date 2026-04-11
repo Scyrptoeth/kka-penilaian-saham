@@ -1,0 +1,221 @@
+{
+  "name": "DIVIDEND DISCOUNT MODEL",
+  "slug": "dividend-discount-model",
+  "visible": true,
+  "dimensions": {
+    "max_row": 13,
+    "max_col": 4,
+    "max_col_letter": "D"
+  },
+  "merged_ranges": [],
+  "cells": [
+    {
+      "addr": "A1",
+      "row": 1,
+      "col": 1,
+      "value": "STOCK VALUATION DIVIDEND DISCOUNT MODEL",
+      "data_type": "s"
+    },
+    {
+      "addr": "A2",
+      "row": 2,
+      "col": 1,
+      "value": "nice to know aja",
+      "data_type": "s"
+    },
+    {
+      "addr": "A3",
+      "row": 3,
+      "col": 1,
+      "value": "Single Growth",
+      "data_type": "s"
+    },
+    {
+      "addr": "A4",
+      "row": 4,
+      "col": 1,
+      "value": "Dividend Per Share",
+      "data_type": "s"
+    },
+    {
+      "addr": "B4",
+      "row": 4,
+      "col": 2,
+      "value": 333333,
+      "data_type": "n",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "C4",
+      "row": 4,
+      "col": 3,
+      "value": "IDR",
+      "data_type": "s"
+    },
+    {
+      "addr": "D4",
+      "row": 4,
+      "col": 4,
+      "value": "*Financial Statement CALK 19",
+      "data_type": "s"
+    },
+    {
+      "addr": "A5",
+      "row": 5,
+      "col": 1,
+      "value": "Exchange Rate",
+      "data_type": "s"
+    },
+    {
+      "addr": "B5",
+      "row": 5,
+      "col": 2,
+      "value": 1,
+      "data_type": "n",
+      "formula": "=EEM!D41",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "C5",
+      "row": 5,
+      "col": 3,
+      "value": "IDR/USD",
+      "data_type": "s"
+    },
+    {
+      "addr": "A6",
+      "row": 6,
+      "col": 1,
+      "value": "Cost of Equity",
+      "data_type": "s"
+    },
+    {
+      "addr": "B6",
+      "row": 6,
+      "col": 2,
+      "value": 0.06863999999999999,
+      "data_type": "n",
+      "formula": "='DISCOUNT RATE'!H4",
+      "number_format": "0.00%"
+    },
+    {
+      "addr": "A7",
+      "row": 7,
+      "col": 1,
+      "value": "Growth",
+      "data_type": "s"
+    },
+    {
+      "addr": "B7",
+      "row": 7,
+      "col": 2,
+      "value": 0,
+      "data_type": "n",
+      "number_format": "0%"
+    },
+    {
+      "addr": "A8",
+      "row": 8,
+      "col": 1,
+      "value": "Market Value of Share",
+      "data_type": "s"
+    },
+    {
+      "addr": "B8",
+      "row": 8,
+      "col": 2,
+      "value": 5189583.000000001,
+      "data_type": "n",
+      "formula": "=(1+B6)/(B6-B7)*B4*B5",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "C8",
+      "row": 8,
+      "col": 3,
+      "value": "IDR",
+      "data_type": "s"
+    },
+    {
+      "addr": "A9",
+      "row": 9,
+      "col": 1,
+      "value": "Jumlah Lembar",
+      "data_type": "s"
+    },
+    {
+      "addr": "B9",
+      "row": 9,
+      "col": 2,
+      "value": 600000000,
+      "data_type": "n",
+      "formula": "=EEM!D44",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    },
+    {
+      "addr": "A10",
+      "row": 10,
+      "col": 1,
+      "value": "Indikasi Nilai Saham",
+      "data_type": "s"
+    },
+    {
+      "addr": "B10",
+      "row": 10,
+      "col": 2,
+      "value": 3113749800000000.5,
+      "data_type": "n",
+      "formula": "=B8*B9",
+      "number_format": "_-* #,##0_-;\\-* #,##0_-;_-* \"-\"??_-;_-@_-"
+    },
+    {
+      "addr": "A11",
+      "row": 11,
+      "col": 1,
+      "value": "DLOM",
+      "data_type": "s"
+    },
+    {
+      "addr": "B11",
+      "row": 11,
+      "col": 2,
+      "value": -0.4,
+      "data_type": "n",
+      "formula": "=EEM!C35",
+      "number_format": "0%"
+    },
+    {
+      "addr": "A12",
+      "row": 12,
+      "col": 1,
+      "value": "Nilai Pasar Saham",
+      "data_type": "s"
+    },
+    {
+      "addr": "B12",
+      "row": 12,
+      "col": 2,
+      "value": 1868249880000000.2,
+      "data_type": "n",
+      "formula": "=B10*(1+B11)",
+      "number_format": "_-* #,##0_-;\\-* #,##0_-;_-* \"-\"??_-;_-@_-"
+    },
+    {
+      "addr": "A13",
+      "row": 13,
+      "col": 1,
+      "value": "Per Lembar",
+      "data_type": "s"
+    },
+    {
+      "addr": "B13",
+      "row": 13,
+      "col": 2,
+      "value": 3113749.8000000003,
+      "data_type": "n",
+      "formula": "=B12/B9",
+      "number_format": "_(* #,##0_);_(* \\(#,##0\\);_(* \"-\"??_);_(@_)"
+    }
+  ],
+  "required_hidden": false
+}
