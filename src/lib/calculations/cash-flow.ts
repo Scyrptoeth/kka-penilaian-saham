@@ -12,108 +12,101 @@
  *                              + interestIncome + principalRepayment
  *   netCashFlow              = CFO + cashFlowFromNonOperations + CFI + CFF
  *
- * As with the FCF module, inputs arrive in Excel's pre-signed convention:
- *   - `corporateTax` is a negative number (Excel stores it as a cash outflow).
- *   - `capex` is a negative number.
- *   - `deltaCurrentAssets` / `deltaCurrentLiabilities` may be positive or
- *     negative depending on the direction of the balance-sheet change.
- *   - `interestPayment` is typically negative (cash outflow).
- *   - `interestIncome` is typically positive (cash inflow).
+ * Inputs arrive in Excel's pre-signed convention (tax and capex typically
+ * negative; interest payment typically negative; interest income typically
+ * positive). The {@link ../adapters/cash-flow-adapter} handles sign
+ * conventions explicitly.
  *
- * Function is pure; all outputs are new arrays.
+ * All 11 input series + 6 output series are {@link YearKeyedSeries} sharing
+ * a single year axis. Function is pure.
  */
 
+import type { YearKeyedSeries } from '@/types/financial'
+import { assertSameYears, yearsOf } from './helpers'
+
 export interface CashFlowInput {
-  ebitda: readonly number[]
-  corporateTax: readonly number[]
-  deltaCurrentAssets: readonly number[]
-  deltaCurrentLiabilities: readonly number[]
-  cashFlowFromNonOperations: readonly number[]
-  capex: readonly number[]
-  equityInjection: readonly number[]
-  newLoan: readonly number[]
-  interestPayment: readonly number[]
-  interestIncome: readonly number[]
-  principalRepayment: readonly number[]
+  ebitda: YearKeyedSeries
+  corporateTax: YearKeyedSeries
+  deltaCurrentAssets: YearKeyedSeries
+  deltaCurrentLiabilities: YearKeyedSeries
+  cashFlowFromNonOperations: YearKeyedSeries
+  capex: YearKeyedSeries
+  equityInjection: YearKeyedSeries
+  newLoan: YearKeyedSeries
+  interestPayment: YearKeyedSeries
+  interestIncome: YearKeyedSeries
+  principalRepayment: YearKeyedSeries
 }
 
 export interface CashFlowResult {
-  workingCapitalChange: number[]
-  cashFlowFromOperations: number[]
-  cashFlowFromInvesting: number[]
-  cashFlowBeforeFinancing: number[]
-  cashFlowFromFinancing: number[]
-  netCashFlow: number[]
+  workingCapitalChange: YearKeyedSeries
+  cashFlowFromOperations: YearKeyedSeries
+  cashFlowFromInvesting: YearKeyedSeries
+  cashFlowBeforeFinancing: YearKeyedSeries
+  cashFlowFromFinancing: YearKeyedSeries
+  netCashFlow: YearKeyedSeries
 }
 
-function assertSameLength(
-  label: string,
-  arr: readonly number[],
-  expected: number,
-): void {
-  if (arr.length !== expected) {
-    throw new RangeError(
-      `cash-flow: ${label} length ${arr.length} does not match expected ${expected}`,
-    )
-  }
-}
+const REQUIRED_FIELDS: readonly Exclude<keyof CashFlowInput, 'ebitda'>[] = [
+  'corporateTax',
+  'deltaCurrentAssets',
+  'deltaCurrentLiabilities',
+  'cashFlowFromNonOperations',
+  'capex',
+  'equityInjection',
+  'newLoan',
+  'interestPayment',
+  'interestIncome',
+  'principalRepayment',
+]
 
 export function computeCashFlowStatement(input: CashFlowInput): CashFlowResult {
-  const years = input.ebitda.length
-  if (years === 0) {
+  const anchor = input.ebitda
+  const years = yearsOf(anchor)
+  if (years.length === 0) {
     throw new RangeError('cash-flow: ebitda must not be empty')
   }
 
-  const fields: readonly (keyof CashFlowInput)[] = [
-    'corporateTax',
-    'deltaCurrentAssets',
-    'deltaCurrentLiabilities',
-    'cashFlowFromNonOperations',
-    'capex',
-    'equityInjection',
-    'newLoan',
-    'interestPayment',
-    'interestIncome',
-    'principalRepayment',
-  ]
-  for (const f of fields) assertSameLength(f, input[f], years)
+  for (const f of REQUIRED_FIELDS) {
+    assertSameYears(`cash-flow.${f}`, anchor, input[f])
+  }
 
-  const workingCapitalChange: number[] = new Array(years)
-  const cashFlowFromOperations: number[] = new Array(years)
-  const cashFlowFromInvesting: number[] = new Array(years)
-  const cashFlowBeforeFinancing: number[] = new Array(years)
-  const cashFlowFromFinancing: number[] = new Array(years)
-  const netCashFlow: number[] = new Array(years)
+  const workingCapitalChange: YearKeyedSeries = {}
+  const cashFlowFromOperations: YearKeyedSeries = {}
+  const cashFlowFromInvesting: YearKeyedSeries = {}
+  const cashFlowBeforeFinancing: YearKeyedSeries = {}
+  const cashFlowFromFinancing: YearKeyedSeries = {}
+  const netCashFlow: YearKeyedSeries = {}
 
-  for (let i = 0; i < years; i++) {
-    workingCapitalChange[i] =
-      input.deltaCurrentAssets[i] + input.deltaCurrentLiabilities[i]
+  for (const y of years) {
+    workingCapitalChange[y] =
+      input.deltaCurrentAssets[y] + input.deltaCurrentLiabilities[y]
 
-    cashFlowFromOperations[i] =
-      input.ebitda[i] +
-      input.corporateTax[i] +
-      input.deltaCurrentAssets[i] +
-      input.deltaCurrentLiabilities[i]
+    cashFlowFromOperations[y] =
+      input.ebitda[y] +
+      input.corporateTax[y] +
+      input.deltaCurrentAssets[y] +
+      input.deltaCurrentLiabilities[y]
 
-    cashFlowFromInvesting[i] = input.capex[i]
+    cashFlowFromInvesting[y] = input.capex[y]
 
-    cashFlowBeforeFinancing[i] =
-      cashFlowFromOperations[i] +
-      input.cashFlowFromNonOperations[i] +
-      cashFlowFromInvesting[i]
+    cashFlowBeforeFinancing[y] =
+      cashFlowFromOperations[y] +
+      input.cashFlowFromNonOperations[y] +
+      cashFlowFromInvesting[y]
 
-    cashFlowFromFinancing[i] =
-      input.equityInjection[i] +
-      input.newLoan[i] +
-      input.interestPayment[i] +
-      input.interestIncome[i] +
-      input.principalRepayment[i]
+    cashFlowFromFinancing[y] =
+      input.equityInjection[y] +
+      input.newLoan[y] +
+      input.interestPayment[y] +
+      input.interestIncome[y] +
+      input.principalRepayment[y]
 
-    netCashFlow[i] =
-      cashFlowFromOperations[i] +
-      input.cashFlowFromNonOperations[i] +
-      cashFlowFromInvesting[i] +
-      cashFlowFromFinancing[i]
+    netCashFlow[y] =
+      cashFlowFromOperations[y] +
+      input.cashFlowFromNonOperations[y] +
+      cashFlowFromInvesting[y] +
+      cashFlowFromFinancing[y]
   }
 
   return {
