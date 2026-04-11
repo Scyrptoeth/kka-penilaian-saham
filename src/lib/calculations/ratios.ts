@@ -7,205 +7,198 @@
  * Cash Flow Indicator) given raw line items from Balance Sheet, Income
  * Statement, Cash Flow Statement, and FCF.
  *
- * All inputs are year-indexed arrays (length N). All outputs are new arrays
- * of the same length. Zero-division cases return 0 (matches the Excel
- * IFERROR convention used across the workbook).
+ * All inputs/outputs are {@link YearKeyedSeries}. Every series in the input
+ * must share the same year set with `revenue`, validated via
+ * {@link assertSameYears}. Zero-division cases return 0, matching the Excel
+ * IFERROR convention.
  */
 
-import { ratioOfBase } from './helpers'
+import type { YearKeyedSeries } from '@/types/financial'
+import { assertSameYears, ratioOfBase, yearsOf } from './helpers'
 
 export interface RatiosInput {
   // Income Statement (per year)
-  revenue: readonly number[]
-  grossProfit: readonly number[]
-  ebitda: readonly number[]
-  ebit: readonly number[]
-  interestExpense: readonly number[]
-  netProfit: readonly number[]
+  revenue: YearKeyedSeries
+  grossProfit: YearKeyedSeries
+  ebitda: YearKeyedSeries
+  ebit: YearKeyedSeries
+  interestExpense: YearKeyedSeries
+  netProfit: YearKeyedSeries
   // Balance Sheet (per year)
-  cashOnHand: readonly number[]
-  cashInBank: readonly number[]
-  accountsReceivable: readonly number[]
-  currentAssets: readonly number[]
-  totalAssets: readonly number[]
-  bankLoanShortTerm: readonly number[]
-  currentLiabilities: readonly number[]
-  bankLoanLongTerm: readonly number[]
-  nonCurrentLiabilities: readonly number[]
-  shareholdersEquity: readonly number[]
+  cashOnHand: YearKeyedSeries
+  cashInBank: YearKeyedSeries
+  accountsReceivable: YearKeyedSeries
+  currentAssets: YearKeyedSeries
+  totalAssets: YearKeyedSeries
+  bankLoanShortTerm: YearKeyedSeries
+  currentLiabilities: YearKeyedSeries
+  bankLoanLongTerm: YearKeyedSeries
+  nonCurrentLiabilities: YearKeyedSeries
+  shareholdersEquity: YearKeyedSeries
   // Cash Flow Statement (per year)
-  cashFlowFromOperations: readonly number[]
-  capex: readonly number[]
+  cashFlowFromOperations: YearKeyedSeries
+  capex: YearKeyedSeries
   // Free Cash Flow (per year)
-  freeCashFlow: readonly number[]
+  freeCashFlow: YearKeyedSeries
 }
 
 export interface FinancialRatios {
   // Profitability
-  grossProfitMargin: number[]
-  ebitdaMargin: number[]
-  ebitMargin: number[]
-  netProfitMargin: number[]
-  returnOnAsset: number[]
-  returnOnEquity: number[]
+  grossProfitMargin: YearKeyedSeries
+  ebitdaMargin: YearKeyedSeries
+  ebitMargin: YearKeyedSeries
+  netProfitMargin: YearKeyedSeries
+  returnOnAsset: YearKeyedSeries
+  returnOnEquity: YearKeyedSeries
   // Liquidity
-  currentRatio: number[]
-  quickRatio: number[]
-  cashRatio: number[]
+  currentRatio: YearKeyedSeries
+  quickRatio: YearKeyedSeries
+  cashRatio: YearKeyedSeries
   // Leverage
-  debtToAssetsRatio: number[]
-  debtToEquityRatio: number[]
-  capitalizationRatio: number[]
-  interestCoverage: number[]
-  equityToTotalAssets: number[]
+  debtToAssetsRatio: YearKeyedSeries
+  debtToEquityRatio: YearKeyedSeries
+  capitalizationRatio: YearKeyedSeries
+  interestCoverage: YearKeyedSeries
+  equityToTotalAssets: YearKeyedSeries
   // Cash Flow Indicator
-  operatingCashFlowToSales: number[]
-  fcfToOperatingCashFlow: number[]
-  shortTermDebtCoverage: number[]
-  capexCoverage: number[]
+  operatingCashFlowToSales: YearKeyedSeries
+  fcfToOperatingCashFlow: YearKeyedSeries
+  shortTermDebtCoverage: YearKeyedSeries
+  capexCoverage: YearKeyedSeries
 }
 
-function assertSameLength(
-  label: string,
-  arr: readonly number[],
-  expected: number,
-): void {
-  if (arr.length !== expected) {
-    throw new RangeError(
-      `ratios: ${label} length ${arr.length} does not match expected ${expected}`,
-    )
-  }
-}
-
-function alloc(length: number): number[] {
-  return new Array(length).fill(0)
-}
-
-/** Mirrors Excel IFERROR(|a/b|, 0). */
 function absRatioSafe(a: number, b: number): number {
   if (b === 0) return 0
   return Math.abs(a / b)
 }
 
-/** Mirrors Excel IFERROR(a/b, 0) — same as ratioOfBase but explicit. */
 function safeRatio(a: number, b: number): number {
   if (b === 0) return 0
   return a / b
 }
 
+const REQUIRED_FIELDS: readonly Exclude<keyof RatiosInput, 'revenue'>[] = [
+  'grossProfit',
+  'ebitda',
+  'ebit',
+  'interestExpense',
+  'netProfit',
+  'cashOnHand',
+  'cashInBank',
+  'accountsReceivable',
+  'currentAssets',
+  'totalAssets',
+  'bankLoanShortTerm',
+  'currentLiabilities',
+  'bankLoanLongTerm',
+  'nonCurrentLiabilities',
+  'shareholdersEquity',
+  'cashFlowFromOperations',
+  'capex',
+  'freeCashFlow',
+]
+
+function emptyOutput(): FinancialRatios {
+  return {
+    grossProfitMargin: {},
+    ebitdaMargin: {},
+    ebitMargin: {},
+    netProfitMargin: {},
+    returnOnAsset: {},
+    returnOnEquity: {},
+    currentRatio: {},
+    quickRatio: {},
+    cashRatio: {},
+    debtToAssetsRatio: {},
+    debtToEquityRatio: {},
+    capitalizationRatio: {},
+    interestCoverage: {},
+    equityToTotalAssets: {},
+    operatingCashFlowToSales: {},
+    fcfToOperatingCashFlow: {},
+    shortTermDebtCoverage: {},
+    capexCoverage: {},
+  }
+}
+
 export function computeFinancialRatios(input: RatiosInput): FinancialRatios {
-  const years = input.revenue.length
-  if (years === 0) {
+  const anchor = input.revenue
+  const years = yearsOf(anchor)
+  if (years.length === 0) {
     throw new RangeError('ratios: revenue must not be empty')
   }
 
-  const fields: readonly (keyof RatiosInput)[] = [
-    'grossProfit',
-    'ebitda',
-    'ebit',
-    'interestExpense',
-    'netProfit',
-    'cashOnHand',
-    'cashInBank',
-    'accountsReceivable',
-    'currentAssets',
-    'totalAssets',
-    'bankLoanShortTerm',
-    'currentLiabilities',
-    'bankLoanLongTerm',
-    'nonCurrentLiabilities',
-    'shareholdersEquity',
-    'cashFlowFromOperations',
-    'capex',
-    'freeCashFlow',
-  ]
-  for (const f of fields) assertSameLength(f, input[f], years)
-
-  const out: FinancialRatios = {
-    grossProfitMargin: alloc(years),
-    ebitdaMargin: alloc(years),
-    ebitMargin: alloc(years),
-    netProfitMargin: alloc(years),
-    returnOnAsset: alloc(years),
-    returnOnEquity: alloc(years),
-    currentRatio: alloc(years),
-    quickRatio: alloc(years),
-    cashRatio: alloc(years),
-    debtToAssetsRatio: alloc(years),
-    debtToEquityRatio: alloc(years),
-    capitalizationRatio: alloc(years),
-    interestCoverage: alloc(years),
-    equityToTotalAssets: alloc(years),
-    operatingCashFlowToSales: alloc(years),
-    fcfToOperatingCashFlow: alloc(years),
-    shortTermDebtCoverage: alloc(years),
-    capexCoverage: alloc(years),
+  for (const f of REQUIRED_FIELDS) {
+    assertSameYears(`ratios.${f}`, anchor, input[f])
   }
 
-  for (let i = 0; i < years; i++) {
-    const rev = input.revenue[i]
-    const totalLiabilities = input.currentLiabilities[i] + input.nonCurrentLiabilities[i]
+  const out = emptyOutput()
+
+  for (const y of years) {
+    const rev = input.revenue[y]
+    const totalLiabilities =
+      input.currentLiabilities[y] + input.nonCurrentLiabilities[y]
 
     // Profitability
-    out.grossProfitMargin[i] = ratioOfBase(input.grossProfit[i], rev)
-    out.ebitdaMargin[i] = ratioOfBase(input.ebitda[i], rev)
-    out.ebitMargin[i] = ratioOfBase(input.ebit[i], rev)
-    out.netProfitMargin[i] = ratioOfBase(input.netProfit[i], rev)
-    out.returnOnAsset[i] = ratioOfBase(input.netProfit[i], input.totalAssets[i])
-    out.returnOnEquity[i] = ratioOfBase(
-      input.netProfit[i],
-      input.shareholdersEquity[i],
+    out.grossProfitMargin[y] = ratioOfBase(input.grossProfit[y], rev)
+    out.ebitdaMargin[y] = ratioOfBase(input.ebitda[y], rev)
+    out.ebitMargin[y] = ratioOfBase(input.ebit[y], rev)
+    out.netProfitMargin[y] = ratioOfBase(input.netProfit[y], rev)
+    out.returnOnAsset[y] = ratioOfBase(input.netProfit[y], input.totalAssets[y])
+    out.returnOnEquity[y] = ratioOfBase(
+      input.netProfit[y],
+      input.shareholdersEquity[y],
     )
 
     // Liquidity
-    out.currentRatio[i] = ratioOfBase(
-      input.currentAssets[i],
-      input.currentLiabilities[i],
+    out.currentRatio[y] = ratioOfBase(
+      input.currentAssets[y],
+      input.currentLiabilities[y],
     )
-    out.quickRatio[i] = ratioOfBase(
-      input.cashOnHand[i] + input.cashInBank[i] + input.accountsReceivable[i],
-      input.currentLiabilities[i],
+    out.quickRatio[y] = ratioOfBase(
+      input.cashOnHand[y] + input.cashInBank[y] + input.accountsReceivable[y],
+      input.currentLiabilities[y],
     )
-    out.cashRatio[i] = ratioOfBase(
-      input.cashOnHand[i] + input.cashInBank[i],
-      input.currentLiabilities[i],
+    out.cashRatio[y] = ratioOfBase(
+      input.cashOnHand[y] + input.cashInBank[y],
+      input.currentLiabilities[y],
     )
 
     // Leverage
-    out.debtToAssetsRatio[i] = ratioOfBase(totalLiabilities, input.totalAssets[i])
-    out.debtToEquityRatio[i] = ratioOfBase(
+    out.debtToAssetsRatio[y] = ratioOfBase(totalLiabilities, input.totalAssets[y])
+    out.debtToEquityRatio[y] = ratioOfBase(
       totalLiabilities,
-      input.shareholdersEquity[i],
+      input.shareholdersEquity[y],
     )
-    out.capitalizationRatio[i] = ratioOfBase(
-      input.bankLoanLongTerm[i],
-      input.bankLoanLongTerm[i] + input.shareholdersEquity[i],
+    out.capitalizationRatio[y] = ratioOfBase(
+      input.bankLoanLongTerm[y],
+      input.bankLoanLongTerm[y] + input.shareholdersEquity[y],
     )
-    out.interestCoverage[i] = absRatioSafe(
-      input.ebit[i],
-      input.interestExpense[i],
+    out.interestCoverage[y] = absRatioSafe(
+      input.ebit[y],
+      input.interestExpense[y],
     )
-    out.equityToTotalAssets[i] = ratioOfBase(
-      input.shareholdersEquity[i],
-      input.totalAssets[i],
+    out.equityToTotalAssets[y] = ratioOfBase(
+      input.shareholdersEquity[y],
+      input.totalAssets[y],
     )
 
     // Cash Flow Indicator
-    out.operatingCashFlowToSales[i] = safeRatio(
-      input.cashFlowFromOperations[i],
+    out.operatingCashFlowToSales[y] = safeRatio(
+      input.cashFlowFromOperations[y],
       rev,
     )
-    out.fcfToOperatingCashFlow[i] = safeRatio(
-      input.freeCashFlow[i],
-      input.cashFlowFromOperations[i],
+    out.fcfToOperatingCashFlow[y] = safeRatio(
+      input.freeCashFlow[y],
+      input.cashFlowFromOperations[y],
     )
-    out.shortTermDebtCoverage[i] = safeRatio(
-      input.cashFlowFromOperations[i],
-      input.bankLoanShortTerm[i],
+    out.shortTermDebtCoverage[y] = safeRatio(
+      input.cashFlowFromOperations[y],
+      input.bankLoanShortTerm[y],
     )
-    out.capexCoverage[i] = absRatioSafe(
-      input.cashFlowFromOperations[i],
-      input.capex[i],
+    out.capexCoverage[y] = absRatioSafe(
+      input.cashFlowFromOperations[y],
+      input.capex[y],
     )
   }
 
