@@ -167,3 +167,86 @@ Test deltas per module:
 - Dashboard charts (Recharts)
 - Export to .xlsx via ExcelJS
 - Dark mode toggle
+
+---
+
+## Session 2A.5 — 2026-04-11 (Harden Calc Engine)
+
+### Delivered
+
+**Three new system layers around the pure calc engine**, addressing architectural review of Session 2A:
+
+1. **YearKeyedSeries type** — `Record<number, number>` in `src/types/financial.ts` plus helpers in `src/lib/calculations/helpers.ts` (`yearsOf`, `assertSameYears`, `emptySeriesLike`, `mapSeries`, `seriesFromArray`, `seriesToArray`). All 6 Phase 2A modules refactored to use it as input/output, eliminating the silent column-offset bug that would corrupt cross-sheet merges.
+
+2. **Zod validation layer** at `src/lib/validation/`:
+   - `schemas.ts` — base `yearKeyedSeriesSchema` + one input schema per calc module (FixedAsset, Noplat, Fcf, CashFlow, Ratios, GrowthRevenue) with cross-field year-set refinement.
+   - `index.ts` — `validated*` wrapper functions that throw `ValidationError` with human-readable messages derived from Zod issue paths.
+   - Rejects `NaN`, `Infinity`, empty series, invalid year keys (non-integer / out of 1900..2200), and mismatched year sets before any calc runs.
+
+3. **Adapter layer** at `src/lib/adapters/`:
+   - `noplat-adapter.ts` — `toNoplatInput(raw)` centralizes the `*-1` sign flips the NOPLAT sheet performs when pulling interest income/expense, non-operating income, and corporate tax from the Income Statement.
+   - `fcf-adapter.ts` — `toFcfInput(raw)` negates positive depreciation and positive capex to match FCF sheet formulas (`FIXED ASSET!*-1`).
+   - `cash-flow-adapter.ts` — `toCashFlowInput(raw)` negates positive capex and passes everything else through. Every sign decision is documented in JSDoc with the originating Excel formula.
+
+**End-to-end integration test** at `__tests__/integration/calc-pipeline.test.ts`:
+`raw Excel data → adapter → Zod validator → pure calc → assert against canonical fixture values` — proves the full UI-bound flow works before any UI wiring begins.
+
+### Verification Results
+
+```
+Tests:     90 / 90 passing (13 files)    (was 47 after Phase 2A)
+Build:     ✅ Compiled successfully in 1750ms
+Lint:      ✅ Zero warnings
+Typecheck: ✅ tsc --noEmit clean (exit 0)
+```
+
+Test deltas:
+- year-keyed helpers: +15 tests
+- fixed-asset refactor: +1 (year-set guard)
+- noplat refactor: +1
+- fcf refactor: +1
+- cash-flow refactor: +1
+- ratios refactor: +1
+- growth-revenue refactor: +2 (year-set + min-years)
+- validation layer: +15
+- adapter layer: +3 (integration via adapter)
+- integration pipeline: +3
+- **Total Session 2A.5: +43 tests (47 → 90)**
+
+### Architectural Decisions (Session 2A.5)
+
+- **Year is data, not axis** — `YearKeyedSeries = Record<number, number>` replaces positional `number[]` in all 6 Phase 2A modules. UI callers can no longer silently shift years by one column when crossing sheet boundaries (BS/IS use D/E/F, CFS/FCF use C/D/E for identical 2019–2021 data).
+- **Validation is additive** — Pure calc functions keep their runtime `assertSameYears` guards. Zod layer sits *above* them at the boundary between UI/store and calc, producing user-readable errors via `ValidationError`. Callers can still invoke the raw calc function when they already have validated data.
+- **Sign conventions live in one place** — Every `*-1` in application code lives in `src/lib/adapters/`, commented with the source Excel formula. Pure calc functions never apply signs themselves; the UI never applies signs. If the workbook changes convention, there is exactly one file to update per module.
+- **BS/IS deferred intentionally** — Phase 1 `balance-sheet.ts` / `income-statement.ts` still use `YearlySeries {y0..y3}`. They are already type-safe and don't have cross-sheet column-offset issues (BS and IS share the same column layout). Migration to `YearKeyedSeries` is listed as tech debt, not blocking for Session 2B.
+
+### Session 2A.5 Stats
+
+- Modules refactored: 6
+- New layers: 2 (validation + adapters)
+- New test files: 4 (year-keyed-helpers, validation, adapters, integration pipeline)
+- Test cases: +43 (47 → 90)
+- Files changed: 22 (6 calc + 6 calc tests + 2 validation files + 1 validation test + 4 adapter files + 1 adapter test + 1 integration test + helpers + types + design + plan + progress)
+- Commits: 10 (1 foundation + 6 refactors + 1 validation + 1 adapters + 1 integration/wrap-up)
+
+### Next Session — Session 2B Priorities (updated)
+
+With the calc engine now hardened, UI layer can trust validated year-keyed data:
+
+1. **`<FinancialTable>` reusable component** — sticky headers, monospace numerics, negative-in-red parens
+2. **Zustand store reshape** — year-keyed data structures matching calc input shapes, hydrated from initial fixture or user input
+3. **`/historical/*` pages** — each page: `store → adapter → validator → calc → <FinancialTable>`
+4. **`/analysis/*` pages** — ratios, FCF, NOPLAT, growth
+5. **Sidebar navigation update** — active state + mobile bottom nav
+6. **Formula transparency tooltip** — hover to see source Excel formula
+
+### Deferred (unchanged)
+
+- Projection sheets (PROY LR, PROY BS, PROY CF, PROY NOPLAT) — requires KEY DRIVERS form
+- WACC / Discount Rate
+- DCF / AAM / EEM valuation methods
+- DLOM / DLOC questionnaire forms
+- Dashboard charts (Recharts)
+- Export to .xlsx via ExcelJS
+- Dark mode toggle
+- BS/IS migration to YearKeyedSeries (tech debt, non-blocking)
