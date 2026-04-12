@@ -10,6 +10,7 @@ import {
   generateLiveColumns,
 } from '@/data/live/build-cell-map'
 import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
+import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import type {
   BalanceSheetInputState,
   IncomeStatementInputState,
@@ -124,12 +125,30 @@ export function SheetPage({
 
   const cells = useMemo(() => {
     if (!isLive || !liveRows) return loadCells(manifest.slug)
-    return buildLiveCellMap(
-      effectiveManifest.columns,
+    // Materialize subtotal/total rows into the synthesized CellMap so the
+    // downstream pipeline (readValues + applyDerivations common-size) sees
+    // the same shape it would in seed mode. Manifest rows without a
+    // `computedFrom` declaration (currently IS, FA) contribute nothing to
+    // the derived map — no-op until their manifests get the same treatment.
+    const derived = deriveComputedRows(
+      manifest.rows,
       liveRows,
       effectiveManifest.years,
     )
-  }, [isLive, liveRows, manifest.slug, effectiveManifest.columns, effectiveManifest.years])
+    const fullRows = { ...liveRows, ...derived }
+    return buildLiveCellMap(
+      effectiveManifest.columns,
+      fullRows,
+      effectiveManifest.years,
+    )
+  }, [
+    isLive,
+    liveRows,
+    manifest.slug,
+    manifest.rows,
+    effectiveManifest.columns,
+    effectiveManifest.years,
+  ])
 
   const rows = useMemo(
     () => buildRowsFromManifest(effectiveManifest, cells),

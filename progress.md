@@ -13,21 +13,23 @@
 | 007 | 2026-04-11/12 | Phase 2B.5 — Four remaining P1 pages (CF/FA/NOPLAT/Growth) | ✅ Shipped | [session-007](history/session-007-phase2b5-remaining-pages.md) |
 | 008 | 2026-04-11/12 | ROIC + DLOM/DLOC questionnaire forms (with 008.5 + 008.6 hardening) | ✅ Shipped | [session-008](history/session-008-roic-dlom-dloc-forms.md) |
 | 009 | 2026-04-12 | Phase 3 design brainstorm — 6 architectural decisions for live data mode | ✅ Design complete | [session-009](history/session-009-phase-3-design-brainstorm.md) |
+| 010 | 2026-04-12 | Phase 3 — DataSource foundation + Balance Sheet pilot (live data mode) | ✅ Shipped | [session-010](history/session-010-datasource-bs-pilot.md) |
 
 ## Current State Snapshot (latest)
 
-- **Branch**: `main` (synced with `origin/main` via `f035c06`)
-- **Tests**: **133 / 133** passing across 19 files
-- **Build**: ✅ clean, zero errors, zero warnings, **11 static pages** prerendered (9 financial + 2 questionnaire forms)
+- **Branch**: `main` (synced with `origin/main` via `161a032`)
+- **Tests**: **169 / 169** passing across 23 files
+- **Build**: ✅ clean, zero errors, zero warnings, **12 static pages** prerendered (9 financial + 2 questionnaire forms + 1 input pilot)
 - **Lint**: ✅ zero warnings
 - **Typecheck**: ✅ `tsc --noEmit` exit 0
-- **Live**: https://kka-penilaian-saham.vercel.app (HTTP 200, latest production deploy `ltwbnrc4z`)
-- **Architecture state after 008.6**: aplikasi jujur tentang data source. 9 financial pages clearly marked sebagai "Mode Demo · Workbook Prototipe" via `<DataSourceHeader>` warning banner. HOME/DLOM/DLOC fully company-agnostic. Single mode-switching point (`<DataSourceHeader mode="seed" />` di SheetPage) ready untuk Phase 3 transition.
-- **Phase 3 design complete**: 6 architectural decisions approved + plan.md Sessions 010-014 roadmap committed. Implementation ready to start at Session 010.
-- **Live pages (11)**:
+- **Live**: https://kka-penilaian-saham.vercel.app (HTTP 200, latest production deploy `3wzel9whp`)
+- **Architecture state after 010**: live data mode **operational end-to-end for Balance Sheet**. User journey works: HOME form → `/input/balance-sheet` → `/historical/balance-sheet` auto-switches to live mode via domain-state sentinel (`home !== null && balanceSheet !== null`). Zero regression on seed mode — all 9 financial pages still render prototype workbook data when user hasn't started input. 3 new foundations in place for Sessions 011–012 downstream wiring: Zustand v3 with 3 input slices, `buildLiveCellMap` synthetic-CellMap adapter, `computeHistoricalYears` dynamic year-span helper.
+- **Live pages (12)**:
+  - Input Master: HOME
+  - **Input Data**: **Balance Sheet** (new — pilot)
   - Historis: Balance Sheet · Income Statement · Cash Flow · Fixed Asset
-  - Analisis: Financial Ratio · FCF · NOPLAT · Growth Revenue · **ROIC**
-  - Penilaian: **DLOM** · **DLOC (PFC)**
+  - Analisis: Financial Ratio · FCF · NOPLAT · Growth Revenue · ROIC
+  - Penilaian: DLOM · DLOC (PFC)
 
 ## Session 1 — 2026-04-11 (Scope C: Full Phase 1)
 
@@ -801,3 +803,94 @@ Estimated: 3 jam, ~10 commits, ~20 new tests.
 - Audit trail / change history — Phase 4
 - Recharts dashboard — Session 014
 - Export ke .xlsx via ExcelJS — Phase 4
+
+---
+
+## Session 010 — 2026-04-12 (Phase 3 — DataSource Foundation + BS Pilot)
+
+First Phase 3 execution session. Built the end-to-end foundation for live data mode and delivered Balance Sheet as pilot. User can now fill HOME form → input BS data → see `/historical/balance-sheet` auto-flip from demo mode to live mode with their own numbers.
+
+### Delivered
+
+**Store extension (v2 → v3)**
+- 3 new Zustand slices: `balanceSheet`, `incomeStatement`, `fixedAsset` (all `BalanceSheetInputState` / etc. from new `src/data/live/types.ts`, keyed by `excelRow → YearKeyedSeries`)
+- `setBalanceSheet` / `setIncomeStatement` / `setFixedAsset` + `resetBalanceSheet` / etc. actions
+- `migratePersistedState` extended to chain v1 → v2 → v3 unconditionally; narrows `persistedState: unknown` via `Record<string, unknown>` cast once at entry, then applies migrations in order (cleaner than original nested branches)
+- `partialize` updated to persist all 6 slices
+
+**Live data adapter layer (new `src/data/live/`)**
+- `build-cell-map.ts` — `buildLiveCellMap(liveColumns, liveData, years)` synthesizes a `CellMap` at addresses matching `${col}${excelRow}`, so the existing `buildRowsFromManifest` pipeline consumes it unchanged (LESSON-030)
+- `generateLiveColumns([2020..2023])` → `{ 2020: 'C', 2021: 'D', 2022: 'E', 2023: 'F' }` — synthetic column letters starting from C
+- `src/lib/calculations/year-helpers.ts` — `computeHistoricalYears(tahunTransaksi, count)` derives ascending N-year window ending at `tahunTransaksi - 1`
+- `src/lib/calculations/derive-computed-rows.ts` — `deriveComputedRows(rows, values, years)` computes subtotal/total rows from their `computedFrom` references via single forward pass, with fall-through to prior computed results for subtotal-of-subtotals chains
+
+**Manifest extension**
+- `SheetManifest.historicalYearCount?: 3 | 4` — declares live-mode year span per sheet
+- `ManifestRow.computedFrom?: readonly number[]` — declares subtotal/total aggregation dependencies as pure data
+- 9 manifests tagged with `historicalYearCount`; BS manifest gets `computedFrom` on all 9 subtotal/total rows (IS/FA will follow in Sessions 011–012)
+
+**UI layer refactor**
+- `SheetPage` converted to client component with auto-mode detection: seed mode before hydration, live mode after hydration when `home !== null && liveRows !== null`. Live path synthesizes a manifest override with synthetic columns and passes through `buildRowsFromManifest` unchanged.
+- `RowInputGrid` — reusable data-entry grid accepting full manifest rows; interleaves editable `<NumericInput>` cells for normal rows with read-only formatted cells for subtotal/total rows, staying visually aligned with the read-only `<FinancialTable>`
+- `parseFinancialInput` — handles Indonesian paste surface: dots as thousand sep, commas as decimals, Rp prefix, accounting parentheses, explicit negatives, whitespace (10 TDD cases)
+- `/input/balance-sheet/page.tsx` — pilot input route with hydration gate → HOME form guard → `<BalanceSheetEditor>` child component. Child seeds local state via `useState(initialValues)` once at mount (LESSON-016 — avoid setState-in-effect by gating the mount behind `hasHydrated`). Debounced 500ms persist to store. `useMemo` computes subtotal/total values reactively from `localValues` via `deriveComputedRows`.
+- `<DataSourceHeader>` flips `mode` prop based on SheetPage's domain-state detection — single switching point (LESSON-029)
+- Sidebar nav — new "Input Data" group between "Input Master" and "Historis"; BS entry active, IS/FA as `wip: true` placeholders
+
+### Verification Results
+
+```
+Tests:     169 / 169 passing (23 files) — +36 vs Session 009 baseline
+  migration v2→v3:         +3 tests (7 total)
+  year-helpers:            +6 tests (new file)
+  buildLiveCellMap:        +9 tests (new file)
+  parseFinancialInput:    +10 tests (new file)
+  deriveComputedRows:      +8 tests (new file)
+Build:     ✅ 17 routes, 12 static pages prerendered (+1 /input/balance-sheet)
+Typecheck: ✅ tsc --noEmit clean
+Lint:      ✅ zero warnings
+Smoke:     ✅ All 13 routes HTTP 200 on production
+           ✅ /historical/balance-sheet seed-mode banner still renders
+           ✅ /input/balance-sheet new route reachable
+           ✅ Input Data nav group visible on root HTML
+           ✅ Zero regression — existing 9 financial pages unchanged in seed mode
+```
+
+### Session 010 Stats
+
+- Commits: 8 (7 feature + 1 Opsi C follow-up for computed rows display)
+- New files: 8 (4 source + 4 test)
+- Files modified: ~15 (store, types, 9 manifests + build.ts types, SheetPage, nav-tree, BS manifest)
+- Net delta: +1353 / −140 lines
+- New tests: 36 (across 5 new test files)
+- Deployments: 2 production (`21sqe2eco` initial, `3wzel9whp` follow-up fix)
+- Live URL unchanged: https://kka-penilaian-saham.vercel.app
+
+### Architecture After Session 010
+
+**Live data mode is operational for Balance Sheet end-to-end.** User flow:
+
+1. User opens `/` (HOME form) — fills `namaPerusahaan`, `tahunTransaksi=2024`, etc. → saved to `store.home`
+2. Navigates to `/input/balance-sheet` — sees empty 4-year grid (2020–2023 derived from `tahunTransaksi-1..-4`)
+3. Types values → 500ms debounced write to `store.balanceSheet.rows`
+4. Navigates to `/historical/balance-sheet` — `SheetPage` detects `home !== null && liveRows !== null`, flips to live mode, synthesizes CellMap from `store.balanceSheet.rows`, renders same manifest through unchanged `buildRowsFromManifest` pipeline. `<DataSourceHeader>` shows `mode="live"` neutral header. Column derivations (common-size, growth) computed from user values via existing `applyDerivations`.
+5. Refresh browser → localStorage persist restores all slices via v3 migrate function (idempotent).
+
+Session 011–012 follow-ups will add the same flow for Income Statement + Fixed Asset, then wire downstream pages (CFS, FR, NOPLAT, FCF, Growth Revenue, ROIC) via lazy `useMemo` compute per page (LESSON-032).
+
+**Lessons extracted**: LESSON-033, LESSON-034 (both promoted to start skill section 8).
+
+### Deferred / Punted to Sessions 011-012
+
+- Income Statement input page (`/input/income-statement`) + IS `computedFrom` declarations
+- Fixed Asset input page (`/input/fixed-asset`) + FA `computedFrom` declarations
+- Downstream sheet live mode: CFS, FR, NOPLAT, FCF, Growth Revenue, ROIC — each needs its compute adapter wired into the SheetPage live branch
+- Validation warn border (orange ring on non-numeric paste) — not critical for pilot, can ship later when there's user feedback on confusion
+
+### Next Session — 011 (IS input + 4 downstream migrations)
+
+Per `plan.md` Session 011 roadmap:
+1. Add IS `computedFrom` declarations (mirrors BS approach)
+2. `/input/income-statement/page.tsx` — reuse RowInputGrid unchanged
+3. Wire downstream live compute for CFS, Financial Ratio, NOPLAT, Growth Revenue — each calls existing calc function from `src/lib/calculations/*` inside SheetPage `useMemo`
+4. Estimated: 2.5–3 jam, ~10 tests (mostly integration), 5 pages newly live-capable

@@ -500,6 +500,10 @@ untuk 3+ sesi ke depan:
 - LESSON-031 (Auto-detect mode dari domain state > explicit toggles)
 - LESSON-032 (Lazy compute via `useMemo` per page > global reactive graph)
 
+### Session 010 (Phase 3 execution — DataSource + BS pilot)
+- LESSON-033 (Declarative `computedFrom[]` beats structural indent-based derivation for irregular accounting hierarchies)
+- LESSON-034 (Gate local-state seed via hydration-aware child mount — elegant `useState(initial)` without setState-in-effect)
+
 LESSON-014, 015, 017, 020, 022, 027 **TIDAK** di-promote — workflow/lint
 insights yang general ke project lain tapi terlalu luas atau terlalu
 session-specific untuk section 8 (yang fokus KKA-specific gotchas).
@@ -1023,4 +1027,105 @@ React's existing hook system handles "what to recompute when" tanpa explicit dep
 **Trade-off accepted**: First navigation ke each downstream page mungkin spend ~10-50ms compute. Acceptable untuk client-side DJP tool dengan typical session lifecycle <30 menit.
 
 **Proven at**: session-009 design (2026-04-12). Will be implemented across session-011 + 012.
+
+---
+
+### LESSON-033: Declarative `computedFrom[]` beats structural indent-based derivation for irregular accounting hierarchies
+
+**Kategori**: Design | Anti-pattern
+**Sesi**: session-010
+**Tanggal**: 2026-04-12
+
+**Konteks**: Session 010 input form butuh menampilkan subtotal/total row sebagai read-only computed cells (Total Current Assets, TOTAL ASSETS, dll). Pertanyaan: bagaimana compute hierarchy-nya? Tiga kandidat:
+
+1. **Section-based running-buffer** — subtotal = sum of leaves since last section boundary (header/separator)
+2. **Indent-based parent-child** — parent aggregates all children at indent > current
+3. **Declarative** — each subtotal row declares `computedFrom: number[]` explicitly
+
+**Apa yang terjadi**: Awalnya coba approach 1 dan 2. Keduanya gagal di pola BS `row 25 Total Non-Current Assets = row 22 (subtotal Fixed Assets Net) + row 24 (leaf Intangibles)` — aggregates **a subtotal plus a sibling leaf** at the same indent level. Section-based produces `sum(24) = 24` (hanya leaf buffer since last subtotal). Indent-based juga tidak membedakan row 22 (subtotal) vs row 25 (subtotal) di same indent level 0 — mana yang "children" siapa?
+
+Menambah exceptions untuk row 25, 27, 41, 48, 49, 51 (6 dari 9 subtotal/total di BS) akan bikin helper rusak penuh — lebih banyak override daripada default rule.
+
+**Root cause / insight**: Real-world accounting hierarchies **tidak konsisten**. Excel author campuran:
+- Pure-leaf subtotals (Total Current Assets = sum 7 leaves)
+- Subtotal-of-subtotals (TOTAL ASSETS = Total Current + Total Non-Current)
+- **Mixed** (Total Non-Current = subtotal Fixed Assets Net + leaf Intangibles; Shareholders Equity = leaf Paid Up + leaf Addition + subtotal Retained Earnings Ending)
+
+Tidak ada single structural rule yang cover semua tanpa exception list. Satu-satunya representation yang jujur adalah **eksplisit dependency graph per row**.
+
+Declarative `computedFrom: [22, 24]` adalah 8 karakter lebih banyak dari "implicit rule" tapi **zero ambiguity**, **self-documenting** ("row 25 depends on rows 22 and 24 — now you know"), dan **single source of truth** yang sama structure seperti Excel formula itu sendiri (`=C22+C24`).
+
+Untuk implement: single forward pass, setiap row lookup referenced rows dari `values[ref] ?? out[ref]` (leaf dulu, fallback ke prior computed). Subtotal-of-subtotals bekerja selama manifest natural top-down ordering (yang memang convention Excel).
+
+**Cara menerapkan di masa depan**:
+1. **Kalau hierarchy berpotensi irregular**, jangan coba derive structure dari layout. Declare edges sebagai data.
+2. **Single forward pass dengan fall-through** (leaf value || prior computed) cukup untuk chain dependencies tanpa recursion
+3. **Accounting sign conventions** (negatif untuk AccumDep, etc.) fall out natural dari plain sum — tidak butuh sign-flip logic per row
+4. Kalau field baru seperti `computedFrom` dibuat di manifest type, ada threshold YAGNI: only add new manifest fields when at least 2 real sheets benefit. BS alone justified `computedFrom` (9 subtotal rows); IS dan FA akan pakai same field di Session 011–012.
+5. **Kalau rule ambiguous, deklarasikan eksplisit**. Implicit rules yang butuh 6+ exceptions di 9 row sample size **bukan rule** — itu accidental complexity masquerading as simplicity.
+
+**Anti-pattern avoided**: Elegant-looking structural derivation yang butuh exception list. Kalau ada rule + >20% exceptions, rule-nya salah.
+
+**Proven at**: session-010 (2026-04-12). `src/lib/calculations/derive-computed-rows.ts` + 8 TDD tests + `src/data/manifests/balance-sheet.ts` 9 `computedFrom` declarations.
+
+---
+
+### LESSON-034: Gate local-state seed via hydration-aware child mount — elegant `useState(initial)` without setState-in-effect
+
+**Kategori**: Framework | Anti-pattern | React Compiler
+**Sesi**: session-010
+**Tanggal**: 2026-04-12
+
+**Konteks**: `/input/balance-sheet` perlu seed `localValues` dari `store.balanceSheet.rows` **sekali saat mount**, debounce subsequent writes back to store. Tricky dengan Zustand persist: during SSR dan before `onRehydrateStorage` fires, `store.balanceSheet` adalah initial state (null), bukan user's persisted data.
+
+First attempt:
+```ts
+const [localValues, setLocalValues] = useState(balanceSheet?.rows ?? {})
+useEffect(() => {
+  if (hasHydrated && balanceSheet?.rows) {
+    setLocalValues(balanceSheet.rows)  // ❌ setState-in-effect
+  }
+}, [hasHydrated, balanceSheet])
+```
+
+Lint rejected: `react-hooks/set-state-in-effect` (LESSON-016). React Compiler considers setState-in-effect as cascading re-render hurting performance.
+
+**Apa yang terjadi**: Mencoba alternative approaches:
+1. Key-based remount (`<Grid key={hasHydrated} />`) — works but feels hacky
+2. Direct subscription (pass `balanceSheet` down) — then debounce would fight with store updates
+3. `useSyncExternalStore` — complex, orthogonal
+4. **Child-component extraction behind hydration gate** — parent gates on `hasHydrated`, child mounts only after hydration and uses `useState(initialValues)` which runs **exactly once**
+
+**Root cause / insight**: `useState(initializer)` fires **once at mount**. Kalau component **belum mounted** sampai `hasHydrated`, initializer **akan lihat hydrated store state**. Parent:
+
+```tsx
+function Page() {
+  const home = useKkaStore(s => s.home)
+  const hasHydrated = useKkaStore(s => s._hasHydrated)
+  if (!hasHydrated) return <LoadingPlaceholder />   // gate
+  if (!home) return <EmptyState />                   // gate
+  return <Editor tahunTransaksi={home.tahunTransaksi} />  // child mounts AFTER hydration
+}
+
+function Editor({ tahunTransaksi }) {
+  // Safe: parent guaranteed hydration before mounting us.
+  const initial = useKkaStore.getState().balanceSheet?.rows ?? {}
+  const [localValues, setLocalValues] = useState(initial)
+  // ... debounced writes back to store ...
+}
+```
+
+Key realization: **hydration gate != loading state**. The parent page file is really two components — a gate + the actual feature. Extracting the feature into a separate component makes the mount timing do the seeding for free, zero effect sync, zero lint violations. `useKkaStore.getState()` bypasses subscription (we don't want subsequent store updates to overwrite local state — those come from our own debounced writes).
+
+**Cara menerapkan di masa depan**:
+1. **Kalau butuh seed local state dari persisted store**, extract the feature behind a parent hydration gate
+2. Parent gates on `hasHydrated` (+ any domain invariants like `home !== null`), returns early
+3. Child uses `useState(initial)` dengan `useKkaStore.getState()` sekali — **non-subscribed read**
+4. Debounced writes flow **one way**: local state → store. Never flow back (local state IS the source of truth while the page is mounted)
+5. This pattern scales to any form page with persisted state: `/input/income-statement`, `/input/fixed-asset`, future WACC/DCF forms
+6. **Anti-pattern**: menyembunyikan setState-in-effect dengan eslint-disable. Aturan ada alasan — ikuti dengan cara yang cleaner, jangan bypass.
+
+**Alternative considered**: inline everything di satu component + use `useRef` untuk track "already seeded" flag + manual sync in effect. Works, tapi adds state you don't actually have semantically. Child mount gate is zero extra state.
+
+**Proven at**: session-010 (2026-04-12). `src/app/input/balance-sheet/page.tsx` — parent `InputBalanceSheetPage` gates on hydration + HOME, child `BalanceSheetEditor` does the real work. Lint clean, zero effect sync needed.
 
