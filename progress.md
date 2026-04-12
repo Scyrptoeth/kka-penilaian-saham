@@ -17,23 +17,25 @@
 | 011 | 2026-04-12 | Phase 3 — IS input + 3 downstream live migrations (NOPLAT / Growth Revenue / Financial Ratio) | ✅ Shipped | [session-011](history/session-011-is-input-downstream-wave.md) |
 | 012 | 2026-04-12 | Phase 3 — FA input + CFS/FCF/ROIC live mode + FR 18/18 | ✅ Shipped | [session-012](history/session-012-fa-cfs-fcf-roic.md) |
 | 013 | 2026-04-12 | Phase 3 — WACC + Discount Rate + Growth Rate (valuation foundation) | ✅ Shipped | [session-013](history/session-013-wacc-discount-rate-growth-rate.md) |
+| 014 | 2026-04-12 | Phase 3 — KEY DRIVERS + PROY FA + PROY LR (projection chain start) | ✅ Shipped | [session-014](history/session-014-key-drivers-proy-fa-lr.md) |
 
 ## Current State Snapshot (latest)
 
 - **Branch**: `main`
-- **Tests**: **525 / 525** passing across 35 files (+49 vs Session 012)
-- **Build**: ✅ clean, zero errors, zero warnings, **17 static pages** prerendered (+3: `/valuation/wacc`, `/valuation/discount-rate`, `/analysis/growth-rate`)
+- **Tests**: **563 / 563** passing across 38 files (+38 vs Session 013)
+- **Build**: ✅ clean, zero errors, zero warnings, **20 static pages** prerendered (+3: `/input/key-drivers`, `/projection/fixed-asset`, `/projection/income-statement`)
 - **Lint**: ✅ zero warnings
 - **Typecheck**: ✅ `tsc --noEmit` exit 0
 - **Live**: https://kka-penilaian-saham.vercel.app
-- **Store version**: v5 (added `wacc` + `discountRate` slices, chained migration from v4)
-- **Architecture state after 013**: Valuation foundation layer complete. WACC (comparable companies approach) + Discount Rate (CAPM approach) provide two independent WACC computations — CAPM WACC (11.46%) is the one DCF will use. Growth Rate (18.65%) auto-computes from ROIC + FA + BS upstream chain. All 3 new pages are custom form/display components (not manifest-based). WACC override ("Menurut WP") supported via store. Zero regression on existing 9 analysis pages + 3 input pages.
-- **Live pages (18)**:
+- **Store version**: v6 (added `keyDrivers` slice, chained migration from v5)
+- **Architecture state after 014**: Projection chain started. KEY DRIVERS input form captures 7-year projection assumptions (financial, operational, BS, capex). PROY FA projects 6-category fixed asset schedule from historical growth rates. PROY LR projects income statement from KEY DRIVERS ratios + IS historical + PROY FA depreciation. Revenue chain, COGS, OpEx, EBIT, PBT, Net Profit all match fixture at 3-decimal precision. Sign convention: store positive, negate in adapters.
+- **Live pages (21)**:
   - Input Master: HOME
-  - Input Data: Balance Sheet · Income Statement · Fixed Asset
+  - Input Data: Balance Sheet · Income Statement · Fixed Asset · **Key Drivers (new)**
   - Historis: Balance Sheet · Income Statement · Cash Flow · Fixed Asset
-  - Analisis: Financial Ratio (18/18) · FCF · NOPLAT · Growth Revenue · ROIC · **Growth Rate (new)**
-  - Penilaian: DLOM · DLOC (PFC) · **WACC (new)** · **Discount Rate (new)**
+  - Analisis: Financial Ratio (18/18) · FCF · NOPLAT · Growth Revenue · ROIC · Growth Rate
+  - Proyeksi: **Proy. L/R (new)** · **Proy. Fixed Asset (new)**
+  - Penilaian: DLOM · DLOC (PFC) · WACC · Discount Rate
 
 ## Session 1 — 2026-04-11 (Scope C: Full Phase 1)
 
