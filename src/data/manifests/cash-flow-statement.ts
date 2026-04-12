@@ -24,6 +24,7 @@ import type { SheetManifest } from './types'
 export const CASH_FLOW_STATEMENT_MANIFEST: SheetManifest = {
   title: 'Cash Flow Statement',
   slug: 'cash-flow-statement',
+  historicalYearCount: 3,
   years: [2019, 2020, 2021],
   columns: { 2019: 'C', 2020: 'D', 2021: 'E' },
   disclaimer:

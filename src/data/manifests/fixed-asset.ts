@@ -56,6 +56,7 @@ const ADDITIONS_LABELS = [
 export const FIXED_ASSET_MANIFEST: SheetManifest = {
   title: 'Fixed Asset Schedule',
   slug: 'fixed-asset',
+  historicalYearCount: 3,
   years: [2019, 2020, 2021],
   columns: { 2019: 'C', 2020: 'D', 2021: 'E' },
   disclaimer:

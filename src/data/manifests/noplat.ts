@@ -31,6 +31,7 @@ const GROWTH_DESC = 'YoY growth: (current − prior) / prior, IFERROR → 0'
 export const NOPLAT_MANIFEST: SheetManifest = {
   title: 'NOPLAT',
   slug: 'noplat',
+  historicalYearCount: 3,
   years: [2019, 2020, 2021],
   columns: { 2019: 'C', 2020: 'D', 2021: 'E' },
   derivations: [{ type: 'yoyGrowth', safe: true }],

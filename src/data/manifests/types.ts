@@ -160,6 +160,19 @@ export interface SheetManifest {
   /** Optional disclaimer shown in the table caption (seed data marker). */
   disclaimer?: string
   /**
+   * Number of historical years this sheet covers in live mode.
+   *
+   * Seed mode reads `years` directly from the manifest (hard-coded to the
+   * prototype workbook's 2018–2021 or 2019–2021 window). Live mode derives
+   * the window from `tahunTransaksi − historicalYearCount..tahunTransaksi − 1`
+   * via `computeHistoricalYears`, so the same manifest can render any
+   * 3- or 4-year run the user asks for.
+   *
+   *   4 → BS / IS (four historical years in the source workbook)
+   *   3 → CFS / FA / FR / FCF / NOPLAT / Growth / ROIC
+   */
+  historicalYearCount?: 3 | 4
+  /**
    * Declarative derivation specs. Each entry produces either a common-size
    * or growth column-group via the generic primitives in `./build.ts`.
    * Interpret order does not matter.

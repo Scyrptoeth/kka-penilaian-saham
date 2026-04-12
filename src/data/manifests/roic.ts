@@ -21,6 +21,7 @@ import type { SheetManifest } from './types'
 export const ROIC_MANIFEST: SheetManifest = {
   title: 'ROIC',
   slug: 'roic',
+  historicalYearCount: 3,
   years: [2019, 2020, 2021],
   columns: { 2019: 'B', 2020: 'C', 2021: 'D' },
   disclaimer:

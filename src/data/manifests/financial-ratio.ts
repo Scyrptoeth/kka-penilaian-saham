@@ -38,6 +38,7 @@ import type { SheetManifest } from './types'
 export const FINANCIAL_RATIO_MANIFEST: SheetManifest = {
   title: 'Financial Ratios',
   slug: 'financial-ratio',
+  historicalYearCount: 3,
   years: [2019, 2020, 2021],
   columns: { 2019: 'D', 2020: 'E', 2021: 'F' },
   disclaimer:

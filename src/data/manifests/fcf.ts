@@ -28,6 +28,7 @@ import type { SheetManifest } from './types'
 export const FCF_MANIFEST: SheetManifest = {
   title: 'Free Cash Flow',
   slug: 'fcf',
+  historicalYearCount: 3,
   years: [2019, 2020, 2021],
   columns: { 2019: 'C', 2020: 'D', 2021: 'E' },
   disclaimer:
