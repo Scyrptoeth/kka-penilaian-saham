@@ -18,23 +18,24 @@
 | 012 | 2026-04-12 | Phase 3 — FA input + CFS/FCF/ROIC live mode + FR 18/18 | ✅ Shipped | [session-012](history/session-012-fa-cfs-fcf-roic.md) |
 | 013 | 2026-04-12 | Phase 3 — WACC + Discount Rate + Growth Rate (valuation foundation) | ✅ Shipped | [session-013](history/session-013-wacc-discount-rate-growth-rate.md) |
 | 014 | 2026-04-12 | Phase 3 — KEY DRIVERS + PROY FA + PROY LR (projection chain start) | ✅ Shipped | [session-014](history/session-014-key-drivers-proy-fa-lr.md) |
+| 015 | 2026-04-12 | Phase 3 — PROY BS + PROY NOPLAT + PROY ACC PAYABLES + PROY CFS (projection chain complete) | ✅ Shipped | [session-015](history/session-015-proy-chain-complete.md) |
 
 ## Current State Snapshot (latest)
 
 - **Branch**: `main`
-- **Tests**: **563 / 563** passing across 38 files (+38 vs Session 013)
-- **Build**: ✅ clean, zero errors, zero warnings, **20 static pages** prerendered (+3: `/input/key-drivers`, `/projection/fixed-asset`, `/projection/income-statement`)
+- **Tests**: **638 / 638** passing across 42 files (+75 vs Session 014)
+- **Build**: ✅ clean, zero errors, zero warnings, **27 static pages** prerendered (+3 projection pages)
 - **Lint**: ✅ zero warnings
 - **Typecheck**: ✅ `tsc --noEmit` exit 0
 - **Live**: https://kka-penilaian-saham.vercel.app
-- **Store version**: v6 (added `keyDrivers` slice, chained migration from v5)
-- **Architecture state after 014**: Projection chain started. KEY DRIVERS input form captures 7-year projection assumptions (financial, operational, BS, capex). PROY FA projects 6-category fixed asset schedule from historical growth rates. PROY LR projects income statement from KEY DRIVERS ratios + IS historical + PROY FA depreciation. Revenue chain, COGS, OpEx, EBIT, PBT, Net Profit all match fixture at 3-decimal precision. Sign convention: store positive, negate in adapters.
-- **Live pages (21)**:
+- **Store version**: v6 (unchanged from Session 014 — no new slices needed)
+- **Architecture state after 015**: **Projection chain complete.** All 4 remaining projection sheets shipped: PROY BS (from BS avg growth + PROY FA + PROY LR net profit), PROY NOPLAT (from PROY LR with sign-flips + split hist/proj tax rates), PROY ACC PAYABLES (hidden, structural, all zeros), PROY CFS (from PROY LR + PROY BS + PROY FA + PROY AP). All upstream data now ready for DCF/AAM/EEM valuation in Session 016.
+- **Live pages (24)**:
   - Input Master: HOME
-  - Input Data: Balance Sheet · Income Statement · Fixed Asset · **Key Drivers (new)**
+  - Input Data: Balance Sheet · Income Statement · Fixed Asset · Key Drivers
   - Historis: Balance Sheet · Income Statement · Cash Flow · Fixed Asset
   - Analisis: Financial Ratio (18/18) · FCF · NOPLAT · Growth Revenue · ROIC · Growth Rate
-  - Proyeksi: **Proy. L/R (new)** · **Proy. Fixed Asset (new)**
+  - Proyeksi: Proy. L/R · Proy. Fixed Asset · **Proy. Balance Sheet (new)** · **Proy. NOPLAT (new)** · **Proy. Cash Flow (new)**
   - Penilaian: DLOM · DLOC (PFC) · WACC · Discount Rate
 
 ## Session 1 — 2026-04-11 (Scope C: Full Phase 1)
