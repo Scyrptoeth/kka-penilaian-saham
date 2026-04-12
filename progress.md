@@ -19,25 +19,26 @@
 | 013 | 2026-04-12 | Phase 3 — WACC + Discount Rate + Growth Rate (valuation foundation) | ✅ Shipped | [session-013](history/session-013-wacc-discount-rate-growth-rate.md) |
 | 014 | 2026-04-12 | Phase 3 — KEY DRIVERS + PROY FA + PROY LR (projection chain start) | ✅ Shipped | [session-014](history/session-014-key-drivers-proy-fa-lr.md) |
 | 015 | 2026-04-12 | Phase 3 — PROY BS + PROY NOPLAT + PROY ACC PAYABLES + PROY CFS (projection chain complete) | ✅ Shipped | [session-015](history/session-015-proy-chain-complete.md) |
+| 016 | 2026-04-12/13 | DCF + AAM + EEM + BORROWING CAP — first share value output! | ✅ Shipped | [session-016](history/session-016-dcf-aam-eem-first-share-value.md) |
 
 ## Current State Snapshot (latest)
 
 - **Branch**: `main`
-- **Tests**: **641 / 641** passing across 42 files (+78 vs Session 014)
-- **Build**: ✅ clean, zero errors, zero warnings, **27 static pages** prerendered (+3 projection pages)
+- **Tests**: **691 / 691** passing across 47 files (+49 vs Session 015)
+- **Build**: ✅ clean, zero errors, zero warnings, **30 static pages** prerendered (+4 valuation pages)
 - **Lint**: ✅ zero warnings
 - **Typecheck**: ✅ `tsc --noEmit` exit 0
 - **Live**: https://kka-penilaian-saham.vercel.app
-- **Store version**: v6 (unchanged from Session 014 — no new slices needed)
-- **Architecture state after 015**: **Projection chain complete + fully company-agnostic.** All 4 remaining projection sheets shipped. Post-delivery: 3 rounds of system development audit eliminated all case-specific code. IS growth rates now computed from user data, tax rates derived from IS, loan balances from BS, projection years centralized. Zero hardcoded values from prototype in production code path. All upstream data ready for DCF/AAM/EEM in Session 016.
-- **Company-agnostic verified**: 15 compute adapters (100% parameterized), 24 pages (100% from store/computed), 9 manifests (generic labels), 9 calc modules (pure functions). Form defaults = Indonesian industry standards, user-editable.
-- **Live pages (24)**:
+- **Store version**: v7 (added BorrowingCapInputState for CALK values)
+- **Architecture state after 016**: **First share value output achieved!** 3 valuation methods (DCF, AAM, EEM) all producing per-share values from user-entered data. Shared `computeShareValue()` DRY helper for equity→share tail. `buildDiscountRateInput()` centralizes store→input mapping. System hardening audit eliminated debtRate bug + hardcoded values.
+- **Company-agnostic status**: 20 compute adapters (100% parameterized), 28 pages (100% from store/computed), 9 manifests (generic labels), 14 calc modules (pure functions). Known limitation: `paidUpCapitalDeduction` assumes par value = Rp 1 (TODO: add `nilaiNominalPerSaham`).
+- **Live pages (28)**:
   - Input Master: HOME
   - Input Data: Balance Sheet · Income Statement · Fixed Asset · Key Drivers
   - Historis: Balance Sheet · Income Statement · Cash Flow · Fixed Asset
   - Analisis: Financial Ratio (18/18) · FCF · NOPLAT · Growth Revenue · ROIC · Growth Rate
   - Proyeksi: Proy. L/R · Proy. Fixed Asset · Proy. Balance Sheet · Proy. NOPLAT · Proy. Cash Flow
-  - Penilaian: DLOM · DLOC (PFC) · WACC · Discount Rate
+  - Penilaian: DLOM · DLOC (PFC) · WACC · Discount Rate · **Borrowing Cap** · **DCF** · **AAM** · **EEM**
 
 ## Session 1 — 2026-04-11 (Scope C: Full Phase 1)
 

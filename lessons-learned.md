@@ -517,6 +517,11 @@ untuk 3+ sesi ke depan:
 - LESSON-041 (Page-level wiring is where case-specific values hide — audit checklist)
 - LESSON-042 (Centralize projection year count — scattered magic number)
 
+### Session 016 (DCF + AAM + EEM + Borrowing Cap — first share value)
+- LESSON-043 (buildDiscountRateInput — centralize store→input mapping to prevent debtRate-class bugs)
+- LESSON-044 (Prompt fixture values vs real fixture — always verify E/F columns independently)
+- LESSON-045 (Gordon Growth Model allows g > r when FCF is negative — don't over-guard)
+
 LESSON-014, 015, 017, 020, 022, 027, 040 **TIDAK** di-promote — workflow/testing-specific
 insights yang general ke project lain tapi terlalu luas atau terlalu
 session-specific untuk section 8 (yang fokus KKA-specific gotchas).
@@ -1308,3 +1313,58 @@ Key realization: **hydration gate != loading state**. The parent page file is re
 3. Saat menambah page baru yang butuh projection years, import dari `year-helpers.ts`, bukan copy-paste array construction.
 
 **Proven at**: session-015 (2026-04-12)
+
+---
+
+## Session 016 — DCF + AAM + EEM + BORROWING CAP (First Share Value Output)
+
+### LESSON-043: buildDiscountRateInput — centralize store→input mapping to prevent debtRate-class bugs
+
+**Kategori**: Anti-pattern | Workflow
+**Sesi**: session-016
+**Tanggal**: 2026-04-12
+
+**Konteks**: Saat multiple pages memanggil pure function yang sama dengan data dari Zustand store.
+
+**Apa yang terjadi**: 3 valuation pages copy-paste 10 baris mapping `DiscountRateState → DiscountRateInput`. Semua 3 salah menghitung `debtRate` — pakai rata-rata mentah (`9.41`) alih-alih `computeDebtRateFromBanks()` yang konversi ke desimal (`0.094`). Bug 100× pada cost of debt.
+
+**Root cause / insight**: Copy-paste store→input mapping = guaranteed divergence. Adapter function yang centralize mapping = satu tempat untuk semua transformasi = zero divergence risk.
+
+**Cara menerapkan di masa depan**:
+1. Setiap kali pure function di-consume oleh >1 page, buat `buildXxxInput(storeState)` adapter.
+2. Adapter hidup di file yang sama dengan pure function (co-located).
+3. Red flag: copy-paste mapping >5 baris antar files → STOP, extract adapter.
+
+**Proven at**: session-016 (2026-04-12, `buildDiscountRateInput` di `discount-rate.ts`)
+
+### LESSON-044: Prompt fixture analysis vs real fixture — SELALU verify projected columns independently
+
+**Kategori**: Excel | Testing
+**Sesi**: session-016
+**Tanggal**: 2026-04-12
+
+**Konteks**: Prompt menganalisa DCF fixture dan memberikan projected values untuk test. D-column benar, E/F salah besar.
+
+**Apa yang terjadi**: Prompt assumed E12/F12 ~1-2B, fixture sebenarnya E12=-637B, F12=-9.8T. Projections compound aggressively. Test dengan wrong values gagal karena terminal value guard salah trigger.
+
+**Root cause / insight**: Financial projections bisa exponentially diverge. Jangan extrapolate E/F dari D pattern. Selalu read actual fixture JSON.
+
+**Cara menerapkan di masa depan**: Untuk DCF/valuation tests — extract ALL projected years dari fixture JSON via python script, jangan trust prompt analysis.
+
+**Proven at**: session-016 (2026-04-12, DCF test rewritten with actual fixture values)
+
+### LESSON-045: Gordon Growth Model allows g > r when FCF is negative — don't over-guard
+
+**Kategori**: Excel | Anti-pattern
+**Sesi**: session-016
+**Tanggal**: 2026-04-12
+
+**Konteks**: DCF terminal value `TV = FCF × (1+g) / (r-g)`. Standard finance: g must be < r.
+
+**Apa yang terjadi**: Fixture has g=13.75% > r=11.46% with valid positive TV (~489T). FCF year 3 = -9.8T (negative). Negative × positive / negative = positive. Guard `g >= r` wrongly throws.
+
+**Root cause / insight**: g > r guard assumes positive FCF. Dengan negative FCF, double-negative produces valid result. Excel tidak guard — just computes. Only guard against exact equality (division by zero).
+
+**Cara menerapkan di masa depan**: Guard `wacc === growthRate` only. Let math work for g > r. Match Excel behavior exactly.
+
+**Proven at**: session-016 (2026-04-12, guard relaxed from `>=` to `===`)
