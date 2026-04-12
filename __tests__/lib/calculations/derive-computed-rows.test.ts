@@ -174,4 +174,109 @@ describe('deriveComputedRows', () => {
     const out = deriveComputedRows(rows, { 8: v(100), 9: v(50) }, [...YEARS])
     expect(Object.keys(out)).toHaveLength(0)
   })
+
+  // Session 011: signed computedFrom refs enable subtraction for IS subtotals
+  // (Gross Profit = Revenue - COGS, PBT = EBIT + NonOp - Tax, etc.).
+  // Encoding: negative excelRow in computedFrom = subtract that row's series.
+
+  it('subtracts a series when the ref is negative (Gross Profit pattern)', () => {
+    // row 8 = row 6 Revenue - row 7 COGS (user enters both as positive)
+    const rows: ManifestRow[] = [
+      { excelRow: 6, label: 'Revenue' },
+      { excelRow: 7, label: 'COGS' },
+      {
+        excelRow: 8,
+        label: 'Gross Profit',
+        type: 'subtotal',
+        computedFrom: [6, -7],
+      },
+    ]
+    const values = { 6: v(1000), 7: v(600) }
+    const out = deriveComputedRows(rows, values, [...YEARS])
+    expect(out[8]).toEqual(v(400))
+  })
+
+  it('handles mixed positive and negative refs in one computedFrom', () => {
+    // Non-Op Net = InterestIncome - InterestExpense + OtherIncome
+    const rows: ManifestRow[] = [
+      { excelRow: 26, label: 'Interest Income' },
+      { excelRow: 27, label: 'Interest Expense' },
+      { excelRow: 28, label: 'Other Income' },
+      {
+        excelRow: 30,
+        label: 'Non-Operating Income (net)',
+        type: 'subtotal',
+        computedFrom: [26, -27, 28],
+      },
+    ]
+    const values = {
+      26: { 2023: 50 },
+      27: { 2023: 200 },
+      28: { 2023: 30 },
+    }
+    const out = deriveComputedRows(rows, values, [...YEARS])
+    expect(out[30]?.[2023]).toBe(-120) // 50 - 200 + 30
+  })
+
+  it('chains signed refs through subtotal-of-subtotals', () => {
+    // row 8 Gross Profit = row 6 - row 7
+    // row 22 EBIT = row 8 - row 15 (where row 15 is OpEx leaf)
+    // row 35 Net Profit = row 22 - row 33 Tax
+    const rows: ManifestRow[] = [
+      { excelRow: 6, label: 'Revenue' },
+      { excelRow: 7, label: 'COGS' },
+      {
+        excelRow: 8,
+        label: 'Gross Profit',
+        type: 'subtotal',
+        computedFrom: [6, -7],
+      },
+      { excelRow: 15, label: 'OpEx' },
+      {
+        excelRow: 22,
+        label: 'EBIT',
+        type: 'subtotal',
+        computedFrom: [8, -15],
+      },
+      { excelRow: 33, label: 'Corporate Tax' },
+      {
+        excelRow: 35,
+        label: 'Net Profit After Tax',
+        type: 'total',
+        computedFrom: [22, -33],
+      },
+    ]
+    const values = {
+      6: { 2023: 1000 },
+      7: { 2023: 600 },
+      15: { 2023: 150 },
+      33: { 2023: 50 },
+    }
+    const out = deriveComputedRows(rows, values, [...YEARS])
+    expect(out[8]?.[2023]).toBe(400) // 1000 - 600
+    expect(out[22]?.[2023]).toBe(250) // 400 - 150
+    expect(out[35]?.[2023]).toBe(200) // 250 - 50
+  })
+
+  it('preserves backward compatibility — all-positive refs still sum as before', () => {
+    // Exact repro of the flat subtotal test, but explicitly asserting
+    // that introducing sign handling does not regress positive-only use.
+    const rows: ManifestRow[] = [
+      { excelRow: 8, label: 'A' },
+      { excelRow: 9, label: 'B' },
+      {
+        excelRow: 10,
+        label: 'C',
+      },
+      {
+        excelRow: 16,
+        label: 'Total',
+        type: 'subtotal',
+        computedFrom: [8, 9, 10],
+      },
+    ]
+    const values = { 8: v(100), 9: v(50), 10: v(25) }
+    const out = deriveComputedRows(rows, values, [...YEARS])
+    expect(out[16]).toEqual(v(175))
+  })
 })
