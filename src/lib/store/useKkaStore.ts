@@ -11,6 +11,39 @@ import type {
   FixedAssetInputState,
 } from '@/data/live/types'
 
+/** WACC slice — comparable companies approach. */
+export interface WaccComparableCompany {
+  name: string
+  betaLevered: number
+  marketCap: number
+  debt: number
+}
+
+export interface WaccState {
+  marketParams: {
+    equityRiskPremium: number
+    ratingBasedDefaultSpread: number
+    riskFree: number
+  }
+  comparableCompanies: WaccComparableCompany[]
+  /** Tax rate for Hamada equation (may differ from IS effective rate). */
+  taxRate: number
+  bankRates: { name: string; rate: number }[]
+  /** Manual WACC override ("Menurut Wajib Pajak"). Null = use computed. */
+  waccOverride: number | null
+}
+
+/** Discount Rate (CAPM) slice — separate analysis from WACC. */
+export interface DiscountRateState {
+  taxRate: number
+  riskFree: number
+  beta: number
+  equityRiskPremium: number
+  countryDefaultSpread: number
+  derIndustry: number
+  bankRates: { name: string; rate: number }[]
+}
+
 /**
  * DLOM slice — selected option per factor + chosen kepemilikan.
  * `percentage` is the live computed result, mirrored to `home.dlomPercent`
@@ -44,6 +77,9 @@ interface KkaState {
   incomeStatement: IncomeStatementInputState | null
   fixedAsset: FixedAssetInputState | null
   accPayables: AccPayablesInputState | null
+  /** Phase 3 valuation slices */
+  wacc: WaccState | null
+  discountRate: DiscountRateState | null
   setHome: (home: HomeInputs) => void
   resetHome: () => void
   /**
@@ -59,16 +95,20 @@ interface KkaState {
   setIncomeStatement: (is: IncomeStatementInputState) => void
   setFixedAsset: (fa: FixedAssetInputState) => void
   setAccPayables: (ap: AccPayablesInputState) => void
+  setWacc: (wacc: WaccState) => void
+  setDiscountRate: (dr: DiscountRateState) => void
   resetBalanceSheet: () => void
   resetIncomeStatement: () => void
   resetFixedAsset: () => void
   resetAccPayables: () => void
+  resetWacc: () => void
+  resetDiscountRate: () => void
   _hasHydrated: boolean
   _setHasHydrated: (hydrated: boolean) => void
 }
 
 const STORE_KEY = 'kka-penilaian-saham'
-const STORE_VERSION = 4
+const STORE_VERSION = 5
 
 /**
  * Migrate persisted state from older versions to the current schema.
@@ -79,6 +119,7 @@ const STORE_VERSION = 4
  *   v1 → v2: Session 008 added `dlom` / `dloc` slices
  *   v2 → v3: Session 010 added `balanceSheet` / `incomeStatement` / `fixedAsset`
  *   v3 → v4: Session 012 added `accPayables`
+ *   v4 → v5: Session 013 added `wacc` / `discountRate`
  *
  * Without this function, Zustand persist discards the entire older payload
  * and the user silently loses their HOME (and now DLOM/DLOC) data on the
@@ -121,6 +162,14 @@ export function migratePersistedState(
     }
   }
 
+  if (fromVersion < 5) {
+    state = {
+      ...state,
+      wacc: null,
+      discountRate: null,
+    }
+  }
+
   return state
 }
 
@@ -134,6 +183,8 @@ export const useKkaStore = create<KkaState>()(
       incomeStatement: null,
       fixedAsset: null,
       accPayables: null,
+      wacc: null,
+      discountRate: null,
       setHome: (home) => set({ home }),
       resetHome: () => set({ home: null }),
       setDlom: (dlom) =>
@@ -150,10 +201,14 @@ export const useKkaStore = create<KkaState>()(
       setIncomeStatement: (incomeStatement) => set({ incomeStatement }),
       setFixedAsset: (fixedAsset) => set({ fixedAsset }),
       setAccPayables: (accPayables) => set({ accPayables }),
+      setWacc: (wacc) => set({ wacc }),
+      setDiscountRate: (discountRate) => set({ discountRate }),
       resetBalanceSheet: () => set({ balanceSheet: null }),
       resetIncomeStatement: () => set({ incomeStatement: null }),
       resetFixedAsset: () => set({ fixedAsset: null }),
       resetAccPayables: () => set({ accPayables: null }),
+      resetWacc: () => set({ wacc: null }),
+      resetDiscountRate: () => set({ discountRate: null }),
       _hasHydrated: false,
       _setHasHydrated: (hydrated) => set({ _hasHydrated: hydrated }),
     }),
@@ -169,6 +224,8 @@ export const useKkaStore = create<KkaState>()(
         incomeStatement: state.incomeStatement,
         fixedAsset: state.fixedAsset,
         accPayables: state.accPayables,
+        wacc: state.wacc,
+        discountRate: state.discountRate,
       }),
       migrate: migratePersistedState,
       onRehydrateStorage: () => (state) => {
