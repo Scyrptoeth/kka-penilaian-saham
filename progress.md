@@ -15,21 +15,22 @@
 | 009 | 2026-04-12 | Phase 3 design brainstorm — 6 architectural decisions for live data mode | ✅ Design complete | [session-009](history/session-009-phase-3-design-brainstorm.md) |
 | 010 | 2026-04-12 | Phase 3 — DataSource foundation + Balance Sheet pilot (live data mode) | ✅ Shipped | [session-010](history/session-010-datasource-bs-pilot.md) |
 | 011 | 2026-04-12 | Phase 3 — IS input + 3 downstream live migrations (NOPLAT / Growth Revenue / Financial Ratio) | ✅ Shipped | [session-011](history/session-011-is-input-downstream-wave.md) |
+| 012 | 2026-04-12 | Phase 3 — FA input + CFS/FCF/ROIC live mode + FR 18/18 | ✅ Shipped | [session-012](history/session-012-fa-cfs-fcf-roic.md) |
 
 ## Current State Snapshot (latest)
 
-- **Branch**: `main` (synced with `origin/main` via `cfad6f0`)
-- **Tests**: **283 / 283** passing across 27 files (+114 vs Session 010)
-- **Build**: ✅ clean, zero errors, zero warnings, **13 static pages** prerendered (+1 `/input/income-statement`)
+- **Branch**: `main` (synced with `origin/main` via `f266e19`)
+- **Tests**: **476 / 476** passing across 31 files (+193 vs Session 011)
+- **Build**: ✅ clean, zero errors, zero warnings, **14 static pages** prerendered (+1 `/input/fixed-asset`)
 - **Lint**: ✅ zero warnings
 - **Typecheck**: ✅ `tsc --noEmit` exit 0
-- **Live**: https://kka-penilaian-saham.vercel.app
-- **Architecture state after 011**: live data mode **operational end-to-end for BS + IS + 3 downstream analysis sheets**. User journey works: HOME → `/input/balance-sheet` → `/input/income-statement` → `/analysis/noplat` / `/analysis/growth-revenue` / `/analysis/financial-ratio` all auto-switch to live mode via domain-state sentinel. The generic `<ManifestEditor>` extracted in Task 0 makes the next input sheet cost ~15 lines + manifest. The new `liveRows` prop on `<SheetPage>` lets downstream pages pass their computed rows without mutating `build.ts` / `applyDerivations`. Financial Ratio renders 14 of 18 ratios (profitability, liquidity, leverage) fully computed from BS + IS; the 4 Cash Flow Indicator ratios pinned to 0 until Session 012 ships Fixed Asset + Acc Payables. Zero regression — existing seed-mode pages unchanged when upstream slices are empty.
-- **Live pages (13)**:
+- **Live**: https://kka-penilaian-saham.vercel.app — 15/15 routes HTTP 200
+- **Architecture state after 012**: **all 9 financial analysis pages live-mode capable**. Full computation chain operational: IS → NOPLAT → CFS → FCF → ROIC, with BS providing working capital deltas and invested capital. Financial Ratio now 18/18 ratios fully computed (profitability 6, liquidity 3, leverage 5, cash flow 4). AccPayables Zustand slice v4 ready (page deferred YAGNI — prototype zeros). Zero regression on seed mode.
+- **Live pages (15)**:
   - Input Master: HOME
-  - **Input Data**: Balance Sheet · **Income Statement (new)** · Fixed Asset (wip)
-  - Historis: Balance Sheet · Income Statement · Cash Flow · Fixed Asset
-  - Analisis: **Financial Ratio (live)** · FCF · **NOPLAT (live)** · **Growth Revenue (live)** · ROIC
+  - **Input Data**: Balance Sheet · Income Statement · **Fixed Asset (new)**
+  - Historis: Balance Sheet · Income Statement · **Cash Flow (live)** · Fixed Asset
+  - Analisis: **Financial Ratio (18/18 live)** · **FCF (live)** · NOPLAT (live) · Growth Revenue (live) · **ROIC (live)**
   - Penilaian: DLOM · DLOC (PFC)
 
 ## Session 1 — 2026-04-11 (Scope C: Full Phase 1)
@@ -995,4 +996,91 @@ Zero regression on seed mode — when upstream slices are empty (user hasn't fil
 4. Wire FCF live mode
 5. Wire ROIC live mode
 6. Estimated: 2.5–3 jam, ~15 tests, 3 more pages newly live-capable
+
+---
+
+## Session 012 — 2026-04-12 (Phase 3 — FA Input + CFS/FCF/ROIC Live Mode)
+
+Third Phase 3 execution session. Completed the entire historical analysis
+live-mode stack: all 9 financial pages now auto-switch to live mode when
+upstream data is present. Financial Ratio reached 18/18 ratios fully computed.
+
+### Delivered
+
+**Task 1 — Fixed Asset `computedFrom` + input page**
+- 23 computed rows added to FA manifest via 3 new helpers: `endingCategoryRows` (Beginning + Additions per category), `netValueCategoryRows` (Ending Acq − Ending Dep with signed refs), plus `computedFrom` on all subtotal/total rows
+- `/input/fixed-asset/page.tsx` — 60 lines (parent gate + ManifestEditor, yearCount=3)
+- Nav-tree `wip: true` removed for Fixed Asset input
+- 84 structural tests verify full 3-section roll-forward computation (synthetic data — FA fixture has all-None values)
+
+**Task 2 — AccPayables Zustand slice (minimal)**
+- `accPayables: AccPayablesInputState | null` added to store
+- Zustand v3→v4 chained migration
+- Dedicated input page deferred (YAGNI: prototype ACC PAYABLES values all zero, CFS defaults financing to 0 when null)
+- 8 migration tests updated for v4 chain
+
+**Task 3 — Cash Flow Statement live mode**
+- `compute-cash-flow-live.ts` — maps BS+IS+FA+AP upstream data to 15 CFS leaf/pseudo-leaf rows
+- Key complexity: CFS row 8 (Current Assets) has asymmetric formula — year 1 uses absolute level × -1, year 2+ uses delta × -1 (LESSON-013 cross-sheet offset fully handled)
+- IS expenses sign-flipped from user-positive to workbook-negative in adapter
+- CFS manifest gained `computedFrom` on 5 subtotal rows (10, 11, 19, 28, 30)
+- `CashFlowLiveView.tsx` — BS+IS required, FA+AP optional (CapEx/financing default 0)
+- 60 fixture-grounded tests: 20 rows × 3 years, all match workbook values
+- Financial Ratio updated: 3 CF ratios (CFO/Sales, ST Debt Coverage, Capex Coverage) now live from CFS data
+
+**Task 4 — FCF live mode**
+- `compute-fcf-live.ts` — maps NOPLAT + FA + CFS upstream into 6 FCF leaf rows
+- FCF manifest gained `computedFrom` on 3 subtotal rows (9, 18, 20)
+- `FcfLiveView.tsx` — full upstream chain: IS → NOPLAT → CFS → FCF
+- 27 fixture-grounded tests
+- Financial Ratio row 27 (FCF/CFO) now live — **18/18 ratios fully computed**
+
+**Task 5 — ROIC live mode**
+- `compute-roic-live.ts` — maps FCF + BS invested capital into all ROIC rows
+- Cross-year IC shift: row 13 (Beginning of Year IC) = prior year's row 12
+- Year 1 rows 13/15 omitted (no prior-year baseline) — matches workbook behavior
+- `RoicLiveView.tsx` — full upstream chain: IS → NOPLAT → CFS → FCF → ROIC + BS
+- 21 fixture-grounded tests (including 2 undefined assertions for year-1 gaps)
+
+### Verification Results
+
+```
+Tests:     476 / 476 passing (31 files) — +193 vs Session 011
+Build:     ✅ 14 static pages prerendered (+1 /input/fixed-asset)
+Typecheck: ✅ tsc --noEmit clean
+Lint:      ✅ zero warnings
+Live:      ✅ 15/15 routes HTTP 200
+```
+
+### Session 012 Stats
+
+- Commits: 5 feature
+- New files: 10 (5 adapters/views + 4 tests + 1 page)
+- Files modified: 14
+- New tests: 193
+- Deploy: 1 production (Vercel auto-deploy on push to main)
+
+### Key Decisions
+
+1. **AccPayables store-only (no page)**: YAGNI — prototype AP has all zeros, CFS financing defaults to 0. Page can be added later.
+2. **CFS Approach B (direct formulas)**: No adapter chain. CFS adapter maps upstream data directly to manifest rows, same as NOPLAT/GR/FR approach. Simpler than routing through `toCashFlowInput` + `computeCashFlowStatement`.
+3. **FCF/ROIC accept pre-computed upstream**: Adapters receive already-processed NOPLAT/FA/CFS rows. View wrappers orchestrate the computation chain.
+4. **ROIC all-in-adapter (no computedFrom)**: Row 13 (prior-year shift) and row 15 (ROIC ratio) require cross-year references that `computedFrom` can't express.
+5. **safeDiv(0, x) = 0**: Added numerator=0 guard to avoid IEEE -0 from `0 / negative`.
+
+### Deferred
+
+- ACC PAYABLES input page — when user needs actual financing data input
+- Validation warn border on non-numeric input — pending user feedback
+- WACC + DCF (Session 013)
+- AAM + EEM + Dashboard (Session 014)
+
+### Next Session — 013 (WACC + DCF)
+
+Per plan.md Phase 3 roadmap:
+1. WACC input form (Rf, MRP, beta, tax rate, D/E components) — first fully custom form since DLOM/DLOC
+2. Discount Rate computation from WACC
+3. DCF valuation — terminal value + PV of projected cash flows
+4. First **share value output** — the culmination of the entire tool
+5. Estimated: ~14 tests, 2-3 new pages
 
