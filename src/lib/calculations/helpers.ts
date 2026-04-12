@@ -159,3 +159,25 @@ export function sumRange(values: readonly number[]): number {
   for (const v of values) total += v
   return total
 }
+
+/**
+ * Compute average YoY growth rate from a year-keyed series.
+ * Mirrors Excel =AVERAGE(growth_1, growth_2, ..., growth_n) pattern
+ * used in column Q / K of historical sheets.
+ *
+ * Skips periods where the base value is 0 (division undefined).
+ * Returns 0 for single-year or empty series.
+ */
+export function computeAvgGrowth(series: YearKeyedSeries): number {
+  const years = Object.keys(series).map(Number).sort((a, b) => a - b)
+  if (years.length < 2) return 0
+  const growths: number[] = []
+  for (let i = 1; i < years.length; i++) {
+    const prev = series[years[i - 1]!]!
+    const curr = series[years[i]!]!
+    if (prev !== 0 && isFinite(prev)) {
+      growths.push((curr - prev) / prev)
+    }
+  }
+  return growths.length > 0 ? growths.reduce((a, b) => a + b, 0) / growths.length : 0
+}

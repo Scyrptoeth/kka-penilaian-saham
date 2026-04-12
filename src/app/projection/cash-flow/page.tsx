@@ -8,18 +8,11 @@ import { FIXED_ASSET_MANIFEST } from '@/data/manifests/fixed-asset'
 import { BALANCE_SHEET_MANIFEST } from '@/data/manifests/balance-sheet'
 import { computeProyFixedAssetsLive } from '@/data/live/compute-proy-fixed-assets-live'
 import { computeProyLrLive, type ProyLrInput } from '@/data/live/compute-proy-lr-live'
-import { computeProyBsLive, computeAvgGrowth, type ProyBsInput } from '@/data/live/compute-proy-bs-live'
+import { computeProyBsLive, type ProyBsInput } from '@/data/live/compute-proy-bs-live'
 import { computeProyAccPayablesLive } from '@/data/live/compute-proy-acc-payables-live'
 import { computeProyCfsLive, type ProyCfsInput } from '@/data/live/compute-proy-cfs-live'
+import { computeAvgGrowth } from '@/lib/calculations/helpers'
 import { formatIdr } from '@/components/financial/format'
-
-/** IS column K average growth rates. */
-const IS_GROWTH_DEFAULTS = {
-  revenueGrowth: 0.23045401016035838,
-  interestIncomeGrowth: 0.0013996727674017585,
-  interestExpenseGrowth: -0.0002714340819281705,
-  nonOpIncomeGrowth: 0,
-}
 
 const ROW_DEFS: { row: number; label: string; bold?: boolean; indent?: boolean; section?: string }[] = [
   { row: 5, label: 'EBITDA', section: 'Cash Flow from Operations' },
@@ -71,9 +64,14 @@ export default function ProyCashFlowPage() {
     // ── Step 2: PROY LR ──
     const isRows = incomeStatement.rows
     const isVal = (row: number) => isRows[row]?.[histYear] ?? 0
+    const isAvgGrowth = (row: number) => computeAvgGrowth(isRows[row] ?? {})
+
     const lrInput: ProyLrInput = {
       keyDrivers,
-      ...IS_GROWTH_DEFAULTS,
+      revenueGrowth: isAvgGrowth(6),
+      interestIncomeGrowth: isAvgGrowth(26),
+      interestExpenseGrowth: isAvgGrowth(27),
+      nonOpIncomeGrowth: isAvgGrowth(30),
       isLastYear: {
         revenue: isVal(6), cogs: isVal(7), grossProfit: isVal(8),
         sellingOpex: isVal(12), gaOpex: isVal(13),
@@ -102,10 +100,12 @@ export default function ProyCashFlowPage() {
     const proyBsRows = computeProyBsLive(bsInput, histYear, projYears)
 
     // ── Step 4: PROY ACC PAYABLES ──
+    // Read loan balances from BS — works for any company (0 if no loans)
     const proyApRows = computeProyAccPayablesLive({
       interestRateST: keyDrivers.financialDrivers.interestRateShortTerm,
       interestRateLT: keyDrivers.financialDrivers.interestRateLongTerm,
-      stEnding: 0, ltEnding: 0, // prototype: no loans
+      stEnding: bsLastYear[31] ?? 0, // BS row 31: Bank Loan — Short Term
+      ltEnding: bsLastYear[38] ?? 0, // BS row 38: Bank Loan — Long Term
     }, histYear, projYears)
 
     // ── Step 5: PROY CFS ──

@@ -1,8 +1,8 @@
 /**
  * PROY NOPLAT — Projected NOPLAT computation.
  *
- * Historical column uses Income Statement values + IS tax rate (B33, typically 0).
- * Projected columns use PROY LR values + KEY DRIVERS tax rate (B37 = 0.22).
+ * Historical column uses Income Statement values + historical effective tax rate.
+ * Projected columns use PROY LR values + KEY DRIVERS corporate tax rate.
  *
  * Row mapping (matching proy-noplat.json fixture):
  *
@@ -39,7 +39,7 @@ export interface ProyNoplatInput {
     nonOpIncome: number     // IS F30
     tax: number             // IS F33 (negative)
   }
-  /** Historical tax rate from IS B33. Typically 0 in this workbook. */
+  /** Historical effective tax rate, computed as abs(tax / PBT) from IS data. */
   histTaxRate: number
 }
 

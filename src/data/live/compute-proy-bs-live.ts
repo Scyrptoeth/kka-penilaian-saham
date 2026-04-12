@@ -49,6 +49,10 @@
 
 import type { YearKeyedSeries } from '@/types/financial'
 
+// Re-export computeAvgGrowth from shared helpers for backward compatibility.
+// Canonical location: @/lib/calculations/helpers
+export { computeAvgGrowth } from '@/lib/calculations/helpers'
+
 export interface ProyBsInput {
   /** BS last historical year values, keyed by BS manifest row number. */
   bsLastYear: Record<number, number>
@@ -227,20 +231,3 @@ export function computeProyBsLive(
   return out
 }
 
-/**
- * Compute average YoY growth rate from a year-keyed series.
- * Used to derive BS average growth (equivalent to Excel column Q = AVERAGE(N:P)).
- */
-export function computeAvgGrowth(series: YearKeyedSeries): number {
-  const years = Object.keys(series).map(Number).sort((a, b) => a - b)
-  if (years.length < 2) return 0
-  const growths: number[] = []
-  for (let i = 1; i < years.length; i++) {
-    const prev = series[years[i - 1]!]!
-    const curr = series[years[i]!]!
-    if (prev !== 0 && isFinite(prev)) {
-      growths.push((curr - prev) / prev)
-    }
-  }
-  return growths.length > 0 ? growths.reduce((a, b) => a + b, 0) / growths.length : 0
-}

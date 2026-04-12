@@ -8,15 +8,8 @@ import { FIXED_ASSET_MANIFEST } from '@/data/manifests/fixed-asset'
 import { computeProyFixedAssetsLive } from '@/data/live/compute-proy-fixed-assets-live'
 import { computeProyLrLive, type ProyLrInput } from '@/data/live/compute-proy-lr-live'
 import { computeProyNoplatLive, type ProyNoplatInput } from '@/data/live/compute-proy-noplat-live'
+import { computeAvgGrowth } from '@/lib/calculations/helpers'
 import { formatIdr } from '@/components/financial/format'
-
-/** IS column K average growth rates — seeded from fixture. */
-const IS_GROWTH_DEFAULTS = {
-  revenueGrowth: 0.23045401016035838,
-  interestIncomeGrowth: 0.0013996727674017585,
-  interestExpenseGrowth: -0.0002714340819281705,
-  nonOpIncomeGrowth: 0,
-}
 
 const ROW_DEFS: { row: number; label: string; bold?: boolean; indent?: boolean; section?: string }[] = [
   { row: 7, label: 'Profit Before Tax', section: 'EBIT' },
@@ -58,9 +51,14 @@ export default function ProyNoplatPage() {
     // Compute PROY LR
     const isRows = incomeStatement.rows
     const isVal = (row: number) => isRows[row]?.[histYear] ?? 0
+    const isAvgGrowth = (row: number) => computeAvgGrowth(isRows[row] ?? {})
+
     const lrInput: ProyLrInput = {
       keyDrivers,
-      ...IS_GROWTH_DEFAULTS,
+      revenueGrowth: isAvgGrowth(6),
+      interestIncomeGrowth: isAvgGrowth(26),
+      interestExpenseGrowth: isAvgGrowth(27),
+      nonOpIncomeGrowth: isAvgGrowth(30),
       isLastYear: {
         revenue: isVal(6), cogs: isVal(7), grossProfit: isVal(8),
         sellingOpex: isVal(12), gaOpex: isVal(13),
@@ -72,18 +70,23 @@ export default function ProyNoplatPage() {
     }
     const proyLr = computeProyLrLive(lrInput, histYear, projYears)
 
+    // Compute historical effective tax rate from IS data
+    const histPbt = isVal(32)
+    const histTax = isVal(33)
+    const histTaxRate = histPbt !== 0 ? Math.abs(histTax / histPbt) : 0
+
     // Compute PROY NOPLAT
     const noplatInput: ProyNoplatInput = {
       proyLrRows: proyLr,
       taxRate: keyDrivers.financialDrivers.corporateTaxRate,
       isLastYear: {
-        pbt: isVal(32),
+        pbt: histPbt,
         interestExpense: isVal(27),
         interestIncome: isVal(26),
         nonOpIncome: isVal(30),
-        tax: isVal(33),
+        tax: histTax,
       },
-      histTaxRate: 0, // IS B33 is empty → 0
+      histTaxRate,
     }
 
     const rows = computeProyNoplatLive(noplatInput, histYear, projYears)

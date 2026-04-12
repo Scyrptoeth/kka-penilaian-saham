@@ -19,19 +19,19 @@
  *  22: Ending    = SUM(19:21)
  *  24: Interest  = Ending * interestRateLT * -1
  *
- * In the prototype, all loan balances are 0. Structure preserved for PROY CFS.
+ * Loan balances seeded from historical BS data. Structure consumed by PROY CFS.
  */
 
 import type { YearKeyedSeries } from '@/types/financial'
 
 export interface ProyAccPayablesInput {
-  /** Short-term interest rate. Default 0.14 (14%). */
+  /** Short-term interest rate from KEY DRIVERS. */
   interestRateST: number
-  /** Long-term interest rate. Default 0.13 (13%). */
+  /** Long-term interest rate from KEY DRIVERS. */
   interestRateLT: number
-  /** Historical ending balance for ST loan. Default 0. */
+  /** Historical ending balance for ST loan from BS last year. */
   stEnding: number
-  /** Historical ending balance for LT loan. Default 0. */
+  /** Historical ending balance for LT loan from BS last year. */
   ltEnding: number
 }
 

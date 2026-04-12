@@ -7,16 +7,9 @@ import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { FIXED_ASSET_MANIFEST } from '@/data/manifests/fixed-asset'
 import { computeProyFixedAssetsLive } from '@/data/live/compute-proy-fixed-assets-live'
 import { computeProyLrLive, type ProyLrInput } from '@/data/live/compute-proy-lr-live'
-import { computeProyBsLive, computeAvgGrowth, type ProyBsInput } from '@/data/live/compute-proy-bs-live'
+import { computeProyBsLive, type ProyBsInput } from '@/data/live/compute-proy-bs-live'
+import { computeAvgGrowth } from '@/lib/calculations/helpers'
 import { formatIdr, formatPercent } from '@/components/financial/format'
-
-/** IS column K average growth rates — seeded from fixture. */
-const IS_GROWTH_DEFAULTS = {
-  revenueGrowth: 0.23045401016035838,
-  interestIncomeGrowth: 0.0013996727674017585,
-  interestExpenseGrowth: -0.0002714340819281705,
-  nonOpIncomeGrowth: 0,
-}
 
 const ROW_DEFS: { row: number; label: string; kind: 'idr' | 'percent'; bold?: boolean; indent?: boolean; section?: string }[] = [
   // Current Assets
@@ -88,9 +81,14 @@ export default function ProyBalanceSheetPage() {
       proyFaDepreciation = proyFaRows[51]
     }
 
+    const isAvgGrowth = (row: number) => computeAvgGrowth(isRows[row] ?? {})
+
     const lrInput: ProyLrInput = {
       keyDrivers,
-      ...IS_GROWTH_DEFAULTS,
+      revenueGrowth: isAvgGrowth(6),
+      interestIncomeGrowth: isAvgGrowth(26),
+      interestExpenseGrowth: isAvgGrowth(27),
+      nonOpIncomeGrowth: isAvgGrowth(30),
       isLastYear: {
         revenue: isVal(6), cogs: isVal(7), grossProfit: isVal(8),
         sellingOpex: isVal(12), gaOpex: isVal(13),
