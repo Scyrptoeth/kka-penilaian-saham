@@ -507,6 +507,11 @@ untuk 3+ sesi ke depan:
 ### Session 011 (Phase 3 IS + downstream wave)
 - LESSON-035 (Trust fixture formulas over your own past manifest labels — re-verify before live migration)
 
+### Sessions 013 + 014 (WACC/DR/GR + KEY DRIVERS/PROY FA/PROY LR)
+- LESSON-036 (WACC vs DISCOUNT RATE intentionally different — don't assume parameter symmetry)
+- LESSON-037 (ROUNDUP vs ROUND — match exact Excel rounding function in JS implementation)
+- LESSON-038 (PROY pages → custom page, not manifest+SheetPage — mixed structure doesn't fit)
+
 LESSON-014, 015, 017, 020, 022, 027 **TIDAK** di-promote — workflow/lint
 insights yang general ke project lain tapi terlalu luas atau terlalu
 session-specific untuk section 8 (yang fokus KKA-specific gotchas).
@@ -1156,3 +1161,67 @@ Key realization: **hydration gate != loading state**. The parent page file is re
 5. **Live mode amplifies the error**: seed mode renders fixture values regardless of manifest type declaration. Live mode trusts manifest type to decide "editable vs computed". Wrong type = user can't edit a row they should, or row stays blank when it should auto-compute.
 
 **Proven at**: session-011 (2026-04-12). IS manifest rows 28 and 30 had swapped type/label for 7 sessions (004→011). Caught during Task 2 fixture inspection when `computedFrom: [26, -27, 28]` on row 30 produced wrong PBT values. Fixed by re-reading fixture formulas for every IS row before authoring `computedFrom`.
+
+---
+
+## Session 013 — WACC + Discount Rate + Growth Rate
+
+### LESSON-036: WACC and DISCOUNT RATE are intentionally different sheets with different inputs — don't assume parameter symmetry
+
+**Kategori**: Excel | Anti-pattern
+**Sesi**: session-013
+**Tanggal**: 2026-04-12
+
+**Konteks**: Saat mengimplementasikan dua sheet yang keduanya compute WACC — satu via comparable companies approach, satu via CAPM.
+
+**Apa yang terjadi**: WACC sheet dan DISCOUNT RATE sheet keduanya menghasilkan "WACC" sebagai output, tapi menggunakan input parameters yang **sengaja berbeda**: Risk Free (2.70% vs 6.48%), ERP (7.62% vs 7.38%), tax rate (0% vs 22%). Ini bukan bug workbook — ini dua pendekatan analisis yang legitimate dengan asumsi berbeda. CAPM WACC (11.46%) dipakai DCF, bukan WACC sheet (10.31% hardcoded).
+
+**Root cause / insight**: Penilai pajak sering menggunakan multiple valuation approaches sebagai cross-check. WACC sheet menghitung dari comparable companies (market-based), DISCOUNT RATE sheet dari CAPM (model-based). Parameter beda karena sumber data beda (SUN yield vs CAPM risk-free, peer D/E vs industry DER).
+
+**Cara menerapkan di masa depan**:
+1. Jangan assume bahwa sheet dengan output serupa punya input parameters identical.
+2. Saat implement sheet baru yang "mirip" sheet lain, **SELALU inspect fixture formulas cell-by-cell** — jangan copy-paste logic dari sheet mirip.
+3. WACC E22 = 0.1031 adalah **manual override** ("Menurut WP"), bukan computed. App harus support override via `waccOverride: number | null`.
+4. IS!B33 (tax rate di WACC Hamada equation) = 0 (cell kosong). Jangan assume tax rate = 22% tanpa verifikasi fixture.
+
+**Proven at**: session-013 (2026-04-12). Ditemukan saat inspeksi fixture — awalnya ingin share params antara WACC dan DR, tapi fixture menunjukkan values berbeda.
+
+### LESSON-037: ROUNDUP vs ROUND — Excel rounding functions berbeda dan berpengaruh pada precision matching
+
+**Kategori**: Excel | Testing
+**Sesi**: session-013 + session-014
+**Tanggal**: 2026-04-12
+
+**Konteks**: Saat compute projected values yang mengandung rounding di formula Excel.
+
+**Apa yang terjadi**: KEY DRIVERS Sales Volume pakai `ROUND(prev*(1+inc), -2)` (round to nearest 100) sementara Sales Price pakai `ROUNDUP(prev*(1+inc), -3)` (round UP to nearest 1000). PROY LR COGS pakai `ROUNDUP(ratio*revenue, 3)` (round up to 3 decimal places). JavaScript `Math.round()` ≠ `Math.ceil()` — harus match Excel function yang benar.
+
+**Root cause / insight**: Excel punya 3 rounding functions (ROUND, ROUNDUP, ROUNDDOWN) yang masing-masing punya JavaScript equivalent berbeda: `Math.round(v / 10^n) * 10^n` untuk ROUND, `Math.ceil(v / 10^n) * 10^n` untuk ROUNDUP. Salah pilih = precision mismatch di test.
+
+**Cara menerapkan di masa depan**:
+1. Saat implement formula yang mengandung rounding, **selalu cek teks formula di fixture** untuk determine ROUND vs ROUNDUP vs ROUNDDOWN.
+2. Pattern: `ROUND(x, -N)` → `Math.round(x / 10^N) * 10^N`, `ROUNDUP(x, -N)` → `Math.ceil(x / 10^N) * 10^N`.
+3. Untuk negative-precision rounding (ROUNDUP pada angka negatif), `Math.ceil` harus jadi `Math.floor` (round away from zero).
+4. Test precision harus disesuaikan: kalau formula pakai ROUNDUP, test values mungkin hanya akurat ke 3 decimal.
+
+**Proven at**: session-013/014 (2026-04-12). computeSalesVolumes (ROUND) dan computeSalesPrices (ROUNDUP) keduanya match fixture, roundUp3 helper di PROY LR COGS also matches.
+
+### LESSON-038: Projection pages (PROY) lebih cocok custom page daripada manifest+SheetPage — structure terlalu berbeda
+
+**Kategori**: Design | Workflow
+**Sesi**: session-014
+**Tanggal**: 2026-04-12
+
+**Konteks**: Saat membangun PROY FA dan PROY LR pages.
+
+**Apa yang terjadi**: Manifest+SheetPage system designed untuk standard financial tables (N-year historical data, uniform row structure, derivation columns). PROY pages punya structure yang berbeda: mixed historical+projected columns, 3-section × 6-category nested layout (PROY FA), margin rows interleaved (PROY LR), dan non-standard column counts. Memaksa ke manifest system membutuhkan lebih banyak override dan workaround daripada custom page.
+
+**Root cause / insight**: Manifest system optimal untuk read-only display of homogeneous tabular data. Projection pages are fundamentally different: they mix input context (historical column C) with computed output (projected D-F), have non-standard column layouts, and often need custom section headers and visual hierarchy. Custom pages with direct `useMemo` computation are simpler and more maintainable.
+
+**Cara menerapkan di masa depan**:
+1. **Manifest+SheetPage**: historical sheets (BS, IS, CFS, FA) dan analysis sheets (FR, FCF, NOPLAT, GR, ROIC) yang punya uniform N-year column structure.
+2. **Custom page**: projection sheets (PROY FA, PROY LR, PROY BS, dll), valuation forms (WACC, DR, DLOM, DLOC), input forms (KEY DRIVERS), dan any page dengan mixed column layouts.
+3. **Heuristic**: jika page butuh `generateLiveColumns()` override DAN custom section headers DAN non-uniform row structure → custom page. Jangan force manifest.
+4. Ini bukan kegagalan manifest system — itu system yang tepat untuk scope-nya. PROY pages di luar scope itu.
+
+**Proven at**: session-014 (2026-04-12). PROY FA dan PROY LR keduanya dibangun sebagai custom pages — fungsional, tested, dan lebih sederhana dari manifest approach.
