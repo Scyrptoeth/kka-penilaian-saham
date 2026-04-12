@@ -21,6 +21,7 @@ const GROWTH_DESC = 'YoY growth: (current − prior) / prior'
 export const INCOME_STATEMENT_MANIFEST: SheetManifest = {
   title: 'Income Statement',
   slug: 'income-statement',
+  historicalYearCount: 4,
   years: [2018, 2019, 2020, 2021],
   columns: { 2018: 'C', 2019: 'D', 2020: 'E', 2021: 'F' },
   // commonSizeColumns intentionally omitted — the derived common-size values

@@ -20,6 +20,7 @@ const GROWTH_DESC = 'YoY growth: (current − prior) / prior, IFERROR → 0'
 export const BALANCE_SHEET_MANIFEST: SheetManifest = {
   title: 'Balance Sheet',
   slug: 'balance-sheet',
+  historicalYearCount: 4,
   years: [2018, 2019, 2020, 2021],
   columns: { 2018: 'C', 2019: 'D', 2020: 'E', 2021: 'F' },
   commonSizeColumns: { 2019: 'H', 2020: 'I', 2021: 'J' },

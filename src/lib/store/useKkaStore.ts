@@ -4,6 +4,11 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import type { HomeInputs } from '@/types'
 import type { KepemilikanType } from '@/types/questionnaire'
+import type {
+  BalanceSheetInputState,
+  IncomeStatementInputState,
+  FixedAssetInputState,
+} from '@/data/live/types'
 
 /**
  * DLOM slice — selected option per factor + chosen kepemilikan.
@@ -33,6 +38,10 @@ interface KkaState {
   home: HomeInputs | null
   dlom: DlomState | null
   dloc: DlocState | null
+  /** Phase 3 — live data slices. Null until user opens the corresponding input form. */
+  balanceSheet: BalanceSheetInputState | null
+  incomeStatement: IncomeStatementInputState | null
+  fixedAsset: FixedAssetInputState | null
   setHome: (home: HomeInputs) => void
   resetHome: () => void
   /**
@@ -43,28 +52,32 @@ interface KkaState {
   setDlom: (dlom: DlomState) => void
   /** Same shape as setDlom but for DLOC, mirroring to `home.dlocPercent`. */
   setDloc: (dloc: DlocState) => void
+  /** Phase 3 — persist user-entered historical data. */
+  setBalanceSheet: (bs: BalanceSheetInputState) => void
+  setIncomeStatement: (is: IncomeStatementInputState) => void
+  setFixedAsset: (fa: FixedAssetInputState) => void
+  resetBalanceSheet: () => void
+  resetIncomeStatement: () => void
+  resetFixedAsset: () => void
   _hasHydrated: boolean
   _setHasHydrated: (hydrated: boolean) => void
 }
 
 const STORE_KEY = 'kka-penilaian-saham'
-const STORE_VERSION = 2
-
-/**
- * v1 state shape — only `home` slice existed before Session 008.
- * Kept here as a type guard so the migrate function can narrow safely.
- */
-interface PersistedV1State {
-  home: HomeInputs | null
-}
+const STORE_VERSION = 3
 
 /**
  * Migrate persisted state from older versions to the current schema.
  *
- * v1 → v2: Session 008 added `dlom` and `dloc` slices. We carry forward
- * any existing `home` data and initialize the new slices as null. Without
- * this function, Zustand persist would discard the entire v1 entry and
- * users would lose their HOME form data on first deploy of v2.
+ * Chain is intentional: a v1 payload walks v1 → v2 → v3 in sequence so
+ * every session-boundary change is applied in order without branches.
+ *
+ *   v1 → v2: Session 008 added `dlom` / `dloc` slices
+ *   v2 → v3: Session 010 added `balanceSheet` / `incomeStatement` / `fixedAsset`
+ *
+ * Without this function, Zustand persist discards the entire older payload
+ * and the user silently loses their HOME (and now DLOM/DLOC) data on the
+ * first deploy of the newer schema. See LESSON-028 for context.
  *
  * Exported as a named function so it can be unit-tested in isolation —
  * Zustand persist middleware does not expose a synchronous test path.
@@ -73,16 +86,30 @@ export function migratePersistedState(
   persistedState: unknown,
   fromVersion: number,
 ): unknown {
-  if (
-    fromVersion === 1 &&
-    persistedState !== null &&
-    typeof persistedState === 'object'
-  ) {
-    const v1 = persistedState as PersistedV1State
-    return { home: v1.home, dlom: null, dloc: null }
+  if (persistedState === null || typeof persistedState !== 'object') {
+    return persistedState
   }
-  // Future versions or unknown shapes pass through unchanged.
-  return persistedState
+
+  let state = persistedState as Record<string, unknown>
+
+  if (fromVersion < 2) {
+    state = {
+      home: state.home ?? null,
+      dlom: null,
+      dloc: null,
+    }
+  }
+
+  if (fromVersion < 3) {
+    state = {
+      ...state,
+      balanceSheet: null,
+      incomeStatement: null,
+      fixedAsset: null,
+    }
+  }
+
+  return state
 }
 
 export const useKkaStore = create<KkaState>()(
@@ -91,6 +118,9 @@ export const useKkaStore = create<KkaState>()(
       home: null,
       dlom: null,
       dloc: null,
+      balanceSheet: null,
+      incomeStatement: null,
+      fixedAsset: null,
       setHome: (home) => set({ home }),
       resetHome: () => set({ home: null }),
       setDlom: (dlom) =>
@@ -103,6 +133,12 @@ export const useKkaStore = create<KkaState>()(
           dloc,
           home: state.home ? { ...state.home, dlocPercent: dloc.percentage } : state.home,
         })),
+      setBalanceSheet: (balanceSheet) => set({ balanceSheet }),
+      setIncomeStatement: (incomeStatement) => set({ incomeStatement }),
+      setFixedAsset: (fixedAsset) => set({ fixedAsset }),
+      resetBalanceSheet: () => set({ balanceSheet: null }),
+      resetIncomeStatement: () => set({ incomeStatement: null }),
+      resetFixedAsset: () => set({ fixedAsset: null }),
       _hasHydrated: false,
       _setHasHydrated: (hydrated) => set({ _hasHydrated: hydrated }),
     }),
@@ -114,6 +150,9 @@ export const useKkaStore = create<KkaState>()(
         home: state.home,
         dlom: state.dlom,
         dloc: state.dloc,
+        balanceSheet: state.balanceSheet,
+        incomeStatement: state.incomeStatement,
+        fixedAsset: state.fixedAsset,
       }),
       migrate: migratePersistedState,
       onRehydrateStorage: () => (state) => {
