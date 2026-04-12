@@ -16,22 +16,24 @@
 | 010 | 2026-04-12 | Phase 3 — DataSource foundation + Balance Sheet pilot (live data mode) | ✅ Shipped | [session-010](history/session-010-datasource-bs-pilot.md) |
 | 011 | 2026-04-12 | Phase 3 — IS input + 3 downstream live migrations (NOPLAT / Growth Revenue / Financial Ratio) | ✅ Shipped | [session-011](history/session-011-is-input-downstream-wave.md) |
 | 012 | 2026-04-12 | Phase 3 — FA input + CFS/FCF/ROIC live mode + FR 18/18 | ✅ Shipped | [session-012](history/session-012-fa-cfs-fcf-roic.md) |
+| 013 | 2026-04-12 | Phase 3 — WACC + Discount Rate + Growth Rate (valuation foundation) | ✅ Shipped | [session-013](history/session-013-wacc-discount-rate-growth-rate.md) |
 
 ## Current State Snapshot (latest)
 
-- **Branch**: `main` (synced with `origin/main` via `f266e19`)
-- **Tests**: **476 / 476** passing across 31 files (+193 vs Session 011)
-- **Build**: ✅ clean, zero errors, zero warnings, **14 static pages** prerendered (+1 `/input/fixed-asset`)
+- **Branch**: `main`
+- **Tests**: **525 / 525** passing across 35 files (+49 vs Session 012)
+- **Build**: ✅ clean, zero errors, zero warnings, **17 static pages** prerendered (+3: `/valuation/wacc`, `/valuation/discount-rate`, `/analysis/growth-rate`)
 - **Lint**: ✅ zero warnings
 - **Typecheck**: ✅ `tsc --noEmit` exit 0
-- **Live**: https://kka-penilaian-saham.vercel.app — 15/15 routes HTTP 200
-- **Architecture state after 012**: **all 9 financial analysis pages live-mode capable**. Full computation chain operational: IS → NOPLAT → CFS → FCF → ROIC, with BS providing working capital deltas and invested capital. Financial Ratio now 18/18 ratios fully computed (profitability 6, liquidity 3, leverage 5, cash flow 4). AccPayables Zustand slice v4 ready (page deferred YAGNI — prototype zeros). Zero regression on seed mode.
-- **Live pages (15)**:
+- **Live**: https://kka-penilaian-saham.vercel.app
+- **Store version**: v5 (added `wacc` + `discountRate` slices, chained migration from v4)
+- **Architecture state after 013**: Valuation foundation layer complete. WACC (comparable companies approach) + Discount Rate (CAPM approach) provide two independent WACC computations — CAPM WACC (11.46%) is the one DCF will use. Growth Rate (18.65%) auto-computes from ROIC + FA + BS upstream chain. All 3 new pages are custom form/display components (not manifest-based). WACC override ("Menurut WP") supported via store. Zero regression on existing 9 analysis pages + 3 input pages.
+- **Live pages (18)**:
   - Input Master: HOME
-  - **Input Data**: Balance Sheet · Income Statement · **Fixed Asset (new)**
-  - Historis: Balance Sheet · Income Statement · **Cash Flow (live)** · Fixed Asset
-  - Analisis: **Financial Ratio (18/18 live)** · **FCF (live)** · NOPLAT (live) · Growth Revenue (live) · **ROIC (live)**
-  - Penilaian: DLOM · DLOC (PFC)
+  - Input Data: Balance Sheet · Income Statement · Fixed Asset
+  - Historis: Balance Sheet · Income Statement · Cash Flow · Fixed Asset
+  - Analisis: Financial Ratio (18/18) · FCF · NOPLAT · Growth Revenue · ROIC · **Growth Rate (new)**
+  - Penilaian: DLOM · DLOC (PFC) · **WACC (new)** · **Discount Rate (new)**
 
 ## Session 1 — 2026-04-11 (Scope C: Full Phase 1)
 
@@ -1083,4 +1085,82 @@ Per plan.md Phase 3 roadmap:
 3. DCF valuation — terminal value + PV of projected cash flows
 4. First **share value output** — the culmination of the entire tool
 5. Estimated: ~14 tests, 2-3 new pages
+
+## Session 013 — 2026-04-12 (Phase 3 — WACC + Discount Rate + Growth Rate)
+
+Valuation foundation session. Three new pages, three new computation
+modules, store v4→v5. Revised roadmap: DCF requires projection sheets
+(PROY NOPLAT, PROY FA, PROY CFS) so DCF deferred to Session 016.
+
+### Delivered
+
+**Task 1 — WACC Input Form + Computation**
+- `src/lib/calculations/wacc.ts` — `computeBetaUnlevered`, `computeRelleveredBeta`, `computeWacc` (full pipeline)
+- `src/components/forms/WaccForm.tsx` — custom form with dynamic comparable companies table, market params, bank rates, computed display, WACC override ("Menurut WP")
+- `src/app/valuation/wacc/page.tsx` — hydration-gated page
+- Store v4→v5: `wacc: WaccState | null`, `discountRate: DiscountRateState | null` (both slices in one migration)
+- 19 fixture-grounded tests at 12-decimal precision
+- **Key finding**: WACC E22 = 0.1031 is hardcoded ("Menurut Wajib Pajak"), not computed. IS!B33 (tax rate for Hamada) = 0 (empty cell in workbook). Form allows user override.
+
+**Task 2 — Discount Rate (CAPM) Computation**
+- `src/lib/calculations/discount-rate.ts` — `computeBetaUnleveredCAPM`, `computeBetaLeveredCAPM`, `computeCostOfEquity`, `computeCostOfDebt`, `computeDebtRateFromBanks`, `computeDiscountRate`
+- `src/components/forms/DiscountRateForm.tsx` — CAPM params input, bank rates, computed BU/BL/Ke/Kd/weights/WACC display
+- `src/app/valuation/discount-rate/page.tsx` — hydration-gated page
+- 15 fixture-grounded tests at 12-decimal precision
+- **Key finding**: DISCOUNT RATE has DIFFERENT inputs from WACC (Rf=6.48% vs 2.70%, ERP=7.38% vs 7.62%). Two separate approaches intentionally. CAPM WACC (H10 = 0.11463062) is the one DCF will use.
+
+**Task 3 — Growth Rate Live Computation**
+- `src/lib/calculations/growth-rate.ts` — pure `computeGrowthRate` function
+- `src/data/live/compute-growth-rate-live.ts` — maps BS + FA + ROIC upstream → Growth Rate with enriched input breakdown
+- `src/app/analysis/growth-rate/page.tsx` — custom 2-column page (not manifest-based), full upstream chain: IS → NOPLAT → CFS → FCF → ROIC → Growth Rate
+- 15 fixture-grounded tests (7 unit + 8 integration)
+- **Key finding**: Growth Rate only has 2 years (last 2 of ROIC's 3 years), needs prior-year cross-references from BS and ROIC.
+
+### Verification Results
+
+```
+Tests:     525 / 525 passing (35 files) — +49 vs Session 012
+Build:     ✅ 17 static pages prerendered (+3)
+Typecheck: ✅ tsc --noEmit clean
+Lint:      ✅ zero warnings
+```
+
+### Session 013 Stats
+
+- Commits: 3 feature + 1 docs
+- New files: 10 (3 calc modules + 2 form components + 3 pages + 2 test files)
+- Files modified: 3 (store, nav-tree, migration tests)
+- New tests: 49
+- Store version: v4→v5
+
+### Key Decisions
+
+1. **Single store migration v4→v5** for both WACC and Discount Rate slices (vs separate v4→v5→v6).
+2. **WACC and Discount Rate are independent pages** — different inputs, different approaches, both produce WACC but CAPM version is what DCF uses.
+3. **Growth Rate is custom page** (not manifest-based) — only 2 columns, cross-sheet dependencies, doesn't fit manifest pattern.
+4. **Growth Rate requires full upstream chain** (IS → NOPLAT → CFS → FCF → ROIC → Growth Rate) computed via useMemo.
+5. **WACC override stored in state** — `waccOverride: number | null` allows "Menurut WP" value.
+
+### Deferred
+
+- ACC PAYABLES input page — still deferred (prototype zeros)
+- DCF valuation — requires PROY sheets (Session 016)
+- Seed mode for WACC/DR/GR pages — these are form/computed pages, seed mode not meaningful
+- WACC/DR cross-linking to IS tax rate — currently user inputs manually
+
+### Revised Roadmap
+
+| Session | Focus | Outcome |
+|---|---|---|
+| ~~013~~ (this) | WACC + Discount Rate + Growth Rate | ✅ Valuation foundation |
+| **014** (next) | KEY DRIVERS + PROY LR + PROY FA | Projection chain start |
+| **015** | PROY BS + PROY NOPLAT + PROY CFS | Projection chain complete |
+| **016** | DCF + AAM + EEM | **First share value output!** |
+
+### Next Session — 014 (KEY DRIVERS + Projections Start)
+
+1. KEY DRIVERS hidden sheet — extract key ratios from IS for projection
+2. PROY LR (Projected Income Statement) — project revenue + expenses using key drivers
+3. PROY FA (Projected Fixed Assets) — project asset schedule forward
+4. Estimated: ~15-20 tests, 2-3 new pages, 1-2 new calc modules
 
