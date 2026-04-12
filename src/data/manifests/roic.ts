@@ -25,7 +25,7 @@ export const ROIC_MANIFEST: SheetManifest = {
   years: [2019, 2020, 2021],
   columns: { 2019: 'B', 2020: 'C', 2021: 'D' },
   disclaimer:
-    'Data demo dari workbook prototipe. ROIC = NOPLAT / Invested Capital (Beginning of Year). Tahun 2019 tidak memiliki ROIC karena tidak ada beginning capital baseline. Phase 3 akan menggantinya dengan input pengguna.',
+    'Data demo dari workbook prototipe. ROIC = NOPLAT / Invested Capital (Beginning of Year). Tahun 2019 tidak memiliki ROIC karena tidak ada beginning capital baseline. Saat user mengisi data via Input Data, tampilan otomatis beralih ke mode live.',
   rows: [
     { label: 'INVESTED CAPITAL', type: 'header' },
     {

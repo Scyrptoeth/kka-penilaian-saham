@@ -97,7 +97,7 @@ export const FIXED_ASSET_MANIFEST: SheetManifest = {
   years: [2019, 2020, 2021],
   columns: { 2019: 'C', 2020: 'D', 2021: 'E' },
   disclaimer:
-    'Data demo dari workbook prototipe. Roll-forward schedule: Acquisition + Depreciation + Net Book Value. Phase 3 akan menggantinya dengan input pengguna.',
+    'Data demo dari workbook prototipe. Roll-forward schedule: Acquisition + Depreciation + Net Book Value. Saat user mengisi data via Input Data, tampilan otomatis beralih ke mode live.',
   rows: [
     // ====================== A. ACQUISITION COSTS ======================
     { label: 'A. Acquisition Costs', type: 'header' },

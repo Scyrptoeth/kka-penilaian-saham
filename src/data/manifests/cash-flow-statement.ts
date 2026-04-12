@@ -28,7 +28,7 @@ export const CASH_FLOW_STATEMENT_MANIFEST: SheetManifest = {
   years: [2019, 2020, 2021],
   columns: { 2019: 'C', 2020: 'D', 2021: 'E' },
   disclaimer:
-    'Data demo dari workbook prototipe. Indirect method, konvensi akuntansi: arus kas masuk positif, keluar negatif. Phase 3 akan menggantinya dengan input pengguna.',
+    'Data demo dari workbook prototipe. Indirect method, konvensi akuntansi: arus kas masuk positif, keluar negatif. Saat user mengisi data via Input Data, tampilan otomatis beralih ke mode live.',
   rows: [
     // ====================== CASH FLOW FROM OPERATIONS ======================
     { label: 'CASH FLOW FROM OPERATIONS', type: 'header' },

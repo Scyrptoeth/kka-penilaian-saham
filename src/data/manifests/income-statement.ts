@@ -36,7 +36,7 @@ export const INCOME_STATEMENT_MANIFEST: SheetManifest = {
     { type: 'yoyGrowth', safe: true },
   ],
   disclaimer:
-    'Data demo dari workbook prototipe. Kolom Common Size adalah margin (line / Revenue) hasil kalkulasi dari calc engine, bukan dari Excel. Phase 3 akan menggantinya dengan input pengguna.',
+    'Data demo dari workbook prototipe. Kolom Common Size adalah margin (line / Revenue) hasil kalkulasi dari calc engine, bukan dari Excel. Saat user mengisi data via Input Data, tampilan otomatis beralih ke mode live.',
   rows: [
     { label: 'REVENUE & COST', type: 'header' },
     {

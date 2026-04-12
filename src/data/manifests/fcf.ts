@@ -32,7 +32,7 @@ export const FCF_MANIFEST: SheetManifest = {
   years: [2019, 2020, 2021],
   columns: { 2019: 'C', 2020: 'D', 2021: 'E' },
   disclaimer:
-    'Data demo dari workbook prototipe. Depreciation dan capex sudah pre-signed negatif (convention Excel source). Phase 3 akan menggantinya dengan input pengguna.',
+    'Data demo dari workbook prototipe. Depreciation dan capex sudah pre-signed negatif (convention Excel source). Saat user mengisi data via Input Data, tampilan otomatis beralih ke mode live.',
   rows: [
     {
       excelRow: 7,

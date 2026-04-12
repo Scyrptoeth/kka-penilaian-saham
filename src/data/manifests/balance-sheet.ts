@@ -33,7 +33,7 @@ export const BALANCE_SHEET_MANIFEST: SheetManifest = {
     { type: 'yoyGrowth', safe: true },
   ],
   disclaimer:
-    'Data demo dari workbook prototipe (kka-penilaian-saham.xlsx). Phase 3 akan menggantinya dengan input pengguna — nama perusahaan ditampilkan dari HOME store.',
+    'Data demo dari workbook prototipe (kka-penilaian-saham.xlsx). Phase 3 akan menggantinya dengan input pengguna.',
   rows: [
     // ====================== ASSETS ======================
     { label: 'ASSETS', type: 'header' },

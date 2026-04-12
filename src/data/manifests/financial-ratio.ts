@@ -42,7 +42,7 @@ export const FINANCIAL_RATIO_MANIFEST: SheetManifest = {
   years: [2019, 2020, 2021],
   columns: { 2019: 'D', 2020: 'E', 2021: 'F' },
   disclaimer:
-    'Data demo dari workbook prototipe. Semua ratio sudah dihitung di workbook contoh dan dirender as-is. Phase 3 akan menggantinya dengan input pengguna.',
+    'Data demo dari workbook prototipe. Semua ratio sudah dihitung di workbook contoh dan dirender as-is. Saat user mengisi data via Input Data, tampilan otomatis beralih ke mode live.',
   rows: [
     { label: 'PROFITABILITY INDICATOR', type: 'header' },
     {

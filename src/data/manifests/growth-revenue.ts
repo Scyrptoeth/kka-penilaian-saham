@@ -31,10 +31,10 @@ export const GROWTH_REVENUE_MANIFEST: SheetManifest = {
   growthColumns: { 2019: 'H', 2020: 'I', 2021: 'J' },
   derivations: [{ type: 'yoyGrowth', safe: true }],
   disclaimer:
-    'Data demo dari workbook prototipe. Kolom growth 2019-2021 dihitung dari primitive yoyGrowth dan divalidasi cocok dengan formula Excel (H8-J9 = IF(prior=0,0,(current−prior)/prior)). Phase 3 akan menggantinya dengan input pengguna.',
+    'Data demo dari workbook prototipe. Kolom growth 2019-2021 dihitung dari primitive yoyGrowth dan divalidasi cocok dengan formula Excel (H8-J9 = IF(prior=0,0,(current−prior)/prior)). Saat user mengisi data via Input Data, tampilan otomatis beralih ke mode live.',
   rows: [
     // ====================== PERUSAHAAN ======================
-    { label: 'DATA PENJUALAN PT RAJA VOLTAMA ELEKTRIK', type: 'header' },
+    { label: 'DATA PENJUALAN', type: 'header' },
     {
       excelRow: 8,
       label: 'Penjualan',
