@@ -21,7 +21,7 @@ import { computeProyNoplatLive, type ProyNoplatInput } from '@/data/live/compute
 import { computeProyBsLive, type ProyBsInput } from '@/data/live/compute-proy-bs-live'
 import { computeProyAccPayablesLive } from '@/data/live/compute-proy-acc-payables-live'
 import { computeProyCfsLive, type ProyCfsInput } from '@/data/live/compute-proy-cfs-live'
-import { computeDiscountRate } from '@/lib/calculations/discount-rate'
+import { computeDiscountRate, buildDiscountRateInput } from '@/lib/calculations/discount-rate'
 import { computeDcf } from '@/lib/calculations/dcf'
 import { computeShareValue } from '@/lib/calculations/share-value'
 import { formatIdr, formatPercent } from '@/components/financial/format'
@@ -133,18 +133,8 @@ export default function DcfPage() {
     }
     const proyCfsRows = computeProyCfsLive(cfsInput, lastHistYear, projYears)
 
-    // ── Discount Rate ──
-    const dr = computeDiscountRate({
-      taxRate: discountRateState.taxRate,
-      riskFree: discountRateState.riskFree,
-      beta: discountRateState.beta,
-      erp: discountRateState.equityRiskPremium,
-      countrySpread: discountRateState.countryDefaultSpread,
-      debtRate: discountRateState.bankRates.length > 0
-        ? discountRateState.bankRates.reduce((s, b) => s + b.rate, 0) / discountRateState.bankRates.length
-        : 0,
-      der: discountRateState.derIndustry,
-    })
+    // ── Discount Rate — uses buildDiscountRateInput for correct debtRate conversion ──
+    const dr = computeDiscountRate(buildDiscountRateInput(discountRateState))
 
     // ── Growth Rate ──
     const fcfLeaf = computeFcfLiveRows(allNoplat, faComp, allCfs, histYears3)
@@ -169,8 +159,9 @@ export default function DcfPage() {
       wacc: dr.wacc,
       growthRate,
       interestBearingDebt: -((allBs[31]?.[lastHistYear] ?? 0) + (allBs[38]?.[lastHistYear] ?? 0)),
-      excessCash: allBs[8]?.[lastHistYear] ?? 0,
-      idleAsset: 0,
+      // Excess cash & idle asset from ROIC computation (row 10 & 9, sign already flipped)
+      excessCash: -(roicRows[10]?.[lastHistYear] ?? 0),
+      idleAsset: -(roicRows[9]?.[lastHistYear] ?? 0),
     })
 
     // ── Share Value ──

@@ -70,6 +70,31 @@ export function computeDebtRateFromBanks(rates: readonly number[]): number {
   return Math.round((avg / 100) * 1000) / 1000
 }
 
+/**
+ * Build DiscountRateInput from store state.
+ * Centralizes the debtRate conversion (computeDebtRateFromBanks) so
+ * every consumer uses the correct formula instead of raw averaging.
+ */
+export function buildDiscountRateInput(state: {
+  taxRate: number
+  riskFree: number
+  beta: number
+  equityRiskPremium: number
+  countryDefaultSpread: number
+  derIndustry: number
+  bankRates: readonly { rate: number }[]
+}): DiscountRateInput {
+  return {
+    taxRate: state.taxRate,
+    riskFree: state.riskFree,
+    beta: state.beta,
+    erp: state.equityRiskPremium,
+    countrySpread: state.countryDefaultSpread,
+    debtRate: computeDebtRateFromBanks(state.bankRates.map(b => b.rate)),
+    der: state.derIndustry,
+  }
+}
+
 /** Full Discount Rate CAPM computation. */
 export function computeDiscountRate(input: DiscountRateInput): DiscountRateResult {
   const bu = computeBetaUnleveredCAPM(input.beta, input.taxRate, input.der)

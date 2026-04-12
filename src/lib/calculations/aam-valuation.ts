@@ -20,7 +20,6 @@ export interface AamInput {
   inventory: number // BS!F12
   otherCurrentAssets: number // BS!F14
   // Non-current assets
-  fixedAssetBeginning: number // BS!F20
   fixedAssetNet: number // BS!F22
   otherNonCurrentAssets: number // BS!F23
   intangibleAssets: number // BS!F24

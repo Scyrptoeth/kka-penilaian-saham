@@ -73,7 +73,6 @@ export default function AamPage() {
       otherReceivable: bs(11),
       inventory: bs(12),
       otherCurrentAssets: bs(14),
-      fixedAssetBeginning: bs(20),
       fixedAssetNet: bs(22),
       otherNonCurrentAssets: bs(23),
       intangibleAssets: bs(24),
@@ -92,7 +91,10 @@ export default function AamPage() {
       dlomPercent: home.dlomPercent,
       dlocPercent: home.dlocPercent,
       proporsiSaham: computeProporsiSaham(home),
-      paidUpCapitalDeduction: home.jumlahSahamBeredar, // fixture uses 600M = jumlahSahamBeredar
+      // Fixture: E60=E59-600M. 600M = jumlahSahamBeredar × Rp 1 par value.
+      // TODO: Add nilaiNominalPerSaham to HomeInputs for proper company-agnostic computation.
+      // Currently assumes par value = Rp 1 (common for Indonesian large-cap).
+      paidUpCapitalDeduction: home.jumlahSahamBeredar,
     })
 
     return { result, allBs, ly }

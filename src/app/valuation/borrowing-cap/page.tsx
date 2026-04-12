@@ -3,11 +3,18 @@
 import { useMemo, useState, useCallback } from 'react'
 import { useKkaStore, type BorrowingCapInputState } from '@/lib/store/useKkaStore'
 import { computeBorrowingCap } from '@/lib/calculations/borrowing-cap'
-import { computeDiscountRate } from '@/lib/calculations/discount-rate'
+import { computeDiscountRate, buildDiscountRateInput } from '@/lib/calculations/discount-rate'
 import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { BALANCE_SHEET_MANIFEST } from '@/data/manifests/balance-sheet'
 import { formatIdr, formatPercent } from '@/components/financial/format'
+
+/**
+ * Default borrowing percentage for fixed assets (Excel E7 = 70%).
+ * Standard assumption in Indonesian tax valuation. Should be user-configurable
+ * in future — some industries/engagements use different rates.
+ */
+const BORROWING_PERCENT_DEFAULT = 0.7
 
 function parseNumber(raw: string): number {
   const cleaned = raw.replace(/[^0-9.-]/g, '')
@@ -44,20 +51,8 @@ function BorrowingCapEditor() {
     const bsInventory = allBs[12]?.[lastYear] ?? 0 // F12
     const bsFixedAssetNet = allBs[22]?.[lastYear] ?? 0 // F22
 
-    // Discount Rate
-    const dr = computeDiscountRate({
-      taxRate: discountRateState.taxRate,
-      riskFree: discountRateState.riskFree,
-      beta: discountRateState.beta,
-      erp: discountRateState.equityRiskPremium,
-      countrySpread: discountRateState.countryDefaultSpread,
-      debtRate:
-        discountRateState.bankRates.length > 0
-          ? discountRateState.bankRates.reduce((s, b) => s + b.rate, 0) /
-            discountRateState.bankRates.length
-          : 0,
-      der: discountRateState.derIndustry,
-    })
+    // Discount Rate — uses buildDiscountRateInput for correct debtRate conversion
+    const dr = computeDiscountRate(buildDiscountRateInput(discountRateState))
 
     return computeBorrowingCap({
       piutangCalk,
@@ -65,7 +60,8 @@ function BorrowingCapEditor() {
       bsReceivables,
       bsInventory,
       bsFixedAssetNet,
-      borrowingPercent: 0.7,
+      // TODO: make user-editable — 70% is a standard assumption but varies by industry
+      borrowingPercent: BORROWING_PERCENT_DEFAULT,
       costDebtAfterTax: dr.kd,
       costEquity: dr.ke,
     })

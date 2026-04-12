@@ -10,7 +10,13 @@ import { NOPLAT_MANIFEST } from '@/data/manifests/noplat'
 import { CASH_FLOW_STATEMENT_MANIFEST } from '@/data/manifests/cash-flow-statement'
 import { computeNoplatLiveRows } from '@/data/live/compute-noplat-live'
 import { computeCashFlowLiveRows } from '@/data/live/compute-cash-flow-live'
-import { computeDiscountRate } from '@/lib/calculations/discount-rate'
+import { computeDiscountRate, buildDiscountRateInput } from '@/lib/calculations/discount-rate'
+
+/**
+ * Default borrowing percentage for fixed assets — must match Borrowing Cap page.
+ * TODO: centralize to shared constant or store when made user-configurable.
+ */
+const BORROWING_PERCENT_DEFAULT = 0.7
 import { computeBorrowingCap } from '@/lib/calculations/borrowing-cap'
 import { computeAam } from '@/lib/calculations/aam-valuation'
 import { computeEem } from '@/lib/calculations/eem-valuation'
@@ -54,18 +60,8 @@ export default function EemPage() {
     const cfsComp = deriveComputedRows(CASH_FLOW_STATEMENT_MANIFEST.rows, cfsLeaf, histYears3)
     const allCfs = { ...cfsLeaf, ...cfsComp }
 
-    // ── Discount Rate ──
-    const dr = computeDiscountRate({
-      taxRate: discountRateState.taxRate,
-      riskFree: discountRateState.riskFree,
-      beta: discountRateState.beta,
-      erp: discountRateState.equityRiskPremium,
-      countrySpread: discountRateState.countryDefaultSpread,
-      debtRate: discountRateState.bankRates.length > 0
-        ? discountRateState.bankRates.reduce((s, b) => s + b.rate, 0) / discountRateState.bankRates.length
-        : 0,
-      der: discountRateState.derIndustry,
-    })
+    // ── Discount Rate — uses buildDiscountRateInput for correct debtRate conversion ──
+    const dr = computeDiscountRate(buildDiscountRateInput(discountRateState))
 
     // ── Borrowing Cap ──
     const bc = computeBorrowingCap({
@@ -74,7 +70,7 @@ export default function EemPage() {
       bsReceivables: bs(10) + bs(11),
       bsInventory: bs(12),
       bsFixedAssetNet: bs(22),
-      borrowingPercent: 0.7,
+      borrowingPercent: BORROWING_PERCENT_DEFAULT,
       costDebtAfterTax: dr.kd,
       costEquity: dr.ke,
     })
@@ -88,7 +84,6 @@ export default function EemPage() {
       otherReceivable: bs(11),
       inventory: bs(12),
       otherCurrentAssets: bs(14),
-      fixedAssetBeginning: bs(20),
       fixedAssetNet: bs(22),
       otherNonCurrentAssets: bs(23),
       intangibleAssets: bs(24),
@@ -107,6 +102,7 @@ export default function EemPage() {
       dlomPercent: home.dlomPercent,
       dlocPercent: home.dlocPercent,
       proporsiSaham,
+      // See AAM page comment — assumes par value = Rp 1
       paidUpCapitalDeduction: home.jumlahSahamBeredar,
     })
 

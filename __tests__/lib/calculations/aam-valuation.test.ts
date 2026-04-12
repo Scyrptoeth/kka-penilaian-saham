@@ -43,7 +43,6 @@ const FIXTURE_INPUT: AamInput = {
   inventory: 1423637783,
   otherCurrentAssets: 2347809320,
   // Non-current assets
-  fixedAssetBeginning: 6989653544, // BS!F20
   fixedAssetNet: 6264339945, // BS!F22
   otherNonCurrentAssets: 0, // BS!F23
   intangibleAssets: 0, // BS!F24
