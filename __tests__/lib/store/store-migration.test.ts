@@ -1,49 +1,129 @@
 import { describe, expect, it } from 'vitest'
 import { migratePersistedState } from '@/lib/store/useKkaStore'
 
-describe('migratePersistedState — v1 → v2', () => {
-  it('preserves home data and initializes dlom/dloc as null', () => {
-    const v1State = {
-      home: {
-        namaPerusahaan: 'PT Test Sejahtera',
-        npwp: '01.234.567.8-901.000',
-        jenisPerusahaan: 'tertutup' as const,
-        jumlahSahamBeredar: 100_000,
-        jumlahSahamYangDinilai: 50_000,
-        tahunTransaksi: 2024,
-        objekPenilaian: 'saham' as const,
-        dlomPercent: 0,
-        dlocPercent: 0,
-      },
-    }
+const HOME_FIXTURE = {
+  namaPerusahaan: 'PT Test Sejahtera',
+  npwp: '01.234.567.8-901.000',
+  jenisPerusahaan: 'tertutup' as const,
+  jumlahSahamBeredar: 100_000,
+  jumlahSahamYangDinilai: 50_000,
+  tahunTransaksi: 2024,
+  objekPenilaian: 'saham' as const,
+  dlomPercent: 0,
+  dlocPercent: 0,
+}
 
+const DLOM_FIXTURE = {
+  answers: { 1: 'A' },
+  kepemilikan: 'minoritas' as const,
+  percentage: 0.15,
+}
+
+const DLOC_FIXTURE = {
+  answers: { 1: 'B' },
+  kepemilikan: 'mayoritas' as const,
+  percentage: 0.05,
+}
+
+describe('migratePersistedState — v1 → v3 (chained)', () => {
+  it('preserves home and initializes dlom/dloc + 3 new slices as null', () => {
+    const v1State = { home: HOME_FIXTURE }
     const migrated = migratePersistedState(v1State, 1) as {
-      home: typeof v1State.home
+      home: typeof HOME_FIXTURE
       dlom: null
       dloc: null
+      balanceSheet: null
+      incomeStatement: null
+      fixedAsset: null
     }
-
-    expect(migrated.home).toEqual(v1State.home)
+    expect(migrated.home).toEqual(HOME_FIXTURE)
     expect(migrated.dlom).toBeNull()
     expect(migrated.dloc).toBeNull()
+    expect(migrated.balanceSheet).toBeNull()
+    expect(migrated.incomeStatement).toBeNull()
+    expect(migrated.fixedAsset).toBeNull()
   })
 
-  it('preserves null home gracefully when v1 had not been filled', () => {
-    const v1Empty = { home: null }
-    const migrated = migratePersistedState(v1Empty, 1) as {
+  it('preserves null home gracefully when v1 was empty', () => {
+    const migrated = migratePersistedState({ home: null }, 1) as {
       home: null
       dlom: null
       dloc: null
+      balanceSheet: null
+      incomeStatement: null
+      fixedAsset: null
     }
     expect(migrated.home).toBeNull()
-    expect(migrated.dlom).toBeNull()
-    expect(migrated.dloc).toBeNull()
+    expect(migrated.balanceSheet).toBeNull()
+    expect(migrated.incomeStatement).toBeNull()
+    expect(migrated.fixedAsset).toBeNull()
+  })
+})
+
+describe('migratePersistedState — v2 → v3', () => {
+  it('preserves home/dlom/dloc and adds 3 new slices as null', () => {
+    const v2State = {
+      home: HOME_FIXTURE,
+      dlom: DLOM_FIXTURE,
+      dloc: DLOC_FIXTURE,
+    }
+    const migrated = migratePersistedState(v2State, 2) as {
+      home: typeof HOME_FIXTURE
+      dlom: typeof DLOM_FIXTURE
+      dloc: typeof DLOC_FIXTURE
+      balanceSheet: null
+      incomeStatement: null
+      fixedAsset: null
+    }
+    expect(migrated.home).toEqual(HOME_FIXTURE)
+    expect(migrated.dlom).toEqual(DLOM_FIXTURE)
+    expect(migrated.dloc).toEqual(DLOC_FIXTURE)
+    expect(migrated.balanceSheet).toBeNull()
+    expect(migrated.incomeStatement).toBeNull()
+    expect(migrated.fixedAsset).toBeNull()
+  })
+
+  it('handles v2 with null dlom/dloc (user never opened DLOM form)', () => {
+    const v2State = { home: HOME_FIXTURE, dlom: null, dloc: null }
+    const migrated = migratePersistedState(v2State, 2) as {
+      home: typeof HOME_FIXTURE
+      dlom: null
+      dloc: null
+      balanceSheet: null
+      incomeStatement: null
+      fixedAsset: null
+    }
+    expect(migrated.home).toEqual(HOME_FIXTURE)
+    expect(migrated.balanceSheet).toBeNull()
+  })
+})
+
+describe('migratePersistedState — v3 and future', () => {
+  it('v3 → v3 passes through unchanged (no-op)', () => {
+    const v3State = {
+      home: HOME_FIXTURE,
+      dlom: null,
+      dloc: null,
+      balanceSheet: { rows: { 8: { 2023: 1_000_000 } } },
+      incomeStatement: null,
+      fixedAsset: null,
+    }
+    const migrated = migratePersistedState(v3State, 3)
+    expect(migrated).toBe(v3State)
   })
 
   it('passes future versions through unchanged (no false-positive downgrade)', () => {
-    const v3FutureState = { home: null, dlom: null, dloc: null, futureSlice: {} }
-    const migrated = migratePersistedState(v3FutureState, 3)
-    expect(migrated).toBe(v3FutureState)
+    const v4FutureState = {
+      home: null,
+      dlom: null,
+      dloc: null,
+      balanceSheet: null,
+      incomeStatement: null,
+      fixedAsset: null,
+      futureSlice: {},
+    }
+    const migrated = migratePersistedState(v4FutureState, 4)
+    expect(migrated).toBe(v4FutureState)
   })
 
   it('passes unknown / non-object payloads through unchanged', () => {
