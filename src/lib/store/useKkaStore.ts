@@ -33,6 +33,38 @@ export interface WaccState {
   waccOverride: number | null
 }
 
+/** Key Drivers slice — projection assumptions for PROY sheets. */
+export interface KeyDriversState {
+  financialDrivers: {
+    interestRateShortTerm: number
+    interestRateLongTerm: number
+    bankDepositRate: number
+    corporateTaxRate: number
+  }
+  operationalDrivers: {
+    salesVolumeBase: number
+    salesPriceBase: number
+    /** Per-year increments starting from projection year 2 (index 0 = year 2). */
+    salesVolumeIncrements: number[]
+    salesPriceIncrements: number[]
+    /** Stored POSITIVE — negate in compute adapters (LESSON-011). */
+    cogsRatio: number
+    sellingExpenseRatio: number
+    gaExpenseRatio: number
+  }
+  bsDrivers: {
+    accReceivableDays: number[]
+    inventoryDays: number[]
+    accPayableDays: number[]
+  }
+  additionalCapex: {
+    land: number[]
+    building: number[]
+    equipment: number[]
+    others: number[]
+  }
+}
+
 /** Discount Rate (CAPM) slice — separate analysis from WACC. */
 export interface DiscountRateState {
   taxRate: number
@@ -80,6 +112,8 @@ interface KkaState {
   /** Phase 3 valuation slices */
   wacc: WaccState | null
   discountRate: DiscountRateState | null
+  /** Phase 3 projection drivers */
+  keyDrivers: KeyDriversState | null
   setHome: (home: HomeInputs) => void
   resetHome: () => void
   /**
@@ -97,18 +131,20 @@ interface KkaState {
   setAccPayables: (ap: AccPayablesInputState) => void
   setWacc: (wacc: WaccState) => void
   setDiscountRate: (dr: DiscountRateState) => void
+  setKeyDrivers: (kd: KeyDriversState) => void
   resetBalanceSheet: () => void
   resetIncomeStatement: () => void
   resetFixedAsset: () => void
   resetAccPayables: () => void
   resetWacc: () => void
   resetDiscountRate: () => void
+  resetKeyDrivers: () => void
   _hasHydrated: boolean
   _setHasHydrated: (hydrated: boolean) => void
 }
 
 const STORE_KEY = 'kka-penilaian-saham'
-const STORE_VERSION = 5
+const STORE_VERSION = 6
 
 /**
  * Migrate persisted state from older versions to the current schema.
@@ -120,6 +156,7 @@ const STORE_VERSION = 5
  *   v2 → v3: Session 010 added `balanceSheet` / `incomeStatement` / `fixedAsset`
  *   v3 → v4: Session 012 added `accPayables`
  *   v4 → v5: Session 013 added `wacc` / `discountRate`
+ *   v5 → v6: Session 014 added `keyDrivers`
  *
  * Without this function, Zustand persist discards the entire older payload
  * and the user silently loses their HOME (and now DLOM/DLOC) data on the
@@ -170,6 +207,13 @@ export function migratePersistedState(
     }
   }
 
+  if (fromVersion < 6) {
+    state = {
+      ...state,
+      keyDrivers: null,
+    }
+  }
+
   return state
 }
 
@@ -185,6 +229,7 @@ export const useKkaStore = create<KkaState>()(
       accPayables: null,
       wacc: null,
       discountRate: null,
+      keyDrivers: null,
       setHome: (home) => set({ home }),
       resetHome: () => set({ home: null }),
       setDlom: (dlom) =>
@@ -203,12 +248,14 @@ export const useKkaStore = create<KkaState>()(
       setAccPayables: (accPayables) => set({ accPayables }),
       setWacc: (wacc) => set({ wacc }),
       setDiscountRate: (discountRate) => set({ discountRate }),
+      setKeyDrivers: (keyDrivers) => set({ keyDrivers }),
       resetBalanceSheet: () => set({ balanceSheet: null }),
       resetIncomeStatement: () => set({ incomeStatement: null }),
       resetFixedAsset: () => set({ fixedAsset: null }),
       resetAccPayables: () => set({ accPayables: null }),
       resetWacc: () => set({ wacc: null }),
       resetDiscountRate: () => set({ discountRate: null }),
+      resetKeyDrivers: () => set({ keyDrivers: null }),
       _hasHydrated: false,
       _setHasHydrated: (hydrated) => set({ _hasHydrated: hydrated }),
     }),
@@ -226,6 +273,7 @@ export const useKkaStore = create<KkaState>()(
         accPayables: state.accPayables,
         wacc: state.wacc,
         discountRate: state.discountRate,
+        keyDrivers: state.keyDrivers,
       }),
       migrate: migratePersistedState,
       onRehydrateStorage: () => (state) => {
