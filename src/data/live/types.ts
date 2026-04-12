@@ -28,3 +28,13 @@ export interface IncomeStatementInputState {
 export interface FixedAssetInputState {
   rows: Record<number, YearKeyedSeries>
 }
+
+/**
+ * Acc Payables — hidden worksheet dependency for CFS financing section.
+ * Rows 10 + 19 → New Loan; Row 20 → Principal Repayment.
+ * Session 012 adds the slice; dedicated input page deferred (YAGNI —
+ * prototype values are all zero, CFS defaults financing to 0 when null).
+ */
+export interface AccPayablesInputState {
+  rows: Record<number, YearKeyedSeries>
+}

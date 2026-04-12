@@ -5,6 +5,7 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import type { HomeInputs } from '@/types'
 import type { KepemilikanType } from '@/types/questionnaire'
 import type {
+  AccPayablesInputState,
   BalanceSheetInputState,
   IncomeStatementInputState,
   FixedAssetInputState,
@@ -42,6 +43,7 @@ interface KkaState {
   balanceSheet: BalanceSheetInputState | null
   incomeStatement: IncomeStatementInputState | null
   fixedAsset: FixedAssetInputState | null
+  accPayables: AccPayablesInputState | null
   setHome: (home: HomeInputs) => void
   resetHome: () => void
   /**
@@ -56,15 +58,17 @@ interface KkaState {
   setBalanceSheet: (bs: BalanceSheetInputState) => void
   setIncomeStatement: (is: IncomeStatementInputState) => void
   setFixedAsset: (fa: FixedAssetInputState) => void
+  setAccPayables: (ap: AccPayablesInputState) => void
   resetBalanceSheet: () => void
   resetIncomeStatement: () => void
   resetFixedAsset: () => void
+  resetAccPayables: () => void
   _hasHydrated: boolean
   _setHasHydrated: (hydrated: boolean) => void
 }
 
 const STORE_KEY = 'kka-penilaian-saham'
-const STORE_VERSION = 3
+const STORE_VERSION = 4
 
 /**
  * Migrate persisted state from older versions to the current schema.
@@ -74,6 +78,7 @@ const STORE_VERSION = 3
  *
  *   v1 → v2: Session 008 added `dlom` / `dloc` slices
  *   v2 → v3: Session 010 added `balanceSheet` / `incomeStatement` / `fixedAsset`
+ *   v3 → v4: Session 012 added `accPayables`
  *
  * Without this function, Zustand persist discards the entire older payload
  * and the user silently loses their HOME (and now DLOM/DLOC) data on the
@@ -109,6 +114,13 @@ export function migratePersistedState(
     }
   }
 
+  if (fromVersion < 4) {
+    state = {
+      ...state,
+      accPayables: null,
+    }
+  }
+
   return state
 }
 
@@ -121,6 +133,7 @@ export const useKkaStore = create<KkaState>()(
       balanceSheet: null,
       incomeStatement: null,
       fixedAsset: null,
+      accPayables: null,
       setHome: (home) => set({ home }),
       resetHome: () => set({ home: null }),
       setDlom: (dlom) =>
@@ -136,9 +149,11 @@ export const useKkaStore = create<KkaState>()(
       setBalanceSheet: (balanceSheet) => set({ balanceSheet }),
       setIncomeStatement: (incomeStatement) => set({ incomeStatement }),
       setFixedAsset: (fixedAsset) => set({ fixedAsset }),
+      setAccPayables: (accPayables) => set({ accPayables }),
       resetBalanceSheet: () => set({ balanceSheet: null }),
       resetIncomeStatement: () => set({ incomeStatement: null }),
       resetFixedAsset: () => set({ fixedAsset: null }),
+      resetAccPayables: () => set({ accPayables: null }),
       _hasHydrated: false,
       _setHasHydrated: (hydrated) => set({ _hasHydrated: hydrated }),
     }),
@@ -153,6 +168,7 @@ export const useKkaStore = create<KkaState>()(
         balanceSheet: state.balanceSheet,
         incomeStatement: state.incomeStatement,
         fixedAsset: state.fixedAsset,
+        accPayables: state.accPayables,
       }),
       migrate: migratePersistedState,
       onRehydrateStorage: () => (state) => {
