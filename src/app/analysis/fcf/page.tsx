@@ -1,11 +1,10 @@
 import type { Metadata } from 'next'
-import { SheetPage } from '@/components/financial/SheetPage'
-import { FCF_MANIFEST } from '@/data/manifests/fcf'
+import { FcfLiveView } from '@/components/analysis/FcfLiveView'
 
 export const metadata: Metadata = {
   title: 'Free Cash Flow — KKA Penilaian Saham',
 }
 
 export default function FcfPage() {
-  return <SheetPage manifest={FCF_MANIFEST} />
+  return <FcfLiveView />
 }

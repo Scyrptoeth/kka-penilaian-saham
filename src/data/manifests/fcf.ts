@@ -54,6 +54,7 @@ export const FCF_MANIFEST: SheetManifest = {
       excelRow: 9,
       label: 'Gross Cash Flow',
       type: 'subtotal',
+      computedFrom: [7, 8],
       formula: { values: 'NOPLAT + Depreciation addback' },
     },
 
@@ -97,6 +98,7 @@ export const FCF_MANIFEST: SheetManifest = {
       excelRow: 18,
       label: 'Gross Investment',
       type: 'subtotal',
+      computedFrom: [14, 16],
       formula: { values: 'Total Net WC Change + Capex' },
     },
 
@@ -105,6 +107,7 @@ export const FCF_MANIFEST: SheetManifest = {
       excelRow: 20,
       label: 'FREE CASH FLOW',
       type: 'total',
+      computedFrom: [9, 18],
       formula: { values: 'Gross Cash Flow + Gross Investment' },
     },
   ],

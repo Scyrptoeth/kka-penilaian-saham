@@ -4,17 +4,20 @@ import { useMemo } from 'react'
 import { SheetPage } from '@/components/financial/SheetPage'
 import { FINANCIAL_RATIO_MANIFEST } from '@/data/manifests/financial-ratio'
 import { CASH_FLOW_STATEMENT_MANIFEST } from '@/data/manifests/cash-flow-statement'
+import { NOPLAT_MANIFEST } from '@/data/manifests/noplat'
+import { FIXED_ASSET_MANIFEST } from '@/data/manifests/fixed-asset'
+import { FCF_MANIFEST } from '@/data/manifests/fcf'
 import { useKkaStore } from '@/lib/store/useKkaStore'
 import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
 import { computeFinancialRatioLiveRows } from '@/data/live/compute-financial-ratio-live'
 import { computeCashFlowLiveRows } from '@/data/live/compute-cash-flow-live'
+import { computeNoplatLiveRows } from '@/data/live/compute-noplat-live'
+import { computeFcfLiveRows } from '@/data/live/compute-fcf-live'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 
 /**
- * Financial Ratio live-mode wrapper. Computes 17/18 ratios when BS + IS
- * are present. The 3 CFS-dependent ratios (CFO/Sales, ST Debt Coverage,
- * Capex Coverage) auto-compute when BS + IS enables CFS derivation.
- * FCF/CFO (row 27) remains 0 until FCF live mode is wired (Task 4).
+ * Financial Ratio live-mode wrapper. Computes all 18 ratios when BS + IS
+ * are present. Builds CFS + FCF upstream chain for CF indicator ratios.
  */
 export function FinancialRatioLiveView() {
   const home = useKkaStore((s) => s.home)
@@ -57,27 +60,35 @@ export function FinancialRatioLiveView() {
     )
     const allCfsRows = { ...cfsLeafRows, ...cfsComputed }
 
+    // 3. NOPLAT from IS (for FCF chain)
+    const noplatLeafRows = computeNoplatLiveRows(incomeStatement.rows, cfsYears)
+    const noplatComputed = deriveComputedRows(NOPLAT_MANIFEST.rows, noplatLeafRows, cfsYears)
+    const allNoplatRows = { ...noplatLeafRows, ...noplatComputed }
+
+    // 4. FA computed rows
+    const faRows = fixedAsset?.rows ?? null
+    const faComputed = faRows
+      ? deriveComputedRows(FIXED_ASSET_MANIFEST.rows, faRows, cfsYears)
+      : null
+
+    // 5. FCF from upstream
+    const fcfLeafRows = computeFcfLiveRows(allNoplatRows, faComputed, allCfsRows, cfsYears)
+    const fcfComputed = deriveComputedRows(FCF_MANIFEST.rows, fcfLeafRows, cfsYears)
+    const allFcfRows = { ...fcfLeafRows, ...fcfComputed }
+
     return computeFinancialRatioLiveRows(
       balanceSheet.rows,
       incomeStatement.rows,
       frYears,
       allCfsRows,
-      null, // FCF rows — wired in Task 4
+      allFcfRows,
     )
   }, [isLive, home, balanceSheet, incomeStatement, fixedAsset, accPayables])
 
   return (
     <>
       <SheetPage manifest={FINANCIAL_RATIO_MANIFEST} liveRows={liveRows} />
-      {isLive && (
-        <div className="mx-auto mt-4 max-w-[1400px] px-1">
-          <p className="text-[11px] leading-relaxed text-ink-muted">
-            <span className="font-semibold text-ink">Catatan:</span> rasio
-            FCF/Operating Cash Flow (baris 27) saat ini bernilai 0,00 karena
-            perhitungannya membutuhkan data Free Cash Flow yang belum tersedia.
-          </p>
-        </div>
-      )}
+      {/* All 18 ratios now computed — no footer note needed */}
     </>
   )
 }

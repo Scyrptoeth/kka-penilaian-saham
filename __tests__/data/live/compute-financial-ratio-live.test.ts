@@ -12,8 +12,13 @@
 import { describe, expect, it } from 'vitest'
 import { computeFinancialRatioLiveRows } from '@/data/live/compute-financial-ratio-live'
 import { computeCashFlowLiveRows } from '@/data/live/compute-cash-flow-live'
+import { computeNoplatLiveRows } from '@/data/live/compute-noplat-live'
+import { computeFcfLiveRows } from '@/data/live/compute-fcf-live'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { CASH_FLOW_STATEMENT_MANIFEST } from '@/data/manifests/cash-flow-statement'
+import { NOPLAT_MANIFEST } from '@/data/manifests/noplat'
+import { FIXED_ASSET_MANIFEST } from '@/data/manifests/fixed-asset'
+import { FCF_MANIFEST } from '@/data/manifests/fcf'
 import type { YearKeyedSeries } from '@/types/financial'
 import {
   balanceSheetCells,
@@ -128,8 +133,19 @@ describe('computeFinancialRatioLiveRows matches FR fixture', () => {
   const bsLeaves = loadBsLeaves()
   const isLeaves = loadIsLeaves()
   const cfsRows = buildCfsRows()
+
+  // Build FCF chain for row 27 (FCF/CFO)
+  const noplatLeafRows = computeNoplatLiveRows(isLeaves, YEARS)
+  const noplatComputed = deriveComputedRows(NOPLAT_MANIFEST.rows, noplatLeafRows, YEARS)
+  const allNoplatRows = { ...noplatLeafRows, ...noplatComputed }
+  const faLeaves2 = loadFaLeaves()
+  const faComputed = deriveComputedRows(FIXED_ASSET_MANIFEST.rows, faLeaves2, YEARS)
+  const fcfLeafRows = computeFcfLiveRows(allNoplatRows, faComputed, cfsRows, YEARS)
+  const fcfComputed = deriveComputedRows(FCF_MANIFEST.rows, fcfLeafRows, YEARS)
+  const allFcfRows = { ...fcfLeafRows, ...fcfComputed }
+
   const frRows = computeFinancialRatioLiveRows(
-    bsLeaves, isLeaves, YEARS, cfsRows, null,
+    bsLeaves, isLeaves, YEARS, cfsRows, allFcfRows,
   )
 
   // 14 BS + IS ratios.
@@ -144,21 +160,14 @@ describe('computeFinancialRatioLiveRows matches FR fixture', () => {
     }
   }
 
-  // 3 CFS-dependent ratios now live (rows 26, 28, 30).
-  const CFS_RATIOS = [26, 28, 30] as const
-  for (const row of CFS_RATIOS) {
+  // All 4 CF ratios now live (rows 26, 27, 28, 30).
+  const CF_RATIOS = [26, 27, 28, 30] as const
+  for (const row of CF_RATIOS) {
     for (const year of YEARS) {
       it(`row ${row} at ${year} matches fixture (CF ratio)`, () => {
         const expected = num(financialRatioCells, `${FR_COL[year]}${row}`)
         expect(frRows[row]?.[year]).toBeCloseTo(expected, 6)
       })
     }
-  }
-
-  // Row 27 (FCF/CFO) still 0 — needs FCF data (Task 4).
-  for (const year of YEARS) {
-    it(`row 27 at ${year} is zero (FCF not yet wired)`, () => {
-      expect(frRows[27]?.[year]).toBe(0)
-    })
   }
 })
