@@ -83,6 +83,7 @@ export const BALANCE_SHEET_MANIFEST: SheetManifest = {
       excelRow: 16,
       label: 'Total Current Assets',
       type: 'subtotal',
+      computedFrom: [8, 9, 10, 11, 12, 13, 14],
       formula: {
         values: 'SUM of Current Asset line items',
         commonSize: COMMON_SIZE_DESC,
@@ -106,6 +107,7 @@ export const BALANCE_SHEET_MANIFEST: SheetManifest = {
       excelRow: 22,
       label: 'Fixed Assets, Net',
       type: 'subtotal',
+      computedFrom: [20, 21],
       formula: {
         values: 'Beginning − Accumulated Depreciation',
         commonSize: COMMON_SIZE_DESC,
@@ -122,6 +124,7 @@ export const BALANCE_SHEET_MANIFEST: SheetManifest = {
       excelRow: 25,
       label: 'Total Non-Current Assets',
       type: 'subtotal',
+      computedFrom: [22, 24],
       formula: {
         values: 'Fixed Assets Net + Intangibles',
         commonSize: COMMON_SIZE_DESC,
@@ -132,6 +135,7 @@ export const BALANCE_SHEET_MANIFEST: SheetManifest = {
       excelRow: 27,
       label: 'TOTAL ASSETS',
       type: 'total',
+      computedFrom: [16, 25],
       formula: {
         values: 'Total Current + Total Non-Current',
         commonSize: 'By definition 100% of itself',
@@ -171,6 +175,7 @@ export const BALANCE_SHEET_MANIFEST: SheetManifest = {
       excelRow: 35,
       label: 'Total Current Liabilities',
       type: 'subtotal',
+      computedFrom: [31, 32, 33, 34],
       formula: {
         values: 'SUM of Current Liability line items',
         commonSize: COMMON_SIZE_DESC,
@@ -194,6 +199,7 @@ export const BALANCE_SHEET_MANIFEST: SheetManifest = {
       excelRow: 40,
       label: 'Total Non-Current Liabilities',
       type: 'subtotal',
+      computedFrom: [38, 39],
       formula: {
         values: 'SUM of Non-Current Liability line items',
         commonSize: COMMON_SIZE_DESC,
@@ -204,6 +210,7 @@ export const BALANCE_SHEET_MANIFEST: SheetManifest = {
       excelRow: 41,
       label: 'TOTAL LIABILITIES',
       type: 'subtotal',
+      computedFrom: [35, 40],
       formula: {
         values: 'Current Liabilities + Non-Current Liabilities',
         commonSize: COMMON_SIZE_DESC,
@@ -240,6 +247,7 @@ export const BALANCE_SHEET_MANIFEST: SheetManifest = {
       label: 'Retained Earnings, Ending Balance',
       indent: 1,
       type: 'subtotal',
+      computedFrom: [46, 47],
       formula: {
         values: 'Surplus + Current Profit',
         commonSize: COMMON_SIZE_DESC,
@@ -250,6 +258,7 @@ export const BALANCE_SHEET_MANIFEST: SheetManifest = {
       excelRow: 49,
       label: "Shareholders' Equity",
       type: 'subtotal',
+      computedFrom: [43, 44, 48],
       formula: {
         values: 'Paid Up + Addition + Retained Earnings',
         commonSize: COMMON_SIZE_DESC,
@@ -260,6 +269,7 @@ export const BALANCE_SHEET_MANIFEST: SheetManifest = {
       excelRow: 51,
       label: 'TOTAL LIABILITIES & EQUITY',
       type: 'total',
+      computedFrom: [41, 49],
       formula: {
         values: 'Total Liabilities + Shareholders Equity',
         commonSize: 'Equal to TOTAL ASSETS (accounting identity)',

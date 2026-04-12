@@ -4,39 +4,38 @@ import { useState, useCallback } from 'react'
 import type { ManifestRow } from '@/data/manifests/types'
 import type { YearKeyedSeries } from '@/types/financial'
 import { cn } from '@/lib/utils/cn'
+import { formatIdr, isNegative } from '@/components/financial/format'
 import { parseFinancialInput } from './parse-financial-input'
 
 /**
  * <RowInputGrid> — reusable financial data-entry grid.
  *
- * Takes the same {@link ManifestRow}[] that the read-only FinancialTable
- * consumes, plus a year axis, and renders a sticky-label table with one
- * editable numeric cell per (row, year). Each cell is a local-state
- * <NumericInput> that:
+ * Takes the full {@link ManifestRow}[] that the read-only FinancialTable
+ * renders (headers, separators, normal leaves, subtotals, totals) plus a
+ * year axis, and interleaves editable inputs for normal rows with
+ * read-only computed cells for subtotal / total rows. Every cell stays
+ * visually aligned in a single Bloomberg-style table.
  *
+ * Editable row behaviour (<NumericInput>):
  *   - on focus  → shows the raw number for keyboard editing
  *   - on blur   → parses via `parseFinancialInput` (handles Rp, dots,
  *                 parens, commas, explicit negatives) and calls onChange
- *                 with the parsed number, then renders the Indonesian
- *                 thousand-separated format
  *
- * Tab order flows left-to-right per row, top-to-bottom across rows,
- * matching native HTML behaviour with the nested table element order.
- *
- * Consumers are responsible for filtering `rows` to editable line items
- * only (skip header / separator / subtotal / total) before passing the
- * array in. Keeping the filter in the caller keeps this component
- * sheet-agnostic.
+ * Read-only row behaviour: subtotal / total rows pull from
+ * `computedValues[excelRow]` and render formatted IDR with parentheses
+ * for negatives (accounting convention).
  */
 
 interface RowInputGridProps {
-  /** Editable rows only — filter out header/separator/subtotal/total upstream. */
-  rows: ManifestRow[]
+  /** Full manifest rows — header / separator / normal / subtotal / total. */
+  rows: readonly ManifestRow[]
   /** Years rendered as columns, ascending. */
-  years: number[]
-  /** Current values: excelRow → year → value. */
-  values: Record<number, YearKeyedSeries>
-  /** Called when a single cell loses focus and the user's input is committed. */
+  years: readonly number[]
+  /** User-entered values: excelRow → year → value. */
+  values: Readonly<Record<number, YearKeyedSeries>>
+  /** Derived values for subtotal/total rows: excelRow → year → value. */
+  computedValues?: Readonly<Record<number, YearKeyedSeries>>
+  /** Called when an editable cell loses focus and input is committed. */
   onChange: (excelRow: number, year: number, value: number) => void
 }
 
@@ -44,8 +43,10 @@ export function RowInputGrid({
   rows,
   years,
   values,
+  computedValues = {},
   onChange,
 }: RowInputGridProps) {
+  const colCount = 1 + years.length
   return (
     <div className="overflow-x-auto rounded-sm border border-grid bg-canvas-raised shadow-[0_1px_0_rgba(10,22,40,0.04)]">
       <table className="min-w-full border-collapse text-[13px]">
@@ -70,36 +71,91 @@ export function RowInputGrid({
         </thead>
         <tbody>
           {rows.map((row, idx) => {
-            if (row.excelRow === undefined) return null
-            const excelRow = row.excelRow
-            const rowValues = values[excelRow] ?? {}
+            const type = row.type ?? 'normal'
+
+            if (type === 'separator') {
+              return (
+                <tr key={`sep-${idx}`} aria-hidden>
+                  <td
+                    colSpan={colCount}
+                    className="h-2 border-b border-grid bg-canvas"
+                  />
+                </tr>
+              )
+            }
+
+            if (type === 'header') {
+              return (
+                <tr key={`header-${idx}`}>
+                  <th
+                    scope="row"
+                    colSpan={colCount}
+                    className="sticky left-0 border-t border-grid-strong bg-grid px-3 py-1.5 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-ink-soft"
+                  >
+                    {row.label}
+                  </th>
+                </tr>
+              )
+            }
+
             const baseBg = idx % 2 === 0 ? 'bg-canvas' : 'bg-canvas-raised/60'
+            const excelRow = row.excelRow
+            if (excelRow === undefined) return null
+
+            const isEditable = type === 'normal'
+            const rowValues = isEditable
+              ? (values[excelRow] ?? {})
+              : (computedValues[excelRow] ?? {})
+
+            const labelClasses = cn(
+              'sticky left-0 z-10 text-left font-normal text-ink-soft',
+              baseBg,
+              'shadow-[1px_0_0_rgba(10,22,40,0.06)]',
+              getIndentClass(row.indent),
+              'py-1.5 pr-4',
+              type === 'subtotal' &&
+                'border-t border-grid-strong font-semibold text-ink',
+              type === 'total' && 'border-t-2 border-ink font-bold text-ink',
+            )
+
             return (
               <tr key={`${excelRow}-${row.label}`} className="group">
-                <th
-                  scope="row"
-                  className={cn(
-                    'sticky left-0 z-10 text-left font-normal text-ink-soft transition-colors',
-                    baseBg,
-                    'shadow-[1px_0_0_rgba(10,22,40,0.06)]',
-                    getIndentClass(row.indent),
-                    'py-1.5 pr-4',
-                  )}
-                >
+                <th scope="row" className={labelClasses}>
                   {row.label}
                 </th>
-                {years.map((year) => (
-                  <td
-                    key={`${excelRow}-${year}`}
-                    className={cn('px-2 py-1', baseBg)}
-                  >
-                    <NumericInput
-                      value={rowValues[year] ?? 0}
-                      ariaLabel={`${row.label} — ${year}`}
-                      onCommit={(v) => onChange(excelRow, year, v)}
-                    />
-                  </td>
-                ))}
+                {years.map((year) => {
+                  if (isEditable) {
+                    return (
+                      <td
+                        key={`${excelRow}-${year}`}
+                        className={cn('px-2 py-1', baseBg)}
+                      >
+                        <NumericInput
+                          value={rowValues[year] ?? 0}
+                          ariaLabel={`${row.label} — ${year}`}
+                          onCommit={(v) => onChange(excelRow, year, v)}
+                        />
+                      </td>
+                    )
+                  }
+                  const computed = rowValues[year] ?? 0
+                  const negative = isNegative(computed)
+                  return (
+                    <td
+                      key={`${excelRow}-${year}`}
+                      className={cn(
+                        'px-3 py-1.5 text-right font-mono tabular-nums',
+                        baseBg,
+                        type === 'subtotal' &&
+                          'border-t border-grid-strong font-semibold',
+                        type === 'total' && 'border-t-2 border-ink font-bold',
+                        negative ? 'text-negative' : 'text-ink',
+                      )}
+                    >
+                      {formatIdr(computed)}
+                    </td>
+                  )
+                })}
               </tr>
             )
           })}
@@ -131,7 +187,6 @@ function NumericInput({ value, ariaLabel, onCommit }: NumericInputProps) {
   const display = isEditing ? draft : formatDisplay(value)
 
   const handleFocus = useCallback(() => {
-    // Show raw number for easy overtyping; empty when 0 so placeholder shows.
     setDraft(value === 0 ? '' : String(value))
   }, [value])
 

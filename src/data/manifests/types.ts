@@ -56,6 +56,23 @@ export interface ManifestRow {
   valueKind?: 'idr' | 'percent' | 'ratio'
   /** Optional formula descriptions for tooltip layer. */
   formula?: ManifestFormulaDescriptions
+  /**
+   * Excel rows this row aggregates. Only meaningful for `subtotal` and
+   * `total` rows rendered in live data-entry mode — the RowInputGrid reads
+   * this to show computed values without letting the user overtype them.
+   *
+   * Seed mode ignores this entirely (the fixture holds Excel's own
+   * computed values). Declaring aggregation as data in the manifest keeps
+   * the input form fully manifest-driven and avoids sheet-specific sum
+   * helpers in page files.
+   *
+   *   // row 16 = sum of current-asset leaves
+   *   computedFrom: [8, 9, 10, 11, 12, 13, 14]
+   *
+   *   // row 25 can reference a prior subtotal + an additional leaf
+   *   computedFrom: [22, 24]
+   */
+  computedFrom?: readonly number[]
 }
 
 /**

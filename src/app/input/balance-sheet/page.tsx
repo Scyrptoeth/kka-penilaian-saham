@@ -6,6 +6,7 @@ import { useKkaStore } from '@/lib/store/useKkaStore'
 import { RowInputGrid } from '@/components/forms/RowInputGrid'
 import { BALANCE_SHEET_MANIFEST } from '@/data/manifests/balance-sheet'
 import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
+import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import type { YearKeyedSeries } from '@/types/financial'
 
 /**
@@ -77,22 +78,20 @@ function BalanceSheetEditor({ tahunTransaksi }: BalanceSheetEditorProps) {
   const [localValues, setLocalValues] =
     useState<Record<number, YearKeyedSeries>>(initialValues)
 
-  const editableRows = useMemo(
-    () =>
-      BALANCE_SHEET_MANIFEST.rows.filter(
-        (r) =>
-          r.excelRow !== undefined &&
-          r.type !== 'header' &&
-          r.type !== 'separator' &&
-          r.type !== 'subtotal' &&
-          r.type !== 'total',
-      ),
-    [],
-  )
+  // Grid consumes the full row list (headers/separators/subtotals/totals
+  // included) and decides per-row whether to render an editable input or
+  // a read-only computed cell, keeping visual alignment consistent with
+  // the read-only <FinancialTable>.
+  const displayRows = BALANCE_SHEET_MANIFEST.rows
 
   const years = useMemo(
     () => computeHistoricalYears(tahunTransaksi, 4),
     [tahunTransaksi],
+  )
+
+  const computedValues = useMemo(
+    () => deriveComputedRows(displayRows, localValues, years),
+    [displayRows, localValues, years],
   )
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -134,9 +133,10 @@ function BalanceSheetEditor({ tahunTransaksi }: BalanceSheetEditorProps) {
         </p>
       </header>
       <RowInputGrid
-        rows={editableRows}
+        rows={displayRows}
         years={years}
         values={localValues}
+        computedValues={computedValues}
         onChange={handleChange}
       />
     </div>
