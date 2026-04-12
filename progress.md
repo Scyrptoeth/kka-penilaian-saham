@@ -14,21 +14,22 @@
 | 008 | 2026-04-11/12 | ROIC + DLOM/DLOC questionnaire forms (with 008.5 + 008.6 hardening) | ✅ Shipped | [session-008](history/session-008-roic-dlom-dloc-forms.md) |
 | 009 | 2026-04-12 | Phase 3 design brainstorm — 6 architectural decisions for live data mode | ✅ Design complete | [session-009](history/session-009-phase-3-design-brainstorm.md) |
 | 010 | 2026-04-12 | Phase 3 — DataSource foundation + Balance Sheet pilot (live data mode) | ✅ Shipped | [session-010](history/session-010-datasource-bs-pilot.md) |
+| 011 | 2026-04-12 | Phase 3 — IS input + 4 downstream live migrations (NOPLAT / Growth Revenue / Financial Ratio) | ✅ Shipped | inline |
 
 ## Current State Snapshot (latest)
 
-- **Branch**: `main` (synced with `origin/main` via `161a032`)
-- **Tests**: **169 / 169** passing across 23 files
-- **Build**: ✅ clean, zero errors, zero warnings, **12 static pages** prerendered (9 financial + 2 questionnaire forms + 1 input pilot)
+- **Branch**: `main` (synced with `origin/main` via `cfad6f0`)
+- **Tests**: **283 / 283** passing across 27 files (+114 vs Session 010)
+- **Build**: ✅ clean, zero errors, zero warnings, **13 static pages** prerendered (+1 `/input/income-statement`)
 - **Lint**: ✅ zero warnings
 - **Typecheck**: ✅ `tsc --noEmit` exit 0
-- **Live**: https://kka-penilaian-saham.vercel.app (HTTP 200, latest production deploy `3wzel9whp`)
-- **Architecture state after 010**: live data mode **operational end-to-end for Balance Sheet**. User journey works: HOME form → `/input/balance-sheet` → `/historical/balance-sheet` auto-switches to live mode via domain-state sentinel (`home !== null && balanceSheet !== null`). Zero regression on seed mode — all 9 financial pages still render prototype workbook data when user hasn't started input. 3 new foundations in place for Sessions 011–012 downstream wiring: Zustand v3 with 3 input slices, `buildLiveCellMap` synthetic-CellMap adapter, `computeHistoricalYears` dynamic year-span helper.
-- **Live pages (12)**:
+- **Live**: https://kka-penilaian-saham.vercel.app
+- **Architecture state after 011**: live data mode **operational end-to-end for BS + IS + 3 downstream analysis sheets**. User journey works: HOME → `/input/balance-sheet` → `/input/income-statement` → `/analysis/noplat` / `/analysis/growth-revenue` / `/analysis/financial-ratio` all auto-switch to live mode via domain-state sentinel. The generic `<ManifestEditor>` extracted in Task 0 makes the next input sheet cost ~15 lines + manifest. The new `liveRows` prop on `<SheetPage>` lets downstream pages pass their computed rows without mutating `build.ts` / `applyDerivations`. Financial Ratio renders 14 of 18 ratios (profitability, liquidity, leverage) fully computed from BS + IS; the 4 Cash Flow Indicator ratios pinned to 0 until Session 012 ships Fixed Asset + Acc Payables. Zero regression — existing seed-mode pages unchanged when upstream slices are empty.
+- **Live pages (13)**:
   - Input Master: HOME
-  - **Input Data**: **Balance Sheet** (new — pilot)
+  - **Input Data**: Balance Sheet · **Income Statement (new)** · Fixed Asset (wip)
   - Historis: Balance Sheet · Income Statement · Cash Flow · Fixed Asset
-  - Analisis: Financial Ratio · FCF · NOPLAT · Growth Revenue · ROIC
+  - Analisis: **Financial Ratio (live)** · FCF · **NOPLAT (live)** · **Growth Revenue (live)** · ROIC
   - Penilaian: DLOM · DLOC (PFC)
 
 ## Session 1 — 2026-04-11 (Scope C: Full Phase 1)
@@ -894,3 +895,104 @@ Per `plan.md` Session 011 roadmap:
 2. `/input/income-statement/page.tsx` — reuse RowInputGrid unchanged
 3. Wire downstream live compute for CFS, Financial Ratio, NOPLAT, Growth Revenue — each calls existing calc function from `src/lib/calculations/*` inside SheetPage `useMemo`
 4. Estimated: 2.5–3 jam, ~10 tests (mostly integration), 5 pages newly live-capable
+
+---
+
+## Session 011 — 2026-04-12 (Phase 3 — IS Input + First Downstream Wave)
+
+Second Phase 3 execution session. Built IS input page on top of the
+`<ManifestEditor>` framework extracted at Task 0, extended the
+computedFrom primitive to support subtraction, and wired three
+downstream analysis pages (NOPLAT, Growth Revenue, Financial Ratio)
+to live mode. CFS intentionally deferred to Session 012 per early
+decision — partial CFS with missing capex / acc-payables data would
+mislead DJP auditors, so the page stays in seed mode until Session
+012 ships Fixed Asset + Acc Payables input.
+
+### Delivered
+
+**Generic editor framework**
+- `src/components/forms/ManifestEditor.tsx` — client component that owns the hydration-seed + debounced-persist + computed-row pattern previously inlined in `BalanceSheetEditor`. Any input sheet now costs ~15 lines (parent gate + `<ManifestEditor manifest={X} sliceSelector={...} sliceSetter={...} yearCount={...} />`).
+- `/input/balance-sheet/page.tsx` refactored to the new shape — zero behavior change, still seeds correctly after hydration via `useState` lazy initializer (LESSON-034).
+
+**Signed computedFrom for subtraction**
+- `deriveComputedRows` now treats negative `excelRow` in `computedFrom` as "subtract this row's series", keeping BS (all-positive refs) byte-identical. Unlocks IS subtotals that involve real subtraction (Gross Profit, EBIT, Net Profit) without asking users to enter expenses as negative numbers.
+- 4 new unit tests cover signed subtraction, mixed signs, chained signed-ref subtotals, and explicit backward-compatibility regression.
+
+**IS manifest + input page**
+- `computedFrom` declarations added to every IS subtotal/total with fixture-grounded verification at 6-decimal precision across all four historical years:
+  - row 8 Gross Profit = `[6, -7]`
+  - row 15 Total OpEx = `[12, 13]`
+  - row 18 EBITDA = `[8, -15]`
+  - row 22 EBIT = `[18, -21]`
+  - row 28 Net Interest = `[26, -27]` (relabeled from "Other Incomes" — fixture formula was actually `=C26+C27`, not an independent leaf)
+  - row 30 Other Non-Op = leaf (was incorrectly labeled as subtotal)
+  - row 32 Profit Before Tax = `[22, 28, 30]`
+  - row 35 Net Profit After Tax = `[32, -33]`
+- `/input/income-statement/page.tsx` — 15-line thin wrapper over `<ManifestEditor>`; nav entry activated (wip flag removed).
+
+**`liveRows` prop on SheetPage**
+- New optional `liveRows` prop lets downstream page wrappers hand SheetPage their own computed rows, taking precedence over the slug-based store lookup. `null` = "upstream missing, stay seed mode"; `undefined` = legacy store lookup for BS/IS/FA pages that don't need override.
+
+**Three downstream pages live**
+- **NOPLAT** (`/analysis/noplat`): new `src/data/live/compute-noplat-live.ts` projects IS store values onto NOPLAT manifest leaves (rows 7–10 EBIT chain, row 13 tax provision, rows 14–16 tax shields pinned to 0 matching prototype workbook). NOPLAT manifest gained `computedFrom` on rows 11 (EBIT), 17 (Total Taxes), 19 (NOPLAT) so existing `deriveComputedRows` pipeline fills subtotals. Direct formula approach (Approach B from plan) — no adapter/calc-engine chain, avoiding sign conversion fragility. 24 integration tests verify IS leaves → NOPLAT pipeline matches workbook fixture at 6-decimal precision for 8 rows × 3 years.
+- **Growth Revenue** (`/analysis/growth-revenue`): new `compute-growth-revenue-live.ts` projects IS row 6 (Revenue) and IS row 35 (Net Profit After Tax, computed via IS manifest) onto GR rows 8 and 9. Existing `yoyGrowth` declarative derivation on the GR manifest fills the growth column group. 8 fixture tests pin the IS→GR mapping across all four years.
+- **Financial Ratio** (`/analysis/financial-ratio`): new `compute-financial-ratio-live.ts` computes 14 of 18 ratios directly (profitability 6, liquidity 3, leverage 5) from BS + IS via readBs/readIs helpers that resolve leaves + subtotals through `deriveComputedRows`. 4 Cash Flow Indicator ratios pinned to 0 until Session 012 ships upstream data. `<FinancialRatioLiveView>` renders a contextual footer note in live mode explaining the zeros so users don't misread them as "no cash generation". 54 integration tests: 14 BS/IS ratios × 3 years + 4 zero placeholders × 3 years.
+
+**SheetPage refactor**
+- `SheetPage` accepts `liveRows` prop override that fully replaces the slug-based store lookup when defined. Keeps SheetPage generic — no sheet-specific calc knowledge inside. Downstream page wrappers (`NoplatLiveView`, `GrowthRevenueLiveView`, `FinancialRatioLiveView`) stay self-contained with explicit `useMemo` dependencies.
+
+### Verification Results
+
+```
+Tests:     283 / 283 passing (27 files) — +114 vs Session 010 baseline
+  deriveComputedRows (signed refs):        +4 tests (12 total)
+  IS manifest fixture verification:        +24 tests
+  computeNoplatLiveRows end-to-end:        +24 tests
+  computeGrowthRevenueLiveRows:            +8 tests
+  computeFinancialRatioLiveRows:           +54 tests
+Build:     ✅ 20 routes, 13 static pages prerendered (+1 /input/income-statement)
+Typecheck: ✅ tsc --noEmit clean
+Lint:      ✅ zero warnings
+```
+
+### Session 011 Stats
+
+- Commits: 8 feature + 1 wrap-up
+- New files: 11 (4 source + 4 test + 3 live-view wrappers)
+- Files modified: 10 (IS manifest, NOPLAT manifest, SheetPage, nav-tree, BS input page, 3 analysis pages, deriveComputedRows, RowInputGrid untouched)
+- New tests: 114
+- Deploy: 1 production (Vercel auto-deploy on push to main)
+
+### Architecture After Session 011
+
+**Live data mode operational end-to-end for BS + IS + 3 downstream analysis sheets.** Full user flow now works:
+
+1. Fill HOME form (tahunTransaksi, namaPerusahaan, etc.)
+2. `/input/balance-sheet` — enter BS leaves, subtotals auto-compute via `deriveComputedRows`
+3. `/input/income-statement` — enter IS leaves (all costs positive), subtotals auto-compute via signed computedFrom
+4. `/historical/balance-sheet` and `/historical/income-statement` — auto-flip to live mode, show user data with common-size / growth derivations
+5. `/analysis/noplat`, `/analysis/growth-revenue`, `/analysis/financial-ratio` — auto-flip to live mode, compute from upstream slices via lazy `useMemo`
+6. Refresh browser → all data persisted via Zustand v3 migrate, no data loss
+
+Zero regression on seed mode — when upstream slices are empty (user hasn't filled input), downstream pages fall back to prototype workbook data rendering.
+
+**Lessons extracted**: no canonical lessons this session. All new patterns reuse LESSON-030 (backward-compatible additions via adapter synthesis), LESSON-031 (auto-detect mode from domain state), LESSON-032 (lazy useMemo per page), LESSON-033 (declarative computedFrom), LESSON-034 (hydration-gate child mount). Session 011 proved these five lessons compose correctly at scale — 3 downstream page wrappers all land in <30 lines each with zero touches to framework code.
+
+### Deferred / Punted to Sessions 012+
+
+- **Cash Flow Statement live mode** — needs CapEx from Fixed Asset + equity/loan/interest from Acc Payables (hidden sheet). Shipping partial would mislead DJP auditors (CFI/CFF always zero is indistinguishable from genuine zero cash activity). Session 012 will ship it alongside Fixed Asset input and Acc Payables foundation.
+- **Fixed Asset input page** — Session 012 primary goal.
+- **FCF live mode** — Session 012, depends on FA.
+- **ROIC live mode** — Session 012, depends on NOPLAT + FA.
+- **Validation warn border** on non-numeric input — deferred from Task 5 of Session 010, still deferred pending user feedback.
+
+### Next Session — 012 (FA input + CFS/FCF/ROIC downstream)
+
+1. Add FA `computedFrom` declarations + `/input/fixed-asset` page via `<ManifestEditor>` (~15 lines per LESSON-034)
+2. Seed an ACC PAYABLES minimal input surface (hidden-sheet dependency for CFS)
+3. Wire CFS live mode (Approach A with existing `toCashFlowInput` + `computeCashFlowStatement`, or Approach B direct formulas — evaluate per sign-convention fragility)
+4. Wire FCF live mode
+5. Wire ROIC live mode
+6. Estimated: 2.5–3 jam, ~15 tests, 3 more pages newly live-capable
+
