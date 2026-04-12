@@ -20,9 +20,27 @@
  */
 export function computeHistoricalYears(
   tahunTransaksi: number,
-  count: 3 | 4,
+  count: number,
 ): number[] {
   const lastYear = tahunTransaksi - 1
   const firstYear = lastYear - count + 1
   return Array.from({ length: count }, (_, i) => firstYear + i)
+}
+
+/**
+ * Number of projection years. Single source of truth used by all
+ * projection pages and KeyDriversForm. Change here to project more
+ * or fewer years for any company — all compute adapters accept
+ * `projYears` as a parameter and scale automatically.
+ */
+export const PROJECTION_YEAR_COUNT = 3
+
+/**
+ * Derive projection years from tahunTransaksi.
+ * First projection year = tahunTransaksi, ascending.
+ *
+ *   computeProjectionYears(2022) → [2022, 2023, 2024]
+ */
+export function computeProjectionYears(tahunTransaksi: number): number[] {
+  return Array.from({ length: PROJECTION_YEAR_COUNT }, (_, i) => tahunTransaksi + i)
 }

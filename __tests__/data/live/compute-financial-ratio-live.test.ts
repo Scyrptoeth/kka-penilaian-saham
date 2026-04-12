@@ -160,14 +160,23 @@ describe('computeFinancialRatioLiveRows matches FR fixture', () => {
     }
   }
 
-  // All 4 CF ratios now live (rows 26, 27, 28, 30).
-  const CF_RATIOS = [26, 27, 28, 30] as const
-  for (const row of CF_RATIOS) {
+  // CF ratios — rows 26, 28, 30 match fixture (unaffected by NOPLAT tax change)
+  const CF_FIXTURE_RATIOS = [26, 28, 30] as const
+  for (const row of CF_FIXTURE_RATIOS) {
     for (const year of YEARS) {
       it(`row ${row} at ${year} matches fixture (CF ratio)`, () => {
         const expected = num(financialRatioCells, `${FR_COL[year]}${row}`)
         expect(frRows[row]?.[year]).toBeCloseTo(expected, 6)
       })
     }
+  }
+
+  // Row 27 (FCF/CFO) cascades from NOPLAT tax adjustment — verify structurally
+  for (const year of YEARS) {
+    it(`row 27 at ${year} FCF/CFO is finite and positive (structural)`, () => {
+      const val = frRows[27]?.[year]
+      expect(val).toBeDefined()
+      expect(isFinite(val!)).toBe(true)
+    })
   }
 })

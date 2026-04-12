@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import { useKkaStore } from '@/lib/store/useKkaStore'
-import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
+import { computeHistoricalYears, computeProjectionYears } from '@/lib/calculations/year-helpers'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { FIXED_ASSET_MANIFEST } from '@/data/manifests/fixed-asset'
 import { computeProyFixedAssetsLive } from '@/data/live/compute-proy-fixed-assets-live'
@@ -44,7 +44,7 @@ export default function ProyIncomeStatementPage() {
     if (!hasHydrated || !home || !incomeStatement || !keyDrivers) return null
 
     const faYears = computeHistoricalYears(home.tahunTransaksi, 3)
-    const projYears = [home.tahunTransaksi, home.tahunTransaksi + 1, home.tahunTransaksi + 2]
+    const projYears = computeProjectionYears(home.tahunTransaksi)
     const histYear = home.tahunTransaksi - 1 // last historical year
 
     // PROY FA for depreciation (if FA data available)

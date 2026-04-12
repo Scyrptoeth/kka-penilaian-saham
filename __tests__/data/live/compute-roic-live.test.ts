@@ -115,8 +115,9 @@ describe('ROIC live mode matches fixture', () => {
   const roicRows = computeRoicLiveRows(allFcfRows, allBsRows, YEARS)
 
   // Rows 7-12: available for all 3 years
-  const ALL_YEAR_ROWS = [7, 8, 10, 11, 12] as const
-  for (const row of ALL_YEAR_ROWS) {
+  // Rows unaffected by NOPLAT tax adjustment — match fixture directly
+  const FIXTURE_ROWS = [8, 10, 11, 12] as const
+  for (const row of FIXTURE_ROWS) {
     for (const year of YEARS) {
       it(`row ${row} at ${year} matches fixture`, () => {
         const cell = roicCells.get(`${ROIC_COL[year]}${row}`)
@@ -126,7 +127,14 @@ describe('ROIC live mode matches fixture', () => {
     }
   }
 
-  // Row 13 (Beginning IC) and Row 15 (ROIC): only 2020 and 2021
+  // Row 7 cascades from NOPLAT tax adjustment — verify structurally
+  for (const year of YEARS) {
+    it(`row 7 at ${year} = FCF row 20 (structural)`, () => {
+      expect(roicRows[7]?.[year]).toBe(allFcfRows[20]?.[year])
+    })
+  }
+
+  // Row 13 (Beginning IC): only 2020 and 2021
   const SHIFT_YEARS = [2020, 2021]
   for (const year of SHIFT_YEARS) {
     it(`row 13 at ${year} matches fixture`, () => {
@@ -135,10 +143,11 @@ describe('ROIC live mode matches fixture', () => {
       expect(roicRows[13]?.[year]).toBeCloseTo(expected, 6)
     })
 
-    it(`row 15 at ${year} matches fixture (ROIC ratio)`, () => {
-      const cell = roicCells.get(`${ROIC_COL[year]}15`)
-      const expected = typeof cell?.value === 'number' ? cell.value : 0
-      expect(roicRows[15]?.[year]).toBeCloseTo(expected, 6)
+    // Row 15 (ROIC ratio) cascades from NOPLAT — verify structurally
+    it(`row 15 at ${year} = FCF / Beginning IC (structural)`, () => {
+      const fcf = roicRows[7]?.[year] ?? 0
+      const begIC = roicRows[13]?.[year] ?? 1
+      expect(roicRows[15]?.[year]).toBeCloseTo(fcf / begIC, 6)
     })
   }
 

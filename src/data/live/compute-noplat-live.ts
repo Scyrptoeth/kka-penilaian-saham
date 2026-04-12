@@ -19,14 +19,12 @@
  *   row 9  Less: II          ← −IS row 26  (subtract positive II)
  *   row 10 Non-Op            ← −IS row 30  (subtract user-signed non-op)
  *   row 13 Tax Provision     ← +IS row 33  (positive tax)
- *   row 14 Tax Shield on IE  ← 0           (prototype sets tax rate 0)
- *   row 15 Less: Tax on II   ← 0           (prototype sets tax rate 0)
- *   row 16 Tax on Non-Op     ← 0           (prototype sets tax rate 0)
+ *   row 14 Tax Shield on IE  ← effectiveTaxRate * IS row 27
+ *   row 15 Less: Tax on II   ← effectiveTaxRate * (−IS row 26)
+ *   row 16 Tax on Non-Op     ← effectiveTaxRate * (−IS row 30)
  *
- * Rows 14–16 are pinned to zero to preserve fixture-match behavior of
- * the prototype workbook (B33 tax rate cell is effectively 0 for this
- * block across all years). A future session that introduces user-owned
- * tax rate state can upgrade these formulas without touching this file.
+ * The effective tax rate is derived from user's IS data: abs(tax / PBT).
+ * This ensures correct NOPLAT for companies with any tax profile.
  */
 
 import type { YearKeyedSeries } from '@/types/financial'
@@ -60,9 +58,25 @@ export function computeNoplatLiveRows(
   write(9, (y) => -readIs(26, y)) // Less: Interest Income
   write(10, (y) => -readIs(30, y)) // Non-Op Income (subtract to isolate operating)
   write(13, (y) => readIs(33, y)) // Tax Provision (user-positive)
-  write(14, () => 0)
-  write(15, () => 0)
-  write(16, () => 0)
+
+  // Tax adjustments: effectiveTaxRate per year = abs(tax / PBT)
+  // Mirrors Excel pattern: IS!$B$33 * source * sign
+  // For companies with non-zero tax rates, this correctly adjusts EBIT-level taxes.
+  write(14, (y) => {
+    const pbt = readIs(32, y)
+    const rate = pbt !== 0 ? Math.abs(readIs(33, y) / pbt) : 0
+    return rate * readIs(27, y) // Tax Shield on Interest Expense
+  })
+  write(15, (y) => {
+    const pbt = readIs(32, y)
+    const rate = pbt !== 0 ? Math.abs(readIs(33, y) / pbt) : 0
+    return rate * -readIs(26, y) // Tax on Interest Income (negated)
+  })
+  write(16, (y) => {
+    const pbt = readIs(32, y)
+    const rate = pbt !== 0 ? Math.abs(readIs(33, y) / pbt) : 0
+    return rate * -readIs(30, y) // Tax on Non-Operating Income (negated)
+  })
 
   return out
 }
