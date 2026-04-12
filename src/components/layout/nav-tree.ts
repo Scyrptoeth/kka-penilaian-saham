@@ -54,9 +54,9 @@ export const NAV_TREE: NavGroup[] = [
     items: [
       { label: 'Proy. L/R', href: '/projection/income-statement' },
       { label: 'Proy. Fixed Asset', href: '/projection/fixed-asset' },
-      { label: 'Proy. Balance Sheet', href: '/projection/balance-sheet', wip: true },
-      { label: 'Proy. Cash Flow', href: '/projection/cash-flow', wip: true },
-      { label: 'Proy. NOPLAT', href: '/projection/noplat', wip: true },
+      { label: 'Proy. Balance Sheet', href: '/projection/balance-sheet' },
+      { label: 'Proy. NOPLAT', href: '/projection/noplat' },
+      { label: 'Proy. Cash Flow', href: '/projection/cash-flow' },
     ],
   },
   {
