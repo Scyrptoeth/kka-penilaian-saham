@@ -1,11 +1,10 @@
 import type { Metadata } from 'next'
-import { SheetPage } from '@/components/financial/SheetPage'
-import { NOPLAT_MANIFEST } from '@/data/manifests/noplat'
+import { NoplatLiveView } from '@/components/analysis/NoplatLiveView'
 
 export const metadata: Metadata = {
   title: 'NOPLAT — KKA Penilaian Saham',
 }
 
 export default function NoplatPage() {
-  return <SheetPage manifest={NOPLAT_MANIFEST} />
+  return <NoplatLiveView />
 }

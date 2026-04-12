@@ -79,6 +79,7 @@ export const NOPLAT_MANIFEST: SheetManifest = {
       excelRow: 11,
       label: 'EBIT',
       type: 'subtotal',
+      computedFrom: [7, 8, 9, 10],
       formula: {
         values: '=SUM(C7:C10) — Earnings Before Interest & Tax',
         growth: GROWTH_DESC,
@@ -128,6 +129,7 @@ export const NOPLAT_MANIFEST: SheetManifest = {
       excelRow: 17,
       label: 'Total Taxes on EBIT',
       type: 'subtotal',
+      computedFrom: [13, 14, 15, 16],
       formula: { values: '=SUM(C13:C16)', growth: GROWTH_DESC },
     },
 
@@ -138,6 +140,7 @@ export const NOPLAT_MANIFEST: SheetManifest = {
       excelRow: 19,
       label: 'NOPLAT',
       type: 'total',
+      computedFrom: [11, -17],
       formula: {
         values: '=C11 − C17 — Net Operating Profit Less Adjusted Taxes',
         growth: GROWTH_DESC,
