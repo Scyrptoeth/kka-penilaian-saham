@@ -58,6 +58,7 @@ export const INCOME_STATEMENT_MANIFEST: SheetManifest = {
       excelRow: 8,
       label: 'Gross Profit',
       type: 'subtotal',
+      computedFrom: [6, -7],
       formula: {
         values: 'Revenue − COGS',
         commonSize: 'Gross Profit Margin = Gross Profit / Revenue',
@@ -83,6 +84,7 @@ export const INCOME_STATEMENT_MANIFEST: SheetManifest = {
       excelRow: 15,
       label: 'Total Operating Expenses (ex-Depreciation)',
       type: 'subtotal',
+      computedFrom: [12, 13],
       formula: {
         values: 'SUM of operating expense line items',
         commonSize: MARGIN_DESC,
@@ -93,6 +95,7 @@ export const INCOME_STATEMENT_MANIFEST: SheetManifest = {
       excelRow: 18,
       label: 'EBITDA',
       type: 'subtotal',
+      computedFrom: [8, -15],
       formula: {
         values: 'Gross Profit − Operating Expenses',
         commonSize: 'EBITDA Margin = EBITDA / Revenue',
@@ -109,6 +112,7 @@ export const INCOME_STATEMENT_MANIFEST: SheetManifest = {
       excelRow: 22,
       label: 'EBIT',
       type: 'subtotal',
+      computedFrom: [18, -21],
       formula: {
         values: 'EBITDA − Depreciation',
         commonSize: 'EBIT Margin = EBIT / Revenue',
@@ -132,19 +136,20 @@ export const INCOME_STATEMENT_MANIFEST: SheetManifest = {
     },
     {
       excelRow: 28,
-      label: 'Other Incomes / (Charges)',
-      indent: 1,
-      formula: { commonSize: MARGIN_DESC, growth: GROWTH_DESC },
-    },
-    {
-      excelRow: 30,
-      label: 'Non-Operating Income (net)',
+      label: 'Net Interest',
       type: 'subtotal',
+      computedFrom: [26, -27],
       formula: {
-        values: 'SUM of non-operating line items',
+        values: 'Interest Income − Interest Expense',
         commonSize: MARGIN_DESC,
         growth: GROWTH_DESC,
       },
+    },
+    {
+      excelRow: 30,
+      label: 'Other Non-Operating Income / (Charges)',
+      indent: 1,
+      formula: { commonSize: MARGIN_DESC, growth: GROWTH_DESC },
     },
 
     { label: '', type: 'separator' },
@@ -152,8 +157,9 @@ export const INCOME_STATEMENT_MANIFEST: SheetManifest = {
       excelRow: 32,
       label: 'Profit Before Tax',
       type: 'subtotal',
+      computedFrom: [22, 28, 30],
       formula: {
-        values: 'EBIT + Non-Operating Income',
+        values: 'EBIT + Net Interest + Other Non-Operating',
         commonSize: MARGIN_DESC,
         growth: GROWTH_DESC,
       },
@@ -168,6 +174,7 @@ export const INCOME_STATEMENT_MANIFEST: SheetManifest = {
       excelRow: 35,
       label: 'NET PROFIT AFTER TAX',
       type: 'total',
+      computedFrom: [32, -33],
       formula: {
         values: 'Profit Before Tax − Corporate Tax',
         commonSize: 'Net Profit Margin = Net Profit / Revenue',
