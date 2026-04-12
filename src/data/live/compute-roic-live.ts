@@ -1,0 +1,85 @@
+/**
+ * ROIC (Return on Invested Capital) live compute adapter.
+ *
+ * Computes all ROIC manifest rows from pre-computed upstream data:
+ *   row 7:  FCF (from FCF row 20)
+ *   row 8:  Total Assets (from BS row 27 — computed subtotal)
+ *   row 9:  Non-Operating FA (default 0)
+ *   row 10: Excess Cash (BS row 8 × -1)
+ *   row 11: Marketable Securities (default 0)
+ *   row 12: Invested Capital = SUM(8:11)
+ *   row 13: Beginning of Year IC = prior year's row 12
+ *   row 15: ROIC = row 7 / row 13
+ *
+ * Rows 13 and 15 require cross-year references (prior-year shift),
+ * which `deriveComputedRows` cannot express. All rows are computed
+ * here — no `computedFrom` on the ROIC manifest.
+ *
+ * Year 1 (first CFS year) has no prior-year IC → rows 13 and 15
+ * are omitted from the output for that year. SheetPage renders
+ * them as empty cells, matching the workbook behavior.
+ */
+
+import type { YearKeyedSeries } from '@/types/financial'
+
+/**
+ * @param fcfRows Pre-computed FCF rows (need row 20 = Free Cash Flow)
+ * @param bsAllRows BS leaf + computed rows (need row 27 = Total Assets, row 8 = Cash on Hand)
+ * @param years ROIC year span (typically 3 years, same as CFS)
+ */
+export function computeRoicLiveRows(
+  fcfRows: Record<number, YearKeyedSeries>,
+  bsAllRows: Record<number, YearKeyedSeries>,
+  years: readonly number[],
+): Record<number, YearKeyedSeries> {
+  const out: Record<number, YearKeyedSeries> = {}
+  const set = (row: number, year: number, value: number) => {
+    if (!out[row]) out[row] = {}
+    out[row][year] = value
+  }
+
+  // Pass 1: compute rows 7-12 for all years
+  for (const year of years) {
+    // Row 7: FCF = FCF row 20
+    set(7, year, fcfRows[20]?.[year] ?? 0)
+
+    // Row 8: Total Assets = BS row 27 (computed subtotal)
+    set(8, year, bsAllRows[27]?.[year] ?? 0)
+
+    // Row 9: Non-Operating Fixed Assets (default 0)
+    set(9, year, 0)
+
+    // Row 10: Excess Cash = BS row 8 × -1
+    set(10, year, -(bsAllRows[8]?.[year] ?? 0))
+
+    // Row 11: Marketable Securities (default 0)
+    set(11, year, 0)
+
+    // Row 12: Invested Capital = SUM(8:11)
+    const ic =
+      (out[8]?.[year] ?? 0) +
+      (out[9]?.[year] ?? 0) +
+      (out[10]?.[year] ?? 0) +
+      (out[11]?.[year] ?? 0)
+    set(12, year, ic)
+  }
+
+  // Pass 2: row 13 (prior year's IC) + row 15 (ROIC ratio)
+  // Year 1 has no prior → skip rows 13 and 15 for that year.
+  for (let i = 0; i < years.length; i++) {
+    const year = years[i]
+
+    if (i > 0) {
+      const priorYear = years[i - 1]
+      const beginningIc = out[12]?.[priorYear] ?? 0
+      set(13, year, beginningIc)
+
+      // Row 15: ROIC = FCF / Beginning IC
+      if (beginningIc !== 0) {
+        set(15, year, (out[7]?.[year] ?? 0) / beginningIc)
+      }
+    }
+  }
+
+  return out
+}
