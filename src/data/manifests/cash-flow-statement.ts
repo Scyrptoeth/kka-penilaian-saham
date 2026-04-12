@@ -63,12 +63,14 @@ export const CASH_FLOW_STATEMENT_MANIFEST: SheetManifest = {
       excelRow: 10,
       label: 'Working Capital',
       type: 'subtotal',
+      computedFrom: [8, 9],
       formula: { values: '=C8 + C9 — net change in working capital' },
     },
     {
       excelRow: 11,
       label: 'Cash Flow from Operations',
       type: 'subtotal',
+      computedFrom: [5, 6, 8, 9],
       formula: { values: '=SUM(C5:C9) — EBITDA + Tax + Working Capital change' },
     },
 
@@ -98,6 +100,7 @@ export const CASH_FLOW_STATEMENT_MANIFEST: SheetManifest = {
       excelRow: 19,
       label: 'Cash Flow before Financing',
       type: 'subtotal',
+      computedFrom: [11, 13, 17],
       formula: { values: '=C11 + C13 + C17' },
     },
 
@@ -134,6 +137,7 @@ export const CASH_FLOW_STATEMENT_MANIFEST: SheetManifest = {
       excelRow: 28,
       label: 'Cash Flow from Financing',
       type: 'subtotal',
+      computedFrom: [22, 23, 24, 25, 26],
       formula: { values: '=SUM(C22:C26)' },
     },
 
@@ -143,6 +147,7 @@ export const CASH_FLOW_STATEMENT_MANIFEST: SheetManifest = {
       excelRow: 30,
       label: 'Net Cash Flow',
       type: 'total',
+      computedFrom: [11, 13, 17, 28],
       formula: { values: '=C11 + C13 + C17 + C28' },
     },
 

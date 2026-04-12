@@ -3,21 +3,25 @@
 import { useMemo } from 'react'
 import { SheetPage } from '@/components/financial/SheetPage'
 import { FINANCIAL_RATIO_MANIFEST } from '@/data/manifests/financial-ratio'
+import { CASH_FLOW_STATEMENT_MANIFEST } from '@/data/manifests/cash-flow-statement'
 import { useKkaStore } from '@/lib/store/useKkaStore'
 import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
 import { computeFinancialRatioLiveRows } from '@/data/live/compute-financial-ratio-live'
+import { computeCashFlowLiveRows } from '@/data/live/compute-cash-flow-live'
+import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 
 /**
- * Financial Ratio live-mode wrapper. Computes the 14 BS + IS ratios
- * on demand when both upstream slices are present, pins the 4 cash
- * flow ratios to zero until Session 012 adds Fixed Asset + Acc Payables
- * input, and renders a small footer note explaining the zeros so users
- * don't misread them as a legitimate "no CFO" signal.
+ * Financial Ratio live-mode wrapper. Computes 17/18 ratios when BS + IS
+ * are present. The 3 CFS-dependent ratios (CFO/Sales, ST Debt Coverage,
+ * Capex Coverage) auto-compute when BS + IS enables CFS derivation.
+ * FCF/CFO (row 27) remains 0 until FCF live mode is wired (Task 4).
  */
 export function FinancialRatioLiveView() {
   const home = useKkaStore((s) => s.home)
   const balanceSheet = useKkaStore((s) => s.balanceSheet)
   const incomeStatement = useKkaStore((s) => s.incomeStatement)
+  const fixedAsset = useKkaStore((s) => s.fixedAsset)
+  const accPayables = useKkaStore((s) => s.accPayables)
   const hasHydrated = useKkaStore((s) => s._hasHydrated)
 
   const isLive =
@@ -25,16 +29,42 @@ export function FinancialRatioLiveView() {
 
   const liveRows = useMemo(() => {
     if (!isLive) return null
-    const years = computeHistoricalYears(
+
+    const frYears = computeHistoricalYears(
       home.tahunTransaksi,
       FINANCIAL_RATIO_MANIFEST.historicalYearCount ?? 3,
     )
+
+    // Compute CFS rows for CF ratios
+    const cfsYears = computeHistoricalYears(
+      home.tahunTransaksi,
+      CASH_FLOW_STATEMENT_MANIFEST.historicalYearCount ?? 3,
+    )
+    const bsYears = computeHistoricalYears(home.tahunTransaksi, 4)
+
+    const cfsLeafRows = computeCashFlowLiveRows(
+      balanceSheet.rows,
+      incomeStatement.rows,
+      fixedAsset?.rows ?? null,
+      accPayables?.rows ?? null,
+      cfsYears,
+      bsYears,
+    )
+    const cfsComputed = deriveComputedRows(
+      CASH_FLOW_STATEMENT_MANIFEST.rows,
+      cfsLeafRows,
+      cfsYears,
+    )
+    const allCfsRows = { ...cfsLeafRows, ...cfsComputed }
+
     return computeFinancialRatioLiveRows(
       balanceSheet.rows,
       incomeStatement.rows,
-      years,
+      frYears,
+      allCfsRows,
+      null, // FCF rows — wired in Task 4
     )
-  }, [isLive, home, balanceSheet, incomeStatement])
+  }, [isLive, home, balanceSheet, incomeStatement, fixedAsset, accPayables])
 
   return (
     <>
@@ -43,11 +73,8 @@ export function FinancialRatioLiveView() {
         <div className="mx-auto mt-4 max-w-[1400px] px-1">
           <p className="text-[11px] leading-relaxed text-ink-muted">
             <span className="font-semibold text-ink">Catatan:</span> rasio
-            Cash Flow Indicator (CFO/Sales, FCF/CFO, Short Term Debt
-            Coverage, Capex Coverage) saat ini bernilai 0,00 karena
-            perhitungannya membutuhkan data Cash Flow Statement dan Fixed
-            Asset yang belum diinput. Rasio-rasio ini akan terisi otomatis
-            setelah input Fixed Asset tersedia.
+            FCF/Operating Cash Flow (baris 27) saat ini bernilai 0,00 karena
+            perhitungannya membutuhkan data Free Cash Flow yang belum tersedia.
           </p>
         </div>
       )}

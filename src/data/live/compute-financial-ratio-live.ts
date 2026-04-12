@@ -1,25 +1,19 @@
 /**
- * Compute Financial Ratio live-mode rows from Balance Sheet and Income
- * Statement user input. Direct formulas per the Session 011 plan
- * (Approach B) — no adapter chain, no calc-engine indirection, just
- * the same expressions the workbook uses expressed against
- * user-positive store values.
+ * Compute Financial Ratio live-mode rows from upstream data.
  *
- * Fourteen ratios are fully computable from BS + IS alone:
- *   PROFITABILITY (6): rows 6–11
- *   LIQUIDITY (3):    rows 14–16
- *   LEVERAGE (5):     rows 19–23
+ * Eighteen ratios across four sections:
+ *   PROFITABILITY (6): rows 6–11   — from BS + IS
+ *   LIQUIDITY (3):    rows 14–16   — from BS
+ *   LEVERAGE (5):     rows 19–23   — from BS + IS
+ *   CASH FLOW (4):    rows 26–30   — from CFS + BS + FCF
  *
- * Four cash-flow ratios require Cash Flow Statement / FCF data, which
- * depends on Fixed Asset + Acc Payables input that lands in Session 012.
- * Until then those rows are pinned to 0 and the page wrapper renders a
- * footer note explaining why. Zero is consistent with the seed-mode
- * IFERROR behavior that returns 0 on missing denominators, so the user
- * sees a legitimate placeholder rather than a crash or a dash.
+ * CFS data is optional: when null, CF ratios default to 0. When
+ * provided, rows 26 (CFO/Sales), 28 (Short Term Debt Coverage), and
+ * 30 (Capex Coverage) are computed. Row 27 (FCF/CFO) additionally
+ * requires FCF data — pinned to 0 when fcfRows is null.
  *
  * BS + IS subtotal/total rows are resolved by running
- * `deriveComputedRows` over their respective manifests once, then read
- * through a shared leaf-or-computed lookup helper.
+ * `deriveComputedRows` over their respective manifests once.
  */
 
 import type { YearKeyedSeries } from '@/types/financial'
@@ -28,7 +22,7 @@ import { INCOME_STATEMENT_MANIFEST } from '@/data/manifests/income-statement'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 
 function safeDiv(numerator: number, denominator: number): number {
-  if (denominator === 0) return 0
+  if (denominator === 0 || numerator === 0) return 0
   return numerator / denominator
 }
 
@@ -36,6 +30,8 @@ export function computeFinancialRatioLiveRows(
   bsLeafRows: Record<number, YearKeyedSeries>,
   isLeafRows: Record<number, YearKeyedSeries>,
   years: readonly number[],
+  cfsRows?: Record<number, YearKeyedSeries> | null,
+  fcfRows?: Record<number, YearKeyedSeries> | null,
 ): Record<number, YearKeyedSeries> {
   const bsComputed = deriveComputedRows(
     BALANCE_SHEET_MANIFEST.rows,
@@ -90,11 +86,19 @@ export function computeFinancialRatioLiveRows(
   write(22, (y) => Math.abs(safeDiv(readIs(22, y), readIs(27, y)))) // Interest Coverage
   write(23, (y) => safeDiv(readBs(49, y), readBs(27, y))) // Equity to Assets
 
-  // CASH FLOW — pinned to 0 until Session 012 ships FA + Acc Payables.
-  write(26, () => 0)
-  write(27, () => 0)
-  write(28, () => 0)
-  write(30, () => 0)
+  // CASH FLOW INDICATORS — need CFS (+ FCF for row 27)
+  const readCfs = (row: number, year: number): number =>
+    cfsRows?.[row]?.[year] ?? 0
+
+  // Row 26: Operating CF/Sales = CFS row 11 / IS Revenue (row 6)
+  write(26, (y) => safeDiv(readCfs(11, y), readIs(6, y)))
+  // Row 27: FCF/Operating CF = FCF row 20 / CFS row 11
+  // Needs FCF data (Task 4) — pinned to 0 when unavailable
+  write(27, (y) => safeDiv(fcfRows?.[20]?.[y] ?? 0, readCfs(11, y)))
+  // Row 28: Short Term Debt Coverage = CFS row 11 / BS row 31 (Bank Loan ST)
+  write(28, (y) => safeDiv(readCfs(11, y), readBs(31, y)))
+  // Row 30: Capex Coverage = |CFS row 11 / CFS row 17|
+  write(30, (y) => Math.abs(safeDiv(readCfs(11, y), readCfs(17, y))))
 
   return out
 }
