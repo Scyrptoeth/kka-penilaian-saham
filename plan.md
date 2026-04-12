@@ -110,17 +110,64 @@ Semua client-side. Privacy-first. Zero network calls untuk data user.
 
 ## Session 011 — IS Input + First Downstream Wave
 
-**Estimated**: 3 jam, ~8 commits
-**Scope**: Mirror BS pattern untuk Income Statement + wire 4 downstream sheets ke live mode.
+**Estimated**: 3.5 jam, ~10 commits
+**Scope**: Extract generic `<ManifestEditor>` first (pre-emptive refactor), then mirror BS pattern untuk Income Statement + wire 4 downstream sheets ke live mode.
+
+### Principle — System Development, Not Patching
+
+**Task 0 is mandatory before Task 1.** Session 010 left a 1-instance inline editor pattern di `/input/balance-sheet/page.tsx` (the `<BalanceSheetEditor>` child component with hydration gate + debounced persist + one-time `useState` seed). That pattern would copy-paste 3× across BS, IS, FA input pages if we skip extraction — violating LESSON-019 (data in manifest beats code in pages), LESSON-022 (kill the 2nd instance before it becomes the 6th), and user directive: **system development, not patching**.
+
+Task 0 extracts the pattern into a generic, sheet-agnostic `<ManifestEditor>` so BS/IS/FA input pages become 15-line wrappers passing only configuration. Adding a 4th or 5th input page (WACC, DCF assumptions, etc.) in Sessions 013-014 then costs ~15 lines of manifest + wrapper, zero framework code.
 
 ### Tasks
 
-1. **`/input/income-statement/page.tsx`** (~30 min)
-   - Pattern identik dengan BS: `<RowInputGrid>` + `INCOME_STATEMENT_MANIFEST`
-   - Wires ke `setIncomeStatement` store action
-   - Subtotal rows (Revenue, Gross Profit, EBITDA, EBIT, NOPAT, Net Profit) computed read-only
+0. **Extract `<ManifestEditor>` generic component** (~45 min) 🆕 **PRE-EMPTIVE REFACTOR**
+   - New file: `src/components/forms/ManifestEditor.tsx`
+   - Props:
+     ```ts
+     interface ManifestEditorProps<T extends { rows: Record<number, YearKeyedSeries> }> {
+       manifest: SheetManifest
+       sliceSelector: (state: KkaState) => T | null
+       sliceSetter: (state: KkaState) => (value: T) => void
+       yearCount: 3 | 4
+       title: string
+       description?: string
+     }
+     ```
+   - Encapsulates: hydration gate, HOME form guard, local state seed via `useKkaStore.getState()`, debounced 500ms persist, `deriveComputedRows` memo, `<RowInputGrid>` render
+   - Child component `ManifestEditorInner` mounts only after parent gates pass (LESSON-034 pattern preserved)
+   - Refactor `src/app/input/balance-sheet/page.tsx` → 15-line wrapper:
+     ```tsx
+     'use client'
+     import { ManifestEditor } from '@/components/forms/ManifestEditor'
+     import { BALANCE_SHEET_MANIFEST } from '@/data/manifests/balance-sheet'
+     export default function InputBalanceSheetPage() {
+       return (
+         <ManifestEditor
+           manifest={BALANCE_SHEET_MANIFEST}
+           sliceSelector={(s) => s.balanceSheet}
+           sliceSetter={(s) => s.setBalanceSheet}
+           yearCount={4}
+           title="Input — Balance Sheet"
+         />
+       )
+     }
+     ```
+   - **Verify zero regression**: 169 tests still pass, BS input page behavior identical (manual smoke: fresh browser → fill HOME → `/input/balance-sheet` → type values → navigate to `/historical/balance-sheet` → live mode renders correctly)
+   - Commit: `refactor: extract ManifestEditor generic component from BS editor`
 
-2. **Migrate Cash Flow Statement page ke live mode** (~30 min)
+1. **IS manifest `computedFrom` declarations** (~20 min)
+   - Add `computedFrom` to each subtotal/total row in `src/data/manifests/income-statement.ts`
+   - Typical IS subtotals: Gross Profit, EBITDA, EBIT, PBT, NOPAT, Net Profit (+ ~3 expense subtotals)
+   - Test: add deriveComputedRows cases covering IS structure
+   - Commit: `chore: add computedFrom declarations to income-statement manifest`
+
+2. **`/input/income-statement/page.tsx`** (~10 min) — 15-line wrapper using Task 0 component
+   - Pattern: import `ManifestEditor` + `INCOME_STATEMENT_MANIFEST` → pass props
+   - Zero new hook logic, zero new state management
+   - Commit: `feat: add /input/income-statement page (uses ManifestEditor)`
+
+3. **Migrate Cash Flow Statement page ke live mode** (~30 min)
    - `src/app/historical/cash-flow/page.tsx`: client component
    - `useMemo` compute CFS dari BS+IS via existing `computeCashFlowStatement` + `toCashFlowInput` adapter
    - Empty state: "Lengkapi BS dan IS dulu untuk melihat Cash Flow"
@@ -143,33 +190,49 @@ Semua client-side. Privacy-first. Zero network calls untuk data user.
 6. **Verify gauntlet + smoke test** (~30 min)
    - 5 financial pages live mode capable
    - Filling BS+IS → 4 downstream pages auto-update
+   - BS input page still works identically (zero regression from Task 0 refactor)
    - Production deploy
 
 ### Acceptance Criteria
-- 5 pages live: BS, IS, CFS, FR, NOPLAT, Growth Revenue (4 derived from BS+IS)
-- Each page has empty state when upstream incomplete
-- 133 + new tests still passing
+- `<ManifestEditor>` is sheet-agnostic (no "balance-sheet" string literals in its body)
+- `/input/balance-sheet` and `/input/income-statement` both 15-line wrappers — pure configuration, zero logic
+- 6 pages live: BS, IS, CFS, FR, NOPLAT, Growth Revenue (4 derived from BS+IS)
+- Each downstream page has empty state when upstream incomplete
+- 169 + new tests all passing (zero regression from Task 0 refactor)
 - Production smoke test verified
+- **System-development invariant**: adding a hypothetical 4th input page (e.g. `/input/wacc-inputs`) would cost ~15 lines of wrapper + the manifest, zero changes to ManifestEditor or framework
 
 ### Deliverables
-- 1 new input page (`/input/income-statement`)
+- 1 new reusable component (`<ManifestEditor>`) + test coverage
+- 1 refactored input page (`/input/balance-sheet` → 15-line wrapper, zero regression)
+- 1 new input page (`/input/income-statement` → 15-line wrapper)
 - 4 modified pages (CFS, FR, NOPLAT, Growth Revenue → live mode)
-- ~10 new tests (integration coverage of BS+IS → derived chain)
+- IS manifest `computedFrom` declarations on all subtotal/total rows
+- ~12 new tests (ManifestEditor generic behavior + integration coverage of BS+IS → derived chain)
 
 ---
 
 ## Session 012 — Remaining Downstream + Fixed Asset
 
-**Estimated**: 3 jam, ~8 commits
+**Estimated**: 2.5 jam, ~7 commits
 **Scope**: Complete the 9 financial pages live-mode capability, add Fixed Asset input.
+
+**System-development payoff from Session 011 Task 0**: FA input page cost drops from "~60 min complex form logic" to "~20 min manifest authoring + 15-line wrapper". The `<ManifestEditor>` extracted in Session 011 is sheet-agnostic; FA reuses it unchanged regardless of how many category sub-blocks or ~54 fields the manifest declares.
 
 ### Tasks
 
-1. **`/input/fixed-asset/page.tsx`** (~60 min — most complex input)
-   - Category-based form (6 asset categories × Beginning/Additions/Ending × 3 sub-blocks A/B/C = ~54 fields)
-   - Reuse `<RowInputGrid>` dengan grouped sections
-   - Subtotals auto-computed per sub-block
-   - Net Value section auto-computed (Acquisition Ending − Depreciation Ending)
+1. **FA manifest `computedFrom` declarations** (~30 min)
+   - Add `computedFrom` to each subtotal row in `src/data/manifests/fixed-asset.ts`
+   - Sub-block subtotals (A/B/C per category × Beginning/Additions/Ending/Depreciation)
+   - Grand total rows (Total Assets Beginning, Total Additions, etc.)
+   - Tests: deriveComputedRows cases for FA structure
+   - Commit: `chore: add computedFrom declarations to fixed-asset manifest`
+
+2. **`/input/fixed-asset/page.tsx`** (~15 min — 15-line ManifestEditor wrapper)
+   - Import `ManifestEditor` + `FIXED_ASSET_MANIFEST`
+   - Props: `sliceSelector={(s) => s.fixedAsset}`, `sliceSetter={(s) => s.setFixedAsset}`, `yearCount={3}`
+   - Zero new component code. Pure configuration.
+   - Commit: `feat: add /input/fixed-asset page (uses ManifestEditor)`
 
 2. **Migrate FCF page ke live mode** (~30 min)
    - Wire ke `computeFcf` + `toFcfInput` adapter (already exist)
