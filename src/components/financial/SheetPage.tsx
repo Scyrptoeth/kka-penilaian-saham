@@ -36,14 +36,26 @@ import { DataSourceHeader } from './DataSourceHeader'
  * {@link buildRowsFromManifest} pipeline the seed mode uses. Zero changes
  * to build.ts or applyDerivations — see LESSON-030.
  *
- * Session 010 wires the pilot sheets that have their own input pages
- * (balance-sheet, income-statement, fixed-asset). Downstream sheets
- * (cash-flow-statement, noplat, fcf, etc.) still render seed data until
- * Sessions 011–012 wire their compute adapters.
+ * Sheets with direct input slices (balance-sheet, income-statement,
+ * fixed-asset) get their live rows from the Zustand store automatically.
+ * Downstream sheets (cash-flow, noplat, fcf, financial-ratio, etc.) have
+ * no dedicated slice — their page wrappers compute live rows themselves
+ * from upstream slices and hand them back via the optional `liveRows`
+ * prop. Passing `liveRows` as a fresh object flips the page into live
+ * mode; passing `null` signals "upstream data missing, stay in seed";
+ * leaving it `undefined` falls back to the slug-based store lookup.
  */
 
 interface SheetPageProps {
   manifest: SheetManifest
+  /**
+   * Downstream override. When defined, this takes precedence over the
+   * store-slug lookup — the page's own wrapper has already computed the
+   * live rows from upstream slices and just hands us the result. `null`
+   * is a first-class "upstream not ready" signal that pins us to seed
+   * mode without bypassing the hydration gate.
+   */
+  liveRows?: Record<number, YearKeyedSeries> | null
   /** Override: force common-size column group on/off. */
   showCommonSize?: boolean
   /** Override: force growth column group on/off. */
@@ -76,6 +88,7 @@ function getLiveRowsForSlug(
 
 export function SheetPage({
   manifest,
+  liveRows: liveRowsOverride,
   showCommonSize,
   showGrowth,
 }: SheetPageProps) {
@@ -85,15 +98,23 @@ export function SheetPage({
   const fixedAsset = useKkaStore((s) => s.fixedAsset)
   const hasHydrated = useKkaStore((s) => s._hasHydrated)
 
-  const liveRows = useMemo(
-    () =>
-      getLiveRowsForSlug(manifest.slug, {
-        balanceSheet,
-        incomeStatement,
-        fixedAsset,
-      }),
-    [manifest.slug, balanceSheet, incomeStatement, fixedAsset],
-  )
+  const liveRows = useMemo(() => {
+    // Explicit override from a downstream page wrapper wins over the
+    // slug-based store lookup, including the `null` case which means
+    // "upstream data not ready — stay in seed mode".
+    if (liveRowsOverride !== undefined) return liveRowsOverride
+    return getLiveRowsForSlug(manifest.slug, {
+      balanceSheet,
+      incomeStatement,
+      fixedAsset,
+    })
+  }, [
+    liveRowsOverride,
+    manifest.slug,
+    balanceSheet,
+    incomeStatement,
+    fixedAsset,
+  ])
 
   // Mode: only flip to live once Zustand has rehydrated from localStorage.
   // Before hydration we render seed mode so SSR output matches the initial
