@@ -100,6 +100,15 @@ export interface DlocState {
   percentage: number
 }
 
+/**
+ * Borrowing Cap CALK values — external data from Catatan Atas Laporan
+ * Keuangan, not derivable from any other sheet. User-entered, default 0.
+ */
+export interface BorrowingCapInputState {
+  piutangCalk: number
+  persediaanCalk: number
+}
+
 interface KkaState {
   home: HomeInputs | null
   dlom: DlomState | null
@@ -114,6 +123,8 @@ interface KkaState {
   discountRate: DiscountRateState | null
   /** Phase 3 projection drivers */
   keyDrivers: KeyDriversState | null
+  /** Session 016 — Borrowing Cap CALK values for EEM tangible asset return. */
+  borrowingCapInput: BorrowingCapInputState | null
   setHome: (home: HomeInputs) => void
   resetHome: () => void
   /**
@@ -131,6 +142,7 @@ interface KkaState {
   setAccPayables: (ap: AccPayablesInputState) => void
   setWacc: (wacc: WaccState) => void
   setDiscountRate: (dr: DiscountRateState) => void
+  setBorrowingCapInput: (bc: BorrowingCapInputState) => void
   setKeyDrivers: (kd: KeyDriversState) => void
   resetBalanceSheet: () => void
   resetIncomeStatement: () => void
@@ -139,12 +151,13 @@ interface KkaState {
   resetWacc: () => void
   resetDiscountRate: () => void
   resetKeyDrivers: () => void
+  resetBorrowingCapInput: () => void
   _hasHydrated: boolean
   _setHasHydrated: (hydrated: boolean) => void
 }
 
 const STORE_KEY = 'kka-penilaian-saham'
-const STORE_VERSION = 6
+const STORE_VERSION = 7
 
 /**
  * Migrate persisted state from older versions to the current schema.
@@ -157,6 +170,7 @@ const STORE_VERSION = 6
  *   v3 → v4: Session 012 added `accPayables`
  *   v4 → v5: Session 013 added `wacc` / `discountRate`
  *   v5 → v6: Session 014 added `keyDrivers`
+ *   v6 → v7: Session 016 added `borrowingCapInput`
  *
  * Without this function, Zustand persist discards the entire older payload
  * and the user silently loses their HOME (and now DLOM/DLOC) data on the
@@ -214,6 +228,13 @@ export function migratePersistedState(
     }
   }
 
+  if (fromVersion < 7) {
+    state = {
+      ...state,
+      borrowingCapInput: null,
+    }
+  }
+
   return state
 }
 
@@ -230,6 +251,7 @@ export const useKkaStore = create<KkaState>()(
       wacc: null,
       discountRate: null,
       keyDrivers: null,
+      borrowingCapInput: null,
       setHome: (home) => set({ home }),
       resetHome: () => set({ home: null }),
       setDlom: (dlom) =>
@@ -248,6 +270,7 @@ export const useKkaStore = create<KkaState>()(
       setAccPayables: (accPayables) => set({ accPayables }),
       setWacc: (wacc) => set({ wacc }),
       setDiscountRate: (discountRate) => set({ discountRate }),
+      setBorrowingCapInput: (borrowingCapInput) => set({ borrowingCapInput }),
       setKeyDrivers: (keyDrivers) => set({ keyDrivers }),
       resetBalanceSheet: () => set({ balanceSheet: null }),
       resetIncomeStatement: () => set({ incomeStatement: null }),
@@ -256,6 +279,7 @@ export const useKkaStore = create<KkaState>()(
       resetWacc: () => set({ wacc: null }),
       resetDiscountRate: () => set({ discountRate: null }),
       resetKeyDrivers: () => set({ keyDrivers: null }),
+      resetBorrowingCapInput: () => set({ borrowingCapInput: null }),
       _hasHydrated: false,
       _setHasHydrated: (hydrated) => set({ _hasHydrated: hydrated }),
     }),
@@ -274,6 +298,7 @@ export const useKkaStore = create<KkaState>()(
         wacc: state.wacc,
         discountRate: state.discountRate,
         keyDrivers: state.keyDrivers,
+        borrowingCapInput: state.borrowingCapInput,
       }),
       migrate: migratePersistedState,
       onRehydrateStorage: () => (state) => {

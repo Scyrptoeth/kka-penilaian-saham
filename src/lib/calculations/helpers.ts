@@ -168,6 +168,26 @@ export function sumRange(values: readonly number[]): number {
  * Skips periods where the base value is 0 (division undefined).
  * Returns 0 for single-year or empty series.
  */
+/**
+ * Excel ROUNDUP(value, digits) — always rounds AWAY from zero.
+ *
+ * digits > 0 → round to N decimal places upward in magnitude
+ * digits = 0 → round to nearest integer upward in magnitude
+ * digits < 0 → round to 10^|digits| upward in magnitude (e.g. -3 → nearest 1000)
+ *
+ * Examples matching Excel:
+ *   roundUp(62200595681013.445, -3) → 62200595682000
+ *   roundUp(9102540956.415, -3)     → 9102541000
+ *   roundUp(-1234, -2)              → -1300
+ */
+export function roundUp(value: number, digits: number): number {
+  if (value === 0) return 0
+  const factor = Math.pow(10, digits)
+  return value > 0
+    ? Math.ceil(value * factor) / factor
+    : Math.floor(value * factor) / factor
+}
+
 export function computeAvgGrowth(series: YearKeyedSeries): number {
   const years = Object.keys(series).map(Number).sort((a, b) => a - b)
   if (years.length < 2) return 0

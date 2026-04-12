@@ -67,8 +67,8 @@ describe('migratePersistedState — v5 → v6', () => {
   })
 })
 
-describe('migratePersistedState — v6 and future', () => {
-  it('v6 → v6 passes through unchanged (no-op)', () => {
+describe('migratePersistedState — v6 → v7', () => {
+  it('v6 → v7 adds borrowingCapInput', () => {
     const v6State = {
       home: HOME_FIXTURE,
       dlom: null,
@@ -81,14 +81,35 @@ describe('migratePersistedState — v6 and future', () => {
       discountRate: null,
       keyDrivers: null,
     }
-    const migrated = migratePersistedState(v6State, 6)
-    expect(migrated).toBe(v6State)
+    const migrated = migratePersistedState(v6State, 6) as Record<string, unknown>
+    expect(migrated.home).toEqual(HOME_FIXTURE)
+    expect(migrated.borrowingCapInput).toBeNull()
+  })
+})
+
+describe('migratePersistedState — v7 and future', () => {
+  it('v7 → v7 passes through unchanged (no-op)', () => {
+    const v7State = {
+      home: HOME_FIXTURE,
+      dlom: null,
+      dloc: null,
+      balanceSheet: null,
+      incomeStatement: null,
+      fixedAsset: null,
+      accPayables: null,
+      wacc: null,
+      discountRate: null,
+      keyDrivers: null,
+      borrowingCapInput: null,
+    }
+    const migrated = migratePersistedState(v7State, 7)
+    expect(migrated).toBe(v7State)
   })
 
   it('passes future versions through unchanged', () => {
-    const v7State = { home: null, futureSlice: {} }
-    const migrated = migratePersistedState(v7State, 7)
-    expect(migrated).toBe(v7State)
+    const v8State = { home: null, futureSlice: {} }
+    const migrated = migratePersistedState(v8State, 8)
+    expect(migrated).toBe(v8State)
   })
 
   it('passes non-object payloads through unchanged', () => {

@@ -66,9 +66,10 @@ export const NAV_TREE: NavGroup[] = [
       { label: 'DLOC (PFC)', href: '/valuation/dloc-pfc' },
       { label: 'WACC', href: '/valuation/wacc' },
       { label: 'Discount Rate', href: '/valuation/discount-rate' },
-      { label: 'DCF', href: '/valuation/dcf', wip: true },
-      { label: 'AAM', href: '/valuation/aam', wip: true },
-      { label: 'EEM', href: '/valuation/eem', wip: true },
+      { label: 'Borrowing Cap', href: '/valuation/borrowing-cap' },
+      { label: 'DCF', href: '/valuation/dcf' },
+      { label: 'AAM', href: '/valuation/aam' },
+      { label: 'EEM', href: '/valuation/eem' },
     ],
   },
   {
