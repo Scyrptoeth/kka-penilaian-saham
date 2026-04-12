@@ -23,19 +23,20 @@
 ## Current State Snapshot (latest)
 
 - **Branch**: `main`
-- **Tests**: **638 / 638** passing across 42 files (+75 vs Session 014)
+- **Tests**: **641 / 641** passing across 42 files (+78 vs Session 014)
 - **Build**: ✅ clean, zero errors, zero warnings, **27 static pages** prerendered (+3 projection pages)
 - **Lint**: ✅ zero warnings
 - **Typecheck**: ✅ `tsc --noEmit` exit 0
 - **Live**: https://kka-penilaian-saham.vercel.app
 - **Store version**: v6 (unchanged from Session 014 — no new slices needed)
-- **Architecture state after 015**: **Projection chain complete.** All 4 remaining projection sheets shipped: PROY BS (from BS avg growth + PROY FA + PROY LR net profit), PROY NOPLAT (from PROY LR with sign-flips + split hist/proj tax rates), PROY ACC PAYABLES (hidden, structural, all zeros), PROY CFS (from PROY LR + PROY BS + PROY FA + PROY AP). All upstream data now ready for DCF/AAM/EEM valuation in Session 016.
+- **Architecture state after 015**: **Projection chain complete + fully company-agnostic.** All 4 remaining projection sheets shipped. Post-delivery: 3 rounds of system development audit eliminated all case-specific code. IS growth rates now computed from user data, tax rates derived from IS, loan balances from BS, projection years centralized. Zero hardcoded values from prototype in production code path. All upstream data ready for DCF/AAM/EEM in Session 016.
+- **Company-agnostic verified**: 15 compute adapters (100% parameterized), 24 pages (100% from store/computed), 9 manifests (generic labels), 9 calc modules (pure functions). Form defaults = Indonesian industry standards, user-editable.
 - **Live pages (24)**:
   - Input Master: HOME
   - Input Data: Balance Sheet · Income Statement · Fixed Asset · Key Drivers
   - Historis: Balance Sheet · Income Statement · Cash Flow · Fixed Asset
   - Analisis: Financial Ratio (18/18) · FCF · NOPLAT · Growth Revenue · ROIC · Growth Rate
-  - Proyeksi: Proy. L/R · Proy. Fixed Asset · **Proy. Balance Sheet (new)** · **Proy. NOPLAT (new)** · **Proy. Cash Flow (new)**
+  - Proyeksi: Proy. L/R · Proy. Fixed Asset · Proy. Balance Sheet · Proy. NOPLAT · Proy. Cash Flow
   - Penilaian: DLOM · DLOC (PFC) · WACC · Discount Rate
 
 ## Session 1 — 2026-04-11 (Scope C: Full Phase 1)

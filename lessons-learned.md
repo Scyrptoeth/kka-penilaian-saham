@@ -512,7 +512,12 @@ untuk 3+ sesi ke depan:
 - LESSON-037 (ROUNDUP vs ROUND — match exact Excel rounding function in JS implementation)
 - LESSON-038 (PROY pages → custom page, not manifest+SheetPage — mixed structure doesn't fit)
 
-LESSON-014, 015, 017, 020, 022, 027 **TIDAK** di-promote — workflow/lint
+### Session 015 (PROY chain complete + system hardening)
+- LESSON-039 (PROY NOPLAT hist vs proj different source sheets + tax rates)
+- LESSON-041 (Page-level wiring is where case-specific values hide — audit checklist)
+- LESSON-042 (Centralize projection year count — scattered magic number)
+
+LESSON-014, 015, 017, 020, 022, 027, 040 **TIDAK** di-promote — workflow/testing-specific
 insights yang general ke project lain tapi terlalu luas atau terlalu
 session-specific untuk section 8 (yang fokus KKA-specific gotchas).
 Tersimpan di lessons-learned saja.
@@ -1225,3 +1230,81 @@ Key realization: **hydration gate != loading state**. The parent page file is re
 4. Ini bukan kegagalan manifest system — itu system yang tepat untuk scope-nya. PROY pages di luar scope itu.
 
 **Proven at**: session-014 (2026-04-12). PROY FA dan PROY LR keduanya dibangun sebagai custom pages — fungsional, tested, dan lebih sederhana dari manifest approach.
+
+---
+
+### LESSON-039: PROY NOPLAT historical vs projected columns use DIFFERENT source sheets AND different tax rates
+
+**Kategori**: Excel | Anti-pattern
+**Sesi**: session-015
+**Tanggal**: 2026-04-12
+
+**Konteks**: Saat mengimplementasikan PROY NOPLAT compute adapter. Historical column references Income Statement, projected columns reference PROY LR.
+
+**Apa yang terjadi**: PROY NOPLAT historical column (C) menggunakan `='INCOME STATEMENT'!F{row}` dan `IS!$B$33` sebagai tax rate. Projected columns (D-F) menggunakan `='PROY LR'!{col}{row}` dan `PROY LR!$B$37`. IS!$B$33 = empty (0) sedangkan PROY LR!$B$37 = 0.22. Awalnya satu compute function dipakai untuk semua tahun dengan satu tax rate, menyebabkan historical NOPLAT salah.
+
+**Root cause / insight**: Excel cross-sheet references per COLUMN bisa berbeda — historical column references different sheets than projected columns. Tax rate cell reference juga berbeda ($B$33 vs $B$37). Harus split historical dan projected processing.
+
+**Cara menerapkan di masa depan**:
+1. Saat implement PROY adapter yang punya historical + projected columns, SELALU trace formula per column, bukan hanya per row.
+2. Jangan asumsikan satu parameter (tax rate, growth rate) berlaku untuk semua columns — historical bisa pakai sumber berbeda.
+3. Pattern: pisahkan historical seeding (dari IS/BS/FA) dan projected computation (dari PROY LR/BS/FA) di function body.
+
+**Proven at**: session-015 (2026-04-12)
+
+### LESSON-040: Never reuse fixture values from one test file in another — always extract from primary fixture JSON
+
+**Kategori**: Testing | Anti-pattern
+**Sesi**: session-015
+**Tanggal**: 2026-04-12
+
+**Konteks**: Saat menulis PROY NOPLAT test, PROY LR row values untuk tahun 2023/2024 di-copy dari PROY LR test file.
+
+**Apa yang terjadi**: PROY LR test file verified D column (2022) values terhadap fixture, tapi E/F (2023/2024) values di test file BUKAN dari fixture — mereka dari computed expectations. Saat di-copy ke PROY NOPLAT test, divergence ini menyebabkan test failures (~67M difference untuk NOPLAT year 2).
+
+**Root cause / insight**: Test files contain a MIX of fixture-extracted values dan computed expectations. Copying values from test A to test B risks propagating non-fixture values. Always go to the PRIMARY source: `__tests__/fixtures/{sheet}.json`.
+
+**Cara menerapkan di masa depan**:
+1. Untuk test yang butuh cross-sheet values, SELALU extract dari fixture JSON langsung.
+2. Gunakan Python one-liner `json.load + cells[addr]` untuk extract exact values — jangan copy dari test file lain.
+3. Red flag: jika test value punya 15+ decimal digits, itu mungkin fixture-exact. Tapi jika berbeda di digit ke-8+, kemungkinan itu computed, bukan fixture.
+
+**Proven at**: session-015 (2026-04-12)
+
+### LESSON-041: System development audit — page-level wiring is where case-specific values hide
+
+**Kategori**: Workflow | Anti-pattern
+**Sesi**: session-015
+**Tanggal**: 2026-04-12
+
+**Konteks**: Setelah membangun 4 PROY compute adapters (semua company-agnostic via typed interfaces), 3x audit menemukan hardcoded values di page-level wiring.
+
+**Apa yang terjadi**: Compute adapters 100% parameterized dan company-agnostic. Tapi page files yang CALL adapters berisi: (1) `IS_GROWTH_DEFAULTS` — growth rate 23% dari Raja Voltama, (2) `histTaxRate: 0` — karena prototype IS B33 kosong, (3) `stEnding: 0, ltEnding: 0` — karena prototype tidak punya pinjaman, (4) manifest header "PT RAJA VOLTAMA ELEKTRIK".
+
+**Root cause / insight**: Adapters are easy to audit for company-agnostic (typed interfaces force it). Pages are harder — they wire store data to adapter parameters, and lazy shortcuts (hardcode instead of compute) are invisible until audited. The "last mile" of wiring is where patching hides.
+
+**Cara menerapkan di masa depan**:
+1. Setiap kali menulis page yang calls compute adapter, verify: **every** parameter value comes from user store or computed from user store. Zero literals except structural constants (row numbers, section labels).
+2. Checklist per page: (a) no `const DEFAULTS = { ... }` with financial values, (b) no `someParam: 0` with "prototype" comment, (c) growth rates computed via `computeAvgGrowth()`, (d) tax rates computed from `abs(tax/PBT)`.
+3. Run company-agnostic audit after each session with pages: `grep -rn '0\.\d{5,}' src/app/ src/data/live/`
+
+**Proven at**: session-015 (2026-04-12)
+
+### LESSON-042: Centralize projection year count — scattered magic number 3 in pages couples them to one projection horizon
+
+**Kategori**: Design | Workflow
+**Sesi**: session-015
+**Tanggal**: 2026-04-12
+
+**Konteks**: 5 projection pages all hardcoded `[T, T+1, T+2]` for projection years, while KeyDriversForm collects 7 years of data.
+
+**Apa yang terjadi**: Changing projection horizon from 3 years to 5 years would require editing 5 page files. Compute adapters already accept `projYears` as a parameter, but pages hardcoded the array construction.
+
+**Root cause / insight**: The compute layer was designed for flexibility (parameterized years), but the page layer coupled to a specific count. The fix: `PROJECTION_YEAR_COUNT` constant in `year-helpers.ts` + `computeProjectionYears(tahunTransaksi)` function — change once, all pages follow.
+
+**Cara menerapkan di masa depan**:
+1. Setiap kali ada magic number yang dipakai di >2 files, extract ke named constant di shared module.
+2. Khusus projection: `computeProjectionYears()` adalah single entry point. Jangan construct array manual.
+3. Saat menambah page baru yang butuh projection years, import dari `year-helpers.ts`, bukan copy-paste array construction.
+
+**Proven at**: session-015 (2026-04-12)
