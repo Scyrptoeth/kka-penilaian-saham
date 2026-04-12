@@ -504,6 +504,9 @@ untuk 3+ sesi ke depan:
 - LESSON-033 (Declarative `computedFrom[]` beats structural indent-based derivation for irregular accounting hierarchies)
 - LESSON-034 (Gate local-state seed via hydration-aware child mount — elegant `useState(initial)` without setState-in-effect)
 
+### Session 011 (Phase 3 IS + downstream wave)
+- LESSON-035 (Trust fixture formulas over your own past manifest labels — re-verify before live migration)
+
 LESSON-014, 015, 017, 020, 022, 027 **TIDAK** di-promote — workflow/lint
 insights yang general ke project lain tapi terlalu luas atau terlalu
 session-specific untuk section 8 (yang fokus KKA-specific gotchas).
@@ -1129,3 +1132,27 @@ Key realization: **hydration gate != loading state**. The parent page file is re
 
 **Proven at**: session-010 (2026-04-12). `src/app/input/balance-sheet/page.tsx` — parent `InputBalanceSheetPage` gates on hydration + HOME, child `BalanceSheetEditor` does the real work. Lint clean, zero effect sync needed.
 
+---
+
+## Session 011 — Phase 3 IS Input + Downstream Wave
+
+### LESSON-035: Trust fixture formulas over your own past manifest labels — re-verify before live migration
+
+**Kategori**: Excel | Workflow | Anti-pattern
+**Sesi**: session-011
+**Tanggal**: 2026-04-12
+
+**Konteks**: Saat menambah `computedFrom` declarations ke manifest yang sudah ada, khususnya manifest yang ditulis beberapa sesi sebelumnya dan tidak di-audit ulang terhadap fixture asli.
+
+**Apa yang terjadi**: IS manifest (ditulis di Session 004) mendeklare row 28 "Other Incomes/(Charges)" sebagai leaf (`indent: 1`, no type) dan row 30 "Non-Operating Income (net)" sebagai `type: 'subtotal'`. Saat Task 2 Session 011 inspect fixture formula untuk menulis `computedFrom` declarations, ternyata fixture formula `D28 = =+D26+D27` membuktikan row 28 adalah computed subtotal (Net Interest = Interest Income + Interest Expense), bukan leaf. Dan row 30 punya `formula: None` — artinya leaf, bukan subtotal. Label dan type di manifest sudah **salah sejak Session 004** tapi tidak pernah ketahuan karena seed mode renders fixture values directly (label styling cosmetic saja, bukan fungsional).
+
+**Root cause / insight**: Session 004 authored manifest rows berdasarkan *label* di workbook dan *structural position* (row 30 terlihat "setelah" sub-items jadi diasumsikan subtotal). Tidak ada step eksplisit "verify every row's formula cell before declaring leaf vs subtotal type". Seed mode yang renders fixture values bypasses the type declaration entirely, sehingga error tidak pernah visible di UI.
+
+**Cara menerapkan di masa depan**:
+1. **Sebelum menambah `computedFrom`** ke manifest yang sudah ada, SELALU inspect fixture formula column (`formula` field) untuk **setiap row** di manifest. Jangan percaya label/type yang ditulis di sesi sebelumnya tanpa cross-check.
+2. Pattern verification: `python3 -c "cells = ...; for r in rows: print(f'row {r} f={cells[f\"D{r}\"].get(\"formula\")}')"` — takes 30 seconds, prevents wrong live-mode behavior.
+3. **Red flag**: manifest row yang punya `type: 'subtotal'` tapi fixture cell punya `formula: None` (leaf). Atau sebaliknya: manifest leaf yang punya fixture formula.
+4. Ini berbeda dari LESSON-010 ("Excel column labels bisa misleading") — LESSON-010 tentang workbook header misleading. LESSON-035 tentang **our own manifest label/type** yang misleading karena di-authored tanpa formula-level verification.
+5. **Live mode amplifies the error**: seed mode renders fixture values regardless of manifest type declaration. Live mode trusts manifest type to decide "editable vs computed". Wrong type = user can't edit a row they should, or row stays blank when it should auto-compute.
+
+**Proven at**: session-011 (2026-04-12). IS manifest rows 28 and 30 had swapped type/label for 7 sessions (004→011). Caught during Task 2 fixture inspection when `computedFrom: [26, -27, 28]` on row 30 produced wrong PBT values. Fixed by re-reading fixture formulas for every IS row before authoring `computedFrom`.

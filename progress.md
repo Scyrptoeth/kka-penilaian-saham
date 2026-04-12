@@ -14,7 +14,7 @@
 | 008 | 2026-04-11/12 | ROIC + DLOM/DLOC questionnaire forms (with 008.5 + 008.6 hardening) | ✅ Shipped | [session-008](history/session-008-roic-dlom-dloc-forms.md) |
 | 009 | 2026-04-12 | Phase 3 design brainstorm — 6 architectural decisions for live data mode | ✅ Design complete | [session-009](history/session-009-phase-3-design-brainstorm.md) |
 | 010 | 2026-04-12 | Phase 3 — DataSource foundation + Balance Sheet pilot (live data mode) | ✅ Shipped | [session-010](history/session-010-datasource-bs-pilot.md) |
-| 011 | 2026-04-12 | Phase 3 — IS input + 4 downstream live migrations (NOPLAT / Growth Revenue / Financial Ratio) | ✅ Shipped | inline |
+| 011 | 2026-04-12 | Phase 3 — IS input + 3 downstream live migrations (NOPLAT / Growth Revenue / Financial Ratio) | ✅ Shipped | [session-011](history/session-011-is-input-downstream-wave.md) |
 
 ## Current State Snapshot (latest)
 
