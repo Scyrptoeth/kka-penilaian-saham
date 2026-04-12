@@ -25,7 +25,7 @@ export const NAV_TREE: NavGroup[] = [
     items: [
       { label: 'Balance Sheet', href: '/input/balance-sheet' },
       { label: 'Income Statement', href: '/input/income-statement' },
-      { label: 'Fixed Asset', href: '/input/fixed-asset', wip: true },
+      { label: 'Fixed Asset', href: '/input/fixed-asset' },
     ],
   },
   {

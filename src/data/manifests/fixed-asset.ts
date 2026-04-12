@@ -18,9 +18,8 @@
 import type { ManifestRow, SheetManifest } from './types'
 
 /**
- * Helper: build the six per-category rows for a sub-block.
- * Produces ManifestRow[] with indent 1 and pre-assigned Excel rows.
- * The caller appends the Total row separately.
+ * Helper: build the six per-category leaf rows for a sub-block.
+ * These are user-editable input rows with no computedFrom.
  */
 function categoryRows(
   startRow: number,
@@ -30,6 +29,44 @@ function categoryRows(
     excelRow: startRow + i,
     label,
     indent: 1 as const,
+  }))
+}
+
+/**
+ * Ending = Beginning + Additions per category.
+ * Each row is computed (read-only in input grid).
+ * Formula: =+C{beginRow+i}+C{addRow+i}
+ */
+function endingCategoryRows(
+  startRow: number,
+  beginRow: number,
+  addRow: number,
+  labels: readonly string[],
+): ManifestRow[] {
+  return labels.map((label, i) => ({
+    excelRow: startRow + i,
+    label,
+    indent: 1 as const,
+    computedFrom: [beginRow + i, addRow + i] as readonly number[],
+  }))
+}
+
+/**
+ * Net Value = Ending Acquisition − Ending Depreciation per category.
+ * Uses signed refs: positive for acq, negative for dep.
+ * Formula: =+C{acqRow+i}-C{depRow+i}
+ */
+function netValueCategoryRows(
+  startRow: number,
+  acqRow: number,
+  depRow: number,
+  labels: readonly string[],
+): ManifestRow[] {
+  return labels.map((label, i) => ({
+    excelRow: startRow + i,
+    label,
+    indent: 1 as const,
+    computedFrom: [acqRow + i, -(depRow + i)] as readonly number[],
   }))
 }
 
@@ -71,6 +108,7 @@ export const FIXED_ASSET_MANIFEST: SheetManifest = {
       excelRow: 14,
       label: 'Total Beginning',
       type: 'subtotal',
+      computedFrom: [8, 9, 10, 11, 12, 13],
       formula: { values: '=SUM(C8:C13)' },
     },
 
@@ -82,18 +120,20 @@ export const FIXED_ASSET_MANIFEST: SheetManifest = {
       excelRow: 23,
       label: 'Total Additions',
       type: 'subtotal',
+      computedFrom: [17, 18, 19, 20, 21, 22],
       formula: { values: '=SUM(C17:C22) — also drives Capex line in FCF' },
     },
 
     { label: '', type: 'separator' },
 
     { label: 'Ending', type: 'header' },
-    ...categoryRows(26, ACQUISITION_LABELS),
+    ...endingCategoryRows(26, 8, 17, ACQUISITION_LABELS),
     {
       excelRow: 32,
       label: 'Total Ending — Acquisition Cost',
       type: 'subtotal',
-      formula: { values: '=SUM(C26:C31) — carries into next-year Beginning' },
+      computedFrom: [14, 23],
+      formula: { values: '=+C14+C23 — Total Beginning + Total Additions' },
     },
 
     { label: '', type: 'separator' },
@@ -107,6 +147,7 @@ export const FIXED_ASSET_MANIFEST: SheetManifest = {
       excelRow: 42,
       label: 'Total Beginning',
       type: 'subtotal',
+      computedFrom: [36, 37, 38, 39, 40, 41],
       formula: { values: '=SUM(C36:C41)' },
     },
 
@@ -118,36 +159,32 @@ export const FIXED_ASSET_MANIFEST: SheetManifest = {
       excelRow: 51,
       label: 'Total Additions',
       type: 'subtotal',
+      computedFrom: [45, 46, 47, 48, 49, 50],
       formula: { values: '=SUM(C45:C50) — feeds Depreciation add-back in FCF' },
     },
 
     { label: '', type: 'separator' },
 
     { label: 'Ending', type: 'header' },
-    ...categoryRows(54, ACQUISITION_LABELS),
+    ...endingCategoryRows(54, 36, 45, ACQUISITION_LABELS),
     {
       excelRow: 60,
       label: 'Total Ending — Accumulated Depreciation',
       type: 'subtotal',
-      formula: { values: '=SUM(C54:C59)' },
+      computedFrom: [42, 51],
+      formula: { values: '=+C42+C51 — Total Beginning + Total Additions' },
     },
 
     { label: '', type: 'separator' },
 
     // ====================== NET VALUE FIXED ASSETS ======================
     { label: 'Net Value Fixed Assets', type: 'header' },
-    ...ACQUISITION_LABELS.map<ManifestRow>((label, i) => ({
-      excelRow: 63 + i,
-      label,
-      indent: 1,
-      formula: {
-        values: `=C${26 + i} − C${54 + i} — Ending Cost − Accumulated Depreciation`,
-      },
-    })),
+    ...netValueCategoryRows(63, 26, 54, ACQUISITION_LABELS),
     {
       excelRow: 69,
       label: 'TOTAL NET FIXED ASSETS',
       type: 'total',
+      computedFrom: [63, 64, 65, 66, 67, 68],
       formula: { values: '=SUM(C63:C68)' },
     },
   ],
