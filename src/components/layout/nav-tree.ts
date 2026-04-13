@@ -76,6 +76,6 @@ export const NAV_TREE: NavGroup[] = [
   },
   {
     label: 'Ringkasan',
-    items: [{ label: 'Dashboard', href: '/dashboard', wip: true }],
+    items: [{ label: 'Dashboard', href: '/dashboard' }],
   },
 ]
