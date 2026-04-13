@@ -14,6 +14,7 @@ import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { NOPLAT_MANIFEST } from '@/data/manifests/noplat'
 import { FIXED_ASSET_MANIFEST } from '@/data/manifests/fixed-asset'
 import { CASH_FLOW_STATEMENT_MANIFEST } from '@/data/manifests/cash-flow-statement'
+import { INCOME_STATEMENT_MANIFEST } from '@/data/manifests/income-statement'
 import { FCF_MANIFEST } from '@/data/manifests/fcf'
 import type { YearKeyedSeries } from '@/types/financial'
 import {
@@ -52,7 +53,9 @@ function loadIsLeaves(): Record<number, YearKeyedSeries> {
     }
     out[row] = series
   }
-  return out
+  // Merge pre-computed IS sentinels (mimics DynamicIsEditor persist behavior)
+  const sentinels = deriveComputedRows(INCOME_STATEMENT_MANIFEST.rows, out, CFS_YEARS)
+  return { ...out, ...sentinels }
 }
 
 function loadBsLeaves(): Record<number, YearKeyedSeries> {

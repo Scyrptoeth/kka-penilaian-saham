@@ -315,17 +315,91 @@ describe('migratePersistedState — v11 → v12 (FA dynamic accounts)', () => {
   })
 })
 
-describe('migratePersistedState — v12 and future', () => {
-  it('v12 → v12 passes through unchanged (no-op)', () => {
-    const v12State = { home: null, futureSlice: {} }
-    const migrated = migratePersistedState(v12State, 12)
-    expect(migrated).toBe(v12State)
+describe('migratePersistedState — v12 → v13 (IS dynamic accounts)', () => {
+  it('migrates IS leaf data to extended rows + sentinels', () => {
+    const v12State = {
+      home: null,
+      incomeStatement: {
+        rows: {
+          6: { 2020: 100, 2021: 120 },   // Revenue
+          7: { 2020: 60, 2021: 70 },      // COGS
+          12: { 2020: 5, 2021: 6 },       // Others OpEx
+          13: { 2020: 10, 2021: 12 },     // G&A
+          21: { 2020: 4, 2021: 5 },       // Depreciation (fixed)
+          26: { 2020: 1, 2021: 2 },       // Interest Income
+          27: { 2020: 0.5, 2021: 1 },     // Interest Expense
+          30: { 2020: 2, 2021: 3 },       // Non-Op
+          33: { 2020: 5, 2021: 7 },       // Tax (fixed)
+        },
+      },
+    }
+    const migrated = migratePersistedState(v12State, 12) as Record<string, unknown>
+    const is = migrated.incomeStatement as Record<string, unknown>
+
+    // accounts populated with 7 defaults
+    expect((is.accounts as unknown[]).length).toBe(7)
+    expect(is.yearCount).toBe(4)
+    expect(is.language).toBe('id')
+
+    const rows = is.rows as Record<string, Record<string, number>>
+    // Extended leaf rows
+    expect(rows['100']).toEqual({ 2020: 100, 2021: 120 }) // Revenue → 100
+    expect(rows['200']).toEqual({ 2020: 60, 2021: 70 })   // COGS → 200
+    expect(rows['300']).toEqual({ 2020: 5, 2021: 6 })     // Others → 300
+    expect(rows['301']).toEqual({ 2020: 10, 2021: 12 })   // G&A → 301
+    expect(rows['500']).toEqual({ 2020: 1, 2021: 2 })     // II → 500
+    expect(rows['501']).toEqual({ 2020: 0.5, 2021: 1 })   // IE → 501
+    expect(rows['400']).toEqual({ 2020: 2, 2021: 3 })     // Non-Op → 400
+
+    // Fixed leaves at original positions
+    expect(rows['21']).toEqual({ 2020: 4, 2021: 5 })
+    expect(rows['33']).toEqual({ 2020: 5, 2021: 7 })
+
+    // Sentinel subtotals at original positions (for downstream compat)
+    expect(rows['6']).toEqual({ 2020: 100, 2021: 120 })   // Revenue sentinel
+    expect(rows['7']).toEqual({ 2020: 60, 2021: 70 })     // COGS sentinel
+    expect(rows['15']?.['2020']).toBe(15)                   // OpEx = 5 + 10
+    expect(rows['15']?.['2021']).toBe(18)                   // OpEx = 6 + 12
+
+    // Higher-level computed sentinels
+    expect(rows['8']?.['2020']).toBe(40)                    // GP = 100 - 60
+    expect(rows['35']?.['2020']).toBeCloseTo(18.5, 10)     // NP = PBT(23.5) - Tax(5)
   })
 
-  it('passes future versions through unchanged', () => {
+  it('handles null incomeStatement', () => {
+    const v12Null = { home: null, incomeStatement: null }
+    const migrated = migratePersistedState(v12Null, 12) as Record<string, unknown>
+    expect(migrated.incomeStatement).toBeNull()
+  })
+
+  it('does not overwrite if accounts already present', () => {
+    const v12WithAccounts = {
+      home: null,
+      incomeStatement: {
+        accounts: [{ catalogId: 'revenue', excelRow: 100, section: 'revenue' }],
+        yearCount: 3,
+        language: 'en',
+        rows: {},
+      },
+    }
+    const migrated = migratePersistedState(v12WithAccounts, 12) as Record<string, unknown>
+    const is = migrated.incomeStatement as Record<string, unknown>
+    expect((is.accounts as unknown[]).length).toBe(1)
+    expect(is.yearCount).toBe(3)
+  })
+})
+
+describe('migratePersistedState — v13 and future', () => {
+  it('v13 → v13 passes through unchanged (no-op)', () => {
     const v13State = { home: null, futureSlice: {} }
     const migrated = migratePersistedState(v13State, 13)
     expect(migrated).toBe(v13State)
+  })
+
+  it('passes future versions through unchanged', () => {
+    const v14State = { home: null, futureSlice: {} }
+    const migrated = migratePersistedState(v14State, 14)
+    expect(migrated).toBe(v14State)
   })
 
   it('passes non-object payloads through unchanged', () => {

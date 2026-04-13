@@ -28,23 +28,15 @@
  */
 
 import type { YearKeyedSeries } from '@/types/financial'
-import { INCOME_STATEMENT_MANIFEST } from '@/data/manifests/income-statement'
-import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 
 export function computeNoplatLiveRows(
-  isLeafRows: Record<number, YearKeyedSeries>,
+  isRows: Record<number, YearKeyedSeries>,
   years: readonly number[],
 ): Record<number, YearKeyedSeries> {
-  // Compute IS subtotals once so we can read PBT (row 32) without the
-  // caller having to duplicate the logic.
-  const isComputed = deriveComputedRows(
-    INCOME_STATEMENT_MANIFEST.rows,
-    isLeafRows,
-    years,
-  )
-
+  // IS store now contains both leaf data AND pre-computed sentinel values
+  // (rows 6,7,8,15,18,22,26,27,28,30,32,33,35) — read directly.
   const readIs = (row: number, year: number): number =>
-    isLeafRows[row]?.[year] ?? isComputed[row]?.[year] ?? 0
+    isRows[row]?.[year] ?? 0
 
   const out: Record<number, YearKeyedSeries> = {}
   const write = (row: number, compute: (year: number) => number) => {

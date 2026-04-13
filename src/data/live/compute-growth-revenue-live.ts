@@ -19,21 +19,14 @@
  */
 
 import type { YearKeyedSeries } from '@/types/financial'
-import { INCOME_STATEMENT_MANIFEST } from '@/data/manifests/income-statement'
-import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 
 export function computeGrowthRevenueLiveRows(
-  isLeafRows: Record<number, YearKeyedSeries>,
+  isRows: Record<number, YearKeyedSeries>,
   years: readonly number[],
 ): Record<number, YearKeyedSeries> {
-  const isComputed = deriveComputedRows(
-    INCOME_STATEMENT_MANIFEST.rows,
-    isLeafRows,
-    years,
-  )
-
+  // IS store now contains pre-computed sentinel values — read directly.
   const readIs = (row: number, year: number): number =>
-    isLeafRows[row]?.[year] ?? isComputed[row]?.[year] ?? 0
+    isRows[row]?.[year] ?? 0
 
   const out: Record<number, YearKeyedSeries> = {}
   const write = (row: number, compute: (year: number) => number) => {

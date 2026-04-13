@@ -17,6 +17,7 @@
 import type { YearKeyedSeries } from '@/types/financial'
 import type { BsAccountEntry } from '@/data/catalogs/balance-sheet-catalog'
 import type { FaAccountEntry } from '@/data/catalogs/fixed-asset-catalog'
+import type { IsAccountEntry } from '@/data/catalogs/income-statement-catalog'
 
 export interface BalanceSheetInputState {
   /** User-selected accounts — ordered as displayed. Added Session 020. */
@@ -30,6 +31,18 @@ export interface BalanceSheetInputState {
 }
 
 export interface IncomeStatementInputState {
+  /** User-selected accounts — ordered as displayed. Added Session 019. */
+  accounts: IsAccountEntry[]
+  /** Number of historical years to display (default 4). */
+  yearCount: number
+  /** Display language for account labels: 'en' | 'id'. */
+  language: 'en' | 'id'
+  /**
+   * excelRow → { year → value }. Contains BOTH:
+   * - Leaf data at extended rows (100+, 200+, etc.)
+   * - Pre-computed sentinel values at original positions (6, 7, 8, 15, etc.)
+   *   for downstream backward compatibility.
+   */
   rows: Record<number, YearKeyedSeries>
 }
 

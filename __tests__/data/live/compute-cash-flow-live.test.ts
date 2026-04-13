@@ -14,6 +14,7 @@ import { describe, expect, it } from 'vitest'
 import { computeCashFlowLiveRows } from '@/data/live/compute-cash-flow-live'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { CASH_FLOW_STATEMENT_MANIFEST } from '@/data/manifests/cash-flow-statement'
+import { INCOME_STATEMENT_MANIFEST } from '@/data/manifests/income-statement'
 import type { YearKeyedSeries } from '@/types/financial'
 import {
   balanceSheetCells,
@@ -88,7 +89,9 @@ function loadIsLeaves(): Record<number, YearKeyedSeries> {
     }
     out[row] = series
   }
-  return out
+  // Merge pre-computed IS sentinels (mimics DynamicIsEditor persist behavior)
+  const sentinels = deriveComputedRows(INCOME_STATEMENT_MANIFEST.rows, out, CFS_YEARS)
+  return { ...out, ...sentinels }
 }
 
 function loadFaLeaves(): Record<number, YearKeyedSeries> {

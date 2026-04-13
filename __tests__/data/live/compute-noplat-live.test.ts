@@ -13,6 +13,7 @@ import { describe, expect, it } from 'vitest'
 import { computeNoplatLiveRows } from '@/data/live/compute-noplat-live'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { NOPLAT_MANIFEST } from '@/data/manifests/noplat'
+import { INCOME_STATEMENT_MANIFEST } from '@/data/manifests/income-statement'
 import type { YearKeyedSeries } from '@/types/financial'
 import {
   incomeStatementCells,
@@ -48,7 +49,9 @@ function loadIsLeaves(
     }
     out[excelRow] = series
   }
-  return out
+  // Merge pre-computed IS sentinels (mimics DynamicIsEditor persist behavior)
+  const sentinels = deriveComputedRows(INCOME_STATEMENT_MANIFEST.rows, out, years)
+  return { ...out, ...sentinels }
 }
 
 describe('computeNoplatLiveRows + NOPLAT manifest computedFrom match fixture', () => {

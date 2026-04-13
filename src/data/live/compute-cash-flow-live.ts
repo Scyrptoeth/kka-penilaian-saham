@@ -23,7 +23,6 @@
  */
 
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
-import { INCOME_STATEMENT_MANIFEST } from '@/data/manifests/income-statement'
 import { FIXED_ASSET_MANIFEST } from '@/data/manifests/fixed-asset'
 import type { YearKeyedSeries } from '@/types/financial'
 
@@ -66,12 +65,7 @@ export function computeCashFlowLiveRows(
   cfsYears: readonly number[],
   bsYears: readonly number[],
 ): Record<number, YearKeyedSeries> {
-  // Compute IS subtotals — need EBITDA (row 18)
-  const isComputed = deriveComputedRows(
-    INCOME_STATEMENT_MANIFEST.rows,
-    isLeaves,
-    cfsYears,
-  )
+  // IS store now contains pre-computed sentinel values (EBITDA at row 18, etc.)
 
   // Compute FA subtotals — need Total Additions (row 23) for CapEx
   const faComputed = faLeaves
@@ -90,8 +84,8 @@ export function computeCashFlowLiveRows(
 
     // ── OPERATIONS ──
 
-    // Row 5: EBITDA = IS row 18 (computed subtotal, positive for profit)
-    set(5, year, isComputed[18]?.[year] ?? 0)
+    // Row 5: EBITDA = IS row 18 (sentinel, positive for profit)
+    set(5, year, isLeaves[18]?.[year] ?? 0)
 
     // Row 6: Corporate Tax = IS row 33 (user-positive → negate)
     // Workbook: ='INCOME STATEMENT'!D33 (stored negative)

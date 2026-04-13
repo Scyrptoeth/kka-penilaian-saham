@@ -2,14 +2,13 @@
 
 import Link from 'next/link'
 import { useKkaStore } from '@/lib/store/useKkaStore'
-import { ManifestEditor } from '@/components/forms/ManifestEditor'
-import { INCOME_STATEMENT_MANIFEST } from '@/data/manifests/income-statement'
+import DynamicIsEditor from '@/components/forms/DynamicIsEditor'
 
 /**
- * Income Statement input page — Session 011 follow-up to the Balance
- * Sheet pilot. Structure mirrors `/input/balance-sheet` exactly: parent
- * owns hydration gate + HOME guard, child is the generic
- * `<ManifestEditor>` pointed at the IS manifest and slice.
+ * Income Statement input page — dynamic catalog-driven editor (Session 019).
+ *
+ * Parent owns hydration gate + HOME guard (LESSON-034). Child mounts
+ * only after gates pass so useState initializers see hydrated store.
  */
 export default function InputIncomeStatementPage() {
   const home = useKkaStore((s) => s.home)
@@ -46,14 +45,5 @@ export default function InputIncomeStatementPage() {
     )
   }
 
-  return (
-    <ManifestEditor
-      manifest={INCOME_STATEMENT_MANIFEST}
-      tahunTransaksi={home.tahunTransaksi}
-      yearCount={4}
-      sliceSelector={(s) => s.incomeStatement}
-      sliceSetter={(s) => s.setIncomeStatement}
-      headerTitle="Input — Income Statement"
-    />
-  )
+  return <DynamicIsEditor />
 }

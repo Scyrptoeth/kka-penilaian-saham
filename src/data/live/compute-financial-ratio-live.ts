@@ -18,7 +18,6 @@
 
 import type { YearKeyedSeries } from '@/types/financial'
 import { BALANCE_SHEET_MANIFEST } from '@/data/manifests/balance-sheet'
-import { INCOME_STATEMENT_MANIFEST } from '@/data/manifests/income-statement'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 
 function safeDiv(numerator: number, denominator: number): number {
@@ -38,16 +37,11 @@ export function computeFinancialRatioLiveRows(
     bsLeafRows,
     years,
   )
-  const isComputed = deriveComputedRows(
-    INCOME_STATEMENT_MANIFEST.rows,
-    isLeafRows,
-    years,
-  )
-
+  // IS store now contains pre-computed sentinel values — read directly.
   const readBs = (row: number, year: number): number =>
     bsLeafRows[row]?.[year] ?? bsComputed[row]?.[year] ?? 0
   const readIs = (row: number, year: number): number =>
-    isLeafRows[row]?.[year] ?? isComputed[row]?.[year] ?? 0
+    isLeafRows[row]?.[year] ?? 0
 
   const out: Record<number, YearKeyedSeries> = {}
   const write = (row: number, compute: (year: number) => number) => {

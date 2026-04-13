@@ -165,7 +165,7 @@ interface KkaState {
 }
 
 const STORE_KEY = 'kka-penilaian-saham'
-const STORE_VERSION = 12
+const STORE_VERSION = 13
 
 /**
  * Migrate persisted state from older versions to the current schema.
@@ -189,6 +189,9 @@ const STORE_VERSION = 12
  *              (FA section now cross-referenced from Fixed Asset store)
  *   v11 → v12: Session 019-fa-dynamic extended FixedAssetInputState with
  *              accounts, yearCount, language for dynamic FA catalog rows
+ *   v12 → v13: Session 019-is-dynamic extended IncomeStatementInputState with
+ *              accounts, yearCount, language; migrates leaf data from original
+ *              rows (6,7,12,13,26,27,30) to extended catalog rows + sentinel
  *
  * Without this function, Zustand persist discards the entire older payload
  * and the user silently loses their HOME (and now DLOM/DLOC) data on the
@@ -346,6 +349,118 @@ export function migratePersistedState(
             yearCount: 3,
             language: 'id',
             rows: fa.rows ?? {},
+          },
+        }
+      }
+    }
+  }
+
+  if (fromVersion < 13) {
+    // Extend IncomeStatementInputState with accounts, yearCount, language.
+    // Migrate leaf data from original rows → extended catalog rows + sentinels.
+    if (state.incomeStatement && typeof state.incomeStatement === 'object') {
+      const is = state.incomeStatement as Record<string, unknown>
+      if (!('accounts' in is)) {
+        const oldRows = (is.rows && typeof is.rows === 'object')
+          ? is.rows as Record<string, Record<string, number>>
+          : {}
+
+        // Map original leaf rows to new catalog positions
+        const ROW_MAP: Record<string, number> = {
+          '6': 100, '7': 200, '12': 300, '13': 301,
+          '26': 500, '27': 501, '30': 400,
+        }
+
+        const newRows: Record<string, unknown> = {}
+
+        // Move leaf data to extended positions + keep at original as sentinel
+        for (const [oldRow, newRow] of Object.entries(ROW_MAP)) {
+          if (oldRows[oldRow]) {
+            newRows[String(newRow)] = oldRows[oldRow]  // extended leaf
+            newRows[oldRow] = oldRows[oldRow]           // sentinel (same value for single account)
+          }
+        }
+
+        // Fixed leaves stay at their positions (Depreciation 21, Tax 33)
+        if (oldRows['21']) newRows['21'] = oldRows['21']
+        if (oldRows['33']) newRows['33'] = oldRows['33']
+
+        // Compute and store OpEx sentinel (row 15 = sum of 12 + 13)
+        const r12 = (oldRows['12'] || {}) as Record<string, number>
+        const r13 = (oldRows['13'] || {}) as Record<string, number>
+        const allYears = new Set([...Object.keys(r12), ...Object.keys(r13)])
+        if (allYears.size > 0) {
+          const opexTotal: Record<string, number> = {}
+          for (const yr of allYears) {
+            opexTotal[yr] = (r12[yr] ?? 0) + (r13[yr] ?? 0)
+          }
+          newRows['15'] = opexTotal
+        }
+
+        // Compute higher-level sentinels for downstream compat
+        // GP (8) = Rev(6) - COGS(7)
+        // EBITDA (18) = GP(8) - OpEx(15)
+        // EBIT (22) = EBITDA(18) - Dep(21)
+        // NI (28) = II(26) - IE(27)
+        // PBT (32) = EBIT(22) + NI(28) + NonOp(30)
+        // NP (35) = PBT(32) - Tax(33)
+        const yearSet = new Set<string>()
+        for (const v of Object.values(oldRows)) {
+          if (v && typeof v === 'object') {
+            for (const k of Object.keys(v)) yearSet.add(k)
+          }
+        }
+        const read = (row: string, yr: string): number => {
+          const src = (newRows[row] ?? oldRows[row]) as Record<string, number> | undefined
+          return src?.[yr] ?? 0
+        }
+        const makeRow = (compute: (yr: string) => number): Record<string, number> => {
+          const out: Record<string, number> = {}
+          for (const yr of yearSet) out[yr] = compute(yr)
+          return out
+        }
+        if (yearSet.size > 0) {
+          newRows['8'] = makeRow((yr) => read('6', yr) - read('7', yr))
+          newRows['18'] = makeRow((yr) => (newRows['8'] as Record<string, number>)?.[yr] ?? 0 - read('15', yr))
+          // Recompute 18 properly
+          newRows['18'] = makeRow((yr) => {
+            const gp = (newRows['8'] as Record<string, number>)?.[yr] ?? 0
+            const opex = (newRows['15'] as Record<string, number>)?.[yr] ?? 0
+            return gp - opex
+          })
+          newRows['22'] = makeRow((yr) => {
+            const ebitda = (newRows['18'] as Record<string, number>)?.[yr] ?? 0
+            return ebitda - read('21', yr)
+          })
+          newRows['28'] = makeRow((yr) => read('26', yr) - read('27', yr))
+          newRows['32'] = makeRow((yr) => {
+            const ebit = (newRows['22'] as Record<string, number>)?.[yr] ?? 0
+            const ni = (newRows['28'] as Record<string, number>)?.[yr] ?? 0
+            return ebit + ni + read('30', yr)
+          })
+          newRows['35'] = makeRow((yr) => {
+            const pbt = (newRows['32'] as Record<string, number>)?.[yr] ?? 0
+            return pbt - read('33', yr)
+          })
+        }
+
+        const DEFAULT_IS_ACCOUNTS = [
+          { catalogId: 'revenue', excelRow: 100, section: 'revenue' as const },
+          { catalogId: 'cogs', excelRow: 200, section: 'cost' as const },
+          { catalogId: 'other_opex', excelRow: 300, section: 'operating_expense' as const },
+          { catalogId: 'general_admin', excelRow: 301, section: 'operating_expense' as const },
+          { catalogId: 'interest_income', excelRow: 500, section: 'net_interest' as const, interestType: 'income' as const },
+          { catalogId: 'interest_expense', excelRow: 501, section: 'net_interest' as const, interestType: 'expense' as const },
+          { catalogId: 'other_non_operating', excelRow: 400, section: 'non_operating' as const },
+        ]
+
+        state = {
+          ...state,
+          incomeStatement: {
+            accounts: DEFAULT_IS_ACCOUNTS,
+            yearCount: 4,
+            language: 'id',
+            rows: newRows,
           },
         }
       }
