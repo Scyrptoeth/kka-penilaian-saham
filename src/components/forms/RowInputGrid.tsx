@@ -102,7 +102,7 @@ export function RowInputGrid({
                     <button
                       type="button"
                       onClick={() => row.section && onAddButtonClick?.(row.section)}
-                      className="text-[11px] font-medium text-ink-muted transition-colors hover:text-accent"
+                      className="text-[13px] font-medium text-ink-muted transition-colors hover:text-accent"
                     >
                       {row.label}
                     </button>
@@ -141,7 +141,7 @@ export function RowInputGrid({
               'py-1.5 pr-4',
               type === 'subtotal' && 'border-t border-grid-strong font-semibold text-ink',
               type === 'total' && 'border-t-2 border-ink font-bold text-ink',
-              type === 'cross-ref' && 'italic text-ink-muted',
+              type === 'cross-ref' && 'text-ink-muted',
             )
 
             return (
@@ -183,7 +183,7 @@ export function RowInputGrid({
                         baseBg,
                         type === 'subtotal' && 'border-t border-grid-strong font-semibold',
                         type === 'total' && 'border-t-2 border-ink font-bold',
-                        type === 'cross-ref' && 'italic',
+                        type === 'cross-ref' && '',
                         negative ? 'text-negative' : type === 'cross-ref' ? 'text-ink-muted' : 'text-ink',
                       )}
                     >
