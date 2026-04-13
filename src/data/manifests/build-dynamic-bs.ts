@@ -11,6 +11,7 @@ import type { BsAccountEntry, BsSection } from '@/data/catalogs/balance-sheet-ca
 import { getCatalogAccount } from '@/data/catalogs/balance-sheet-catalog'
 import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
 import { generateLiveColumns } from '@/data/live/build-cell-map'
+import { getBsStrings } from '@/lib/i18n/balance-sheet'
 
 /**
  * Build a complete BS manifest from user-selected accounts.
@@ -100,62 +101,64 @@ function buildRows(
     )
     .map((a) => a.excelRow)
 
+  const t = getBsStrings(language).lineItem
+
   const rows: ManifestRow[] = [
     // === ASSETS ===
-    { label: 'ASSETS', type: 'header' },
+    { label: t.assets, type: 'header' },
 
-    { label: 'Current Assets', type: 'header', indent: 0 },
+    { label: t.currentAssets, type: 'header', indent: 0 },
     ...leafRows(accounts, 'current_assets', language),
-    { excelRow: 16, label: 'Total Current Assets', type: 'subtotal', computedFrom: currentAssetRows },
+    { excelRow: 16, label: t.totalCurrentAssets, type: 'subtotal', computedFrom: currentAssetRows },
 
     { label: '', type: 'separator' },
 
-    { label: 'Non-Current Assets', type: 'header', indent: 0 },
-    { label: 'Fixed Assets', type: 'header', indent: 1 },
-    { excelRow: 20, label: 'Fixed Assets, Beginning', type: 'cross-ref', indent: 1 },
-    { excelRow: 21, label: 'Accumulated Depreciation', type: 'cross-ref', indent: 1 },
-    { excelRow: 22, label: 'Fixed Assets, Net', type: 'subtotal', computedFrom: [20, 21] },
+    { label: t.nonCurrentAssets, type: 'header', indent: 0 },
+    { label: t.fixedAssets, type: 'header', indent: 1 },
+    { excelRow: 20, label: t.fixedAssetsBeginning, type: 'cross-ref', indent: 1 },
+    { excelRow: 21, label: t.accumulatedDepreciation, type: 'cross-ref', indent: 1 },
+    { excelRow: 22, label: t.fixedAssetsNet, type: 'subtotal', computedFrom: [20, 21] },
     ...leafRows(accounts, 'other_non_current_assets', language),
     ...leafRows(accounts, 'intangible_assets', language),
     {
       excelRow: 25,
-      label: 'Total Non-Current Assets',
+      label: t.totalNonCurrentAssets,
       type: 'subtotal',
       computedFrom: [22, ...otherNcRows, ...intangibleRows],
     },
 
     { label: '', type: 'separator' },
-    { excelRow: 27, label: 'TOTAL ASSETS', type: 'total', computedFrom: [16, 25] },
+    { excelRow: 27, label: t.totalAssets, type: 'total', computedFrom: [16, 25] },
 
     { label: '', type: 'separator' },
 
     // === LIABILITIES & EQUITY ===
-    { label: 'LIABILITIES & EQUITY', type: 'header' },
+    { label: t.liabilitiesAndEquity, type: 'header' },
 
-    { label: 'Current Liabilities', type: 'header', indent: 0 },
+    { label: t.currentLiabilities, type: 'header', indent: 0 },
     ...leafRows(accounts, 'current_liabilities', language),
-    { excelRow: 35, label: 'Total Current Liabilities', type: 'subtotal', computedFrom: currentLiabRows },
+    { excelRow: 35, label: t.totalCurrentLiabilities, type: 'subtotal', computedFrom: currentLiabRows },
 
     { label: '', type: 'separator' },
 
-    { label: 'Non-Current Liabilities', type: 'header', indent: 0 },
+    { label: t.nonCurrentLiabilities, type: 'header', indent: 0 },
     ...leafRows(accounts, 'non_current_liabilities', language),
-    { excelRow: 40, label: 'Total Non-Current Liabilities', type: 'subtotal', computedFrom: nonCurrentLiabRows },
+    { excelRow: 40, label: t.totalNonCurrentLiabilities, type: 'subtotal', computedFrom: nonCurrentLiabRows },
 
     { label: '', type: 'separator' },
-    { excelRow: 41, label: 'TOTAL LIABILITIES', type: 'total', computedFrom: [35, 40] },
+    { excelRow: 41, label: t.totalLiabilities, type: 'total', computedFrom: [35, 40] },
 
     { label: '', type: 'separator' },
 
     // Equity
-    { label: "Shareholders' Equity", type: 'header', indent: 0 },
+    { label: t.shareholdersEquity, type: 'header', indent: 0 },
     ...leafRows(accounts, 'equity', language),
     ...(retainedEarningsRows.length > 0
-      ? [{ excelRow: 48, label: 'Retained Earnings, Ending Balance', type: 'subtotal' as const, computedFrom: retainedEarningsRows }]
+      ? [{ excelRow: 48, label: t.retainedEarningsEnding, type: 'subtotal' as const, computedFrom: retainedEarningsRows }]
       : []),
     {
       excelRow: 49,
-      label: "Shareholders' Equity",
+      label: t.shareholdersEquitySubtotal,
       type: 'subtotal',
       computedFrom: [
         ...paidCapitalRows,
@@ -165,7 +168,7 @@ function buildRows(
     },
 
     { label: '', type: 'separator' },
-    { excelRow: 51, label: 'TOTAL LIABILITIES & EQUITY', type: 'total', computedFrom: [41, 49] },
+    { excelRow: 51, label: t.totalLiabilitiesAndEquity, type: 'total', computedFrom: [41, 49] },
   ]
 
   return rows

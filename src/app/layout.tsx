@@ -1,12 +1,11 @@
 import type { Metadata } from 'next'
-import { IBM_Plex_Sans, IBM_Plex_Mono } from 'next/font/google'
+import { Inter, IBM_Plex_Mono } from 'next/font/google'
 import './globals.css'
 import { Shell } from '@/components/layout/Shell'
 
-const plexSans = IBM_Plex_Sans({
+const inter = Inter({
   variable: '--font-sans',
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
   display: 'swap',
 })
 
@@ -30,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="id" className={`${plexSans.variable} ${plexMono.variable}`}>
+    <html lang="id" className={`${inter.variable} ${plexMono.variable}`}>
       <body className="min-h-dvh bg-canvas text-ink antialiased">
         <Shell>{children}</Shell>
       </body>

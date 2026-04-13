@@ -62,7 +62,7 @@ describe('buildDynamicBsManifest', () => {
     expect(Object.keys(m3.columns)).toHaveLength(3)
   })
 
-  it('language affects leaf labels only, not structural', () => {
+  it('language affects ALL labels — leaf and structural (full bilingual)', () => {
     const accounts: BsAccountEntry[] = [
       { catalogId: 'cash', excelRow: 8, section: 'current_assets' },
     ]
@@ -75,10 +75,11 @@ describe('buildDynamicBsManifest', () => {
     expect(enLeaf?.label).toBe('Cash on Hands')
     expect(idLeaf?.label).toBe('Kas')
 
-    // Structural labels same
+    // Structural labels also differ (full bilingual)
     const enTotal = enManifest.rows.find((r) => r.excelRow === 27)
     const idTotal = idManifest.rows.find((r) => r.excelRow === 27)
-    expect(enTotal?.label).toBe(idTotal?.label)
+    expect(enTotal?.label).toBe('TOTAL ASSETS')
+    expect(idTotal?.label).toBe('TOTAL ASET')
   })
 })
 

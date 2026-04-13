@@ -42,6 +42,7 @@
 html {
   font-family: var(--font-sans);
   font-feature-settings: "tnum", "ss01";
+  letter-spacing: -0.04em;
 }
 
 body {

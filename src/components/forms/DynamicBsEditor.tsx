@@ -16,21 +16,12 @@ import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
 import type { YearKeyedSeries } from '@/types/financial'
 import { cn } from '@/lib/utils/cn'
+import { getBsStrings } from '@/lib/i18n/balance-sheet'
 
 const SECTIONS_ASSETS: BsSection[] = ['current_assets', 'other_non_current_assets', 'intangible_assets']
 const SECTIONS_LIABILITIES: BsSection[] = ['current_liabilities', 'non_current_liabilities']
 const SECTIONS_EQUITY: BsSection[] = ['equity']
 const ALL_SECTIONS = [...SECTIONS_ASSETS, ...SECTIONS_LIABILITIES, ...SECTIONS_EQUITY]
-
-const SECTION_LABELS: Record<BsSection, string> = {
-  current_assets: 'Current Assets',
-  fixed_assets: 'Fixed Assets',
-  intangible_assets: 'Intangible Assets',
-  other_non_current_assets: 'Other Non-Current Assets',
-  current_liabilities: 'Current Liabilities',
-  non_current_liabilities: 'Non-Current Liabilities',
-  equity: 'Equity',
-}
 
 /**
  * Dynamic Balance Sheet editor — user selects accounts from catalog dropdowns,
@@ -48,6 +39,8 @@ export default function DynamicBsEditor() {
 
   const tahunTransaksi = home!.tahunTransaksi
 
+  // i18n — all UI strings derived from language state
+
   // Local state — seeded from store once at mount (LESSON-034)
   const [accounts, setAccounts] = useState<BsAccountEntry[]>(
     () => balanceSheet?.accounts ?? [],
@@ -61,6 +54,7 @@ export default function DynamicBsEditor() {
   const [localRows, setLocalRows] = useState<Record<number, YearKeyedSeries>>(
     () => balanceSheet?.rows ?? {},
   )
+  const t = getBsStrings(language)
 
   // Reset dialog state
   const [showResetBS, setShowResetBS] = useState(false)
@@ -233,36 +227,29 @@ export default function DynamicBsEditor() {
             Input Data
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-ink">
-            Balance Sheet
+            {t.pageTitle}
           </h1>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => handleYearCountChange(1)}
-            className="rounded-sm border border-grid px-2.5 py-1.5 text-[12px] font-medium text-ink-soft transition-colors hover:bg-grid hover:text-ink"
-          >
-            + Tambah Tahun
-          </button>
-          {yearCount > 1 && (
-            <button
-              type="button"
-              onClick={() => handleYearCountChange(-1)}
-              className="rounded-sm border border-grid px-2.5 py-1.5 text-[12px] font-medium text-ink-soft transition-colors hover:bg-grid hover:text-ink"
-            >
-              - Kurangi
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={handleLanguageToggle}
-            className="rounded-sm border border-accent/40 px-3 py-1.5 text-[12px] font-medium text-accent transition-colors hover:bg-accent/10"
-          >
+        {/* Language toggle — globe + label + description */}
+        <button
+          type="button"
+          onClick={handleLanguageToggle}
+          className="flex items-center gap-2.5 rounded-md border border-grid px-4 py-2 transition-colors hover:bg-grid/50"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-ink-muted" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M2 12h20" />
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+          </svg>
+          <span className="text-sm font-semibold text-ink">
+            {language === 'en' ? 'Indonesia' : 'English'}
+          </span>
+          <span className="text-xs text-ink-muted">
             {language === 'en'
-              ? 'Tampilkan Nama Akun dalam Bahasa Indonesia'
-              : 'Tampilkan Nama Akun dalam Bahasa Inggris'}
-          </button>
-        </div>
+              ? 'Tampilkan dalam Bahasa Indonesia'
+              : 'Tampilkan dalam Bahasa Inggris'}
+          </span>
+        </button>
       </div>
 
       {/* Year axis info */}
@@ -270,13 +257,42 @@ export default function DynamicBsEditor() {
         Tahun historis: {years.join(', ')} ({yearCount} {yearCount === 1 ? 'tahun' : 'tahun'})
       </p>
 
-      {/* Add accounts per section */}
+      {/* Year control section + Account sections */}
       <div className="space-y-4">
+        {/* Year section card — styled identically to account sections */}
+        <div className="rounded-sm border border-grid bg-canvas-raised p-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-muted">
+              {t.addHistoricalYear}
+            </h3>
+            <div className="flex items-center gap-1.5">
+              {yearCount > 1 && (
+                <button
+                  type="button"
+                  onClick={() => handleYearCountChange(-1)}
+                  className="rounded-sm border border-dashed border-grid px-2 py-1 text-[11px] font-medium text-ink-muted transition-colors hover:border-negative hover:text-negative"
+                >
+                  {t.reduceYear}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => handleYearCountChange(1)}
+                className="rounded-sm border border-dashed border-grid px-2 py-1 text-[11px] font-medium text-ink-muted transition-colors hover:border-accent hover:text-accent"
+              >
+                {t.addYear}
+              </button>
+            </div>
+          </div>
+        </div>
+
         {ALL_SECTIONS.map((section) => (
           <SectionDropdown
             key={section}
             section={section}
             language={language}
+            sectionLabel={t.sectionLabels[section]}
+            strings={t}
             existingIds={existingIds}
             accounts={accounts.filter((a) => a.section === section)}
             onAdd={handleAddAccount}
@@ -293,6 +309,7 @@ export default function DynamicBsEditor() {
         values={localRows}
         computedValues={{ ...crossRefValues, ...computedValues }}
         onChange={handleCellChange}
+        lineItemHeader={t.lineItemHeader}
       />
 
       {/* Footer: SIMPAN + RESET */}
@@ -328,18 +345,20 @@ export default function DynamicBsEditor() {
       {/* Confirmation dialogs */}
       {showResetBS && (
         <ConfirmDialog
-          title="Reset Balance Sheet"
-          message="Yakin ingin mereset data Balance Sheet? Semua akun dan nilai yang sudah diinput akan dihapus."
-          confirmLabel="Reset BS"
+          title={t.resetBsTitle}
+          message={t.resetBsMessage}
+          confirmLabel={t.resetBsConfirm}
+          cancelLabel={t.cancel}
           onConfirm={handleResetBS}
           onCancel={() => setShowResetBS(false)}
         />
       )}
       {showResetAll && (
         <ConfirmDialog
-          title="Reset Seluruh Data"
-          message="Yakin ingin mereset SELURUH data? Semua input di semua halaman akan dihapus. Tindakan ini tidak bisa dibatalkan."
-          confirmLabel="Reset Semua"
+          title={t.resetAllTitle}
+          message={t.resetAllMessage}
+          confirmLabel={t.resetAllConfirm}
+          cancelLabel={t.cancel}
           destructive
           onConfirm={handleResetAll_}
           onCancel={() => setShowResetAll(false)}
@@ -356,6 +375,8 @@ export default function DynamicBsEditor() {
 function SectionDropdown({
   section,
   language,
+  sectionLabel,
+  strings: t,
   existingIds,
   accounts,
   onAdd,
@@ -364,6 +385,8 @@ function SectionDropdown({
 }: {
   section: BsSection
   language: 'en' | 'id'
+  sectionLabel: string
+  strings: import('@/lib/i18n/balance-sheet').BsStrings
   existingIds: Set<string>
   accounts: BsAccountEntry[]
   onAdd: (catalog: BsCatalogAccount) => void
@@ -396,7 +419,7 @@ function SectionDropdown({
     <div className="rounded-sm border border-grid bg-canvas-raised p-3">
       <div className="flex items-center justify-between">
         <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-muted">
-          {SECTION_LABELS[section]}
+          {sectionLabel}
         </h3>
         <div className="relative">
           <button
@@ -404,7 +427,7 @@ function SectionDropdown({
             onClick={() => { setOpen(!open); setCustomMode(false) }}
             className="rounded-sm border border-dashed border-grid px-2 py-1 text-[11px] font-medium text-ink-muted transition-colors hover:border-accent hover:text-accent"
           >
-            + Tambah Akun
+            {t.addAccount}
           </button>
           {open && (
             <div className="absolute right-0 top-full z-30 mt-1 w-64 rounded-sm border border-grid bg-canvas-raised shadow-lg">
@@ -423,7 +446,7 @@ function SectionDropdown({
                   ))}
                   {available.length === 0 && (
                     <li className="px-3 py-1.5 text-[12px] text-ink-muted">
-                      Semua akun sudah ditambahkan
+                      {t.allAccountsAdded}
                     </li>
                   )}
                   <li className="border-t border-grid">
@@ -432,7 +455,7 @@ function SectionDropdown({
                       onClick={() => setCustomMode(true)}
                       className="w-full px-3 py-1.5 text-left text-[12px] font-medium text-accent transition-colors hover:bg-accent/10"
                     >
-                      Isi Manual...
+                      {t.manualEntry}
                     </button>
                   </li>
                 </ul>
@@ -443,13 +466,13 @@ function SectionDropdown({
                     value={customLabel}
                     onChange={(e) => setCustomLabel(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') handleCustomSubmit() }}
-                    placeholder="Nama akun..."
+                    placeholder={t.accountNamePlaceholder}
                     className="w-full rounded-sm border border-grid bg-canvas px-2 py-1.5 text-[12px] text-ink focus:border-accent focus:outline-none"
                     autoFocus
                   />
                   <div className="mt-1.5 flex justify-end gap-1.5">
-                    <button type="button" onClick={() => { setCustomMode(false); setCustomLabel('') }} className="px-2 py-1 text-[11px] text-ink-muted hover:text-ink">Batal</button>
-                    <button type="button" onClick={handleCustomSubmit} className="rounded-sm bg-accent px-2 py-1 text-[11px] text-white hover:bg-accent/90">Tambah</button>
+                    <button type="button" onClick={() => { setCustomMode(false); setCustomLabel('') }} className="px-2 py-1 text-[11px] text-ink-muted hover:text-ink">{t.cancel}</button>
+                    <button type="button" onClick={handleCustomSubmit} className="rounded-sm bg-accent px-2 py-1 text-[11px] text-white hover:bg-accent/90">{t.add}</button>
                   </div>
                 </div>
               )}
@@ -470,7 +493,7 @@ function SectionDropdown({
                   type="button"
                   onClick={() => onRemove(acc.catalogId)}
                   className="inline-flex h-5 w-5 items-center justify-center rounded-sm text-ink-muted transition-colors hover:bg-negative/10 hover:text-negative"
-                  title="Hapus akun"
+                  title={t.deleteAccount}
                 >
                   <TrashIcon />
                 </button>
@@ -499,9 +522,9 @@ function TrashIcon() {
 }
 
 function ConfirmDialog({
-  title, message, confirmLabel, destructive, onConfirm, onCancel,
+  title, message, confirmLabel, cancelLabel = 'Batal', destructive, onConfirm, onCancel,
 }: {
-  title: string; message: string; confirmLabel: string
+  title: string; message: string; confirmLabel: string; cancelLabel?: string
   destructive?: boolean; onConfirm: () => void; onCancel: () => void
 }) {
   return (
@@ -510,7 +533,7 @@ function ConfirmDialog({
         <h2 className="text-base font-semibold text-ink">{title}</h2>
         <p className="mt-2 text-sm text-ink-soft">{message}</p>
         <div className="mt-5 flex justify-end gap-3">
-          <button type="button" onClick={onCancel} className="rounded-sm border border-grid px-3 py-1.5 text-[13px] font-medium text-ink-soft transition-colors hover:bg-grid">Batal</button>
+          <button type="button" onClick={onCancel} className="rounded-sm border border-grid px-3 py-1.5 text-[13px] font-medium text-ink-soft transition-colors hover:bg-grid">{cancelLabel}</button>
           <button type="button" onClick={onConfirm} className={destructive ? 'rounded-sm bg-negative px-3 py-1.5 text-[13px] font-medium text-white transition-colors hover:bg-negative/90' : 'rounded-sm bg-accent px-3 py-1.5 text-[13px] font-medium text-white transition-colors hover:bg-accent/90'}>{confirmLabel}</button>
         </div>
       </div>

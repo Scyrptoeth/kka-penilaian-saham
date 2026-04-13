@@ -37,6 +37,8 @@ interface RowInputGridProps {
   computedValues?: Readonly<Record<number, YearKeyedSeries>>
   /** Called when an editable cell loses focus and input is committed. */
   onChange: (excelRow: number, year: number, value: number) => void
+  /** Override the first column header label (default: "Line Item"). */
+  lineItemHeader?: string
 }
 
 export function RowInputGrid({
@@ -45,6 +47,7 @@ export function RowInputGrid({
   values,
   computedValues = {},
   onChange,
+  lineItemHeader = 'Line Item',
 }: RowInputGridProps) {
   const colCount = 1 + years.length
   return (
@@ -56,7 +59,7 @@ export function RowInputGrid({
               scope="col"
               className="sticky left-0 top-0 z-20 min-w-[280px] border-b border-grid-strong bg-canvas-raised px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted shadow-[1px_0_0_rgba(10,22,40,0.06)]"
             >
-              Line Item
+              {lineItemHeader}
             </th>
             {years.map((year) => (
               <th
