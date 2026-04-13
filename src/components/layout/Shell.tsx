@@ -8,11 +8,11 @@ import { MobileShell } from './MobileShell'
  */
 export function Shell({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-dvh">
+    <div className="flex h-dvh overflow-hidden">
       <Sidebar />
-      <div className="flex min-h-dvh flex-1 flex-col min-w-0">
+      <div className="flex h-full flex-1 flex-col min-w-0">
         <MobileShell />
-        <main className="flex-1 overflow-x-auto px-4 py-6 md:px-8 md:py-8">
+        <main className="flex-1 overflow-y-auto overflow-x-auto px-4 py-6 md:px-8 md:py-8">
           {children}
         </main>
       </div>

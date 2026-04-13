@@ -26,6 +26,7 @@ export type RowType =
   | 'total'
   | 'header'
   | 'separator'
+  | 'cross-ref'
 
 export interface ManifestFormulaDescriptions {
   /** Description for the raw values column — usually omitted for input rows. */

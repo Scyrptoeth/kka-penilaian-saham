@@ -80,7 +80,6 @@ function buildRows(
   language: 'en' | 'id',
 ): ManifestRow[] {
   const currentAssetRows = bySection.get('current_assets') ?? []
-  const fixedAssetRows = bySection.get('fixed_assets') ?? []
   const intangibleRows = bySection.get('intangible_assets') ?? []
   const otherNcRows = bySection.get('other_non_current_assets') ?? []
   const currentLiabRows = bySection.get('current_liabilities') ?? []
@@ -113,8 +112,9 @@ function buildRows(
 
     { label: 'Non-Current Assets', type: 'header', indent: 0 },
     { label: 'Fixed Assets', type: 'header', indent: 1 },
-    ...leafRows(accounts, 'fixed_assets', language),
-    { excelRow: 22, label: 'Fixed Assets, Net', type: 'subtotal', computedFrom: fixedAssetRows },
+    { excelRow: 20, label: 'Fixed Assets, Beginning', type: 'cross-ref', indent: 1 },
+    { excelRow: 21, label: 'Accumulated Depreciation', type: 'cross-ref', indent: 1 },
+    { excelRow: 22, label: 'Fixed Assets, Net', type: 'subtotal', computedFrom: [20, 21] },
     ...leafRows(accounts, 'other_non_current_assets', language),
     ...leafRows(accounts, 'intangible_assets', language),
     {

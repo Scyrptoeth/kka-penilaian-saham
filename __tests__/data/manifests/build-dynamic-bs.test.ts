@@ -36,13 +36,13 @@ describe('buildDynamicBsManifest', () => {
     expect(totalCA?.computedFrom).toContain(1000)
   })
 
-  it('fixed assets → Net computed from beginning + accum depr', () => {
-    const accounts: BsAccountEntry[] = [
-      { catalogId: 'fixed_assets_beginning', excelRow: 20, section: 'fixed_assets' },
-      { catalogId: 'accum_depreciation', excelRow: 21, section: 'fixed_assets' },
-    ]
-    const manifest = buildDynamicBsManifest(accounts, 'en', 1, 2022)
+  it('fixed assets are cross-ref rows (always present, no accounts needed)', () => {
+    const manifest = buildDynamicBsManifest([], 'en', 1, 2022)
+    const faBeginning = manifest.rows.find((r) => r.excelRow === 20)
+    const accumDepr = manifest.rows.find((r) => r.excelRow === 21)
     const netFA = manifest.rows.find((r) => r.excelRow === 22)
+    expect(faBeginning?.type).toBe('cross-ref')
+    expect(accumDepr?.type).toBe('cross-ref')
     expect(netFA?.computedFrom).toEqual([20, 21])
   })
 

@@ -86,17 +86,10 @@ export const BS_CATALOG_ASSETS: readonly BsCatalogAccount[] = [
   { id: 'supplies',              labelEn: 'Supplies',                         labelId: 'Perlengkapan',                     section: 'current_assets', excelRow: 111 },
   { id: 'contract_assets',       labelEn: 'Contract Assets',                  labelId: 'Aset Kontrak',                     section: 'current_assets', excelRow: 112 },
 
-  // === Fixed Assets (excelRow 20-21 = original, 120-139 = extended) ===
-  { id: 'fixed_assets_beginning', labelEn: 'Fixed Assets, Beginning',         labelId: 'Aset Tetap, Saldo Awal',           section: 'fixed_assets', excelRow: 20 },
-  { id: 'accum_depreciation',     labelEn: 'Accumulated Depreciation',        labelId: 'Akumulasi Penyusutan',             section: 'fixed_assets', excelRow: 21 },
-  { id: 'land',                   labelEn: 'Land',                            labelId: 'Tanah',                            section: 'fixed_assets', excelRow: 120 },
-  { id: 'building',               labelEn: 'Building & Improvements',         labelId: 'Bangunan & Prasarana',             section: 'fixed_assets', excelRow: 121 },
-  { id: 'machinery',              labelEn: 'Machinery & Equipment',           labelId: 'Mesin & Peralatan',                section: 'fixed_assets', excelRow: 122 },
-  { id: 'vehicles',               labelEn: 'Vehicles',                        labelId: 'Kendaraan',                        section: 'fixed_assets', excelRow: 123 },
-  { id: 'office_equipment',       labelEn: 'Office Equipment & Furniture',    labelId: 'Peralatan & Inventaris Kantor',     section: 'fixed_assets', excelRow: 124 },
-  { id: 'construction_in_progress', labelEn: 'Construction in Progress',      labelId: 'Aset Dalam Penyelesaian',          section: 'fixed_assets', excelRow: 125 },
-  { id: 'leasehold_improvements', labelEn: 'Leasehold Improvements',          labelId: 'Perbaikan Aset Sewa',              section: 'fixed_assets', excelRow: 126 },
-  { id: 'right_of_use_assets',    labelEn: 'Right-of-Use Assets',             labelId: 'Aset Hak Guna',                    section: 'fixed_assets', excelRow: 127 },
+  // === Fixed Assets — REMOVED from catalog ===
+  // Fixed Assets section is now cross-referenced from the Fixed Asset input page.
+  // BS rows 20 (FA Beginning) and 21 (Accum Depreciation) are auto-populated
+  // from FA store rows 32 and 60 respectively. Row 22 (FA Net) is computed.
 
   // === Other Non-Current Assets (excelRow 23 = original, 160-179 = extended) ===
   { id: 'other_non_current',      labelEn: 'Other Non-Current Assets',        labelId: 'Aset Tidak Lancar Lainnya',        section: 'other_non_current_assets', excelRow: 23 },

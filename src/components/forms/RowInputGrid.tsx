@@ -116,6 +116,7 @@ export function RowInputGrid({
               type === 'subtotal' &&
                 'border-t border-grid-strong font-semibold text-ink',
               type === 'total' && 'border-t-2 border-ink font-bold text-ink',
+              type === 'cross-ref' && 'italic text-ink-muted',
             )
 
             return (
@@ -149,7 +150,8 @@ export function RowInputGrid({
                         type === 'subtotal' &&
                           'border-t border-grid-strong font-semibold',
                         type === 'total' && 'border-t-2 border-ink font-bold',
-                        negative ? 'text-negative' : 'text-ink',
+                        type === 'cross-ref' && 'italic',
+                        negative ? 'text-negative' : type === 'cross-ref' ? 'text-ink-muted' : 'text-ink',
                       )}
                     >
                       {formatIdr(computed)}

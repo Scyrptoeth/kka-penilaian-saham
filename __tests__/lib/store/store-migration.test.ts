@@ -229,17 +229,59 @@ describe('migratePersistedState — v9 → v10 (BS dynamic accounts)', () => {
   })
 })
 
-describe('migratePersistedState — v10 and future', () => {
-  it('v10 → v10 passes through unchanged (no-op)', () => {
-    const v10State = { home: null, futureSlice: {} }
-    const migrated = migratePersistedState(v10State, 10)
-    expect(migrated).toBe(v10State)
+describe('migratePersistedState — v10 → v11 (remove FA from BS)', () => {
+  it('strips fixed_assets accounts and rows from balanceSheet', () => {
+    const v10State = {
+      home: null,
+      balanceSheet: {
+        accounts: [
+          { catalogId: 'cash', excelRow: 8, section: 'current_assets' },
+          { catalogId: 'fixed_assets_beginning', excelRow: 20, section: 'fixed_assets' },
+          { catalogId: 'accum_depreciation', excelRow: 21, section: 'fixed_assets' },
+          { catalogId: 'land', excelRow: 120, section: 'fixed_assets' },
+        ],
+        yearCount: 2,
+        language: 'en',
+        rows: {
+          8: { 2021: 100 },
+          20: { 2021: 500 },
+          21: { 2021: 200 },
+          120: { 2021: 300 },
+        },
+      },
+    }
+    const migrated = migratePersistedState(v10State, 10) as Record<string, unknown>
+    const bs = migrated.balanceSheet as Record<string, unknown>
+    const accounts = bs.accounts as Array<{ section: string }>
+    // Only current_assets account remains
+    expect(accounts).toHaveLength(1)
+    expect(accounts[0].section).toBe('current_assets')
+    // FA rows removed, CA row preserved
+    const rows = bs.rows as Record<string, unknown>
+    expect(rows['8']).toEqual({ 2021: 100 })
+    expect(rows['20']).toBeUndefined()
+    expect(rows['21']).toBeUndefined()
+    expect(rows['120']).toBeUndefined()
   })
 
-  it('passes future versions through unchanged', () => {
+  it('handles null balanceSheet during v10→v11 migration', () => {
+    const v10Null = { home: null, balanceSheet: null }
+    const migrated = migratePersistedState(v10Null, 10) as Record<string, unknown>
+    expect(migrated.balanceSheet).toBeNull()
+  })
+})
+
+describe('migratePersistedState — v11 and future', () => {
+  it('v11 → v11 passes through unchanged (no-op)', () => {
     const v11State = { home: null, futureSlice: {} }
     const migrated = migratePersistedState(v11State, 11)
     expect(migrated).toBe(v11State)
+  })
+
+  it('passes future versions through unchanged', () => {
+    const v12State = { home: null, futureSlice: {} }
+    const migrated = migratePersistedState(v12State, 12)
+    expect(migrated).toBe(v12State)
   })
 
   it('passes non-object payloads through unchanged', () => {

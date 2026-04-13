@@ -375,7 +375,7 @@ function injectDlomJenisPerusahaan(workbook: ExcelJS.Workbook, state: Exportable
 
 const SECTION_ORDER: readonly BsSection[] = [
   'current_assets',
-  'fixed_assets',
+  // fixed_assets removed — now cross-referenced from FA store, not user accounts
   'other_non_current_assets',
   'intangible_assets',
   'current_liabilities',

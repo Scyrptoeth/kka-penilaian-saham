@@ -17,7 +17,7 @@ import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
 import type { YearKeyedSeries } from '@/types/financial'
 import { cn } from '@/lib/utils/cn'
 
-const SECTIONS_ASSETS: BsSection[] = ['current_assets', 'fixed_assets', 'other_non_current_assets', 'intangible_assets']
+const SECTIONS_ASSETS: BsSection[] = ['current_assets', 'other_non_current_assets', 'intangible_assets']
 const SECTIONS_LIABILITIES: BsSection[] = ['current_liabilities', 'non_current_liabilities']
 const SECTIONS_EQUITY: BsSection[] = ['equity']
 const ALL_SECTIONS = [...SECTIONS_ASSETS, ...SECTIONS_LIABILITIES, ...SECTIONS_EQUITY]
@@ -41,6 +41,7 @@ const SECTION_LABELS: Record<BsSection, string> = {
 export default function DynamicBsEditor() {
   const home = useKkaStore((s) => s.home)
   const balanceSheet = useKkaStore((s) => s.balanceSheet)
+  const fixedAsset = useKkaStore((s) => s.fixedAsset)
   const setBalanceSheet = useKkaStore((s) => s.setBalanceSheet)
   const resetBalanceSheet = useKkaStore((s) => s.resetBalanceSheet)
   const resetAll = useKkaStore((s) => s.resetAll)
@@ -91,9 +92,36 @@ export default function DynamicBsEditor() {
     [accounts, language, yearCount, tahunTransaksi],
   )
 
+  // Cross-ref: map Fixed Asset store → BS rows 20/21
+  // FA row 32 (Total Ending Acquisition Cost) → BS row 20 (FA Beginning, positive)
+  // FA row 60 (Total Ending Accum Depreciation) → BS row 21 (Accum Depr, negated for BS convention)
+  const crossRefValues = useMemo(() => {
+    const faRows = fixedAsset?.rows ?? {}
+    const refs: Record<number, YearKeyedSeries> = {}
+    const fa32 = faRows[32]
+    const fa60 = faRows[60]
+    if (fa32) {
+      refs[20] = { ...fa32 }
+    }
+    if (fa60) {
+      const negated: YearKeyedSeries = {}
+      for (const [yr, val] of Object.entries(fa60)) {
+        negated[Number(yr)] = -(val ?? 0)
+      }
+      refs[21] = negated
+    }
+    return refs
+  }, [fixedAsset?.rows])
+
+  // Merge user rows + cross-ref values for computation
+  const mergedValues = useMemo(
+    () => ({ ...localRows, ...crossRefValues }),
+    [localRows, crossRefValues],
+  )
+
   const computedValues = useMemo(
-    () => deriveComputedRows(dynamicManifest.rows, localRows, years),
-    [dynamicManifest.rows, localRows, years],
+    () => deriveComputedRows(dynamicManifest.rows, mergedValues, years),
+    [dynamicManifest.rows, mergedValues, years],
   )
 
   // Existing account IDs for filtering dropdowns
@@ -228,9 +256,11 @@ export default function DynamicBsEditor() {
           <button
             type="button"
             onClick={handleLanguageToggle}
-            className="rounded-sm border border-accent/40 px-2.5 py-1.5 text-[12px] font-semibold text-accent transition-colors hover:bg-accent/10"
+            className="rounded-sm border border-accent/40 px-3 py-1.5 text-[12px] font-medium text-accent transition-colors hover:bg-accent/10"
           >
-            {language === 'en' ? 'EN' : 'ID'}
+            {language === 'en'
+              ? 'Tampilkan Nama Akun dalam Bahasa Indonesia'
+              : 'Tampilkan Nama Akun dalam Bahasa Inggris'}
           </button>
         </div>
       </div>
@@ -256,22 +286,14 @@ export default function DynamicBsEditor() {
         ))}
       </div>
 
-      {/* Financial table grid — uses RowInputGrid with dynamic manifest */}
-      {accounts.length > 0 && (
-        <RowInputGrid
-          rows={dynamicManifest.rows}
-          years={years}
-          values={localRows}
-          computedValues={computedValues}
-          onChange={handleCellChange}
-        />
-      )}
-
-      {accounts.length === 0 && (
-        <div className="rounded-sm border border-dashed border-grid p-8 text-center text-sm text-ink-muted">
-          Belum ada akun. Gunakan dropdown di atas untuk menambahkan akun ke setiap section.
-        </div>
-      )}
+      {/* Financial table grid — always visible, structural rows shown even without accounts */}
+      <RowInputGrid
+        rows={dynamicManifest.rows}
+        years={years}
+        values={localRows}
+        computedValues={{ ...crossRefValues, ...computedValues }}
+        onChange={handleCellChange}
+      />
 
       {/* Footer: SIMPAN + RESET */}
       <footer className="flex flex-wrap items-center gap-3">

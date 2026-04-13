@@ -10,7 +10,7 @@ import { ExportButton } from './ExportButton'
 export function Sidebar() {
   return (
     <aside
-      className="hidden w-64 shrink-0 border-r border-grid bg-canvas-raised lg:flex lg:flex-col"
+      className="hidden h-full w-64 shrink-0 border-r border-grid bg-canvas-raised lg:flex lg:flex-col"
       aria-label="Navigasi sheet (desktop)"
     >
       <SidebarHeader />

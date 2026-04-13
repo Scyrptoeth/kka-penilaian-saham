@@ -46,22 +46,26 @@ describe('balance-sheet-catalog', () => {
     expect(generateCustomExcelRow(existing)).toBe(1003)
   })
 
-  it('catalog includes all 21 original Excel template rows', () => {
-    const originalRows = [8, 9, 10, 11, 12, 13, 14, 20, 21, 23, 24, 31, 32, 33, 34, 38, 39, 43, 44, 46, 47]
+  it('catalog includes all 19 original Excel template rows (FA rows 20/21 now cross-ref)', () => {
+    const originalRows = [8, 9, 10, 11, 12, 13, 14, 23, 24, 31, 32, 33, 34, 38, 39, 43, 44, 46, 47]
     const catalogRows = BS_CATALOG_ALL.map((a) => a.excelRow)
     for (const row of originalRows) {
       expect(catalogRows).toContain(row)
     }
   })
 
-  it('has 84 total accounts across all sections', () => {
-    expect(BS_CATALOG_ALL.length).toBe(84)
+  it('has 74 total accounts across all sections (FA removed — cross-ref)', () => {
+    expect(BS_CATALOG_ALL.length).toBe(74)
+  })
+
+  it('no fixed_assets accounts in catalog (section is now cross-ref)', () => {
+    const faAccounts = BS_CATALOG_ALL.filter((a) => a.section === 'fixed_assets')
+    expect(faAccounts).toHaveLength(0)
   })
 
   it('extended accounts use correct excelRow ranges', () => {
     for (const a of BS_CATALOG_ALL) {
       if (a.excelRow >= 100 && a.excelRow < 120) expect(a.section).toBe('current_assets')
-      if (a.excelRow >= 120 && a.excelRow < 140) expect(a.section).toBe('fixed_assets')
       if (a.excelRow >= 140 && a.excelRow < 160) expect(a.section).toBe('intangible_assets')
       if (a.excelRow >= 160 && a.excelRow < 180) expect(a.section).toBe('other_non_current_assets')
       if (a.excelRow >= 200 && a.excelRow < 220) expect(a.section).toBe('current_liabilities')

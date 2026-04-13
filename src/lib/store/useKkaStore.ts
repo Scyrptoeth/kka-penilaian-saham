@@ -165,7 +165,7 @@ interface KkaState {
 }
 
 const STORE_KEY = 'kka-penilaian-saham'
-const STORE_VERSION = 10
+const STORE_VERSION = 11
 
 /**
  * Migrate persisted state from older versions to the current schema.
@@ -185,6 +185,8 @@ const STORE_VERSION = 10
  *             to HomeInputs + `resetAll` action
  *   v9 → v10: Session 020 extended BalanceSheetInputState with accounts,
  *              yearCount, language for dynamic BS rows
+ *   v10 → v11: Session 019-revisi-kedua removed fixed_assets from BS accounts
+ *              (FA section now cross-referenced from Fixed Asset store)
  *
  * Without this function, Zustand persist discards the entire older payload
  * and the user silently loses their HOME (and now DLOM/DLOC) data on the
@@ -293,6 +295,30 @@ export function migratePersistedState(
           language: bs.language ?? 'en',
           rows: bs.rows ?? {},
         },
+      }
+    }
+  }
+
+  if (fromVersion < 11) {
+    // Remove fixed_assets accounts from BS — FA section is now cross-referenced
+    if (state.balanceSheet && typeof state.balanceSheet === 'object') {
+      const bs = state.balanceSheet as Record<string, unknown>
+      const accounts = Array.isArray(bs.accounts) ? bs.accounts : []
+      const rows = (bs.rows && typeof bs.rows === 'object' ? bs.rows : {}) as Record<string, unknown>
+      // Filter out fixed_assets accounts
+      const filteredAccounts = accounts.filter(
+        (a: unknown) => typeof a === 'object' && a !== null && (a as Record<string, unknown>).section !== 'fixed_assets',
+      )
+      // Remove FA-related rows (excelRow 20, 21, and extended 120-139)
+      const cleanedRows: Record<string, unknown> = {}
+      for (const [key, val] of Object.entries(rows)) {
+        const rowNum = Number(key)
+        if (rowNum === 20 || rowNum === 21 || (rowNum >= 120 && rowNum <= 139)) continue
+        cleanedRows[key] = val
+      }
+      state = {
+        ...state,
+        balanceSheet: { ...bs, accounts: filteredAccounts, rows: cleanedRows },
       }
     }
   }
