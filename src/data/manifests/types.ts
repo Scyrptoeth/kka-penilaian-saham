@@ -27,6 +27,7 @@ export type RowType =
   | 'header'
   | 'separator'
   | 'cross-ref'
+  | 'add-button'
 
 export interface ManifestFormulaDescriptions {
   /** Description for the raw values column — usually omitted for input rows. */
@@ -74,6 +75,12 @@ export interface ManifestRow {
    *   computedFrom: [22, 24]
    */
   computedFrom?: readonly number[]
+  /** For 'add-button' rows: which BS section this button adds accounts to. */
+  section?: import('@/data/catalogs/balance-sheet-catalog').BsSection
+  /** For 'add-button' rows: button label text. */
+  buttonLabel?: string
+  /** For 'normal' leaf rows: catalog ID for remove functionality. */
+  catalogId?: string
 }
 
 /**

@@ -4,7 +4,6 @@ import { useState, useMemo, useRef } from 'react'
 import { useKkaStore } from '@/lib/store/useKkaStore'
 import { buildDynamicBsManifest } from '@/data/manifests/build-dynamic-bs'
 import {
-  BS_CATALOG_ALL,
   getCatalogBySection,
   generateCustomExcelRow,
   type BsAccountEntry,
@@ -15,13 +14,7 @@ import { RowInputGrid } from './RowInputGrid'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
 import type { YearKeyedSeries } from '@/types/financial'
-import { cn } from '@/lib/utils/cn'
 import { getBsStrings } from '@/lib/i18n/balance-sheet'
-
-const SECTIONS_ASSETS: BsSection[] = ['current_assets', 'other_non_current_assets', 'intangible_assets']
-const SECTIONS_LIABILITIES: BsSection[] = ['current_liabilities', 'non_current_liabilities']
-const SECTIONS_EQUITY: BsSection[] = ['equity']
-const ALL_SECTIONS = [...SECTIONS_ASSETS, ...SECTIONS_LIABILITIES, ...SECTIONS_EQUITY]
 
 /**
  * Dynamic Balance Sheet editor — user selects accounts from catalog dropdowns,
@@ -60,6 +53,8 @@ export default function DynamicBsEditor() {
   const [showResetBS, setShowResetBS] = useState(false)
   const [showResetAll, setShowResetAll] = useState(false)
   const [saved, setSaved] = useState(false)
+  // Inline dropdown state for add-button rows
+  const [openDropdownSection, setOpenDropdownSection] = useState<BsSection | null>(null)
 
   // Debounced persist
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -120,6 +115,18 @@ export default function DynamicBsEditor() {
 
   // Existing account IDs for filtering dropdowns
   const existingIds = useMemo(() => new Set(accounts.map((a) => a.catalogId)), [accounts])
+
+  // Dropdown catalog for the currently open section
+  const dropdownCatalog = useMemo(() => {
+    if (!openDropdownSection) return []
+    // Merge intangible_assets into other_non_current_assets dropdown
+    const sections: BsSection[] = openDropdownSection === 'other_non_current_assets'
+      ? ['other_non_current_assets', 'intangible_assets']
+      : [openDropdownSection]
+    return sections
+      .flatMap((s) => getCatalogBySection(s, language))
+      .filter((c) => !existingIds.has(c.id))
+  }, [openDropdownSection, language, existingIds])
 
   // ---------------------------------------------------------------------------
   // Handlers
@@ -257,52 +264,34 @@ export default function DynamicBsEditor() {
         Tahun historis: {years.join(', ')} ({yearCount} {yearCount === 1 ? 'tahun' : 'tahun'})
       </p>
 
-      {/* Year control section + Account sections */}
-      <div className="space-y-4">
-        {/* Year section card — styled identically to account sections */}
-        <div className="rounded-sm border border-grid bg-canvas-raised p-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-muted">
-              {t.addHistoricalYear}
-            </h3>
-            <div className="flex items-center gap-1.5">
-              {yearCount > 1 && (
-                <button
-                  type="button"
-                  onClick={() => handleYearCountChange(-1)}
-                  className="rounded-sm border border-dashed border-grid px-2 py-1 text-[11px] font-medium text-ink-muted transition-colors hover:border-negative hover:text-negative"
-                >
-                  {t.reduceYear}
-                </button>
-              )}
+      {/* Year control section */}
+      <div className="rounded-sm border border-grid bg-canvas-raised p-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-muted">
+            {t.addHistoricalYear}
+          </h3>
+          <div className="flex items-center gap-1.5">
+            {yearCount > 1 && (
               <button
                 type="button"
-                onClick={() => handleYearCountChange(1)}
-                className="rounded-sm border border-dashed border-grid px-2 py-1 text-[11px] font-medium text-ink-muted transition-colors hover:border-accent hover:text-accent"
+                onClick={() => handleYearCountChange(-1)}
+                className="rounded-sm border border-dashed border-grid px-2 py-1 text-[11px] font-medium text-ink-muted transition-colors hover:border-negative hover:text-negative"
               >
-                {t.addYear}
+                {t.reduceYear}
               </button>
-            </div>
+            )}
+            <button
+              type="button"
+              onClick={() => handleYearCountChange(1)}
+              className="rounded-sm border border-dashed border-grid px-2 py-1 text-[11px] font-medium text-ink-muted transition-colors hover:border-accent hover:text-accent"
+            >
+              {t.addYear}
+            </button>
           </div>
         </div>
-
-        {ALL_SECTIONS.map((section) => (
-          <SectionDropdown
-            key={section}
-            section={section}
-            language={language}
-            sectionLabel={t.sectionLabels[section]}
-            strings={t}
-            existingIds={existingIds}
-            accounts={accounts.filter((a) => a.section === section)}
-            onAdd={handleAddAccount}
-            onAddCustom={handleAddCustom}
-            onRemove={handleRemoveAccount}
-          />
-        ))}
       </div>
 
-      {/* Financial table grid — always visible, structural rows shown even without accounts */}
+      {/* Financial table grid — inline add/remove account */}
       <RowInputGrid
         rows={dynamicManifest.rows}
         years={years}
@@ -310,6 +299,14 @@ export default function DynamicBsEditor() {
         computedValues={{ ...crossRefValues, ...computedValues }}
         onChange={handleCellChange}
         lineItemHeader={t.lineItemHeader}
+        onAddButtonClick={(section) => setOpenDropdownSection(section === openDropdownSection ? null : section)}
+        onRemoveAccount={handleRemoveAccount}
+        openDropdownSection={openDropdownSection}
+        dropdownCatalog={dropdownCatalog}
+        onSelectCatalogItem={(item) => { handleAddAccount(item); setOpenDropdownSection(null) }}
+        onCustomEntry={(section, label) => { handleAddCustom(section, label); setOpenDropdownSection(null) }}
+        onCloseDropdown={() => setOpenDropdownSection(null)}
+        dropdownStrings={{ manualEntry: t.manualEntry, allAccountsAdded: t.allAccountsAdded, accountNamePlaceholder: t.accountNamePlaceholder, cancel: t.cancel, add: t.add }}
       />
 
       {/* Footer: SIMPAN + RESET */}
@@ -365,159 +362,6 @@ export default function DynamicBsEditor() {
         />
       )}
     </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Section dropdown — add/remove accounts within a section
-// ---------------------------------------------------------------------------
-
-function SectionDropdown({
-  section,
-  language,
-  sectionLabel,
-  strings: t,
-  existingIds,
-  accounts,
-  onAdd,
-  onAddCustom,
-  onRemove,
-}: {
-  section: BsSection
-  language: 'en' | 'id'
-  sectionLabel: string
-  strings: import('@/lib/i18n/balance-sheet').BsStrings
-  existingIds: Set<string>
-  accounts: BsAccountEntry[]
-  onAdd: (catalog: BsCatalogAccount) => void
-  onAddCustom: (section: BsSection, label: string) => void
-  onRemove: (catalogId: string) => void
-}) {
-  const [open, setOpen] = useState(false)
-  const [customMode, setCustomMode] = useState(false)
-  const [customLabel, setCustomLabel] = useState('')
-
-  const available = getCatalogBySection(section, language).filter(
-    (c) => !existingIds.has(c.id),
-  )
-
-  function handleSelect(catalog: BsCatalogAccount) {
-    onAdd(catalog)
-    setOpen(false)
-  }
-
-  function handleCustomSubmit() {
-    if (customLabel.trim()) {
-      onAddCustom(section, customLabel.trim())
-      setCustomLabel('')
-      setCustomMode(false)
-      setOpen(false)
-    }
-  }
-
-  return (
-    <div className="rounded-sm border border-grid bg-canvas-raised p-3">
-      <div className="flex items-center justify-between">
-        <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-muted">
-          {sectionLabel}
-        </h3>
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => { setOpen(!open); setCustomMode(false) }}
-            className="rounded-sm border border-dashed border-grid px-2 py-1 text-[11px] font-medium text-ink-muted transition-colors hover:border-accent hover:text-accent"
-          >
-            {t.addAccount}
-          </button>
-          {open && (
-            <div className="absolute right-0 top-full z-30 mt-1 w-64 rounded-sm border border-grid bg-canvas-raised shadow-lg">
-              {!customMode ? (
-                <ul className="max-h-48 overflow-y-auto py-1">
-                  {available.map((cat) => (
-                    <li key={cat.id}>
-                      <button
-                        type="button"
-                        onClick={() => handleSelect(cat)}
-                        className="w-full px-3 py-1.5 text-left text-[12px] text-ink-soft transition-colors hover:bg-grid hover:text-ink"
-                      >
-                        {language === 'en' ? cat.labelEn : cat.labelId}
-                      </button>
-                    </li>
-                  ))}
-                  {available.length === 0 && (
-                    <li className="px-3 py-1.5 text-[12px] text-ink-muted">
-                      {t.allAccountsAdded}
-                    </li>
-                  )}
-                  <li className="border-t border-grid">
-                    <button
-                      type="button"
-                      onClick={() => setCustomMode(true)}
-                      className="w-full px-3 py-1.5 text-left text-[12px] font-medium text-accent transition-colors hover:bg-accent/10"
-                    >
-                      {t.manualEntry}
-                    </button>
-                  </li>
-                </ul>
-              ) : (
-                <div className="p-2">
-                  <input
-                    type="text"
-                    value={customLabel}
-                    onChange={(e) => setCustomLabel(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') handleCustomSubmit() }}
-                    placeholder={t.accountNamePlaceholder}
-                    className="w-full rounded-sm border border-grid bg-canvas px-2 py-1.5 text-[12px] text-ink focus:border-accent focus:outline-none"
-                    autoFocus
-                  />
-                  <div className="mt-1.5 flex justify-end gap-1.5">
-                    <button type="button" onClick={() => { setCustomMode(false); setCustomLabel('') }} className="px-2 py-1 text-[11px] text-ink-muted hover:text-ink">{t.cancel}</button>
-                    <button type="button" onClick={handleCustomSubmit} className="rounded-sm bg-accent px-2 py-1 text-[11px] text-white hover:bg-accent/90">{t.add}</button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* List of added accounts */}
-      {accounts.length > 0 && (
-        <ul className="mt-2 space-y-1">
-          {accounts.map((acc) => {
-            const catalog = BS_CATALOG_ALL.find((c) => c.id === acc.catalogId)
-            const label = acc.customLabel ?? (catalog ? (language === 'en' ? catalog.labelEn : catalog.labelId) : acc.catalogId)
-            return (
-              <li key={acc.catalogId} className="flex items-center gap-2 text-[12px] text-ink-soft">
-                <button
-                  type="button"
-                  onClick={() => onRemove(acc.catalogId)}
-                  className="inline-flex h-5 w-5 items-center justify-center rounded-sm text-ink-muted transition-colors hover:bg-negative/10 hover:text-negative"
-                  title={t.deleteAccount}
-                >
-                  <TrashIcon />
-                </button>
-                <span className={cn(acc.customLabel && 'italic')}>{label}</span>
-                <span className="ml-auto font-mono text-[10px] text-ink-muted">row {acc.excelRow}</span>
-              </li>
-            )
-          })}
-        </ul>
-      )}
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Shared UI pieces
-// ---------------------------------------------------------------------------
-
-function TrashIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <polyline points="3 6 5 6 21 6" />
-      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-    </svg>
   )
 }
 

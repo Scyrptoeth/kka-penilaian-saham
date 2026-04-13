@@ -1,44 +1,30 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import type { ManifestRow } from '@/data/manifests/types'
+import type { BsSection, BsCatalogAccount } from '@/data/catalogs/balance-sheet-catalog'
 import type { YearKeyedSeries } from '@/types/financial'
 import { cn } from '@/lib/utils/cn'
 import { formatIdr, isNegative } from '@/components/financial/format'
 import { parseFinancialInput } from './parse-financial-input'
 
-/**
- * <RowInputGrid> — reusable financial data-entry grid.
- *
- * Takes the full {@link ManifestRow}[] that the read-only FinancialTable
- * renders (headers, separators, normal leaves, subtotals, totals) plus a
- * year axis, and interleaves editable inputs for normal rows with
- * read-only computed cells for subtotal / total rows. Every cell stays
- * visually aligned in a single Bloomberg-style table.
- *
- * Editable row behaviour (<NumericInput>):
- *   - on focus  → shows the raw number for keyboard editing
- *   - on blur   → parses via `parseFinancialInput` (handles Rp, dots,
- *                 parens, commas, explicit negatives) and calls onChange
- *
- * Read-only row behaviour: subtotal / total rows pull from
- * `computedValues[excelRow]` and render formatted IDR with parentheses
- * for negatives (accounting convention).
- */
-
 interface RowInputGridProps {
-  /** Full manifest rows — header / separator / normal / subtotal / total. */
   rows: readonly ManifestRow[]
-  /** Years rendered as columns, ascending. */
   years: readonly number[]
-  /** User-entered values: excelRow → year → value. */
   values: Readonly<Record<number, YearKeyedSeries>>
-  /** Derived values for subtotal/total rows: excelRow → year → value. */
   computedValues?: Readonly<Record<number, YearKeyedSeries>>
-  /** Called when an editable cell loses focus and input is committed. */
   onChange: (excelRow: number, year: number, value: number) => void
-  /** Override the first column header label (default: "Line Item"). */
   lineItemHeader?: string
+  // Inline add/remove account props
+  onAddButtonClick?: (section: BsSection) => void
+  onRemoveAccount?: (catalogId: string) => void
+  openDropdownSection?: BsSection | null
+  dropdownCatalog?: readonly BsCatalogAccount[]
+  onSelectCatalogItem?: (item: BsCatalogAccount) => void
+  onCustomEntry?: (section: BsSection, label: string) => void
+  onCloseDropdown?: () => void
+  /** i18n strings for dropdown UI */
+  dropdownStrings?: { manualEntry: string; allAccountsAdded: string; accountNamePlaceholder: string; cancel: string; add: string }
 }
 
 export function RowInputGrid({
@@ -48,6 +34,14 @@ export function RowInputGrid({
   computedValues = {},
   onChange,
   lineItemHeader = 'Line Item',
+  onAddButtonClick,
+  onRemoveAccount,
+  openDropdownSection,
+  dropdownCatalog = [],
+  onSelectCatalogItem,
+  onCustomEntry,
+  onCloseDropdown,
+  dropdownStrings,
 }: RowInputGridProps) {
   const colCount = 1 + years.length
   return (
@@ -79,10 +73,7 @@ export function RowInputGrid({
             if (type === 'separator') {
               return (
                 <tr key={`sep-${idx}`} aria-hidden>
-                  <td
-                    colSpan={colCount}
-                    className="h-2 border-b border-grid bg-canvas"
-                  />
+                  <td colSpan={colCount} className="h-2 border-b border-grid bg-canvas" />
                 </tr>
               )
             }
@@ -101,6 +92,33 @@ export function RowInputGrid({
               )
             }
 
+            if (type === 'add-button') {
+              const isOpen = openDropdownSection === row.section
+              return (
+                <tr key={`add-${row.section}-${idx}`}>
+                  <td colSpan={colCount} className="relative bg-canvas px-3 py-1">
+                    <button
+                      type="button"
+                      onClick={() => row.section && onAddButtonClick?.(row.section)}
+                      className="text-[11px] font-medium text-ink-muted transition-colors hover:text-accent"
+                    >
+                      {row.label}
+                    </button>
+                    {isOpen && row.section && (
+                      <InlineDropdown
+                        section={row.section}
+                        catalog={dropdownCatalog}
+                        onSelect={(item) => onSelectCatalogItem?.(item)}
+                        onCustom={(section, label) => onCustomEntry?.(section, label)}
+                        onClose={() => onCloseDropdown?.()}
+                        strings={dropdownStrings}
+                      />
+                    )}
+                  </td>
+                </tr>
+              )
+            }
+
             const baseBg = idx % 2 === 0 ? 'bg-canvas' : 'bg-canvas-raised/60'
             const excelRow = row.excelRow
             if (excelRow === undefined) return null
@@ -110,14 +128,15 @@ export function RowInputGrid({
               ? (values[excelRow] ?? {})
               : (computedValues[excelRow] ?? {})
 
+            const hasTrash = isEditable && row.catalogId && onRemoveAccount
+
             const labelClasses = cn(
               'sticky left-0 z-10 text-left font-normal text-ink-soft',
               baseBg,
               'shadow-[1px_0_0_rgba(10,22,40,0.06)]',
               getIndentClass(row.indent),
               'py-1.5 pr-4',
-              type === 'subtotal' &&
-                'border-t border-grid-strong font-semibold text-ink',
+              type === 'subtotal' && 'border-t border-grid-strong font-semibold text-ink',
               type === 'total' && 'border-t-2 border-ink font-bold text-ink',
               type === 'cross-ref' && 'italic text-ink-muted',
             )
@@ -125,15 +144,24 @@ export function RowInputGrid({
             return (
               <tr key={`${excelRow}-${row.label}`} className="group">
                 <th scope="row" className={labelClasses}>
-                  {row.label}
+                  <span className="inline-flex items-center gap-1.5">
+                    {hasTrash && (
+                      <button
+                        type="button"
+                        onClick={() => onRemoveAccount!(row.catalogId!)}
+                        className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-sm text-ink-muted/40 opacity-0 transition-all group-hover:opacity-100 hover:!text-negative"
+                        title="Remove"
+                      >
+                        <TrashIcon />
+                      </button>
+                    )}
+                    {row.label}
+                  </span>
                 </th>
                 {years.map((year) => {
                   if (isEditable) {
                     return (
-                      <td
-                        key={`${excelRow}-${year}`}
-                        className={cn('px-2 py-1', baseBg)}
-                      >
+                      <td key={`${excelRow}-${year}`} className={cn('px-2 py-1', baseBg)}>
                         <NumericInput
                           value={rowValues[year] ?? 0}
                           ariaLabel={`${row.label} — ${year}`}
@@ -150,8 +178,7 @@ export function RowInputGrid({
                       className={cn(
                         'px-3 py-1.5 text-right font-mono tabular-nums',
                         baseBg,
-                        type === 'subtotal' &&
-                          'border-t border-grid-strong font-semibold',
+                        type === 'subtotal' && 'border-t border-grid-strong font-semibold',
                         type === 'total' && 'border-t-2 border-ink font-bold',
                         type === 'cross-ref' && 'italic',
                         negative ? 'text-negative' : type === 'cross-ref' ? 'text-ink-muted' : 'text-ink',
@@ -167,6 +194,116 @@ export function RowInputGrid({
         </tbody>
       </table>
     </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Inline dropdown for add-button rows
+// ---------------------------------------------------------------------------
+
+function InlineDropdown({
+  section,
+  catalog,
+  onSelect,
+  onCustom,
+  onClose,
+  strings,
+}: {
+  section: BsSection
+  catalog: readonly BsCatalogAccount[]
+  onSelect: (item: BsCatalogAccount) => void
+  onCustom: (section: BsSection, label: string) => void
+  onClose: () => void
+  strings?: { manualEntry: string; allAccountsAdded: string; accountNamePlaceholder: string; cancel: string; add: string }
+}) {
+  const [customMode, setCustomMode] = useState(false)
+  const [customLabel, setCustomLabel] = useState('')
+  const ref = useRef<HTMLDivElement>(null)
+
+  // Close on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose()
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [onClose])
+
+  function handleCustomSubmit() {
+    if (customLabel.trim()) {
+      onCustom(section, customLabel.trim())
+      setCustomLabel('')
+      setCustomMode(false)
+    }
+  }
+
+  const t = strings ?? {
+    manualEntry: 'Isi Manual...',
+    allAccountsAdded: 'Semua akun sudah ditambahkan',
+    accountNamePlaceholder: 'Nama akun...',
+    cancel: 'Batal',
+    add: 'Tambah',
+  }
+
+  return (
+    <div ref={ref} className="absolute left-3 top-full z-30 mt-1 w-64 rounded-sm border border-grid bg-canvas-raised shadow-lg">
+      {!customMode ? (
+        <ul className="max-h-48 overflow-y-auto py-1">
+          {catalog.map((cat) => (
+            <li key={cat.id}>
+              <button
+                type="button"
+                onClick={() => onSelect(cat)}
+                className="w-full px-3 py-1.5 text-left text-[12px] text-ink-soft transition-colors hover:bg-grid hover:text-ink"
+              >
+                {cat.labelId || cat.labelEn}
+              </button>
+            </li>
+          ))}
+          {catalog.length === 0 && (
+            <li className="px-3 py-1.5 text-[12px] text-ink-muted">{t.allAccountsAdded}</li>
+          )}
+          <li className="border-t border-grid">
+            <button
+              type="button"
+              onClick={() => setCustomMode(true)}
+              className="w-full px-3 py-1.5 text-left text-[12px] font-medium text-accent transition-colors hover:bg-accent/10"
+            >
+              {t.manualEntry}
+            </button>
+          </li>
+        </ul>
+      ) : (
+        <div className="p-2">
+          <input
+            type="text"
+            value={customLabel}
+            onChange={(e) => setCustomLabel(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleCustomSubmit() }}
+            placeholder={t.accountNamePlaceholder}
+            className="w-full rounded-sm border border-grid bg-canvas px-2 py-1.5 text-[12px] text-ink focus:border-accent focus:outline-none"
+            autoFocus
+          />
+          <div className="mt-1.5 flex justify-end gap-1.5">
+            <button type="button" onClick={() => { setCustomMode(false); setCustomLabel('') }} className="px-2 py-1 text-[11px] text-ink-muted hover:text-ink">{t.cancel}</button>
+            <button type="button" onClick={handleCustomSubmit} className="rounded-sm bg-accent px-2 py-1 text-[11px] text-white hover:bg-accent/90">{t.add}</button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Shared helpers
+// ---------------------------------------------------------------------------
+
+function TrashIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    </svg>
   )
 }
 

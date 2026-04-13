@@ -62,16 +62,18 @@ function getLabel(acc: BsAccountEntry, language: 'en' | 'id'): string {
 
 function leafRows(
   accounts: readonly BsAccountEntry[],
-  section: BsSection,
+  section: BsSection | BsSection[],
   language: 'en' | 'id',
 ): ManifestRow[] {
+  const sections = Array.isArray(section) ? section : [section]
   return accounts
-    .filter((a) => a.section === section)
+    .filter((a) => sections.includes(a.section))
     .map((a) => ({
       excelRow: a.excelRow,
       label: getLabel(a, language),
       indent: 1 as const,
       type: 'normal' as const,
+      catalogId: a.catalogId,
     }))
 }
 
@@ -81,8 +83,11 @@ function buildRows(
   language: 'en' | 'id',
 ): ManifestRow[] {
   const currentAssetRows = bySection.get('current_assets') ?? []
-  const intangibleRows = bySection.get('intangible_assets') ?? []
-  const otherNcRows = bySection.get('other_non_current_assets') ?? []
+  // Merge intangible_assets into other_non_current_assets (single section)
+  const otherNcRows = [
+    ...(bySection.get('other_non_current_assets') ?? []),
+    ...(bySection.get('intangible_assets') ?? []),
+  ]
   const currentLiabRows = bySection.get('current_liabilities') ?? []
   const nonCurrentLiabRows = bySection.get('non_current_liabilities') ?? []
 
@@ -109,6 +114,7 @@ function buildRows(
 
     { label: t.currentAssets, type: 'header', indent: 0 },
     ...leafRows(accounts, 'current_assets', language),
+    { label: '(+ Tambah Akun Current Asset)', type: 'add-button', section: 'current_assets' },
     { excelRow: 16, label: t.totalCurrentAssets, type: 'subtotal', computedFrom: currentAssetRows },
 
     { label: '', type: 'separator' },
@@ -118,13 +124,13 @@ function buildRows(
     { excelRow: 20, label: t.fixedAssetsBeginning, type: 'cross-ref', indent: 1 },
     { excelRow: 21, label: t.accumulatedDepreciation, type: 'cross-ref', indent: 1 },
     { excelRow: 22, label: t.fixedAssetsNet, type: 'subtotal', computedFrom: [20, 21] },
-    ...leafRows(accounts, 'other_non_current_assets', language),
-    ...leafRows(accounts, 'intangible_assets', language),
+    ...leafRows(accounts, ['other_non_current_assets', 'intangible_assets'], language),
+    { label: '(+ Tambah Akun Non-Current Asset)', type: 'add-button', section: 'other_non_current_assets' },
     {
       excelRow: 25,
       label: t.totalNonCurrentAssets,
       type: 'subtotal',
-      computedFrom: [22, ...otherNcRows, ...intangibleRows],
+      computedFrom: [22, ...otherNcRows],
     },
 
     { label: '', type: 'separator' },
@@ -137,12 +143,14 @@ function buildRows(
 
     { label: t.currentLiabilities, type: 'header', indent: 0 },
     ...leafRows(accounts, 'current_liabilities', language),
+    { label: '(+ Tambah Akun Current Liability)', type: 'add-button', section: 'current_liabilities' },
     { excelRow: 35, label: t.totalCurrentLiabilities, type: 'subtotal', computedFrom: currentLiabRows },
 
     { label: '', type: 'separator' },
 
     { label: t.nonCurrentLiabilities, type: 'header', indent: 0 },
     ...leafRows(accounts, 'non_current_liabilities', language),
+    { label: '(+ Tambah Akun Non-Current Liability)', type: 'add-button', section: 'non_current_liabilities' },
     { excelRow: 40, label: t.totalNonCurrentLiabilities, type: 'subtotal', computedFrom: nonCurrentLiabRows },
 
     { label: '', type: 'separator' },
@@ -153,6 +161,7 @@ function buildRows(
     // Equity
     { label: t.shareholdersEquity, type: 'header', indent: 0 },
     ...leafRows(accounts, 'equity', language),
+    { label: '(+ Tambah Akun Equity)', type: 'add-button', section: 'equity' },
     ...(retainedEarningsRows.length > 0
       ? [{ excelRow: 48, label: t.retainedEarningsEnding, type: 'subtotal' as const, computedFrom: retainedEarningsRows }]
       : []),
