@@ -1,6 +1,6 @@
 # Progress — KKA Penilaian Saham
 
-> Latest state after Session 019 (2026-04-14)
+> Latest state after Audit Gate (2026-04-14)
 
 ## Verification Results
 ```
@@ -35,6 +35,15 @@ Store:     v13
 - **Downstream Updates**: 4 compute files read IS sentinels directly (no more deriveComputedRows for IS)
 - **Store v11→v13**: FA dynamic accounts (v12) + IS dynamic accounts with sentinel chain (v13)
 
+### Audit Gate (2026-04-14) — INPUT DATA Integrity Check
+- **FA CRITICAL FIX**: Sentinel pre-computation at persist time — maps FA_OFFSET rows to legacy positions + computes 7 subtotals. All 12+ downstream consumers now get correct FA data.
+- **BS FIX**: Sentinel pre-computation for extended catalog accounts (excelRow 100+) included in subtotals
+- **Downstream merge fix**: 10 files flipped merge order to `{ ...recomputed, ...storeRows }` — sentinel values take priority
+- **yearCount cap**: 10 max for all 3 editors (prevents colLetters overflow)
+- **Dead code removed**: store migration line 424 (was overwritten at 426)
+- **Audit report**: `audit-reports/findings.md`
+- **INPUT DATA status**: Fixed Asset ✅ | Balance Sheet ✅ | Income Statement ✅
+
 ## Next Session Priorities
 
 1. **Upload parser** (.xlsx → store) — reuses cell-mapping registry from Session 018
@@ -44,4 +53,5 @@ Store:     v13
 5. **Export IS/FA RINCIAN detail sheets** (apply LESSON-051 pattern)
 
 ## Latest Session
+- [Audit Gate](audit-reports/findings.md) (2026-04-14): FA/BS sentinel pre-computation, downstream merge fix, yearCount cap
 - [Session 019](history/session-019-dynamic-fa-is-catalogs.md) (2026-04-14): Dynamic FA + IS catalogs, UI standardization, sentinel compat
