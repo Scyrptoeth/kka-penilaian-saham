@@ -70,6 +70,8 @@ export const NAV_TREE: NavGroup[] = [
       { label: 'DCF', href: '/valuation/dcf' },
       { label: 'AAM', href: '/valuation/aam' },
       { label: 'EEM', href: '/valuation/eem' },
+      { label: 'CFI', href: '/valuation/cfi' },
+      { label: 'Simulasi Potensi', href: '/valuation/simulasi-potensi' },
     ],
   },
   {
