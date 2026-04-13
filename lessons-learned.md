@@ -526,6 +526,11 @@ untuk 3+ sesi ke depan:
 - LESSON-046 (Centralize store→input builders in upstream-helpers — one builder per calc consumer)
 - LESSON-047 (Audit for hardcoded values after every multi-page session)
 
+### Session 018 (Export + HOME Revisi + Dynamic BS + Catalog Expansion)
+- LESSON-049 (ExcelJS round-trip preserves formulas — safe for template-based export)
+- LESSON-050 (Always verify Excel cell positions with ExcelJS before writing cell mappings)
+- LESSON-051 (Extended catalog accounts need "RINCIAN" detail sheet in export)
+
 LESSON-014, 015, 017, 020, 022, 027, 040, 048 **TIDAK** di-promote — workflow/testing-specific
 insights yang general ke project lain tapi terlalu luas atau terlalu
 session-specific untuk section 8 (yang fokus KKA-specific gotchas).
@@ -1430,3 +1435,55 @@ Same math, different representation. Using widths matches Excel formula pattern 
 **Cara menerapkan di masa depan**: Saat implement progressive tax or tiered pricing, use bracket WIDTH array, not cumulative limits. Width-based waterfall = simpler loop, matches Excel pattern. Verify by checking SUM of all bracket widths covers the total range.
 
 **Proven at**: session-017 (2026-04-13, 17 fixture-matched tests passing)
+
+---
+
+## Session 018 — Export .xlsx + HOME Revisi + Dynamic BS + Catalog Expansion
+
+### LESSON-049: ExcelJS round-trip preserves formulas — safe for template-based export
+
+**Kategori**: Excel | Workflow
+**Sesi**: session-018
+**Tanggal**: 2026-04-13
+
+**Konteks**: Saat building template-based Excel export yang harus preserve 3,084 formulas.
+
+**Apa yang terjadi**: Tested ExcelJS round-trip (load .xlsx → modify cells → writeBuffer → reload). IS C8 formula `SUM(C6:C7)` survived intact with correct result. BS formula cells also preserved. This validates the template clone approach.
+
+**Root cause / insight**: ExcelJS stores formulas as string properties in the cell XML model. Load/save cycle reads and writes these strings without recalculating — formulas are preserved as-is. This is actually desirable: we inject values into input cells and formulas compute from those values when opened in Excel.
+
+**Cara menerapkan di masa depan**: For any Excel export that needs formulas: use template-based approach (clone → inject → save). Don't try to recreate formulas programmatically. Always verify with round-trip test before building the full export.
+
+**Proven at**: session-018 (2026-04-13, 14 export integration tests including formula preservation)
+
+### LESSON-050: Cell positions in Excel prompts are guesses — always verify with ExcelJS
+
+**Kategori**: Excel | Workflow | Anti-pattern
+**Sesi**: session-018
+**Tanggal**: 2026-04-13
+
+**Konteks**: Session 018 prompt listed HOME cell positions (B4=namaPerusahaan, B5=npwp, B6=jenisPerusahaan, etc.).
+
+**Apa yang terjadi**: Actual Excel verification revealed: npwp NOT in Excel at all, jenisPerusahaan at B5 (not B6), jumlahSahamBeredar at B6 (not B7), objekPenilaian at B12 (not B10). 4 out of 8 positions were wrong. Also discovered KEY DRIVERS D20/D23/D24 are formulas (not input cells), and DR bank rates at K6-L10 (not standard column positions).
+
+**Root cause / insight**: Prompts are written from memory/assumption. Excel files have complex layouts with merged cells, hidden rows, non-obvious column offsets. Only programmatic verification (ExcelJS `getCell().value`) gives ground truth.
+
+**Cara menerapkan di masa depan**: NEVER trust cell positions in prompts. Always run ExcelJS scan of the actual sheet before writing cell mappings. Use the pattern: `for (let r = 1; r <= 50; r++) { console.log(r, ws.getCell('A'+r).value, ws.getCell('B'+r).value) }`.
+
+**Proven at**: session-018 (2026-04-13, HOME mapping corrected from 4 wrong positions)
+
+### LESSON-051: Extended catalog accounts need separate export detail sheet
+
+**Kategori**: Excel | Design | Workflow
+**Sesi**: session-018
+**Tanggal**: 2026-04-13
+
+**Konteks**: Expanding BS catalog from 21 to 84 accounts. New accounts (excelRow 100-319) don't have cells in the original Excel template.
+
+**Apa yang terjadi**: User required ALL individual account values to be exportable and editable in Excel — not just subtotals. Since new catalog accounts can't be injected into the fixed-layout template without breaking formula references, added a separate "RINCIAN NERACA" worksheet to the exported Excel. This sheet lists all user accounts grouped by section with SUM formula subtotals.
+
+**Root cause / insight**: Template-based export is safe for ORIGINAL accounts (excelRow < 60) — they map to fixed cells. Extended accounts need a parallel export path that doesn't touch the template's formula structure. The "detail sheet" pattern is non-destructive: main sheet formulas intact, detail sheet fully editable.
+
+**Cara menerapkan di masa depan**: When expanding any financial sheet's account catalog beyond the original template, always add a corresponding "RINCIAN" detail sheet to the export. Pattern: group accounts by section → write labels + values → add SUM subtotals → section header styling. Apply this for IS and FA when their catalogs expand.
+
+**Proven at**: session-018 (2026-04-13, export test verifies detail sheet contains accounts with correct values)
