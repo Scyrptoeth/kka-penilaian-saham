@@ -9,12 +9,7 @@ import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { BALANCE_SHEET_MANIFEST } from '@/data/manifests/balance-sheet'
 import { formatIdr, formatPercent } from '@/components/financial/format'
 
-/**
- * Default borrowing percentage for fixed assets (Excel E7 = 70%).
- * Standard assumption in Indonesian tax valuation. Should be user-configurable
- * in future — some industries/engagements use different rates.
- */
-const BORROWING_PERCENT_DEFAULT = 0.7
+import { BORROWING_PERCENT_DEFAULT } from '@/lib/calculations/upstream-helpers'
 
 function parseNumber(raw: string): number {
   const cleaned = raw.replace(/[^0-9.-]/g, '')

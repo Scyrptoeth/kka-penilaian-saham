@@ -2,19 +2,11 @@
 
 import { useMemo } from 'react'
 import { useKkaStore, computeProporsiSaham } from '@/lib/store/useKkaStore'
-import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
-import { NOPLAT_MANIFEST } from '@/data/manifests/noplat'
-import { CASH_FLOW_STATEMENT_MANIFEST } from '@/data/manifests/cash-flow-statement'
-import { FCF_MANIFEST } from '@/data/manifests/fcf'
-import { computeNoplatLiveRows } from '@/data/live/compute-noplat-live'
-import { computeCashFlowLiveRows } from '@/data/live/compute-cash-flow-live'
-import { computeFcfLiveRows } from '@/data/live/compute-fcf-live'
-import { computeRoicLiveRows } from '@/data/live/compute-roic-live'
-import { computeGrowthRateLive } from '@/data/live/compute-growth-rate-live'
 import { computeDiscountRate, buildDiscountRateInput } from '@/lib/calculations/discount-rate'
 import { computeDcf } from '@/lib/calculations/dcf'
 import { computeShareValue } from '@/lib/calculations/share-value'
 import { computeFullProjectionPipeline } from '@/lib/calculations/projection-pipeline'
+import { computeHistoricalUpstream, buildDcfInput } from '@/lib/calculations/upstream-helpers'
 import { formatIdr, formatPercent } from '@/components/financial/format'
 
 export default function DcfPage() {
@@ -33,48 +25,26 @@ export default function DcfPage() {
     const pipeline = computeFullProjectionPipeline({
       home, balanceSheet, incomeStatement, fixedAsset, keyDrivers,
     })
-    const { allBs, faComp, proyNoplatRows, proyFaRows, proyCfsRows, histYears3, projYears, lastHistYear } = pipeline
+    const { allBs, proyNoplatRows, proyFaRows, proyCfsRows, histYears3, projYears, lastHistYear } = pipeline
 
-    // ── Historical upstream chain (DCF-specific) ──
-    const noplatLeaf = computeNoplatLiveRows(incomeStatement.rows, histYears3)
-    const noplatComp = deriveComputedRows(NOPLAT_MANIFEST.rows, noplatLeaf, histYears3)
-    const allNoplat = { ...noplatLeaf, ...noplatComp }
-
-    const faRows = fixedAsset?.rows ?? null
-    const cfsLeaf = computeCashFlowLiveRows(balanceSheet.rows, incomeStatement.rows, faRows, null, histYears3, pipeline.histYears4)
-    const cfsComp = deriveComputedRows(CASH_FLOW_STATEMENT_MANIFEST.rows, cfsLeaf, histYears3)
-    const allCfs = { ...cfsLeaf, ...cfsComp }
+    // ── Historical upstream chain (shared helper) ──
+    const upstream = computeHistoricalUpstream({
+      balanceSheetRows: balanceSheet.rows,
+      incomeStatementRows: incomeStatement.rows,
+      fixedAssetRows: fixedAsset?.rows ?? null,
+      accPayablesRows: null,
+      allBs, histYears3, histYears4: pipeline.histYears4,
+    })
 
     // ── Discount Rate ──
     const dr = computeDiscountRate(buildDiscountRateInput(discountRateState))
 
-    // ── Growth Rate ──
-    const fcfLeaf = computeFcfLiveRows(allNoplat, faComp, allCfs, histYears3)
-    const fcfComp = deriveComputedRows(FCF_MANIFEST.rows, fcfLeaf, histYears3)
-    const allFcf = { ...fcfLeaf, ...fcfComp }
-    const allFa = faComp ? { ...(faRows ?? {}), ...faComp } : {}
-    const roicRows = computeRoicLiveRows(allFcf, allBs, histYears3)
-    const grData = computeGrowthRateLive(allBs, allFa, roicRows, histYears3)
-    const growthRate = grData?.result.average ?? 0
-
     // ── DCF ──
-    const dcfResult = computeDcf({
-      historicalNoplat: allNoplat[19]?.[lastHistYear] ?? 0,
-      historicalDepreciation: allFa[51]?.[lastHistYear] ?? 0,
-      historicalChangesCA: allCfs[8]?.[lastHistYear] ?? 0,
-      historicalChangesCL: allCfs[9]?.[lastHistYear] ?? 0,
-      historicalCapex: -(allFa[23]?.[lastHistYear] ?? 0),
-      projectedNoplat: projYears.map(y => proyNoplatRows[19]?.[y] ?? 0),
-      projectedDepreciation: projYears.map(y => proyFaRows[51]?.[y] ?? 0),
-      projectedChangesCA: projYears.map(y => proyCfsRows[8]?.[y] ?? 0),
-      projectedChangesCL: projYears.map(y => proyCfsRows[9]?.[y] ?? 0),
-      projectedCapex: projYears.map(y => -(proyFaRows[23]?.[y] ?? 0)),
-      wacc: dr.wacc,
-      growthRate,
-      interestBearingDebt: -((allBs[31]?.[lastHistYear] ?? 0) + (allBs[38]?.[lastHistYear] ?? 0)),
-      excessCash: -(roicRows[10]?.[lastHistYear] ?? 0),
-      idleAsset: -(roicRows[9]?.[lastHistYear] ?? 0),
-    })
+    const dcfResult = computeDcf(buildDcfInput({
+      upstream, allBs, lastHistYear, projYears,
+      proyNoplatRows, proyFaRows, proyCfsRows,
+      wacc: dr.wacc, growthRate: upstream.growthRate,
+    }))
 
     // ── Share Value ──
     const proporsiSaham = computeProporsiSaham(home)
@@ -86,7 +56,7 @@ export default function DcfPage() {
       jumlahSahamBeredar: home.jumlahSahamBeredar,
     })
 
-    return { dcfResult, shareValue, projYears, lastHistYear, dr, growthRate, proporsiSaham, home }
+    return { dcfResult, shareValue, projYears, lastHistYear, dr, growthRate: upstream.growthRate, proporsiSaham, home }
   }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, keyDrivers, discountRateState])
 
   if (!hasHydrated) {

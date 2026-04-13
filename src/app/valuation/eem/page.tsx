@@ -12,12 +12,8 @@ import { computeNoplatLiveRows } from '@/data/live/compute-noplat-live'
 import { computeCashFlowLiveRows } from '@/data/live/compute-cash-flow-live'
 import { computeDiscountRate, buildDiscountRateInput } from '@/lib/calculations/discount-rate'
 
-/**
- * Default borrowing percentage for fixed assets — must match Borrowing Cap page.
- * TODO: centralize to shared constant or store when made user-configurable.
- */
-const BORROWING_PERCENT_DEFAULT = 0.7
 import { computeBorrowingCap } from '@/lib/calculations/borrowing-cap'
+import { BORROWING_PERCENT_DEFAULT } from '@/lib/calculations/upstream-helpers'
 import { computeAam } from '@/lib/calculations/aam-valuation'
 import { computeEem } from '@/lib/calculations/eem-valuation'
 import { computeShareValue } from '@/lib/calculations/share-value'
@@ -31,6 +27,7 @@ export default function EemPage() {
   const accPayables = useKkaStore(s => s.accPayables)
   const discountRateState = useKkaStore(s => s.discountRate)
   const bcInput = useKkaStore(s => s.borrowingCapInput)
+  const faAdjustment = useKkaStore(s => s.faAdjustment)
   const hasHydrated = useKkaStore(s => s._hasHydrated)
 
   const data = useMemo(() => {
@@ -88,7 +85,7 @@ export default function EemPage() {
       otherNonCurrentAssets: bs(23),
       intangibleAssets: bs(24),
       totalNonCurrentAssets: bs(25),
-      faAdjustment: 0,
+      faAdjustment,
       bankLoanST: bs(31),
       accountPayable: bs(32),
       taxPayable: bs(33),
@@ -134,7 +131,7 @@ export default function EemPage() {
     })
 
     return { eemResult, sv, bc, proporsiSaham, home }
-  }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, accPayables, discountRateState, bcInput])
+  }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, accPayables, discountRateState, bcInput, faAdjustment])
 
   if (!hasHydrated) {
     return <div className="mx-auto max-w-[1100px] p-6 text-sm text-ink-muted">Memuat data…</div>

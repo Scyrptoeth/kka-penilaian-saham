@@ -5,15 +5,6 @@ import { useKkaStore, computeProporsiSaham } from '@/lib/store/useKkaStore'
 import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { BALANCE_SHEET_MANIFEST } from '@/data/manifests/balance-sheet'
-import { FIXED_ASSET_MANIFEST } from '@/data/manifests/fixed-asset'
-import { NOPLAT_MANIFEST } from '@/data/manifests/noplat'
-import { CASH_FLOW_STATEMENT_MANIFEST } from '@/data/manifests/cash-flow-statement'
-import { FCF_MANIFEST } from '@/data/manifests/fcf'
-import { computeNoplatLiveRows } from '@/data/live/compute-noplat-live'
-import { computeCashFlowLiveRows } from '@/data/live/compute-cash-flow-live'
-import { computeFcfLiveRows } from '@/data/live/compute-fcf-live'
-import { computeRoicLiveRows } from '@/data/live/compute-roic-live'
-import { computeGrowthRateLive } from '@/data/live/compute-growth-rate-live'
 import { computeDiscountRate, buildDiscountRateInput } from '@/lib/calculations/discount-rate'
 import { computeDcf } from '@/lib/calculations/dcf'
 import { computeAam } from '@/lib/calculations/aam-valuation'
@@ -21,9 +12,12 @@ import { computeEem } from '@/lib/calculations/eem-valuation'
 import { computeBorrowingCap } from '@/lib/calculations/borrowing-cap'
 import { computeFullProjectionPipeline } from '@/lib/calculations/projection-pipeline'
 import { computeSimulasiPotensi, computeResistensiWp } from '@/lib/calculations/simulasi-potensi'
+import {
+  computeHistoricalUpstream,
+  buildAamInput, buildDcfInput, buildEemInput, buildBorrowingCapInput,
+  deriveDlomRiskCategory, deriveDlocRiskCategory,
+} from '@/lib/calculations/upstream-helpers'
 import { formatIdr, formatPercent } from '@/components/financial/format'
-
-const BORROWING_PERCENT_DEFAULT = 0.7
 
 type ValuationMethod = 'AAM' | 'DCF' | 'EEM'
 
@@ -47,7 +41,6 @@ export default function SimulasiPotensiPage() {
     setNilaiPengalihanDilaporkan(Number.isFinite(val) ? val : 0)
   }, [setNilaiPengalihanDilaporkan])
 
-  // Compute equity values from all available methods
   const equityValues = useMemo(() => {
     if (!hasHydrated || !home || !balanceSheet) return null
 
@@ -56,26 +49,9 @@ export default function SimulasiPotensiPage() {
     const bsComp = deriveComputedRows(BALANCE_SHEET_MANIFEST.rows, balanceSheet.rows, histYears4)
     const allBs = { ...balanceSheet.rows, ...bsComp }
     const ly = histYears4[histYears4.length - 1]!
-    const bs = (row: number) => allBs[row]?.[ly] ?? 0
-    const proporsiSaham = computeProporsiSaham(home)
 
-    // ── AAM ──
-    const aamResult = computeAam({
-      cashOnHands: bs(8), cashOnBank: bs(9),
-      accountReceivable: bs(10), otherReceivable: bs(11),
-      inventory: bs(12), otherCurrentAssets: bs(14),
-      fixedAssetNet: bs(22), otherNonCurrentAssets: bs(23),
-      intangibleAssets: bs(24), totalNonCurrentAssets: bs(25),
-      faAdjustment,
-      bankLoanST: bs(31), accountPayable: bs(32),
-      taxPayable: bs(33), otherCurrentLiabilities: bs(34),
-      bankLoanLT: bs(38), relatedPartyNCL: bs(39),
-      modalDisetor: bs(43), agioDisagio: bs(44),
-      retainedCurrentYear: bs(46), retainedPriorYears: bs(47),
-      dlomPercent: home.dlomPercent, dlocPercent: home.dlocPercent,
-      proporsiSaham,
-      paidUpCapitalDeduction: home.jumlahSahamBeredar * home.nilaiNominalPerSaham,
-    })
+    // ── AAM (always available with BS) ──
+    const aamResult = computeAam(buildAamInput({ allBs, lastYear: ly, home, faAdjustment }))
 
     const result: Record<ValuationMethod, number | null> = {
       AAM: aamResult.equityValue,
@@ -83,110 +59,52 @@ export default function SimulasiPotensiPage() {
       EEM: null,
     }
 
-    // ── DCF (requires IS + key drivers + DR) ──
-    if (incomeStatement && keyDrivers && discountRateState) {
-      try {
-        const pipeline = computeFullProjectionPipeline({
-          home, balanceSheet, incomeStatement, fixedAsset, keyDrivers,
-        })
-        const { faComp, proyNoplatRows, proyFaRows, proyCfsRows, projYears, lastHistYear } = pipeline
-
-        const noplatLeaf = computeNoplatLiveRows(incomeStatement.rows, histYears3)
-        const noplatComp = deriveComputedRows(NOPLAT_MANIFEST.rows, noplatLeaf, histYears3)
-        const allNoplat = { ...noplatLeaf, ...noplatComp }
-
-        const faRows = fixedAsset?.rows ?? null
-        const cfsLeaf = computeCashFlowLiveRows(balanceSheet.rows, incomeStatement.rows, faRows, null, histYears3, histYears4)
-        const cfsComp = deriveComputedRows(CASH_FLOW_STATEMENT_MANIFEST.rows, cfsLeaf, histYears3)
-        const allCfs = { ...cfsLeaf, ...cfsComp }
-
-        const fcfLeaf = computeFcfLiveRows(allNoplat, faComp, allCfs, histYears3)
-        const fcfComp = deriveComputedRows(FCF_MANIFEST.rows, fcfLeaf, histYears3)
-        const allFcf = { ...fcfLeaf, ...fcfComp }
-        const allFa = faComp ? { ...(faRows ?? {}), ...faComp } : {}
-        const roicRows = computeRoicLiveRows(allFcf, allBs, histYears3)
-        const grData = computeGrowthRateLive(allBs, allFa, roicRows, histYears3)
-        const growthRate = grData?.result.average ?? 0
-        const dr = computeDiscountRate(buildDiscountRateInput(discountRateState))
-
-        const dcfResult = computeDcf({
-          historicalNoplat: allNoplat[19]?.[lastHistYear] ?? 0,
-          historicalDepreciation: allFa[51]?.[lastHistYear] ?? 0,
-          historicalChangesCA: allCfs[8]?.[lastHistYear] ?? 0,
-          historicalChangesCL: allCfs[9]?.[lastHistYear] ?? 0,
-          historicalCapex: -(allFa[23]?.[lastHistYear] ?? 0),
-          projectedNoplat: projYears.map(y => proyNoplatRows[19]?.[y] ?? 0),
-          projectedDepreciation: projYears.map(y => proyFaRows[51]?.[y] ?? 0),
-          projectedChangesCA: projYears.map(y => proyCfsRows[8]?.[y] ?? 0),
-          projectedChangesCL: projYears.map(y => proyCfsRows[9]?.[y] ?? 0),
-          projectedCapex: projYears.map(y => -(proyFaRows[23]?.[y] ?? 0)),
-          wacc: dr.wacc,
-          growthRate,
-          interestBearingDebt: -((allBs[31]?.[ly] ?? 0) + (allBs[38]?.[ly] ?? 0)),
-          excessCash: -(roicRows[10]?.[ly] ?? 0),
-          idleAsset: -(roicRows[9]?.[ly] ?? 0),
-        })
-        result.DCF = dcfResult.equityValue100
-      } catch {
-        // DCF may fail if wacc === growthRate; leave as null
-      }
-    }
-
-    // ── EEM (requires IS + DR + borrowingCap) ──
+    // ── DCF + EEM (require IS + DR) ──
     if (incomeStatement && discountRateState) {
-      try {
-        const faRows = fixedAsset?.rows ?? null
-        const faComp = faRows ? deriveComputedRows(FIXED_ASSET_MANIFEST.rows, faRows, histYears3) : null
-        const allFa = faComp ? { ...faRows!, ...faComp } : {}
+      const upstream = computeHistoricalUpstream({
+        balanceSheetRows: balanceSheet.rows,
+        incomeStatementRows: incomeStatement.rows,
+        fixedAssetRows: fixedAsset?.rows ?? null,
+        accPayablesRows: null,
+        allBs, histYears3, histYears4,
+      })
+      const dr = computeDiscountRate(buildDiscountRateInput(discountRateState))
 
-        const noplatLeaf = computeNoplatLiveRows(incomeStatement.rows, histYears3)
-        const noplatComp = deriveComputedRows(NOPLAT_MANIFEST.rows, noplatLeaf, histYears3)
-        const allNoplat = { ...noplatLeaf, ...noplatComp }
-
-        const cfsLeaf = computeCashFlowLiveRows(balanceSheet.rows, incomeStatement.rows, faRows, null, histYears3, histYears4)
-        const cfsComp = deriveComputedRows(CASH_FLOW_STATEMENT_MANIFEST.rows, cfsLeaf, histYears3)
-        const allCfs = { ...cfsLeaf, ...cfsComp }
-
-        const dr = computeDiscountRate(buildDiscountRateInput(discountRateState))
-
-        // Borrowing Cap — uses same fields as EEM page
-        const bcData = computeBorrowingCap({
-          piutangCalk: bcInput?.piutangCalk ?? 0,
-          persediaanCalk: bcInput?.persediaanCalk ?? 0,
-          bsReceivables: bs(10) + bs(11),
-          bsInventory: bs(12),
-          bsFixedAssetNet: bs(22),
-          borrowingPercent: BORROWING_PERCENT_DEFAULT,
-          costDebtAfterTax: dr.kd,
-          costEquity: dr.ke,
-        })
-
-        const eemResult = computeEem({
-          aamTotalCurrentAssets: aamResult.totalCurrentAssets,
-          aamTotalNonCurrentAssets: aamResult.totalNonCurrentAssets,
-          aamAccountPayable: bs(32), aamTaxPayable: bs(33),
-          aamOtherCurrentLiabilities: bs(34),
-          aamRelatedPartyNCL: bs(39),
-          aamCashOnHands: bs(8),
-          waccTangible: bcData.waccTangible,
-          historicalNoplat: allNoplat[19]?.[ly] ?? 0,
-          historicalDepreciation: allFa[51]?.[ly] ?? 0,
-          historicalTotalWC: (allCfs[8]?.[ly] ?? 0) + (allCfs[9]?.[ly] ?? 0),
-          historicalCapex: -(allFa[23]?.[ly] ?? 0),
-          wacc: dr.wacc,
-          interestBearingDebt: -((allBs[31]?.[ly] ?? 0) + (allBs[38]?.[ly] ?? 0)),
-          nonOperatingAsset: bs(8),
-        })
-        result.EEM = eemResult.equityValue100
-      } catch {
-        // EEM may fail if wacc === 0; leave as null
+      // DCF (also needs keyDrivers for projection pipeline)
+      if (keyDrivers) {
+        try {
+          const pipeline = computeFullProjectionPipeline({
+            home, balanceSheet, incomeStatement, fixedAsset, keyDrivers,
+          })
+          const dcfResult = computeDcf(buildDcfInput({
+            upstream, allBs, lastHistYear: pipeline.lastHistYear, projYears: pipeline.projYears,
+            proyNoplatRows: pipeline.proyNoplatRows, proyFaRows: pipeline.proyFaRows,
+            proyCfsRows: pipeline.proyCfsRows,
+            wacc: dr.wacc, growthRate: upstream.growthRate,
+          }))
+          result.DCF = dcfResult.equityValue100
+        } catch { /* DCF may fail if wacc === growthRate */ }
       }
+
+      // EEM
+      try {
+        const bcData = computeBorrowingCap(buildBorrowingCapInput({ allBs, lastYear: ly, bcInput, dr }))
+        const eemResult = computeEem(buildEemInput({
+          aamResult, allBs, upstream, lastYear: ly,
+          waccTangible: bcData.waccTangible, wacc: dr.wacc,
+        }))
+        result.EEM = eemResult.equityValue100
+      } catch { /* EEM may fail if wacc === 0 */ }
     }
 
     return result
   }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, keyDrivers, discountRateState, bcInput, faAdjustment])
 
-  // Compute simulasi from selected method
+  // Derive risk categories from actual DLOM/DLOC percentages (not hardcoded!)
+  const dlomRisk = home ? deriveDlomRiskCategory(home.dlomPercent) : 'Moderat'
+  const dlocRisk = home ? deriveDlocRiskCategory(home.dlocPercent) : 'Moderat'
+  const resistensiWp = computeResistensiWp(dlomRisk, dlocRisk)
+
   const simulasi = useMemo(() => {
     if (!equityValues || !home) return null
     const equity = equityValues[method]
@@ -277,10 +195,7 @@ export default function SimulasiPotensiPage() {
               const val = equityValues[m]
               const isActive = m === method
               return (
-                <tr
-                  key={m}
-                  className={`border-b border-grid ${isActive ? 'bg-canvas-raised font-semibold' : ''}`}
-                >
+                <tr key={m} className={`border-b border-grid ${isActive ? 'bg-canvas-raised font-semibold' : ''}`}>
                   <td className="px-3 py-2 text-ink">
                     {m}
                     {isActive && <span className="ml-2 text-xs text-accent">● aktif</span>}
@@ -324,7 +239,7 @@ export default function SimulasiPotensiPage() {
               </tr>
               <tr className="border-b border-grid">
                 <td className="px-3 py-2 text-ink">Resistensi WP</td>
-                <td className="px-3 py-2 text-right text-ink-muted">{computeResistensiWp('Moderat', 'Moderat')}</td>
+                <td className="px-3 py-2 text-right text-ink-muted">{resistensiWp}</td>
               </tr>
               <tr className="border-b border-grid font-semibold">
                 <td className="px-3 py-2 text-ink">Market Value of Equity (100%)</td>

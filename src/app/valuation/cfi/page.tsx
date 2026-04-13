@@ -2,18 +2,10 @@
 
 import { useMemo } from 'react'
 import { useKkaStore } from '@/lib/store/useKkaStore'
-import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
-import { NOPLAT_MANIFEST } from '@/data/manifests/noplat'
-import { CASH_FLOW_STATEMENT_MANIFEST } from '@/data/manifests/cash-flow-statement'
-import { FCF_MANIFEST } from '@/data/manifests/fcf'
-import { computeNoplatLiveRows } from '@/data/live/compute-noplat-live'
-import { computeCashFlowLiveRows } from '@/data/live/compute-cash-flow-live'
-import { computeFcfLiveRows } from '@/data/live/compute-fcf-live'
-import { computeRoicLiveRows } from '@/data/live/compute-roic-live'
-import { computeGrowthRateLive } from '@/data/live/compute-growth-rate-live'
 import { computeDiscountRate, buildDiscountRateInput } from '@/lib/calculations/discount-rate'
 import { computeDcf } from '@/lib/calculations/dcf'
 import { computeFullProjectionPipeline } from '@/lib/calculations/projection-pipeline'
+import { computeHistoricalUpstream, buildDcfInput } from '@/lib/calculations/upstream-helpers'
 import { computeCfi } from '@/lib/calculations/cfi'
 import type { YearKeyedSeries } from '@/types/financial'
 import { formatIdr } from '@/components/financial/format'
@@ -39,74 +31,43 @@ export default function CfiPage() {
     const pipeline = computeFullProjectionPipeline({
       home, balanceSheet, incomeStatement, fixedAsset, keyDrivers,
     })
-    const { allBs, faComp, proyNoplatRows, proyFaRows, proyCfsRows, histYears3, histYears4, projYears, lastHistYear } = pipeline
+    const { allBs, proyNoplatRows, proyFaRows, proyCfsRows, histYears3, histYears4, projYears, lastHistYear } = pipeline
 
-    // ── Historical upstream for FCF ──
-    const noplatLeaf = computeNoplatLiveRows(incomeStatement.rows, histYears3)
-    const noplatComp = deriveComputedRows(NOPLAT_MANIFEST.rows, noplatLeaf, histYears3)
-    const allNoplat = { ...noplatLeaf, ...noplatComp }
-
-    const faRows = fixedAsset?.rows ?? null
-    const cfsLeaf = computeCashFlowLiveRows(balanceSheet.rows, incomeStatement.rows, faRows, null, histYears3, histYears4)
-    const cfsComp = deriveComputedRows(CASH_FLOW_STATEMENT_MANIFEST.rows, cfsLeaf, histYears3)
-    const allCfs = { ...cfsLeaf, ...cfsComp }
-
-    const fcfLeaf = computeFcfLiveRows(allNoplat, faComp, allCfs, histYears3)
-    const fcfComp = deriveComputedRows(FCF_MANIFEST.rows, fcfLeaf, histYears3)
-    const allFcf = { ...fcfLeaf, ...fcfComp }
+    // ── Historical upstream (shared helper) ──
+    const upstream = computeHistoricalUpstream({
+      balanceSheetRows: balanceSheet.rows,
+      incomeStatementRows: incomeStatement.rows,
+      fixedAssetRows: fixedAsset?.rows ?? null,
+      accPayablesRows: null,
+      allBs, histYears3, histYears4,
+    })
 
     // Historical FCF row 20
     const historicalFcf: YearKeyedSeries = {}
     for (const y of histYears3) {
-      historicalFcf[y] = allFcf[20]?.[y] ?? 0
+      historicalFcf[y] = upstream.allFcf[20]?.[y] ?? 0
     }
 
-    // ── Projected FCF (via DCF computation) ──
-    const allFa = faComp ? { ...(faRows ?? {}), ...faComp } : {}
-    const roicRows = computeRoicLiveRows(allFcf, allBs, histYears3)
-    const grData = computeGrowthRateLive(allBs, allFa, roicRows, histYears3)
-    const growthRate = grData?.result.average ?? 0
+    // ── Projected FCF (via DCF) ──
     const dr = computeDiscountRate(buildDiscountRateInput(discountRateState))
-
-    const dcfResult = computeDcf({
-      historicalNoplat: allNoplat[19]?.[lastHistYear] ?? 0,
-      historicalDepreciation: allFa[51]?.[lastHistYear] ?? 0,
-      historicalChangesCA: allCfs[8]?.[lastHistYear] ?? 0,
-      historicalChangesCL: allCfs[9]?.[lastHistYear] ?? 0,
-      historicalCapex: -(allFa[23]?.[lastHistYear] ?? 0),
-      projectedNoplat: projYears.map(y => proyNoplatRows[19]?.[y] ?? 0),
-      projectedDepreciation: projYears.map(y => proyFaRows[51]?.[y] ?? 0),
-      projectedChangesCA: projYears.map(y => proyCfsRows[8]?.[y] ?? 0),
-      projectedChangesCL: projYears.map(y => proyCfsRows[9]?.[y] ?? 0),
-      projectedCapex: projYears.map(y => -(proyFaRows[23]?.[y] ?? 0)),
-      wacc: dr.wacc,
-      growthRate,
-      interestBearingDebt: -((allBs[31]?.[lastHistYear] ?? 0) + (allBs[38]?.[lastHistYear] ?? 0)),
-      excessCash: -(roicRows[10]?.[lastHistYear] ?? 0),
-      idleAsset: -(roicRows[9]?.[lastHistYear] ?? 0),
-    })
+    const dcfResult = computeDcf(buildDcfInput({
+      upstream, allBs, lastHistYear, projYears,
+      proyNoplatRows, proyFaRows, proyCfsRows,
+      wacc: dr.wacc, growthRate: upstream.growthRate,
+    }))
 
     const projectedFcf: YearKeyedSeries = {}
-    projYears.forEach((y, i) => {
-      projectedFcf[y] = dcfResult.projectedFcf[i] ?? 0
-    })
+    projYears.forEach((y, i) => { projectedFcf[y] = dcfResult.projectedFcf[i] ?? 0 })
 
     // ── Non-Op CF ──
     const isRows = incomeStatement.rows
     const historicalNonOpCf: YearKeyedSeries = {}
-    for (const y of histYears3) {
-      historicalNonOpCf[y] = isRows[30]?.[y] ?? 0
-    }
+    for (const y of histYears3) { historicalNonOpCf[y] = isRows[30]?.[y] ?? 0 }
 
-    const proyLrRows = pipeline.proyLrRows
     const projectedNonOpCf: YearKeyedSeries = {}
-    for (const y of projYears) {
-      projectedNonOpCf[y] = proyLrRows[34]?.[y] ?? 0
-    }
+    for (const y of projYears) { projectedNonOpCf[y] = pipeline.proyLrRows[34]?.[y] ?? 0 }
 
-    // ── Compute CFI ──
     const cfiResult = computeCfi({ historicalFcf, projectedFcf, historicalNonOpCf, projectedNonOpCf })
-
     const allYears = [...histYears3, ...projYears]
     return { cfiResult, histYears3, projYears, allYears }
   }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, keyDrivers, discountRateState])
@@ -127,7 +88,7 @@ export default function CfiPage() {
     )
   }
 
-  const { cfiResult, histYears3, projYears, allYears } = data
+  const { cfiResult, projYears, allYears } = data
   const projStart = projYears[0]!
 
   return (
@@ -140,8 +101,8 @@ export default function CfiPage() {
           <thead>
             <tr className="border-b border-grid">
               <th className="px-3 py-1 text-left font-medium text-ink-muted" />
-              {histYears3.length > 0 && (
-                <th colSpan={histYears3.length} className="px-3 py-1 text-center text-xs font-medium uppercase tracking-wider text-ink-muted">
+              {data.histYears3.length > 0 && (
+                <th colSpan={data.histYears3.length} className="px-3 py-1 text-center text-xs font-medium uppercase tracking-wider text-ink-muted">
                   Historis
                 </th>
               )}
