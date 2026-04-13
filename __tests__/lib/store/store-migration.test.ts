@@ -13,13 +13,18 @@ const HOME_FIXTURE = {
   dlocPercent: 0,
 }
 
-describe('migratePersistedState — v1 → v8 (chained)', () => {
-  it('preserves home, initializes all slices, adds v8 fields', () => {
+describe('migratePersistedState — v1 → v9 (chained)', () => {
+  it('preserves home, initializes all slices, adds v8+v9 fields', () => {
     const v1State = { home: HOME_FIXTURE }
     const migrated = migratePersistedState(v1State, 1) as Record<string, unknown>
     const home = migrated.home as Record<string, unknown>
     expect(home.namaPerusahaan).toBe('PT Test Sejahtera')
     expect(home.nilaiNominalPerSaham).toBe(1)
+    // v9 fields
+    expect(home.namaSubjekPajak).toBe('')
+    expect(home.npwpSubjekPajak).toBe('')
+    expect(home.jenisSubjekPajak).toBe('orang_pribadi')
+    expect(home.jenisInformasiPeralihan).toBe('lembar_saham')
     expect(migrated.dlom).toBeNull()
     expect(migrated.dloc).toBeNull()
     expect(migrated.balanceSheet).toBeNull()
@@ -145,8 +150,8 @@ describe('migratePersistedState — v7 → v8', () => {
   })
 })
 
-describe('migratePersistedState — v8 and future', () => {
-  it('v8 → v8 passes through unchanged (no-op)', () => {
+describe('migratePersistedState — v8 → v9', () => {
+  it('adds subjek pajak + jenisInformasiPeralihan to home', () => {
     const v8State = {
       home: { ...HOME_FIXTURE, nilaiNominalPerSaham: 1 },
       dlom: null,
@@ -162,14 +167,58 @@ describe('migratePersistedState — v8 and future', () => {
       faAdjustment: 0,
       nilaiPengalihanDilaporkan: 0,
     }
-    const migrated = migratePersistedState(v8State, 8)
-    expect(migrated).toBe(v8State)
+    const migrated = migratePersistedState(v8State, 8) as Record<string, unknown>
+    const home = migrated.home as Record<string, unknown>
+    expect(home.namaSubjekPajak).toBe('')
+    expect(home.npwpSubjekPajak).toBe('')
+    expect(home.jenisSubjekPajak).toBe('orang_pribadi')
+    expect(home.jenisInformasiPeralihan).toBe('lembar_saham')
+    // Existing fields preserved
+    expect(home.namaPerusahaan).toBe('PT Test Sejahtera')
+    expect(home.nilaiNominalPerSaham).toBe(1)
   })
 
-  it('passes future versions through unchanged', () => {
+  it('handles null home during v8→v9 migration', () => {
+    const v8NullHome = {
+      home: null,
+      faAdjustment: 0,
+      nilaiPengalihanDilaporkan: 0,
+    }
+    const migrated = migratePersistedState(v8NullHome, 8) as Record<string, unknown>
+    expect(migrated.home).toBeNull()
+  })
+
+  it('preserves existing v9 fields if already present', () => {
+    const v8WithFields = {
+      home: {
+        ...HOME_FIXTURE,
+        nilaiNominalPerSaham: 1,
+        namaSubjekPajak: 'Existing Subjek',
+        npwpSubjekPajak: '11.111.111.1-111.111',
+        jenisSubjekPajak: 'badan',
+        jenisInformasiPeralihan: 'modal_disetor',
+      },
+    }
+    const migrated = migratePersistedState(v8WithFields, 8) as Record<string, unknown>
+    const home = migrated.home as Record<string, unknown>
+    // ?? operator: existing values preserved over defaults
+    expect(home.namaSubjekPajak).toBe('Existing Subjek')
+    expect(home.jenisSubjekPajak).toBe('badan')
+    expect(home.jenisInformasiPeralihan).toBe('modal_disetor')
+  })
+})
+
+describe('migratePersistedState — v9 and future', () => {
+  it('v9 → v9 passes through unchanged (no-op)', () => {
     const v9State = { home: null, futureSlice: {} }
     const migrated = migratePersistedState(v9State, 9)
     expect(migrated).toBe(v9State)
+  })
+
+  it('passes future versions through unchanged', () => {
+    const v10State = { home: null, futureSlice: {} }
+    const migrated = migratePersistedState(v10State, 10)
+    expect(migrated).toBe(v10State)
   })
 
   it('passes non-object payloads through unchanged', () => {

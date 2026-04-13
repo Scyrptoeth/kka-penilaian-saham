@@ -116,6 +116,7 @@ export default function SimulasiPotensiPage() {
       dlocPercent: home.dlocPercent,
       proporsiKepemilikan: computeProporsiSaham(home),
       nilaiPengalihanDilaporkan,
+      jenisSubjekPajak: home.jenisSubjekPajak,
     })
   }, [equityValues, home, method, nilaiPengalihanDilaporkan])
 

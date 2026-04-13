@@ -5,9 +5,14 @@
  *
  * Takes equity value from any valuation method (DCF/AAM/EEM),
  * applies DLOM + DLOC discounts, computes market value portion,
- * then calculates progressive PPh Pasal 17 on the difference
- * between market value and reported transfer value.
+ * then calculates PPh on the difference between market value and
+ * reported transfer value.
+ *
+ * Tax computation depends on `jenisSubjekPajak`:
+ *   - 'orang_pribadi' → PPh Pasal 17 progressive brackets (5 tiers)
+ *   - 'badan'         → flat 22% corporate tax rate
  */
+import type { JenisSubjekPajak } from '@/types/financial'
 
 /**
  * PPh Pasal 17 progressive brackets.
@@ -22,6 +27,9 @@ const PPH_BRACKETS = [
   { rate: 0.35, width: Infinity },
 ] as const
 
+/** PPh Badan flat rate — named constant for reuse. */
+export const TARIF_PPH_BADAN = 0.22
+
 export interface SimulasiPotensiInput {
   /** Equity value (100%) from DCF/AAM/EEM — before DLOM/DLOC. */
   equityValue100: number
@@ -33,6 +41,8 @@ export interface SimulasiPotensiInput {
   proporsiKepemilikan: number
   /** Reported share transfer value from taxpayer (user input). */
   nilaiPengalihanDilaporkan: number
+  /** Tax subject type — determines progressive (OP) vs flat (Badan) rate. */
+  jenisSubjekPajak: JenisSubjekPajak
 }
 
 export interface SimulasiPotensiOutput {
@@ -65,22 +75,32 @@ export function computeSimulasiPotensi(input: SimulasiPotensiInput): SimulasiPot
   const marketValuePortion = marketValueEquity100 * proporsiKepemilikan
   const potensiPengalihan = marketValuePortion - nilaiPengalihanDilaporkan
 
-  // PPh Pasal 17 progressive tax
-  const taxBrackets: Array<{ rate: number; taxableAmount: number; tax: number }> = []
+  const commonFields = {
+    dlomAmount, equityLessDlom, dlocAmount,
+    marketValueEquity100, marketValuePortion, potensiPengalihan,
+  }
 
-  if (potensiPengalihan <= 0) {
-    // No tax due — reported value >= market value
-    for (const bracket of PPH_BRACKETS) {
-      taxBrackets.push({ rate: bracket.rate, taxableAmount: 0, tax: 0 })
-    }
+  // PPh Badan: flat 22% (Session 019)
+  if (input.jenisSubjekPajak === 'badan') {
+    const taxableAmount = Math.max(0, potensiPengalihan)
+    const tax = taxableAmount * TARIF_PPH_BADAN
     return {
-      dlomAmount, equityLessDlom, dlocAmount,
-      marketValueEquity100, marketValuePortion, potensiPengalihan,
-      taxBrackets, totalPPhKurangBayar: 0,
+      ...commonFields,
+      taxBrackets: [{ rate: TARIF_PPH_BADAN, taxableAmount, tax }],
+      totalPPhKurangBayar: tax,
     }
   }
 
-  // Apply progressive brackets on potensiPengalihan
+  // PPh Orang Pribadi: Pasal 17 progressive brackets
+  const taxBrackets: Array<{ rate: number; taxableAmount: number; tax: number }> = []
+
+  if (potensiPengalihan <= 0) {
+    for (const bracket of PPH_BRACKETS) {
+      taxBrackets.push({ rate: bracket.rate, taxableAmount: 0, tax: 0 })
+    }
+    return { ...commonFields, taxBrackets, totalPPhKurangBayar: 0 }
+  }
+
   let remaining = potensiPengalihan
   for (const bracket of PPH_BRACKETS) {
     const taxableAmount = Math.min(remaining, bracket.width)
@@ -90,7 +110,6 @@ export function computeSimulasiPotensi(input: SimulasiPotensiInput): SimulasiPot
     if (remaining <= 0) break
   }
 
-  // Fill remaining brackets with zero if we exhausted early
   while (taxBrackets.length < PPH_BRACKETS.length) {
     const bracket = PPH_BRACKETS[taxBrackets.length]!
     taxBrackets.push({ rate: bracket.rate, taxableAmount: 0, tax: 0 })
@@ -98,11 +117,7 @@ export function computeSimulasiPotensi(input: SimulasiPotensiInput): SimulasiPot
 
   const totalPPhKurangBayar = taxBrackets.reduce((sum, b) => sum + b.tax, 0)
 
-  return {
-    dlomAmount, equityLessDlom, dlocAmount,
-    marketValueEquity100, marketValuePortion, potensiPengalihan,
-    taxBrackets, totalPPhKurangBayar,
-  }
+  return { ...commonFields, taxBrackets, totalPPhKurangBayar }
 }
 
 /**

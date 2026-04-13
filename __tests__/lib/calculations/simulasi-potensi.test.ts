@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { computeSimulasiPotensi, computeResistensiWp } from '@/lib/calculations/simulasi-potensi'
+import { computeSimulasiPotensi, computeResistensiWp, TARIF_PPH_BADAN } from '@/lib/calculations/simulasi-potensi'
 
 /**
  * SIMULASI POTENSI (AAM) fixture from kka-penilaian-saham.xlsx.
@@ -27,13 +27,14 @@ import { computeSimulasiPotensi, computeResistensiWp } from '@/lib/calculations/
 
 const PRECISION = 2
 
-describe('computeSimulasiPotensi matches Excel fixture', () => {
+describe('computeSimulasiPotensi — Orang Pribadi (progressive PPh Pasal 17)', () => {
   const result = computeSimulasiPotensi({
     equityValue100: 26_435_841_103,
     dlomPercent: -0.30,
     dlocPercent: -0.50,
     proporsiKepemilikan: 0.30,
     nilaiPengalihanDilaporkan: 600_000_000,
+    jenisSubjekPajak: 'orang_pribadi',
   })
 
   it('computes DLOM discount', () => {
@@ -95,14 +96,66 @@ describe('computeSimulasiPotensi matches Excel fixture', () => {
   })
 })
 
-describe('computeSimulasiPotensi edge cases', () => {
+describe('computeSimulasiPotensi — Badan (flat 22%)', () => {
+  it('applies flat 22% rate on positive potensi', () => {
+    const result = computeSimulasiPotensi({
+      equityValue100: 26_435_841_103,
+      dlomPercent: -0.30,
+      dlocPercent: -0.50,
+      proporsiKepemilikan: 0.30,
+      nilaiPengalihanDilaporkan: 600_000_000,
+      jenisSubjekPajak: 'badan',
+    })
+
+    // Potensi = 2,175,763,315.815 (same as OP case)
+    expect(result.potensiPengalihan).toBeCloseTo(2_175_763_315.815, PRECISION)
+
+    // Single bracket at 22%
+    expect(result.taxBrackets).toHaveLength(1)
+    expect(result.taxBrackets[0]!.rate).toBe(TARIF_PPH_BADAN)
+    expect(result.taxBrackets[0]!.taxableAmount).toBeCloseTo(2_175_763_315.815, PRECISION)
+    expect(result.taxBrackets[0]!.tax).toBeCloseTo(2_175_763_315.815 * 0.22, PRECISION)
+
+    expect(result.totalPPhKurangBayar).toBeCloseTo(478_667_929.4793, PRECISION)
+  })
+
+  it('returns zero tax when potensi is negative', () => {
+    const result = computeSimulasiPotensi({
+      equityValue100: 100_000_000,
+      dlomPercent: -0.50,
+      dlocPercent: -0.50,
+      proporsiKepemilikan: 1,
+      nilaiPengalihanDilaporkan: 999_999_999,
+      jenisSubjekPajak: 'badan',
+    })
+    expect(result.potensiPengalihan).toBeLessThan(0)
+    expect(result.totalPPhKurangBayar).toBe(0)
+    expect(result.taxBrackets[0]!.taxableAmount).toBe(0)
+  })
+
+  it('returns zero tax when potensi is exactly zero', () => {
+    const result = computeSimulasiPotensi({
+      equityValue100: 100_000_000,
+      dlomPercent: 0,
+      dlocPercent: 0,
+      proporsiKepemilikan: 1,
+      nilaiPengalihanDilaporkan: 100_000_000,
+      jenisSubjekPajak: 'badan',
+    })
+    expect(result.potensiPengalihan).toBe(0)
+    expect(result.totalPPhKurangBayar).toBe(0)
+  })
+})
+
+describe('computeSimulasiPotensi — Orang Pribadi edge cases', () => {
   it('handles potensi = 0 (reported >= market)', () => {
     const result = computeSimulasiPotensi({
       equityValue100: 1_000_000_000,
       dlomPercent: -0.30,
       dlocPercent: -0.50,
       proporsiKepemilikan: 1,
-      nilaiPengalihanDilaporkan: 999_999_999_999, // way more than market
+      nilaiPengalihanDilaporkan: 999_999_999_999,
+      jenisSubjekPajak: 'orang_pribadi',
     })
     expect(result.potensiPengalihan).toBeLessThan(0)
     expect(result.totalPPhKurangBayar).toBe(0)
@@ -115,12 +168,18 @@ describe('computeSimulasiPotensi edge cases', () => {
       dlocPercent: 0,
       proporsiKepemilikan: 1,
       nilaiPengalihanDilaporkan: 50_000_000,
+      jenisSubjekPajak: 'orang_pribadi',
     })
-    // Potensi = 100M - 50M = 50M, all in 5% bracket
     expect(result.potensiPengalihan).toBe(50_000_000)
-    expect(result.totalPPhKurangBayar).toBe(2_500_000) // 5% × 50M
+    expect(result.totalPPhKurangBayar).toBe(2_500_000)
     expect(result.taxBrackets[0]!.taxableAmount).toBe(50_000_000)
     expect(result.taxBrackets[1]!.taxableAmount).toBe(0)
+  })
+})
+
+describe('TARIF_PPH_BADAN constant', () => {
+  it('is 0.22', () => {
+    expect(TARIF_PPH_BADAN).toBe(0.22)
   })
 })
 

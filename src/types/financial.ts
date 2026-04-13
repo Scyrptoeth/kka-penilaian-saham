@@ -20,18 +20,28 @@ export type YearKeyedSeries = Record<number, number>
 
 export type JenisPerusahaan = 'tertutup' | 'terbuka'
 export type ObjekPenilaian = 'saham' | 'bisnis'
+export type JenisSubjekPajak = 'orang_pribadi' | 'badan'
+export type JenisInformasiPeralihan = 'lembar_saham' | 'modal_disetor'
 
 /** HOME sheet — master input dari user */
 export interface HomeInputs {
+  // Objek Pajak (perusahaan yang dinilai)
   namaPerusahaan: string
   npwp: string
+  // Subjek Pajak (pihak yang mengalihkan saham)
+  namaSubjekPajak: string
+  npwpSubjekPajak: string
+  jenisSubjekPajak: JenisSubjekPajak
+  // Informasi perusahaan
   jenisPerusahaan: JenisPerusahaan
+  objekPenilaian: ObjekPenilaian
+  jenisInformasiPeralihan: JenisInformasiPeralihan
+  // Data kuantitatif — field names generic (saham OR modal disetor)
   jumlahSahamBeredar: number
   jumlahSahamYangDinilai: number
-  tahunTransaksi: number
-  objekPenilaian: ObjekPenilaian
-  /** Par value per share (Rp). Used in AAM paidUpCapitalDeduction. */
+  /** Par value per share (Rp). Default 1. Used in AAM paidUpCapitalDeduction. */
   nilaiNominalPerSaham: number
+  tahunTransaksi: number
   /** Auto-computed summary from DLOM sheet */
   dlomPercent: number
   /** Auto-computed summary from DLOC(PFC) sheet */

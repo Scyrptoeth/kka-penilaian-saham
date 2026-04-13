@@ -158,12 +158,14 @@ interface KkaState {
   resetBorrowingCapInput: () => void
   setFaAdjustment: (v: number) => void
   setNilaiPengalihanDilaporkan: (v: number) => void
+  /** Reset ALL store slices to initial state (destructive — clears all user data). */
+  resetAll: () => void
   _hasHydrated: boolean
   _setHasHydrated: (hydrated: boolean) => void
 }
 
 const STORE_KEY = 'kka-penilaian-saham'
-const STORE_VERSION = 8
+const STORE_VERSION = 9
 
 /**
  * Migrate persisted state from older versions to the current schema.
@@ -179,6 +181,8 @@ const STORE_VERSION = 8
  *   v6 → v7: Session 016 added `borrowingCapInput`
  *   v7 → v8: Session 017 added `nilaiNominalPerSaham` (in home),
  *             `faAdjustment`, `nilaiPengalihanDilaporkan`
+ *   v8 → v9: Session 019 added subjek pajak fields + jenisInformasiPeralihan
+ *             to HomeInputs + `resetAll` action
  *
  * Without this function, Zustand persist discards the entire older payload
  * and the user silently loses their HOME (and now DLOM/DLOC) data on the
@@ -258,6 +262,23 @@ export function migratePersistedState(
     }
   }
 
+  if (fromVersion < 9) {
+    // Add subjek pajak + jenis informasi peralihan fields to home
+    if (state.home && typeof state.home === 'object') {
+      const home = state.home as Record<string, unknown>
+      state = {
+        ...state,
+        home: {
+          ...home,
+          namaSubjekPajak: home.namaSubjekPajak ?? '',
+          npwpSubjekPajak: home.npwpSubjekPajak ?? '',
+          jenisSubjekPajak: home.jenisSubjekPajak ?? 'orang_pribadi',
+          jenisInformasiPeralihan: home.jenisInformasiPeralihan ?? 'lembar_saham',
+        },
+      }
+    }
+  }
+
   return state
 }
 
@@ -307,6 +328,21 @@ export const useKkaStore = create<KkaState>()(
       resetBorrowingCapInput: () => set({ borrowingCapInput: null }),
       setFaAdjustment: (v) => set({ faAdjustment: v }),
       setNilaiPengalihanDilaporkan: (v) => set({ nilaiPengalihanDilaporkan: v }),
+      resetAll: () => set({
+        home: null,
+        dlom: null,
+        dloc: null,
+        balanceSheet: null,
+        incomeStatement: null,
+        fixedAsset: null,
+        accPayables: null,
+        wacc: null,
+        discountRate: null,
+        keyDrivers: null,
+        borrowingCapInput: null,
+        faAdjustment: 0,
+        nilaiPengalihanDilaporkan: 0,
+      }),
       _hasHydrated: false,
       _setHasHydrated: (hydrated) => set({ _hasHydrated: hydrated }),
     }),
