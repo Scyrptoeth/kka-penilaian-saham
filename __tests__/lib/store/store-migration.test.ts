@@ -208,17 +208,38 @@ describe('migratePersistedState — v8 → v9', () => {
   })
 })
 
-describe('migratePersistedState — v9 and future', () => {
-  it('v9 → v9 passes through unchanged (no-op)', () => {
-    const v9State = { home: null, futureSlice: {} }
-    const migrated = migratePersistedState(v9State, 9)
-    expect(migrated).toBe(v9State)
+describe('migratePersistedState — v9 → v10 (BS dynamic accounts)', () => {
+  it('extends balanceSheet with accounts, yearCount, language', () => {
+    const v9State = {
+      home: { ...HOME_FIXTURE, namaSubjekPajak: '', npwpSubjekPajak: '', jenisSubjekPajak: 'orang_pribadi', jenisInformasiPeralihan: 'lembar_saham', nilaiNominalPerSaham: 1 },
+      balanceSheet: { rows: { 8: { 2020: 100 } } },
+    }
+    const migrated = migratePersistedState(v9State, 9) as Record<string, unknown>
+    const bs = migrated.balanceSheet as Record<string, unknown>
+    expect(bs.accounts).toEqual([])
+    expect(bs.yearCount).toBe(1)
+    expect(bs.language).toBe('en')
+    expect(bs.rows).toEqual({ 8: { 2020: 100 } })
   })
 
-  it('passes future versions through unchanged', () => {
+  it('handles null balanceSheet during v9→v10 migration', () => {
+    const v9Null = { home: null, balanceSheet: null }
+    const migrated = migratePersistedState(v9Null, 9) as Record<string, unknown>
+    expect(migrated.balanceSheet).toBeNull()
+  })
+})
+
+describe('migratePersistedState — v10 and future', () => {
+  it('v10 → v10 passes through unchanged (no-op)', () => {
     const v10State = { home: null, futureSlice: {} }
     const migrated = migratePersistedState(v10State, 10)
     expect(migrated).toBe(v10State)
+  })
+
+  it('passes future versions through unchanged', () => {
+    const v11State = { home: null, futureSlice: {} }
+    const migrated = migratePersistedState(v11State, 11)
+    expect(migrated).toBe(v11State)
   })
 
   it('passes non-object payloads through unchanged', () => {

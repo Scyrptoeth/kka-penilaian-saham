@@ -15,9 +15,16 @@
  */
 
 import type { YearKeyedSeries } from '@/types/financial'
+import type { BsAccountEntry } from '@/data/catalogs/balance-sheet-catalog'
 
 export interface BalanceSheetInputState {
-  /** excelRow → { year → value }. Only editable leaf rows stored. */
+  /** User-selected accounts — ordered as displayed. Added Session 020. */
+  accounts: BsAccountEntry[]
+  /** Number of historical years to display (minimum 1 = Y-1 only). */
+  yearCount: number
+  /** Display language for account labels: 'en' | 'id'. */
+  language: 'en' | 'id'
+  /** excelRow → { year → value }. BACKWARD-COMPATIBLE — shape unchanged. */
   rows: Record<number, YearKeyedSeries>
 }
 

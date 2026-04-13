@@ -188,7 +188,7 @@ export interface SheetManifest {
    *   4 → BS / IS (four historical years in the source workbook)
    *   3 → CFS / FA / FR / FCF / NOPLAT / Growth / ROIC
    */
-  historicalYearCount?: 3 | 4
+  historicalYearCount?: number
   /**
    * Declarative derivation specs. Each entry produces either a common-size
    * or growth column-group via the generic primitives in `./build.ts`.

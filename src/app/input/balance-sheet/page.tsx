@@ -2,16 +2,14 @@
 
 import Link from 'next/link'
 import { useKkaStore } from '@/lib/store/useKkaStore'
-import { ManifestEditor } from '@/components/forms/ManifestEditor'
-import { BALANCE_SHEET_MANIFEST } from '@/data/manifests/balance-sheet'
+import DynamicBsEditor from '@/components/forms/DynamicBsEditor'
 
 /**
- * Balance Sheet input page — pilot for Phase 3 live data mode.
+ * Balance Sheet input page — dynamic accounts, bilingual labels,
+ * dynamic year columns (Session 020).
  *
- * Parent owns the hydration gate and the HOME guard; `<ManifestEditor>`
- * handles the seeded useState, debounced persist, and computed-row
- * rendering in a generic way. This file stays tiny so adding the next
- * input sheet (IS, FA) is ~15 lines + one manifest import.
+ * Parent owns the hydration gate and HOME guard; DynamicBsEditor
+ * handles all state management, account selection, and rendering.
  */
 export default function InputBalanceSheetPage() {
   const home = useKkaStore((s) => s.home)
@@ -48,14 +46,5 @@ export default function InputBalanceSheetPage() {
     )
   }
 
-  return (
-    <ManifestEditor
-      manifest={BALANCE_SHEET_MANIFEST}
-      tahunTransaksi={home.tahunTransaksi}
-      yearCount={4}
-      sliceSelector={(s) => s.balanceSheet}
-      sliceSetter={(s) => s.setBalanceSheet}
-      headerTitle="Input — Balance Sheet"
-    />
-  )
+  return <DynamicBsEditor />
 }

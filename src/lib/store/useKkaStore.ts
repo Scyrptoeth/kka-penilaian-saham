@@ -165,7 +165,7 @@ interface KkaState {
 }
 
 const STORE_KEY = 'kka-penilaian-saham'
-const STORE_VERSION = 9
+const STORE_VERSION = 10
 
 /**
  * Migrate persisted state from older versions to the current schema.
@@ -183,6 +183,8 @@ const STORE_VERSION = 9
  *             `faAdjustment`, `nilaiPengalihanDilaporkan`
  *   v8 → v9: Session 019 added subjek pajak fields + jenisInformasiPeralihan
  *             to HomeInputs + `resetAll` action
+ *   v9 → v10: Session 020 extended BalanceSheetInputState with accounts,
+ *              yearCount, language for dynamic BS rows
  *
  * Without this function, Zustand persist discards the entire older payload
  * and the user silently loses their HOME (and now DLOM/DLOC) data on the
@@ -274,6 +276,22 @@ export function migratePersistedState(
           npwpSubjekPajak: home.npwpSubjekPajak ?? '',
           jenisSubjekPajak: home.jenisSubjekPajak ?? 'orang_pribadi',
           jenisInformasiPeralihan: home.jenisInformasiPeralihan ?? 'lembar_saham',
+        },
+      }
+    }
+  }
+
+  if (fromVersion < 10) {
+    // Extend BalanceSheetInputState with accounts, yearCount, language
+    if (state.balanceSheet && typeof state.balanceSheet === 'object') {
+      const bs = state.balanceSheet as Record<string, unknown>
+      state = {
+        ...state,
+        balanceSheet: {
+          accounts: bs.accounts ?? [],
+          yearCount: bs.yearCount ?? 1,
+          language: bs.language ?? 'en',
+          rows: bs.rows ?? {},
         },
       }
     }
