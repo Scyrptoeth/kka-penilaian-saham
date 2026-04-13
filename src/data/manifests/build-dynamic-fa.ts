@@ -133,10 +133,9 @@ function buildRows(
   rows.push({ label: t.beginning, type: 'header', indent: 0 })
   rows.push(...leafRows(accounts, FA_OFFSET.ACQ_BEGINNING, language))
   rows.push({
-    label: '',
+    label: t.addAccount,
     type: 'add-button',
     section: 'fixed_asset',
-    buttonLabel: t.addAccount,
   })
   rows.push({
     excelRow: FA_SUBTOTAL.TOTAL_ACQ_BEGINNING,
