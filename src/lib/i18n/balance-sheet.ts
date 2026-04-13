@@ -50,6 +50,9 @@ interface BsStrings {
   addYear: string
   reduceYear: string
 
+  // Per-section add-button labels (fully bilingual)
+  addButtonLabels: Record<string, string>
+
   // UI controls
   addAccount: string
   manualEntry: string
@@ -110,6 +113,14 @@ const en: BsStrings = {
   addYear: '+ Add Year',
   reduceYear: '- Reduce',
 
+  addButtonLabels: {
+    current_assets: '+ Add Current Asset',
+    other_non_current_assets: '+ Add Non-Current Asset',
+    current_liabilities: '+ Add Current Liability',
+    non_current_liabilities: '+ Add Non-Current Liability',
+    equity: '+ Add Equity Account',
+  },
+
   addAccount: '+ Add Account',
   manualEntry: 'Manual Entry...',
   allAccountsAdded: 'All accounts added',
@@ -169,6 +180,14 @@ const id: BsStrings = {
   addHistoricalYear: 'TAMBAH TAHUN HISTORIS',
   addYear: '+ Tambah Tahun',
   reduceYear: '- Kurangi',
+
+  addButtonLabels: {
+    current_assets: '+ Tambah Aset Lancar',
+    other_non_current_assets: '+ Tambah Aset Tidak Lancar Lainnya',
+    current_liabilities: '+ Tambah Liabilitas Jangka Pendek',
+    non_current_liabilities: '+ Tambah Liabilitas Jangka Panjang',
+    equity: '+ Tambah Akun Ekuitas',
+  },
 
   addAccount: '+ Tambah Akun',
   manualEntry: 'Isi Manual...',

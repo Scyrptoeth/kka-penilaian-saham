@@ -106,7 +106,9 @@ function buildRows(
     )
     .map((a) => a.excelRow)
 
-  const t = getBsStrings(language).lineItem
+  const strings = getBsStrings(language)
+  const t = strings.lineItem
+  const addLabel = strings.addButtonLabels
 
   const rows: ManifestRow[] = [
     // === ASSETS ===
@@ -114,7 +116,7 @@ function buildRows(
 
     { label: t.currentAssets, type: 'header', indent: 0 },
     ...leafRows(accounts, 'current_assets', language),
-    { label: '(+ Tambah Akun Current Asset)', type: 'add-button', section: 'current_assets' },
+    { label: addLabel.current_assets, type: 'add-button', section: 'current_assets' },
     { excelRow: 16, label: t.totalCurrentAssets, type: 'subtotal', computedFrom: currentAssetRows },
 
     { label: '', type: 'separator' },
@@ -125,7 +127,7 @@ function buildRows(
     { excelRow: 21, label: t.accumulatedDepreciation, type: 'cross-ref', indent: 1 },
     { excelRow: 22, label: t.fixedAssetsNet, type: 'subtotal', computedFrom: [20, 21] },
     ...leafRows(accounts, ['other_non_current_assets', 'intangible_assets'], language),
-    { label: '(+ Tambah Akun Non-Current Asset)', type: 'add-button', section: 'other_non_current_assets' },
+    { label: addLabel.other_non_current_assets, type: 'add-button', section: 'other_non_current_assets' },
     {
       excelRow: 25,
       label: t.totalNonCurrentAssets,
@@ -143,14 +145,14 @@ function buildRows(
 
     { label: t.currentLiabilities, type: 'header', indent: 0 },
     ...leafRows(accounts, 'current_liabilities', language),
-    { label: '(+ Tambah Akun Current Liability)', type: 'add-button', section: 'current_liabilities' },
+    { label: addLabel.current_liabilities, type: 'add-button', section: 'current_liabilities' },
     { excelRow: 35, label: t.totalCurrentLiabilities, type: 'subtotal', computedFrom: currentLiabRows },
 
     { label: '', type: 'separator' },
 
     { label: t.nonCurrentLiabilities, type: 'header', indent: 0 },
     ...leafRows(accounts, 'non_current_liabilities', language),
-    { label: '(+ Tambah Akun Non-Current Liability)', type: 'add-button', section: 'non_current_liabilities' },
+    { label: addLabel.non_current_liabilities, type: 'add-button', section: 'non_current_liabilities' },
     { excelRow: 40, label: t.totalNonCurrentLiabilities, type: 'subtotal', computedFrom: nonCurrentLiabRows },
 
     { label: '', type: 'separator' },
@@ -161,7 +163,7 @@ function buildRows(
     // Equity
     { label: t.shareholdersEquity, type: 'header', indent: 0 },
     ...leafRows(accounts, 'equity', language),
-    { label: '(+ Tambah Akun Equity)', type: 'add-button', section: 'equity' },
+    { label: addLabel.equity, type: 'add-button', section: 'equity' },
     ...(retainedEarningsRows.length > 0
       ? [{ excelRow: 48, label: t.retainedEarningsEnding, type: 'subtotal' as const, computedFrom: retainedEarningsRows }]
       : []),
