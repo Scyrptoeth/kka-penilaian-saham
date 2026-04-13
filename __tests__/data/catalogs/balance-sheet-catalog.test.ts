@@ -19,7 +19,7 @@ describe('balance-sheet-catalog', () => {
 
   it('getCatalogBySection returns sorted results (EN)', () => {
     const currentAssets = getCatalogBySection('current_assets', 'en')
-    expect(currentAssets.length).toBe(7)
+    expect(currentAssets.length).toBe(20) // 7 original + 13 extended
     for (let i = 1; i < currentAssets.length; i++) {
       expect(currentAssets[i]!.labelEn >= currentAssets[i - 1]!.labelEn).toBe(true)
     }
@@ -27,7 +27,7 @@ describe('balance-sheet-catalog', () => {
 
   it('getCatalogBySection returns sorted results (ID)', () => {
     const currentAssets = getCatalogBySection('current_assets', 'id')
-    expect(currentAssets.length).toBe(7)
+    expect(currentAssets.length).toBe(20)
     for (let i = 1; i < currentAssets.length; i++) {
       expect(currentAssets[i]!.labelId >= currentAssets[i - 1]!.labelId).toBe(true)
     }
@@ -46,10 +46,27 @@ describe('balance-sheet-catalog', () => {
     expect(generateCustomExcelRow(existing)).toBe(1003)
   })
 
-  it('catalog covers all existing BS leaf rows from manifest', () => {
-    // Verified against kka-penilaian-saham.xlsx BALANCE SHEET sheet
-    const expectedLeafRows = [8, 9, 10, 11, 12, 13, 14, 20, 21, 23, 24, 31, 32, 33, 34, 38, 39, 43, 44, 46, 47]
-    const catalogRows = BS_CATALOG_ALL.map((a) => a.excelRow).sort((a, b) => a - b)
-    expect(catalogRows).toEqual(expectedLeafRows)
+  it('catalog includes all 21 original Excel template rows', () => {
+    const originalRows = [8, 9, 10, 11, 12, 13, 14, 20, 21, 23, 24, 31, 32, 33, 34, 38, 39, 43, 44, 46, 47]
+    const catalogRows = BS_CATALOG_ALL.map((a) => a.excelRow)
+    for (const row of originalRows) {
+      expect(catalogRows).toContain(row)
+    }
+  })
+
+  it('has 84 total accounts across all sections', () => {
+    expect(BS_CATALOG_ALL.length).toBe(84)
+  })
+
+  it('extended accounts use correct excelRow ranges', () => {
+    for (const a of BS_CATALOG_ALL) {
+      if (a.excelRow >= 100 && a.excelRow < 120) expect(a.section).toBe('current_assets')
+      if (a.excelRow >= 120 && a.excelRow < 140) expect(a.section).toBe('fixed_assets')
+      if (a.excelRow >= 140 && a.excelRow < 160) expect(a.section).toBe('intangible_assets')
+      if (a.excelRow >= 160 && a.excelRow < 180) expect(a.section).toBe('other_non_current_assets')
+      if (a.excelRow >= 200 && a.excelRow < 220) expect(a.section).toBe('current_liabilities')
+      if (a.excelRow >= 220 && a.excelRow < 240) expect(a.section).toBe('non_current_liabilities')
+      if (a.excelRow >= 300 && a.excelRow < 320) expect(a.section).toBe('equity')
+    }
   })
 })

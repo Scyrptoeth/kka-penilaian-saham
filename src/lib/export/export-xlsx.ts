@@ -31,6 +31,12 @@ import {
   offsetCol,
   type ScalarCellMapping,
 } from './cell-mapping'
+import {
+  BS_CATALOG_ALL,
+  type BsAccountEntry,
+  type BsSection,
+} from '@/data/catalogs/balance-sheet-catalog'
+import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -78,7 +84,12 @@ export async function exportToXlsx(state: ExportableState): Promise<Blob> {
   injectDlocAnswers(workbook, state)
   injectDlomJenisPerusahaan(workbook, state)
 
-  // 5. Generate output
+  // 5. Add "RINCIAN NERACA" detail sheet with ALL BS accounts
+  if (state.balanceSheet && state.home) {
+    addBsDetailSheet(workbook, state.balanceSheet, state.home.tahunTransaksi)
+  }
+
+  // 6. Generate output
   const outBuffer = await workbook.xlsx.writeBuffer()
   return new Blob([outBuffer], {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.xlsx',
@@ -356,4 +367,133 @@ function injectDlomJenisPerusahaan(workbook: ExcelJS.Workbook, state: Exportable
     jenis === 'tertutup'
       ? 'DLOM Perusahaan tertutup '
       : 'DLOM Perusahaan terbuka '
+}
+
+// ---------------------------------------------------------------------------
+// Internal: "RINCIAN NERACA" detail sheet — ALL BS accounts with values
+// ---------------------------------------------------------------------------
+
+const SECTION_ORDER: readonly BsSection[] = [
+  'current_assets',
+  'fixed_assets',
+  'other_non_current_assets',
+  'intangible_assets',
+  'current_liabilities',
+  'non_current_liabilities',
+  'equity',
+]
+
+const SECTION_HEADER_LABELS: Record<BsSection, string> = {
+  current_assets: 'CURRENT ASSETS (Aset Lancar)',
+  fixed_assets: 'FIXED ASSETS (Aset Tetap)',
+  other_non_current_assets: 'OTHER NON-CURRENT ASSETS (Aset Tidak Lancar Lainnya)',
+  intangible_assets: 'INTANGIBLE ASSETS (Aset Tak Berwujud)',
+  current_liabilities: 'CURRENT LIABILITIES (Liabilitas Jangka Pendek)',
+  non_current_liabilities: 'NON-CURRENT LIABILITIES (Liabilitas Jangka Panjang)',
+  equity: 'EQUITY (Ekuitas)',
+}
+
+/**
+ * Add a "RINCIAN NERACA" worksheet to the workbook containing ALL user BS
+ * accounts with their individual values, grouped by section. Each section
+ * ends with a SUM formula subtotal. Fully editable by the user.
+ */
+export function addBsDetailSheet(
+  workbook: ExcelJS.Workbook,
+  bs: BalanceSheetInputState,
+  tahunTransaksi: number,
+): void {
+  if (!bs.accounts || bs.accounts.length === 0) return
+
+  const years = computeHistoricalYears(tahunTransaksi, bs.yearCount ?? 1)
+  const ws = workbook.addWorksheet('RINCIAN NERACA')
+
+  // Formatting constants
+  const headerFont: Partial<ExcelJS.Font> = { bold: true, size: 11 }
+  const sectionFont: Partial<ExcelJS.Font> = { bold: true, size: 10, color: { argb: 'FF1E293B' } }
+  const subtotalFont: Partial<ExcelJS.Font> = { bold: true, size: 10 }
+  const idrFormat = '#,##0'
+
+  // Column widths: A = label (40), B+ = years (18 each)
+  ws.getColumn(1).width = 45
+  for (let i = 0; i < years.length; i++) {
+    ws.getColumn(i + 2).width = 20
+  }
+
+  let r = 1
+
+  // Title
+  ws.getCell(`A${r}`).value = 'RINCIAN NERACA (Balance Sheet Detail)'
+  ws.getCell(`A${r}`).font = { bold: true, size: 13 }
+  r += 2
+
+  // Year headers
+  ws.getCell(`A${r}`).value = 'Nama Akun'
+  ws.getCell(`A${r}`).font = headerFont
+  for (let i = 0; i < years.length; i++) {
+    const col = String.fromCharCode(66 + i) // B, C, D, ...
+    ws.getCell(`${col}${r}`).value = years[i]
+    ws.getCell(`${col}${r}`).font = headerFont
+    ws.getCell(`${col}${r}`).alignment = { horizontal: 'right' }
+  }
+  r++
+
+  // Group accounts by section
+  const bySection = new Map<BsSection, BsAccountEntry[]>()
+  for (const acc of bs.accounts) {
+    const existing = bySection.get(acc.section) ?? []
+    existing.push(acc)
+    bySection.set(acc.section, existing)
+  }
+
+  for (const section of SECTION_ORDER) {
+    const sectionAccounts = bySection.get(section)
+    if (!sectionAccounts || sectionAccounts.length === 0) continue
+
+    // Section header
+    r++
+    ws.getCell(`A${r}`).value = SECTION_HEADER_LABELS[section]
+    ws.getCell(`A${r}`).font = sectionFont
+    ws.getCell(`A${r}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } }
+    for (let i = 0; i < years.length; i++) {
+      ws.getCell(`${String.fromCharCode(66 + i)}${r}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } }
+    }
+    r++
+
+    const firstDataRow = r
+
+    // Account rows
+    for (const acc of sectionAccounts) {
+      const catalog = BS_CATALOG_ALL.find((c) => c.id === acc.catalogId)
+      const label = acc.customLabel ?? (catalog ? `${catalog.labelEn} / ${catalog.labelId}` : acc.catalogId)
+      ws.getCell(`A${r}`).value = `  ${label}`
+
+      const yearValues = bs.rows[acc.excelRow]
+      for (let i = 0; i < years.length; i++) {
+        const col = String.fromCharCode(66 + i)
+        const val = yearValues?.[years[i]]
+        if (val !== undefined && val !== null) {
+          ws.getCell(`${col}${r}`).value = val
+          ws.getCell(`${col}${r}`).numFmt = idrFormat
+          ws.getCell(`${col}${r}`).alignment = { horizontal: 'right' }
+        }
+      }
+      r++
+    }
+
+    const lastDataRow = r - 1
+
+    // Subtotal with SUM formula
+    ws.getCell(`A${r}`).value = `  Subtotal ${SECTION_HEADER_LABELS[section].split(' (')[0]}`
+    ws.getCell(`A${r}`).font = subtotalFont
+    for (let i = 0; i < years.length; i++) {
+      const col = String.fromCharCode(66 + i)
+      ws.getCell(`${col}${r}`).value = { formula: `SUM(${col}${firstDataRow}:${col}${lastDataRow})` }
+      ws.getCell(`${col}${r}`).numFmt = idrFormat
+      ws.getCell(`${col}${r}`).font = subtotalFont
+      ws.getCell(`${col}${r}`).alignment = { horizontal: 'right' }
+      ws.getCell(`${col}${r}`).border = { top: { style: 'thin' } }
+    }
+    r++
+  }
 }

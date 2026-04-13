@@ -3,6 +3,7 @@ import ExcelJS from 'exceljs'
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
 import type { ExportableState } from '@/lib/export/export-xlsx'
+import { addBsDetailSheet } from '@/lib/export/export-xlsx'
 import {
   ALL_SCALAR_MAPPINGS,
   ALL_GRID_MAPPINGS,
@@ -36,6 +37,10 @@ async function simulateExport(state: ExportableState): Promise<ExcelJS.Workbook>
   clearAllInputCells(wb)
   // Inject user data
   injectAll(wb, state)
+  // Add RINCIAN NERACA detail sheet
+  if (state.balanceSheet && state.home) {
+    addBsDetailSheet(wb, state.balanceSheet, state.home.tahunTransaksi)
+  }
 
   // Round-trip through buffer to verify formula preservation
   const buf = await wb.xlsx.writeBuffer()
@@ -235,6 +240,12 @@ const TEST_STATE: ExportableState = {
     dlocPercent: 0.54,
   },
   balanceSheet: {
+    accounts: [
+      { catalogId: 'cash', excelRow: 8, section: 'current_assets' as const },
+      { catalogId: 'cash_bank', excelRow: 9, section: 'current_assets' as const },
+    ],
+    yearCount: 4,
+    language: 'en' as const,
     rows: {
       8: { 2018: 100, 2019: 200, 2020: 300, 2021: 400 },
       9: { 2018: 50, 2019: 60, 2020: 70, 2021: 80 },
@@ -439,6 +450,34 @@ describe('export-xlsx (template-based)', () => {
     }
     // Should not throw
     const wb = await simulateExport(minimalState)
-    expect(wb.worksheets.length).toBe(45)
+    expect(wb.worksheets.length).toBe(45) // no RINCIAN NERACA when bs=null
+  })
+
+  it('adds RINCIAN NERACA sheet when BS has accounts with values', async () => {
+    const wb = await simulateExport(TEST_STATE)
+    const detail = wb.getWorksheet('RINCIAN NERACA')
+    expect(detail).toBeDefined()
+    // Should contain account labels
+    let foundCash = false
+    detail!.eachRow((row) => {
+      const cellA = row.getCell(1).value
+      if (typeof cellA === 'string' && cellA.includes('Cash on Hands')) foundCash = true
+    })
+    expect(foundCash).toBe(true)
+  })
+
+  it('RINCIAN NERACA includes correct values for year columns', async () => {
+    const wb = await simulateExport(TEST_STATE)
+    const detail = wb.getWorksheet('RINCIAN NERACA')!
+    // tahunTransaksi=2023, yearCount=4 → years [2019,2020,2021,2022] → cols B,C,D,E
+    // BS data has 2019:200 for row 8 (Cash on Hands)
+    let cashValue2019: unknown = null
+    detail.eachRow((row) => {
+      const cellA = row.getCell(1).value
+      if (typeof cellA === 'string' && cellA.includes('Cash on Hands')) {
+        cashValue2019 = row.getCell(2).value // col B = first year (2019)
+      }
+    })
+    expect(cashValue2019).toBe(200) // 2019 value from TEST_STATE
   })
 })

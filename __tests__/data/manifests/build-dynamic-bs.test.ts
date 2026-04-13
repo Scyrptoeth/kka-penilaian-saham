@@ -73,7 +73,7 @@ describe('buildDynamicBsManifest', () => {
     const enLeaf = enManifest.rows.find((r) => r.excelRow === 8)
     const idLeaf = idManifest.rows.find((r) => r.excelRow === 8)
     expect(enLeaf?.label).toBe('Cash on Hands')
-    expect(idLeaf?.label).toBe('Kas dan Setara Kas')
+    expect(idLeaf?.label).toBe('Kas')
 
     // Structural labels same
     const enTotal = enManifest.rows.find((r) => r.excelRow === 27)
