@@ -62,7 +62,7 @@ export function RoicLiveView() {
 
     // 5. BS computed (need row 27 = Total Assets)
     const bsComp = deriveComputedRows(BALANCE_SHEET_MANIFEST.rows, balanceSheet.rows, years)
-    const allBs = { ...balanceSheet.rows, ...bsComp }
+    const allBs = { ...bsComp, ...balanceSheet.rows }
 
     // 6. ROIC
     return computeRoicLiveRows(allFcf, allBs, years)

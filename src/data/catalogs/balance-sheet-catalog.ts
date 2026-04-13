@@ -198,3 +198,21 @@ export function getCatalogBySection(
 export function isOriginalExcelRow(excelRow: number): boolean {
   return excelRow < 60
 }
+
+/**
+ * BS sentinel rows — subtotals/totals that downstream consumers need.
+ * Pre-computed at persist time to include extended catalog accounts that
+ * the static BALANCE_SHEET_MANIFEST's computedFrom arrays don't reference.
+ */
+export const BS_SENTINEL_ROWS: readonly number[] = [
+  16,  // Total Current Assets
+  22,  // Fixed Assets, Net
+  25,  // Total Non-Current Assets
+  27,  // TOTAL ASSETS
+  35,  // Total Current Liabilities
+  40,  // Total Non-Current Liabilities
+  41,  // TOTAL LIABILITIES
+  48,  // Retained Earnings subtotal
+  49,  // Shareholders' Equity
+  51,  // TOTAL LIABILITIES & EQUITY
+]

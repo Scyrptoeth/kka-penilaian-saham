@@ -6,6 +6,7 @@ import { buildDynamicBsManifest } from '@/data/manifests/build-dynamic-bs'
 import {
   getCatalogBySection,
   generateCustomExcelRow,
+  BS_SENTINEL_ROWS,
   type BsAccountEntry,
   type BsCatalogAccount,
   type BsSection,
@@ -44,9 +45,18 @@ export default function DynamicBsEditor() {
   const [language, setLanguage] = useState<'en' | 'id'>(
     () => balanceSheet?.language ?? 'en',
   )
-  const [localRows, setLocalRows] = useState<Record<number, YearKeyedSeries>>(
-    () => balanceSheet?.rows ?? {},
-  )
+  const [localRows, setLocalRows] = useState<Record<number, YearKeyedSeries>>(() => {
+    // Filter OUT sentinel rows from store — editor only shows leaf data
+    if (!balanceSheet?.rows) return {}
+    const leafOnly: Record<number, YearKeyedSeries> = {}
+    const sentinelSet = new Set(BS_SENTINEL_ROWS)
+    for (const [key, val] of Object.entries(balanceSheet.rows)) {
+      if (!sentinelSet.has(Number(key))) {
+        leafOnly[Number(key)] = val
+      }
+    }
+    return leafOnly
+  })
   const t = getBsStrings(language)
 
   // Reset dialog state
@@ -56,7 +66,7 @@ export default function DynamicBsEditor() {
   // Inline dropdown state for add-button rows
   const [openDropdownSection, setOpenDropdownSection] = useState<BsSection | null>(null)
 
-  // Debounced persist
+  // Debounced persist with sentinel pre-computation
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   function schedulePersist(
     nextAccounts: BsAccountEntry[],
@@ -66,7 +76,15 @@ export default function DynamicBsEditor() {
   ) {
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
-      setBalanceSheet({ accounts: nextAccounts, yearCount: nextYearCount, language: nextLanguage, rows: nextRows })
+      // Build manifest and compute sentinels for downstream compat
+      const manifest = buildDynamicBsManifest(nextAccounts, nextLanguage, nextYearCount, tahunTransaksi)
+      const yrs = computeHistoricalYears(tahunTransaksi, nextYearCount)
+      const computed = deriveComputedRows(manifest.rows, nextRows, yrs)
+      const sentinels: Record<number, YearKeyedSeries> = {}
+      for (const r of BS_SENTINEL_ROWS) {
+        if (computed[r]) sentinels[r] = computed[r]
+      }
+      setBalanceSheet({ accounts: nextAccounts, yearCount: nextYearCount, language: nextLanguage, rows: { ...nextRows, ...sentinels } })
     }, 500)
   }
 
@@ -182,7 +200,7 @@ export default function DynamicBsEditor() {
 
   function handleYearCountChange(delta: number) {
     setYearCount((prev) => {
-      const next = Math.max(1, prev + delta)
+      const next = Math.min(10, Math.max(1, prev + delta))
       schedulePersist(accounts, localRows, next, language)
       return next
     })
@@ -198,7 +216,12 @@ export default function DynamicBsEditor() {
 
   function handleSave() {
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    setBalanceSheet({ accounts, yearCount, language, rows: localRows })
+    const computed = deriveComputedRows(dynamicManifest.rows, localRows, years)
+    const sentinels: Record<number, YearKeyedSeries> = {}
+    for (const r of BS_SENTINEL_ROWS) {
+      if (computed[r]) sentinels[r] = computed[r]
+    }
+    setBalanceSheet({ accounts, yearCount, language, rows: { ...localRows, ...sentinels } })
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }

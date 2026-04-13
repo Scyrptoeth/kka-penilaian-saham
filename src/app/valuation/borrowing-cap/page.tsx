@@ -37,7 +37,7 @@ function BorrowingCapEditor() {
 
     const bsYears = computeHistoricalYears(home.tahunTransaksi, 4)
     const bsComp = deriveComputedRows(BALANCE_SHEET_MANIFEST.rows, balanceSheet.rows, bsYears)
-    const allBs = { ...balanceSheet.rows, ...bsComp }
+    const allBs = { ...bsComp, ...balanceSheet.rows }
     const lastYear = bsYears[bsYears.length - 1]!
 
     // BS values from last historical year

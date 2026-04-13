@@ -179,7 +179,7 @@ export default function DynamicIsEditor() {
 
   function handleYearCountChange(delta: number) {
     setYearCount((prev) => {
-      const next = Math.max(1, prev + delta)
+      const next = Math.min(10, Math.max(1, prev + delta))
       schedulePersist(accounts, localRows, next, language)
       return next
     })

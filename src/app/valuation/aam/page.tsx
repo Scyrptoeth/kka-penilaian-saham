@@ -68,7 +68,7 @@ export default function AamPage() {
 
     const histYears = computeHistoricalYears(home.tahunTransaksi, 4)
     const bsComp = deriveComputedRows(BALANCE_SHEET_MANIFEST.rows, balanceSheet.rows, histYears)
-    const allBs = { ...balanceSheet.rows, ...bsComp }
+    const allBs = { ...bsComp, ...balanceSheet.rows }
     const ly = histYears[histYears.length - 1]! // last year
 
     const bs = (row: number) => allBs[row]?.[ly] ?? 0

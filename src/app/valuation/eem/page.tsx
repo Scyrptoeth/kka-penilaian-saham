@@ -39,7 +39,7 @@ export default function EemPage() {
 
     // ── BS computed ──
     const bsComp = deriveComputedRows(BALANCE_SHEET_MANIFEST.rows, balanceSheet.rows, histYears4)
-    const allBs = { ...balanceSheet.rows, ...bsComp }
+    const allBs = { ...bsComp, ...balanceSheet.rows }
     const bs = (row: number) => allBs[row]?.[lastHistYear] ?? 0
 
     // ── Historical NOPLAT ──

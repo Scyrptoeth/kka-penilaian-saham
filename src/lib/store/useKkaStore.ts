@@ -421,8 +421,6 @@ export function migratePersistedState(
         }
         if (yearSet.size > 0) {
           newRows['8'] = makeRow((yr) => read('6', yr) - read('7', yr))
-          newRows['18'] = makeRow((yr) => (newRows['8'] as Record<string, number>)?.[yr] ?? 0 - read('15', yr))
-          // Recompute 18 properly
           newRows['18'] = makeRow((yr) => {
             const gp = (newRows['8'] as Record<string, number>)?.[yr] ?? 0
             const opex = (newRows['15'] as Record<string, number>)?.[yr] ?? 0

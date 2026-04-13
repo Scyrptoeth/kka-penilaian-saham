@@ -68,8 +68,12 @@ export function computeCashFlowLiveRows(
   // IS store now contains pre-computed sentinel values (EBITDA at row 18, etc.)
 
   // Compute FA subtotals — need Total Additions (row 23) for CapEx
-  const faComputed = faLeaves
+  // Sentinel subtotals in store override re-derived values (include extended accounts)
+  const faRecomputed = faLeaves
     ? deriveComputedRows(FIXED_ASSET_MANIFEST.rows, faLeaves, cfsYears)
+    : null
+  const faComputed = faRecomputed
+    ? { ...faRecomputed, ...faLeaves }
     : null
 
   const out: Record<number, YearKeyedSeries> = {}

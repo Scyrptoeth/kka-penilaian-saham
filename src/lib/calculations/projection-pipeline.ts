@@ -70,15 +70,16 @@ export function computeFullProjectionPipeline(
   const lastHistYear = home.tahunTransaksi - 1
 
   // ── BS computed subtotals (needed for histCashEnding + downstream) ──
+  // Merge: bsComp first, then store — sentinel subtotals override re-derived
   const bsComp = deriveComputedRows(BALANCE_SHEET_MANIFEST.rows, balanceSheet.rows, histYears4)
-  const allBs = { ...balanceSheet.rows, ...bsComp }
+  const allBs = { ...bsComp, ...balanceSheet.rows }
 
   // ── Step 1: PROY FA ──
   let proyFaRows: Record<number, YearKeyedSeries> = {}
   let faComp: Record<number, YearKeyedSeries> | null = null
   if (fixedAsset) {
     faComp = deriveComputedRows(FIXED_ASSET_MANIFEST.rows, fixedAsset.rows, histYears3)
-    const allFa = { ...fixedAsset.rows, ...faComp }
+    const allFa = { ...faComp, ...fixedAsset.rows }
     proyFaRows = computeProyFixedAssetsLive(allFa, histYears3, projYears)
   }
 

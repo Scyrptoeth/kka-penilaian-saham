@@ -67,7 +67,7 @@ export default function DashboardPage() {
     const histYears4 = computeHistoricalYears(home.tahunTransaksi, 4)
     const histYears3 = computeHistoricalYears(home.tahunTransaksi, 3)
     const bsComp = deriveComputedRows(BALANCE_SHEET_MANIFEST.rows, balanceSheet.rows, histYears4)
-    const allBs = { ...balanceSheet.rows, ...bsComp }
+    const allBs = { ...bsComp, ...balanceSheet.rows }
     const ly = histYears4[histYears4.length - 1]!
     const isRows = incomeStatement.rows
     const proporsiSaham = computeProporsiSaham(home)

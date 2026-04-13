@@ -63,7 +63,7 @@ export default function GrowthRatePage() {
     const allFcf = { ...fcfLeaf, ...fcfComp }
 
     const bsComp = deriveComputedRows(BALANCE_SHEET_MANIFEST.rows, balanceSheet.rows, bsYears)
-    const allBs = { ...balanceSheet.rows, ...bsComp }
+    const allBs = { ...bsComp, ...balanceSheet.rows }
 
     const roicRows = computeRoicLiveRows(allFcf, allBs, years3)
 

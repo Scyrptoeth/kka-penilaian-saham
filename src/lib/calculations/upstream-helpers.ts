@@ -72,7 +72,7 @@ export function computeHistoricalUpstream(input: HistoricalUpstreamInput): Histo
   const faComp = fixedAssetRows
     ? deriveComputedRows(FIXED_ASSET_MANIFEST.rows, fixedAssetRows, histYears3)
     : null
-  const allFa = faComp ? { ...fixedAssetRows!, ...faComp } : {}
+  const allFa = faComp ? { ...faComp, ...fixedAssetRows! } : {}
 
   const fcfLeaf = computeFcfLiveRows(allNoplat, faComp, allCfs, histYears3)
   const fcfComp = deriveComputedRows(FCF_MANIFEST.rows, fcfLeaf, histYears3)

@@ -7,6 +7,9 @@ import {
   getCatalogBySection,
   generateCustomExcelRow,
   FA_OFFSET,
+  FA_SENTINEL_ROWS,
+  FA_LEGACY_OFFSET,
+  isOriginalFaRow,
   type FaAccountEntry,
   type FaCatalogAccount,
 } from '@/data/catalogs/fixed-asset-catalog'
@@ -17,9 +20,57 @@ import type { YearKeyedSeries } from '@/types/financial'
 import { getFaStrings } from '@/lib/i18n/fixed-asset'
 
 /**
+ * Compute FA sentinel rows for downstream backward compatibility.
+ *
+ * At persist time, the editor:
+ * 1. Maps original account offset rows (2008→17, 4008→36, 5008→45) to legacy positions
+ * 2. Computes ALL subtotals (including extended accounts) at sentinel positions
+ * 3. Stores sentinels alongside leaf data so downstream reads the correct values
+ *
+ * This mirrors the IS sentinel pattern (LESSON-052). Without this mapping,
+ * downstream consumers (upstream-helpers, CFS, FCF, PROY FA, export) would
+ * find zeros because they reference legacy row positions (17-22, 36-41, 45-50).
+ */
+function computeFaSentinels(
+  accounts: FaAccountEntry[],
+  leafRows: Record<number, YearKeyedSeries>,
+  manifest: { rows: import('@/data/manifests/types').ManifestRow[] },
+  years: readonly number[],
+): Record<number, YearKeyedSeries> {
+  // Step 1: Map original account offset rows to legacy positions
+  const legacyMapped: Record<number, YearKeyedSeries> = {}
+  for (const acct of accounts) {
+    if (!isOriginalFaRow(acct.excelRow)) continue
+    for (const [dynamicOffset, legacyDelta] of Object.entries(FA_LEGACY_OFFSET)) {
+      const offsetKey = acct.excelRow + Number(dynamicOffset)
+      const legacyKey = acct.excelRow + legacyDelta
+      if (leafRows[offsetKey]) {
+        legacyMapped[legacyKey] = leafRows[offsetKey]
+      }
+    }
+  }
+
+  // Step 2: Merge legacy-mapped leaves with original leaf data
+  const mergedLeaves = { ...leafRows, ...legacyMapped }
+
+  // Step 3: Compute all subtotals and derived rows via dynamic manifest
+  const computed = deriveComputedRows(manifest.rows, mergedLeaves, years)
+
+  // Step 4: Collect sentinel subtotals + legacy leaf rows
+  const sentinels: Record<number, YearKeyedSeries> = { ...legacyMapped }
+  for (const r of FA_SENTINEL_ROWS) {
+    if (computed[r]) sentinels[r] = computed[r]
+  }
+  return sentinels
+}
+
+/**
  * Dynamic Fixed Asset editor — user selects accounts from a single catalog
  * dropdown. Each account mirrors across 7 sub-blocks (Acq Begin/Add/End,
  * Dep Begin/Add/End, Net Value). Computed rows auto-derive via manifest.
+ *
+ * At persist time, pre-computes sentinel values for downstream backward
+ * compat — maps offset rows to legacy positions and computes 7 subtotals.
  *
  * Pattern follows DynamicBsEditor (Session 020), adapted for FA specifics:
  * - Single add-button (not per-section like BS)
@@ -45,9 +96,28 @@ export default function DynamicFaEditor() {
   const [language, setLanguage] = useState<'en' | 'id'>(
     () => fixedAsset?.language ?? 'id',
   )
-  const [localRows, setLocalRows] = useState<Record<number, YearKeyedSeries>>(
-    () => fixedAsset?.rows ?? {},
-  )
+  const [localRows, setLocalRows] = useState<Record<number, YearKeyedSeries>>(() => {
+    // Filter OUT sentinel/legacy-mapped rows — editor only shows offset-keyed leaf data
+    if (!fixedAsset?.rows) return {}
+    const leafOnly: Record<number, YearKeyedSeries> = {}
+    const sentinelSet = new Set(FA_SENTINEL_ROWS)
+    // Legacy-mapped rows for original accounts (rows 17-22, 36-41, 45-50)
+    const legacyRows = new Set<number>()
+    for (const acct of (fixedAsset.accounts ?? [])) {
+      if (isOriginalFaRow(acct.excelRow)) {
+        for (const legacyDelta of Object.values(FA_LEGACY_OFFSET)) {
+          legacyRows.add(acct.excelRow + legacyDelta)
+        }
+      }
+    }
+    for (const [key, val] of Object.entries(fixedAsset.rows)) {
+      const row = Number(key)
+      if (!sentinelSet.has(row) && !legacyRows.has(row)) {
+        leafOnly[row] = val
+      }
+    }
+    return leafOnly
+  })
   const t = getFaStrings(language)
 
   // UI state
@@ -56,7 +126,7 @@ export default function DynamicFaEditor() {
   const [showResetAll, setShowResetAll] = useState(false)
   const [saved, setSaved] = useState(false)
 
-  // Debounced persist
+  // Debounced persist with sentinel pre-computation
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   function schedulePersist(
     nextAccounts: FaAccountEntry[],
@@ -66,7 +136,11 @@ export default function DynamicFaEditor() {
   ) {
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
-      setFixedAsset({ accounts: nextAccounts, yearCount: nextYearCount, language: nextLanguage, rows: nextRows })
+      // Build manifest and compute sentinels for downstream compat
+      const manifest = buildDynamicFaManifest(nextAccounts, nextLanguage, nextYearCount, tahunTransaksi)
+      const yrs = computeHistoricalYears(tahunTransaksi, nextYearCount)
+      const sentinels = computeFaSentinels(nextAccounts, nextRows, manifest, yrs)
+      setFixedAsset({ accounts: nextAccounts, yearCount: nextYearCount, language: nextLanguage, rows: { ...nextRows, ...sentinels } })
     }, 500)
   }
 
@@ -178,7 +252,7 @@ export default function DynamicFaEditor() {
 
   function handleYearCountChange(delta: number) {
     setYearCount((prev) => {
-      const next = Math.max(1, prev + delta)
+      const next = Math.min(10, Math.max(1, prev + delta))
       schedulePersist(accounts, localRows, next, language)
       return next
     })
@@ -194,7 +268,8 @@ export default function DynamicFaEditor() {
 
   function handleSave() {
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    setFixedAsset({ accounts, yearCount, language, rows: localRows })
+    const sentinels = computeFaSentinels(accounts, localRows, dynamicManifest, years)
+    setFixedAsset({ accounts, yearCount, language, rows: { ...localRows, ...sentinels } })
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }

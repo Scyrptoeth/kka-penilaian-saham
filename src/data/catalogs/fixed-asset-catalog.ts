@@ -136,3 +136,31 @@ export const FA_SUBTOTAL = {
   TOTAL_DEP_ENDING: 60,
   TOTAL_NET_VALUE: 69,
 } as const
+
+/** All sentinel row numbers the editor pre-computes for downstream compat */
+export const FA_SENTINEL_ROWS: readonly number[] = Object.values(FA_SUBTOTAL)
+
+/**
+ * Legacy row offsets for original accounts (excelRow 8-13).
+ * The static FA manifest expects leaves at these positions; the dynamic
+ * editor stores them at FA_OFFSET-based keys instead. Sentinel mapping
+ * copies data from offset keys to legacy keys at persist time so that
+ * downstream consumers (upstream-helpers, proy-fixed-assets, cash-flow,
+ * fcf, export) find values where they expect them.
+ *
+ *   Dynamic key         → Legacy key
+ *   base + 0    (8-13)  → 8-13   (unchanged — Beginning)
+ *   base + 2000         → base + 9  (17-22 — Additions)
+ *   base + 4000         → base + 28 (36-41 — Dep Beginning)
+ *   base + 5000         → base + 37 (45-50 — Dep Additions)
+ */
+export const FA_LEGACY_OFFSET: Record<number, number> = {
+  [FA_OFFSET.ACQ_ADDITIONS]: 9,   // 2000 → +9 (17 = 8 + 9)
+  [FA_OFFSET.DEP_BEGINNING]: 28,  // 4000 → +28 (36 = 8 + 28)
+  [FA_OFFSET.DEP_ADDITIONS]: 37,  // 5000 → +37 (45 = 8 + 37)
+}
+
+/** Check if an account base excelRow is an original Excel template row (8-13). */
+export function isOriginalFaRow(excelRow: number): boolean {
+  return excelRow >= 8 && excelRow <= 13
+}
