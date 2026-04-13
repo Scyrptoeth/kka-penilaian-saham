@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
-import type { ManifestRow } from '@/data/manifests/types'
-import type { BsSection, BsCatalogAccount } from '@/data/catalogs/balance-sheet-catalog'
+import type { ManifestRow, CatalogAccount } from '@/data/manifests/types'
 import type { YearKeyedSeries } from '@/types/financial'
 import { cn } from '@/lib/utils/cn'
 import { formatIdr, isNegative } from '@/components/financial/format'
@@ -16,12 +15,12 @@ interface RowInputGridProps {
   onChange: (excelRow: number, year: number, value: number) => void
   lineItemHeader?: string
   // Inline add/remove account props
-  onAddButtonClick?: (section: BsSection) => void
+  onAddButtonClick?: (section: string) => void
   onRemoveAccount?: (catalogId: string) => void
-  openDropdownSection?: BsSection | null
-  dropdownCatalog?: readonly BsCatalogAccount[]
-  onSelectCatalogItem?: (item: BsCatalogAccount) => void
-  onCustomEntry?: (section: BsSection, label: string) => void
+  openDropdownSection?: string | null
+  dropdownCatalog?: readonly CatalogAccount[]
+  onSelectCatalogItem?: (item: CatalogAccount) => void
+  onCustomEntry?: (section: string, label: string) => void
   onCloseDropdown?: () => void
   /** i18n strings for dropdown UI */
   dropdownStrings?: { manualEntry: string; allAccountsAdded: string; accountNamePlaceholder: string; cancel: string; add: string }
@@ -214,11 +213,11 @@ function InlineDropdown({
   onClose,
   strings,
 }: {
-  section: BsSection
-  catalog: readonly BsCatalogAccount[]
+  section: string
+  catalog: readonly CatalogAccount[]
   language?: 'en' | 'id'
-  onSelect: (item: BsCatalogAccount) => void
-  onCustom: (section: BsSection, label: string) => void
+  onSelect: (item: CatalogAccount) => void
+  onCustom: (section: string, label: string) => void
   onClose: () => void
   strings?: { manualEntry: string; allAccountsAdded: string; accountNamePlaceholder: string; cancel: string; add: string }
 }) {

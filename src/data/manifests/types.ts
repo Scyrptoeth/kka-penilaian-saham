@@ -20,6 +20,18 @@
 
 import type { YearKeyedSeries } from '@/types/financial'
 
+/**
+ * Generic catalog account interface that RowInputGrid uses for dropdown
+ * rendering. Sheet-specific catalogs (BS, FA, IS) conform to this shape.
+ */
+export interface CatalogAccount {
+  id: string
+  labelEn: string
+  labelId: string
+  section: string
+  excelRow: number
+}
+
 export type RowType =
   | 'normal'
   | 'subtotal'
@@ -75,8 +87,8 @@ export interface ManifestRow {
    *   computedFrom: [22, 24]
    */
   computedFrom?: readonly number[]
-  /** For 'add-button' rows: which BS section this button adds accounts to. */
-  section?: import('@/data/catalogs/balance-sheet-catalog').BsSection
+  /** For 'add-button' rows: which section this button adds accounts to. */
+  section?: string
   /** For 'add-button' rows: button label text. */
   buttonLabel?: string
   /** For 'normal' leaf rows: catalog ID for remove functionality. */

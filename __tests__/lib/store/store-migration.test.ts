@@ -271,17 +271,61 @@ describe('migratePersistedState — v10 → v11 (remove FA from BS)', () => {
   })
 })
 
-describe('migratePersistedState — v11 and future', () => {
-  it('v11 → v11 passes through unchanged (no-op)', () => {
-    const v11State = { home: null, futureSlice: {} }
-    const migrated = migratePersistedState(v11State, 11)
-    expect(migrated).toBe(v11State)
+describe('migratePersistedState — v11 → v12 (FA dynamic accounts)', () => {
+  it('extends fixedAsset with accounts, yearCount, language and default 6 accounts', () => {
+    const v11State = {
+      home: null,
+      fixedAsset: { rows: { 8: { 2020: 100 }, 9: { 2020: 200 } } },
+    }
+    const migrated = migratePersistedState(v11State, 11) as Record<string, unknown>
+    const fa = migrated.fixedAsset as Record<string, unknown>
+    const accounts = fa.accounts as Array<{ catalogId: string; excelRow: number }>
+    expect(accounts).toHaveLength(6)
+    expect(accounts[0].catalogId).toBe('land')
+    expect(accounts[0].excelRow).toBe(8)
+    expect(accounts[5].catalogId).toBe('electrical_installation')
+    expect(accounts[5].excelRow).toBe(13)
+    expect(fa.yearCount).toBe(3)
+    expect(fa.language).toBe('id')
+    // Existing row data preserved
+    expect(fa.rows).toEqual({ 8: { 2020: 100 }, 9: { 2020: 200 } })
   })
 
-  it('passes future versions through unchanged', () => {
+  it('handles null fixedAsset during v11→v12 migration', () => {
+    const v11Null = { home: null, fixedAsset: null }
+    const migrated = migratePersistedState(v11Null, 11) as Record<string, unknown>
+    expect(migrated.fixedAsset).toBeNull()
+  })
+
+  it('does not overwrite if accounts already present', () => {
+    const v11WithAccounts = {
+      home: null,
+      fixedAsset: {
+        accounts: [{ catalogId: 'land', excelRow: 8, section: 'fixed_asset' }],
+        yearCount: 4,
+        language: 'en',
+        rows: {},
+      },
+    }
+    const migrated = migratePersistedState(v11WithAccounts, 11) as Record<string, unknown>
+    const fa = migrated.fixedAsset as Record<string, unknown>
+    // Should not overwrite — accounts key already exists
+    expect((fa.accounts as unknown[]).length).toBe(1)
+    expect(fa.yearCount).toBe(4)
+  })
+})
+
+describe('migratePersistedState — v12 and future', () => {
+  it('v12 → v12 passes through unchanged (no-op)', () => {
     const v12State = { home: null, futureSlice: {} }
     const migrated = migratePersistedState(v12State, 12)
     expect(migrated).toBe(v12State)
+  })
+
+  it('passes future versions through unchanged', () => {
+    const v13State = { home: null, futureSlice: {} }
+    const migrated = migratePersistedState(v13State, 13)
+    expect(migrated).toBe(v13State)
   })
 
   it('passes non-object payloads through unchanged', () => {

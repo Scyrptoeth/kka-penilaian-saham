@@ -2,71 +2,71 @@
 
 import { useState, useMemo, useRef } from 'react'
 import { useKkaStore } from '@/lib/store/useKkaStore'
-import { buildDynamicBsManifest } from '@/data/manifests/build-dynamic-bs'
+import { buildDynamicFaManifest } from '@/data/manifests/build-dynamic-fa'
 import {
   getCatalogBySection,
   generateCustomExcelRow,
-  type BsAccountEntry,
-  type BsCatalogAccount,
-  type BsSection,
-} from '@/data/catalogs/balance-sheet-catalog'
+  FA_OFFSET,
+  type FaAccountEntry,
+  type FaCatalogAccount,
+} from '@/data/catalogs/fixed-asset-catalog'
 import { RowInputGrid } from './RowInputGrid'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
 import type { YearKeyedSeries } from '@/types/financial'
-import { getBsStrings } from '@/lib/i18n/balance-sheet'
+import { getFaStrings } from '@/lib/i18n/fixed-asset'
 
 /**
- * Dynamic Balance Sheet editor — user selects accounts from catalog dropdowns,
- * with bilingual labels, dynamic year columns, and SIMPAN/RESET buttons.
+ * Dynamic Fixed Asset editor — user selects accounts from a single catalog
+ * dropdown. Each account mirrors across 7 sub-blocks (Acq Begin/Add/End,
+ * Dep Begin/Add/End, Net Value). Computed rows auto-derive via manifest.
  *
- * Replaces ManifestEditor for the BS input page (Session 020).
+ * Pattern follows DynamicBsEditor (Session 020), adapted for FA specifics:
+ * - Single add-button (not per-section like BS)
+ * - Row mirroring across 7 sub-blocks via FA_OFFSET multipliers
+ * - No cross-ref to other sheets
  */
-export default function DynamicBsEditor() {
+export default function DynamicFaEditor() {
   const home = useKkaStore((s) => s.home)
-  const balanceSheet = useKkaStore((s) => s.balanceSheet)
   const fixedAsset = useKkaStore((s) => s.fixedAsset)
-  const setBalanceSheet = useKkaStore((s) => s.setBalanceSheet)
-  const resetBalanceSheet = useKkaStore((s) => s.resetBalanceSheet)
+  const setFixedAsset = useKkaStore((s) => s.setFixedAsset)
+  const resetFixedAsset = useKkaStore((s) => s.resetFixedAsset)
   const resetAll = useKkaStore((s) => s.resetAll)
 
   const tahunTransaksi = home!.tahunTransaksi
 
-  // i18n — all UI strings derived from language state
-
   // Local state — seeded from store once at mount (LESSON-034)
-  const [accounts, setAccounts] = useState<BsAccountEntry[]>(
-    () => balanceSheet?.accounts ?? [],
+  const [accounts, setAccounts] = useState<FaAccountEntry[]>(
+    () => fixedAsset?.accounts ?? [],
   )
   const [yearCount, setYearCount] = useState(
-    () => balanceSheet?.yearCount ?? 1,
+    () => fixedAsset?.yearCount ?? 3,
   )
   const [language, setLanguage] = useState<'en' | 'id'>(
-    () => balanceSheet?.language ?? 'en',
+    () => fixedAsset?.language ?? 'id',
   )
   const [localRows, setLocalRows] = useState<Record<number, YearKeyedSeries>>(
-    () => balanceSheet?.rows ?? {},
+    () => fixedAsset?.rows ?? {},
   )
-  const t = getBsStrings(language)
+  const t = getFaStrings(language)
 
-  // Reset dialog state
-  const [showResetBS, setShowResetBS] = useState(false)
+  // UI state
+  const [showDropdown, setShowDropdown] = useState(false)
+  const [showResetFA, setShowResetFA] = useState(false)
   const [showResetAll, setShowResetAll] = useState(false)
   const [saved, setSaved] = useState(false)
-  // Inline dropdown state for add-button rows
-  const [openDropdownSection, setOpenDropdownSection] = useState<BsSection | null>(null)
 
   // Debounced persist
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   function schedulePersist(
-    nextAccounts: BsAccountEntry[],
+    nextAccounts: FaAccountEntry[],
     nextRows: Record<number, YearKeyedSeries>,
     nextYearCount: number,
     nextLanguage: 'en' | 'id',
   ) {
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
-      setBalanceSheet({ accounts: nextAccounts, yearCount: nextYearCount, language: nextLanguage, rows: nextRows })
+      setFixedAsset({ accounts: nextAccounts, yearCount: nextYearCount, language: nextLanguage, rows: nextRows })
     }, 500)
   }
 
@@ -77,60 +77,34 @@ export default function DynamicBsEditor() {
   )
 
   const dynamicManifest = useMemo(
-    () => buildDynamicBsManifest(accounts, language, yearCount, tahunTransaksi),
+    () => buildDynamicFaManifest(accounts, language, yearCount, tahunTransaksi),
     [accounts, language, yearCount, tahunTransaksi],
   )
 
-  // Cross-ref: map Fixed Asset store → BS rows 20/21
-  // FA row 32 (Total Ending Acquisition Cost) → BS row 20 (FA Beginning, positive)
-  // FA row 60 (Total Ending Accum Depreciation) → BS row 21 (Accum Depr, negated for BS convention)
-  const crossRefValues = useMemo(() => {
-    const faRows = fixedAsset?.rows ?? {}
-    const refs: Record<number, YearKeyedSeries> = {}
-    const fa32 = faRows[32]
-    const fa60 = faRows[60]
-    if (fa32) {
-      refs[20] = { ...fa32 }
-    }
-    if (fa60) {
-      const negated: YearKeyedSeries = {}
-      for (const [yr, val] of Object.entries(fa60)) {
-        negated[Number(yr)] = -(val ?? 0)
-      }
-      refs[21] = negated
-    }
-    return refs
-  }, [fixedAsset?.rows])
-
-  // Merge user rows + cross-ref values for computation
-  const mergedValues = useMemo(
-    () => ({ ...localRows, ...crossRefValues }),
-    [localRows, crossRefValues],
-  )
-
   const computedValues = useMemo(
-    () => deriveComputedRows(dynamicManifest.rows, mergedValues, years),
-    [dynamicManifest.rows, mergedValues, years],
+    () => deriveComputedRows(dynamicManifest.rows, localRows, years),
+    [dynamicManifest.rows, localRows, years],
   )
 
-  // Existing account IDs for filtering dropdowns
+  // Existing account IDs for filtering dropdown
   const existingIds = useMemo(() => new Set(accounts.map((a) => a.catalogId)), [accounts])
 
-  // Dropdown catalog for the currently open section
   const dropdownCatalog = useMemo(() => {
-    if (!openDropdownSection) return []
-    // Merge intangible_assets into other_non_current_assets dropdown
-    const sections: BsSection[] = openDropdownSection === 'other_non_current_assets'
-      ? ['other_non_current_assets', 'intangible_assets']
-      : [openDropdownSection]
-    return sections
-      .flatMap((s) => getCatalogBySection(s, language))
-      .filter((c) => !existingIds.has(c.id))
-  }, [openDropdownSection, language, existingIds])
+    if (!showDropdown) return []
+    return getCatalogBySection(language).filter((c) => !existingIds.has(c.id))
+  }, [showDropdown, language, existingIds])
 
   // ---------------------------------------------------------------------------
   // Handlers
   // ---------------------------------------------------------------------------
+
+  /** All sub-block offsets where a new account gets empty rows. */
+  const EDITABLE_OFFSETS = [
+    FA_OFFSET.ACQ_BEGINNING,
+    FA_OFFSET.ACQ_ADDITIONS,
+    FA_OFFSET.DEP_BEGINNING,
+    FA_OFFSET.DEP_ADDITIONS,
+  ] as const
 
   function handleCellChange(excelRow: number, year: number, value: number) {
     setLocalRows((prev) => {
@@ -140,40 +114,62 @@ export default function DynamicBsEditor() {
     })
   }
 
-  function handleAddAccount(catalogAccount: BsCatalogAccount) {
-    const entry: BsAccountEntry = {
+  function handleAddAccount(catalogAccount: FaCatalogAccount) {
+    const entry: FaAccountEntry = {
       catalogId: catalogAccount.id,
       excelRow: catalogAccount.excelRow,
-      section: catalogAccount.section,
+      section: 'fixed_asset',
     }
     setAccounts((prev) => {
       const next = [...prev, entry]
-      schedulePersist(next, localRows, yearCount, language)
+      // Pre-create empty row entries for all editable sub-blocks
+      setLocalRows((prevRows) => {
+        const nextRows = { ...prevRows }
+        for (const offset of EDITABLE_OFFSETS) {
+          nextRows[entry.excelRow + offset] = {}
+        }
+        schedulePersist(next, nextRows, yearCount, language)
+        return nextRows
+      })
       return next
     })
   }
 
-  function handleAddCustom(section: BsSection, label: string) {
+  function handleAddCustom(_section: string, label: string) {
     const excelRow = generateCustomExcelRow(accounts)
-    const entry: BsAccountEntry = {
+    const entry: FaAccountEntry = {
       catalogId: `custom_${Date.now()}`,
       excelRow,
-      section,
+      section: 'fixed_asset',
       customLabel: label,
     }
     setAccounts((prev) => {
       const next = [...prev, entry]
-      schedulePersist(next, localRows, yearCount, language)
+      setLocalRows((prevRows) => {
+        const nextRows = { ...prevRows }
+        for (const offset of EDITABLE_OFFSETS) {
+          nextRows[entry.excelRow + offset] = {}
+        }
+        schedulePersist(next, nextRows, yearCount, language)
+        return nextRows
+      })
       return next
     })
   }
 
+  /** Remove account and all its mirrored sub-block rows. */
   function handleRemoveAccount(catalogId: string) {
     const account = accounts.find((a) => a.catalogId === catalogId)
     setAccounts((prev) => {
       const next = prev.filter((a) => a.catalogId !== catalogId)
       const nextRows = { ...localRows }
-      if (account) delete nextRows[account.excelRow]
+      if (account) {
+        // Delete all 7 sub-block rows for this account
+        const allOffsets = Object.values(FA_OFFSET)
+        for (const offset of allOffsets) {
+          delete nextRows[account.excelRow + offset]
+        }
+      }
       setLocalRows(nextRows)
       schedulePersist(next, nextRows, yearCount, language)
       return next
@@ -198,26 +194,26 @@ export default function DynamicBsEditor() {
 
   function handleSave() {
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    setBalanceSheet({ accounts, yearCount, language, rows: localRows })
+    setFixedAsset({ accounts, yearCount, language, rows: localRows })
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
 
-  function handleResetBS() {
-    resetBalanceSheet()
+  function handleResetFA() {
+    resetFixedAsset()
     setAccounts([])
     setLocalRows({})
-    setYearCount(1)
-    setLanguage('en')
-    setShowResetBS(false)
+    setYearCount(3)
+    setLanguage('id')
+    setShowResetFA(false)
   }
 
   function handleResetAll_() {
     resetAll()
     setAccounts([])
     setLocalRows({})
-    setYearCount(1)
-    setLanguage('en')
+    setYearCount(3)
+    setLanguage('id')
     setShowResetAll(false)
   }
 
@@ -237,7 +233,7 @@ export default function DynamicBsEditor() {
             {t.pageTitle}
           </h1>
         </div>
-        {/* Language toggle — globe + label + description */}
+        {/* Language toggle */}
         <button
           type="button"
           onClick={handleLanguageToggle}
@@ -261,7 +257,7 @@ export default function DynamicBsEditor() {
 
       {/* Year axis info */}
       <p className="text-[12px] text-ink-muted">
-        Tahun historis: {years.join(', ')} ({yearCount} {yearCount === 1 ? 'tahun' : 'tahun'})
+        Tahun historis: {years.join(', ')} ({yearCount} tahun)
       </p>
 
       {/* Year control section */}
@@ -296,16 +292,16 @@ export default function DynamicBsEditor() {
         rows={dynamicManifest.rows}
         years={years}
         values={localRows}
-        computedValues={{ ...crossRefValues, ...computedValues }}
+        computedValues={computedValues}
         onChange={handleCellChange}
         lineItemHeader={t.lineItemHeader}
-        onAddButtonClick={(section) => setOpenDropdownSection(section === openDropdownSection ? null : section as BsSection)}
+        onAddButtonClick={() => setShowDropdown((prev) => !prev)}
         onRemoveAccount={handleRemoveAccount}
-        openDropdownSection={openDropdownSection}
+        openDropdownSection={showDropdown ? 'fixed_asset' : null}
         dropdownCatalog={dropdownCatalog}
-        onSelectCatalogItem={(item) => { handleAddAccount(item as BsCatalogAccount); setOpenDropdownSection(null) }}
-        onCustomEntry={(section, label) => { handleAddCustom(section as BsSection, label); setOpenDropdownSection(null) }}
-        onCloseDropdown={() => setOpenDropdownSection(null)}
+        onSelectCatalogItem={(item) => { handleAddAccount(item as FaCatalogAccount); setShowDropdown(false) }}
+        onCustomEntry={(_, label) => { handleAddCustom('fixed_asset', label); setShowDropdown(false) }}
+        onCloseDropdown={() => setShowDropdown(false)}
         dropdownStrings={{ manualEntry: t.manualEntry, allAccountsAdded: t.allAccountsAdded, accountNamePlaceholder: t.accountNamePlaceholder, cancel: t.cancel, add: t.add }}
         language={language}
       />
@@ -321,7 +317,7 @@ export default function DynamicBsEditor() {
         </button>
         <button
           type="button"
-          onClick={() => setShowResetBS(true)}
+          onClick={() => setShowResetFA(true)}
           className="rounded-sm border border-grid px-3 py-2 text-[13px] font-medium text-ink-soft transition-colors hover:bg-grid hover:text-ink"
         >
           Reset Halaman Ini
@@ -341,14 +337,14 @@ export default function DynamicBsEditor() {
       </footer>
 
       {/* Confirmation dialogs */}
-      {showResetBS && (
+      {showResetFA && (
         <ConfirmDialog
-          title={t.resetBsTitle}
-          message={t.resetBsMessage}
-          confirmLabel={t.resetBsConfirm}
+          title={t.resetFaTitle}
+          message={t.resetFaMessage}
+          confirmLabel={t.resetFaConfirm}
           cancelLabel={t.cancel}
-          onConfirm={handleResetBS}
-          onCancel={() => setShowResetBS(false)}
+          onConfirm={handleResetFA}
+          onCancel={() => setShowResetFA(false)}
         />
       )}
       {showResetAll && (

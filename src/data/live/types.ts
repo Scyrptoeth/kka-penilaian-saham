@@ -16,6 +16,7 @@
 
 import type { YearKeyedSeries } from '@/types/financial'
 import type { BsAccountEntry } from '@/data/catalogs/balance-sheet-catalog'
+import type { FaAccountEntry } from '@/data/catalogs/fixed-asset-catalog'
 
 export interface BalanceSheetInputState {
   /** User-selected accounts — ordered as displayed. Added Session 020. */
@@ -33,6 +34,13 @@ export interface IncomeStatementInputState {
 }
 
 export interface FixedAssetInputState {
+  /** User-selected accounts — ordered as displayed. Added Session 019. */
+  accounts: FaAccountEntry[]
+  /** Number of historical years to display (default 3). */
+  yearCount: number
+  /** Display language for account labels: 'en' | 'id'. */
+  language: 'en' | 'id'
+  /** excelRow → { year → value }. Keys use FA_OFFSET multipliers. */
   rows: Record<number, YearKeyedSeries>
 }
 

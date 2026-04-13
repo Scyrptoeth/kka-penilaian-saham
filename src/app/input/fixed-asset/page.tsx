@@ -2,15 +2,13 @@
 
 import Link from 'next/link'
 import { useKkaStore } from '@/lib/store/useKkaStore'
-import { ManifestEditor } from '@/components/forms/ManifestEditor'
-import { FIXED_ASSET_MANIFEST } from '@/data/manifests/fixed-asset'
+import DynamicFaEditor from '@/components/forms/DynamicFaEditor'
 
 /**
- * Fixed Asset input page — Session 012. Structure mirrors
- * `/input/balance-sheet` and `/input/income-statement`: parent owns
- * hydration gate + HOME guard, child is ManifestEditor with FA slice.
+ * Fixed Asset input page — dynamic catalog-driven editor (Session 019).
  *
- * Fixed Asset uses 3-year span (historicalYearCount: 3).
+ * Parent owns hydration gate + HOME guard (LESSON-034). Child mounts
+ * only after gates pass so useState initializers see hydrated store.
  */
 export default function InputFixedAssetPage() {
   const home = useKkaStore((s) => s.home)
@@ -47,14 +45,5 @@ export default function InputFixedAssetPage() {
     )
   }
 
-  return (
-    <ManifestEditor
-      manifest={FIXED_ASSET_MANIFEST}
-      tahunTransaksi={home.tahunTransaksi}
-      yearCount={3}
-      sliceSelector={(s) => s.fixedAsset}
-      sliceSetter={(s) => s.setFixedAsset}
-      headerTitle="Input — Fixed Asset"
-    />
-  )
+  return <DynamicFaEditor />
 }

@@ -165,7 +165,7 @@ interface KkaState {
 }
 
 const STORE_KEY = 'kka-penilaian-saham'
-const STORE_VERSION = 11
+const STORE_VERSION = 12
 
 /**
  * Migrate persisted state from older versions to the current schema.
@@ -187,6 +187,8 @@ const STORE_VERSION = 11
  *              yearCount, language for dynamic BS rows
  *   v10 → v11: Session 019-revisi-kedua removed fixed_assets from BS accounts
  *              (FA section now cross-referenced from Fixed Asset store)
+ *   v11 → v12: Session 019-fa-dynamic extended FixedAssetInputState with
+ *              accounts, yearCount, language for dynamic FA catalog rows
  *
  * Without this function, Zustand persist discards the entire older payload
  * and the user silently loses their HOME (and now DLOM/DLOC) data on the
@@ -319,6 +321,33 @@ export function migratePersistedState(
       state = {
         ...state,
         balanceSheet: { ...bs, accounts: filteredAccounts, rows: cleanedRows },
+      }
+    }
+  }
+
+  if (fromVersion < 12) {
+    // Extend FixedAssetInputState with accounts, yearCount, language
+    // Default accounts: the 6 original categories (backward-compatible)
+    if (state.fixedAsset && typeof state.fixedAsset === 'object') {
+      const fa = state.fixedAsset as Record<string, unknown>
+      if (!('accounts' in fa)) {
+        const DEFAULT_FA_ACCOUNTS = [
+          { catalogId: 'land', excelRow: 8, section: 'fixed_asset' as const },
+          { catalogId: 'building', excelRow: 9, section: 'fixed_asset' as const },
+          { catalogId: 'equipment_lab_machinery', excelRow: 10, section: 'fixed_asset' as const },
+          { catalogId: 'vehicle_heavy_equipment', excelRow: 11, section: 'fixed_asset' as const },
+          { catalogId: 'office_inventory', excelRow: 12, section: 'fixed_asset' as const },
+          { catalogId: 'electrical_installation', excelRow: 13, section: 'fixed_asset' as const },
+        ]
+        state = {
+          ...state,
+          fixedAsset: {
+            accounts: DEFAULT_FA_ACCOUNTS,
+            yearCount: 3,
+            language: 'id',
+            rows: fa.rows ?? {},
+          },
+        }
       }
     }
   }
