@@ -1,5 +1,6 @@
 import { SidebarNav } from './SidebarNav'
 import { SidebarHeader } from './SidebarHeader'
+import { ExportButton } from './ExportButton'
 
 /**
  * Desktop static sidebar — used on `lg+` only. The mobile drawer
@@ -15,6 +16,9 @@ export function Sidebar() {
       <SidebarHeader />
       <div className="flex-1 overflow-y-auto">
         <SidebarNav />
+      </div>
+      <div className="border-t border-grid">
+        <ExportButton />
       </div>
     </aside>
   )
