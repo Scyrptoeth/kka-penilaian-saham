@@ -307,6 +307,7 @@ export default function DynamicBsEditor() {
         onCustomEntry={(section, label) => { handleAddCustom(section, label); setOpenDropdownSection(null) }}
         onCloseDropdown={() => setOpenDropdownSection(null)}
         dropdownStrings={{ manualEntry: t.manualEntry, allAccountsAdded: t.allAccountsAdded, accountNamePlaceholder: t.accountNamePlaceholder, cancel: t.cancel, add: t.add }}
+        language={language}
       />
 
       {/* Footer: SIMPAN + RESET */}

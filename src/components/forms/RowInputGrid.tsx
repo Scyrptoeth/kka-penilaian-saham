@@ -25,6 +25,8 @@ interface RowInputGridProps {
   onCloseDropdown?: () => void
   /** i18n strings for dropdown UI */
   dropdownStrings?: { manualEntry: string; allAccountsAdded: string; accountNamePlaceholder: string; cancel: string; add: string }
+  /** Active language for catalog labels */
+  language?: 'en' | 'id'
 }
 
 export function RowInputGrid({
@@ -42,6 +44,7 @@ export function RowInputGrid({
   onCustomEntry,
   onCloseDropdown,
   dropdownStrings,
+  language = 'id',
 }: RowInputGridProps) {
   const colCount = 1 + years.length
   return (
@@ -108,6 +111,7 @@ export function RowInputGrid({
                       <InlineDropdown
                         section={row.section}
                         catalog={dropdownCatalog}
+                        language={language}
                         onSelect={(item) => onSelectCatalogItem?.(item)}
                         onCustom={(section, label) => onCustomEntry?.(section, label)}
                         onClose={() => onCloseDropdown?.()}
@@ -204,6 +208,7 @@ export function RowInputGrid({
 function InlineDropdown({
   section,
   catalog,
+  language = 'id',
   onSelect,
   onCustom,
   onClose,
@@ -211,6 +216,7 @@ function InlineDropdown({
 }: {
   section: BsSection
   catalog: readonly BsCatalogAccount[]
+  language?: 'en' | 'id'
   onSelect: (item: BsCatalogAccount) => void
   onCustom: (section: BsSection, label: string) => void
   onClose: () => void
@@ -256,7 +262,7 @@ function InlineDropdown({
                 onClick={() => onSelect(cat)}
                 className="w-full px-3 py-1.5 text-left text-[12px] text-ink-soft transition-colors hover:bg-grid hover:text-ink"
               >
-                {cat.labelId || cat.labelEn}
+                {language === 'en' ? cat.labelEn : cat.labelId}
               </button>
             </li>
           ))}
