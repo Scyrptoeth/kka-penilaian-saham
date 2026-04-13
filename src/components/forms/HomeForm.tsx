@@ -23,6 +23,7 @@ const DEFAULTS: HomeInputsSchema = {
   jumlahSahamYangDinilai: 0,
   tahunTransaksi: new Date().getFullYear(),
   objekPenilaian: 'saham',
+  nilaiNominalPerSaham: 1,
   dlomPercent: 0,
   dlocPercent: 0,
 }
@@ -187,6 +188,23 @@ export function HomeForm() {
             mono
             invalid={!!errors.jumlahSahamYangDinilai}
             {...register('jumlahSahamYangDinilai', { valueAsNumber: true })}
+          />
+        </Field>
+
+        <Field
+          id="nilaiNominalPerSaham"
+          label="Nilai Nominal Per Saham (Rp)"
+          required
+          error={errors.nilaiNominalPerSaham?.message}
+        >
+          <Input
+            id="nilaiNominalPerSaham"
+            type="number"
+            min={1}
+            step={1}
+            mono
+            invalid={!!errors.nilaiNominalPerSaham}
+            {...register('nilaiNominalPerSaham', { valueAsNumber: true })}
           />
         </Field>
 

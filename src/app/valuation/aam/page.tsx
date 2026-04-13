@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useCallback } from 'react'
 import { useKkaStore, computeProporsiSaham } from '@/lib/store/useKkaStore'
 import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
@@ -54,7 +54,14 @@ const LIABILITY_ROWS: AamRowDef[] = [
 export default function AamPage() {
   const home = useKkaStore(s => s.home)
   const balanceSheet = useKkaStore(s => s.balanceSheet)
+  const faAdjustment = useKkaStore(s => s.faAdjustment)
+  const setFaAdjustment = useKkaStore(s => s.setFaAdjustment)
   const hasHydrated = useKkaStore(s => s._hasHydrated)
+
+  const handleFaAdjustmentChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = Number(e.target.value)
+    setFaAdjustment(Number.isFinite(val) ? val : 0)
+  }, [setFaAdjustment])
 
   const data = useMemo(() => {
     if (!hasHydrated || !home || !balanceSheet) return null
@@ -77,7 +84,7 @@ export default function AamPage() {
       otherNonCurrentAssets: bs(23),
       intangibleAssets: bs(24),
       totalNonCurrentAssets: bs(25),
-      faAdjustment: 0, // default, user-editable in future
+      faAdjustment,
       bankLoanST: bs(31),
       accountPayable: bs(32),
       taxPayable: bs(33),
@@ -91,14 +98,11 @@ export default function AamPage() {
       dlomPercent: home.dlomPercent,
       dlocPercent: home.dlocPercent,
       proporsiSaham: computeProporsiSaham(home),
-      // Fixture: E60=E59-600M. 600M = jumlahSahamBeredar × Rp 1 par value.
-      // TODO: Add nilaiNominalPerSaham to HomeInputs for proper company-agnostic computation.
-      // Currently assumes par value = Rp 1 (common for Indonesian large-cap).
-      paidUpCapitalDeduction: home.jumlahSahamBeredar,
+      paidUpCapitalDeduction: home.jumlahSahamBeredar * home.nilaiNominalPerSaham,
     })
 
     return { result, allBs, ly }
-  }, [hasHydrated, home, balanceSheet])
+  }, [hasHydrated, home, balanceSheet, faAdjustment])
 
   if (!hasHydrated) {
     return <div className="mx-auto max-w-[1100px] p-6 text-sm text-ink-muted">Memuat data…</div>
@@ -139,10 +143,36 @@ export default function AamPage() {
     )
   }
 
+  // Determine adjustment value per row for the D column
+  const getAdjVal = (def: AamRowDef): number => {
+    // Only Fixed Asset Net has a user-editable adjustment
+    if (def.bsRow === 22) return faAdjustment
+    return 0
+  }
+
   return (
     <div className="mx-auto max-w-[1100px] p-6">
       <h1 className="mb-1 text-2xl font-semibold tracking-tight text-ink">Adjusted Asset Method (AAM)</h1>
       <p className="mb-6 text-sm text-ink-muted">Metode Penyesuaian Aset Bersih — valuasi berdasarkan neraca yang disesuaikan.</p>
+
+      {/* FA Adjustment Input */}
+      <div className="mb-6 rounded border border-grid bg-canvas-raised p-4">
+        <label htmlFor="faAdjustment" className="mb-1 block text-sm font-medium text-ink">
+          Penyesuaian Aset Tetap (Rp)
+        </label>
+        <p className="mb-2 text-xs text-ink-muted">
+          Selisih antara nilai buku dan nilai pasar aset tetap (misal: adjustment appraisal tanah). Positif = naik, negatif = turun.
+        </p>
+        <input
+          id="faAdjustment"
+          type="number"
+          step="any"
+          value={faAdjustment || ''}
+          onChange={handleFaAdjustmentChange}
+          placeholder="0"
+          className="w-full max-w-xs rounded border border-grid bg-canvas px-3 py-2 font-mono text-sm tabular-nums text-ink focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+        />
+      </div>
 
       {/* 3-column Balance Sheet */}
       <div className="mb-8 overflow-x-auto">
@@ -160,7 +190,7 @@ export default function AamPage() {
               renderRow(
                 def,
                 def.bsRow !== undefined ? bs(def.bsRow) : undefined,
-                0,
+                def.section ? undefined : getAdjVal(def),
                 def.resultKey ? (r as unknown as Record<string, number>)[def.resultKey] : def.bsRow !== undefined ? bs(def.bsRow) : undefined,
               ),
             )}
@@ -168,7 +198,7 @@ export default function AamPage() {
               renderRow(
                 def,
                 def.bsRow !== undefined ? bs(def.bsRow) : undefined,
-                0,
+                def.section ? undefined : 0,
                 def.resultKey ? (r as unknown as Record<string, number>)[def.resultKey] : def.bsRow !== undefined ? bs(def.bsRow) : undefined,
               ),
             )}

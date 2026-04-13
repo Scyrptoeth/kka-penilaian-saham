@@ -102,8 +102,7 @@ export default function EemPage() {
       dlomPercent: home.dlomPercent,
       dlocPercent: home.dlocPercent,
       proporsiSaham,
-      // See AAM page comment — assumes par value = Rp 1
-      paidUpCapitalDeduction: home.jumlahSahamBeredar,
+      paidUpCapitalDeduction: home.jumlahSahamBeredar * home.nilaiNominalPerSaham,
     })
 
     // ── EEM ──

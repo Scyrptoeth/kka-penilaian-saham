@@ -13,11 +13,13 @@ const HOME_FIXTURE = {
   dlocPercent: 0,
 }
 
-describe('migratePersistedState — v1 → v6 (chained)', () => {
-  it('preserves home and initializes all slices as null', () => {
+describe('migratePersistedState — v1 → v8 (chained)', () => {
+  it('preserves home, initializes all slices, adds v8 fields', () => {
     const v1State = { home: HOME_FIXTURE }
     const migrated = migratePersistedState(v1State, 1) as Record<string, unknown>
-    expect(migrated.home).toEqual(HOME_FIXTURE)
+    const home = migrated.home as Record<string, unknown>
+    expect(home.namaPerusahaan).toBe('PT Test Sejahtera')
+    expect(home.nilaiNominalPerSaham).toBe(1)
     expect(migrated.dlom).toBeNull()
     expect(migrated.dloc).toBeNull()
     expect(migrated.balanceSheet).toBeNull()
@@ -25,11 +27,14 @@ describe('migratePersistedState — v1 → v6 (chained)', () => {
     expect(migrated.wacc).toBeNull()
     expect(migrated.discountRate).toBeNull()
     expect(migrated.keyDrivers).toBeNull()
+    expect(migrated.borrowingCapInput).toBeNull()
+    expect(migrated.faAdjustment).toBe(0)
+    expect(migrated.nilaiPengalihanDilaporkan).toBe(0)
   })
 })
 
-describe('migratePersistedState — v4 → v6', () => {
-  it('adds wacc + discountRate + keyDrivers as null', () => {
+describe('migratePersistedState — v4 → v8 (chained)', () => {
+  it('adds wacc + discountRate + keyDrivers + v7/v8 fields', () => {
     const v4State = {
       home: HOME_FIXTURE,
       dlom: null,
@@ -43,11 +48,15 @@ describe('migratePersistedState — v4 → v6', () => {
     expect(migrated.wacc).toBeNull()
     expect(migrated.discountRate).toBeNull()
     expect(migrated.keyDrivers).toBeNull()
+    expect(migrated.borrowingCapInput).toBeNull()
+    expect(migrated.faAdjustment).toBe(0)
+    const home = migrated.home as Record<string, unknown>
+    expect(home.nilaiNominalPerSaham).toBe(1)
   })
 })
 
-describe('migratePersistedState — v5 → v6', () => {
-  it('preserves existing slices and adds keyDrivers as null', () => {
+describe('migratePersistedState — v5 → v8 (chained)', () => {
+  it('preserves existing slices, adds keyDrivers + v7/v8 fields', () => {
     const v5State = {
       home: HOME_FIXTURE,
       dlom: null,
@@ -60,15 +69,17 @@ describe('migratePersistedState — v5 → v6', () => {
       discountRate: null,
     }
     const migrated = migratePersistedState(v5State, 5) as Record<string, unknown>
-    expect(migrated.home).toEqual(HOME_FIXTURE)
-    expect(migrated.wacc).toBeNull()
-    expect(migrated.discountRate).toBeNull()
+    const home = migrated.home as Record<string, unknown>
+    expect(home.namaPerusahaan).toBe('PT Test Sejahtera')
+    expect(home.nilaiNominalPerSaham).toBe(1)
     expect(migrated.keyDrivers).toBeNull()
+    expect(migrated.borrowingCapInput).toBeNull()
+    expect(migrated.faAdjustment).toBe(0)
   })
 })
 
-describe('migratePersistedState — v6 → v7', () => {
-  it('v6 → v7 adds borrowingCapInput', () => {
+describe('migratePersistedState — v6 → v8 (chained)', () => {
+  it('v6 → v7 → v8: adds borrowingCapInput + v8 fields', () => {
     const v6State = {
       home: HOME_FIXTURE,
       dlom: null,
@@ -82,13 +93,15 @@ describe('migratePersistedState — v6 → v7', () => {
       keyDrivers: null,
     }
     const migrated = migratePersistedState(v6State, 6) as Record<string, unknown>
-    expect(migrated.home).toEqual(HOME_FIXTURE)
     expect(migrated.borrowingCapInput).toBeNull()
+    expect(migrated.faAdjustment).toBe(0)
+    const home = migrated.home as Record<string, unknown>
+    expect(home.nilaiNominalPerSaham).toBe(1)
   })
 })
 
-describe('migratePersistedState — v7 and future', () => {
-  it('v7 → v7 passes through unchanged (no-op)', () => {
+describe('migratePersistedState — v7 → v8', () => {
+  it('adds nilaiNominalPerSaham to home + faAdjustment + nilaiPengalihanDilaporkan', () => {
     const v7State = {
       home: HOME_FIXTURE,
       dlom: null,
@@ -102,14 +115,61 @@ describe('migratePersistedState — v7 and future', () => {
       keyDrivers: null,
       borrowingCapInput: null,
     }
-    const migrated = migratePersistedState(v7State, 7)
-    expect(migrated).toBe(v7State)
+    const migrated = migratePersistedState(v7State, 7) as Record<string, unknown>
+    const home = migrated.home as Record<string, unknown>
+    expect(home.nilaiNominalPerSaham).toBe(1)
+    expect(home.namaPerusahaan).toBe('PT Test Sejahtera')
+    expect(migrated.faAdjustment).toBe(0)
+    expect(migrated.nilaiPengalihanDilaporkan).toBe(0)
+  })
+
+  it('preserves existing nilaiNominalPerSaham if already present', () => {
+    const v7WithNilai = {
+      home: { ...HOME_FIXTURE, nilaiNominalPerSaham: 100 },
+      borrowingCapInput: null,
+    }
+    const migrated = migratePersistedState(v7WithNilai, 7) as Record<string, unknown>
+    const home = migrated.home as Record<string, unknown>
+    expect(home.nilaiNominalPerSaham).toBe(100)
+  })
+
+  it('handles null home during v7→v8 migration', () => {
+    const v7NullHome = {
+      home: null,
+      borrowingCapInput: null,
+    }
+    const migrated = migratePersistedState(v7NullHome, 7) as Record<string, unknown>
+    expect(migrated.home).toBeNull()
+    expect(migrated.faAdjustment).toBe(0)
+    expect(migrated.nilaiPengalihanDilaporkan).toBe(0)
+  })
+})
+
+describe('migratePersistedState — v8 and future', () => {
+  it('v8 → v8 passes through unchanged (no-op)', () => {
+    const v8State = {
+      home: { ...HOME_FIXTURE, nilaiNominalPerSaham: 1 },
+      dlom: null,
+      dloc: null,
+      balanceSheet: null,
+      incomeStatement: null,
+      fixedAsset: null,
+      accPayables: null,
+      wacc: null,
+      discountRate: null,
+      keyDrivers: null,
+      borrowingCapInput: null,
+      faAdjustment: 0,
+      nilaiPengalihanDilaporkan: 0,
+    }
+    const migrated = migratePersistedState(v8State, 8)
+    expect(migrated).toBe(v8State)
   })
 
   it('passes future versions through unchanged', () => {
-    const v8State = { home: null, futureSlice: {} }
-    const migrated = migratePersistedState(v8State, 8)
-    expect(migrated).toBe(v8State)
+    const v9State = { home: null, futureSlice: {} }
+    const migrated = migratePersistedState(v9State, 9)
+    expect(migrated).toBe(v9State)
   })
 
   it('passes non-object payloads through unchanged', () => {

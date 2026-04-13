@@ -30,6 +30,8 @@ export interface HomeInputs {
   jumlahSahamYangDinilai: number
   tahunTransaksi: number
   objekPenilaian: ObjekPenilaian
+  /** Par value per share (Rp). Used in AAM paidUpCapitalDeduction. */
+  nilaiNominalPerSaham: number
   /** Auto-computed summary from DLOM sheet */
   dlomPercent: number
   /** Auto-computed summary from DLOC(PFC) sheet */

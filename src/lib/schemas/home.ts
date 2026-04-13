@@ -24,6 +24,9 @@ export const homeInputsSchema = z.object({
     .min(2000, 'Tahun minimal 2000')
     .max(2100, 'Tahun maksimal 2100'),
   objekPenilaian: z.enum(['saham', 'bisnis']),
+  nilaiNominalPerSaham: z
+    .number({ error: 'Nilai nominal per saham wajib diisi' })
+    .positive('Harus lebih besar dari nol'),
   dlomPercent: z.number().min(0).max(1),
   dlocPercent: z.number().min(-1).max(1),
 })
