@@ -1,6 +1,6 @@
 # KKA Penilaian Saham — Handoff Document CLI → Cowork
 
-> **Tanggal**: 2026-04-13 (setelah Session 016)
+> **Tanggal**: 2026-04-13 (setelah Session 017)
 > **Tujuan**: Menyamakan pemahaman antara Claude Code CLI (paling update) dan Cowork
 > **Repo**: https://github.com/Scyrptoeth/kka-penilaian-saham
 > **Live**: https://kka-penilaian-saham.vercel.app
@@ -15,7 +15,9 @@
 
 **Privacy-first**: Zero network calls untuk data user. Semua client-side. LocalStorage untuk persistence. Tidak ada login, tidak ada server storage.
 
-**Milestone Session 016**: Aplikasi sudah menghasilkan **nilai per saham** lewat 3 metode valuasi (DCF, AAM, EEM). Ini milestone pertama setelah 16 sesi pengembangan.
+**Milestone Session 016**: Pertama kali menghasilkan **nilai per saham** lewat 3 metode valuasi (DCF, AAM, EEM).
+
+**Milestone Session 017**: **SIMULASI POTENSI PPh** — output utama untuk Penilai DJP. PPh Pasal 17 progresif, method selector (DCF/AAM/EEM), Dashboard Recharts. **System hardening** — semua shared logic diextract ke centralized builders, zero copy-paste antar pages.
 
 ---
 
@@ -28,7 +30,7 @@
 | Styling | Tailwind CSS (v4, CSS-first `@theme`) | 4 |
 | State | Zustand + persist middleware | 5 |
 | Forms | react-hook-form + Zod | 7 + 4 |
-| Charts | Recharts (ready, belum dipakai) | 3 |
+| Charts | Recharts | 3 |
 | Export | ExcelJS (ready, belum dipakai) | 4 |
 | Testing | Vitest + Testing Library | 3 |
 | Deploy | Vercel | Auto-deploy on push to main |
@@ -43,34 +45,33 @@
 
 ---
 
-## 3. Current State (After Session 016)
+## 3. Current State (After Session 017)
 
 ### Verification
 ```
-Tests:     691 / 691 passing (47 files)
-Build:     30 static pages, zero errors
+Tests:     715 / 715 passing (49 files)
+Build:     32 static pages, zero errors
 Typecheck: tsc --noEmit clean
 Lint:      zero warnings
-Store:     v7 (11 slices)
+Store:     v8 (13 slices/fields)
 ```
 
-### 28 Live Pages
+### 32 Live Pages
 
 | Grup | Halaman |
 |---|---|
-| **Input Master** | HOME (form input master, 7 field) |
+| **Input Master** | HOME (form input master, 8 field termasuk nilaiNominalPerSaham) |
 | **Input Data** | Balance Sheet, Income Statement, Fixed Asset, Key Drivers |
 | **Historis** | Balance Sheet, Income Statement, Cash Flow, Fixed Asset |
 | **Analisis** | Financial Ratio (18/18), FCF, NOPLAT, Growth Revenue, ROIC, Growth Rate |
 | **Proyeksi** | Proy. L/R, Proy. Fixed Asset, Proy. Balance Sheet, Proy. NOPLAT, Proy. Cash Flow |
-| **Penilaian** | DLOM, DLOC (PFC), WACC, Discount Rate, **Borrowing Cap**, **DCF**, **AAM**, **EEM** |
+| **Penilaian** | DLOM, DLOC (PFC), WACC, Discount Rate, Borrowing Cap, DCF, AAM, EEM, **CFI**, **Simulasi Potensi** |
+| **Ringkasan** | **Dashboard** (4 Recharts charts) |
 
-### WIP (belum dibangun)
-- **RESUME** (ringkasan perbandingan DCF/AAM/EEM)
-- **CFI** (Cash Flow to Investor)
-- **Dashboard** (Recharts visualization)
+### Belum Dibangun
+- **RESUME** (ringkasan perbandingan DCF/AAM/EEM side-by-side)
 - **Export .xlsx** (ExcelJS sudah installed, `lib/export/` kosong)
-- **nilaiNominalPerSaham** field di HOME (untuk AAM par-value deduction yang benar)
+- **File upload** (.xlsx → live data, eliminasi manual data entry)
 
 ---
 
@@ -85,46 +86,64 @@ User isi HOME form → home !== null → auto-detect → LIVE MODE (data user)
 
 Switching otomatis, zero toggle. Sentinel pattern: `home === null` = demo.
 
-### 4.2 Pipeline Data (Live Mode) — UPDATED Session 016
+### 4.2 Pipeline Data (Live Mode) — UPDATED Session 017
 
 ```
-User Input (Zustand Store v7)
+User Input (Zustand Store v8)
     ↓
 Historical Data (BS/IS/FA rows × 4 tahun)
     ↓ computeAvgGrowth() → growth rates
     ↓ deriveComputedRows() → subtotals/totals
     ↓
-Analysis Pages (FR, FCF, NOPLAT, GR, ROIC, CFS)
-    ↓ sign-flip via adapter layer
+┌───────────────────────────────────────────────────────────────┐
+│ computeHistoricalUpstream()  [NEW S017 — single call]        │
+│   NOPLAT → CFS → FCF → ROIC → Growth Rate                   │
+│   Replaces ~25 lines copy-pasted in 5 files                  │
+└───────────────────────────────────────────────────────────────┘
+    ↓
+Analysis Pages (FR 18/18, FCF, NOPLAT, GR, ROIC, CFS)
     ↓
 KEY DRIVERS (financial/operational/BS/capex assumptions)
     ↓
-Projection Chain:
-    PROY FA → PROY LR → PROY BS → PROY NOPLAT → PROY CFS
-    ↓                                              ↓
-    └─────────────────── semua feed ke ────────────┘
-                          ↓
-    ┌─────────────────────┼─────────────────────────┐
-    │                     │                         │
-  DCF                   AAM                       EEM
-  (projected FCF        (adjusted BS              (historical FCF
-   + terminal value      + NAV formula             + Borrowing Cap rate
-   + WACC discount)      + DLOM/DLOC)              + excess earning)
-    │                     │                         │
-    └─── computeShareValue() ── DLOM → DLOC → ROUNDUP → per share ──┘
+┌───────────────────────────────────────────────────────────────┐
+│ computeFullProjectionPipeline()  [NEW S017 — single call]    │
+│   PROY FA → PROY LR → PROY NOPLAT → PROY BS → PROY AP      │
+│   → PROY CFS                                                 │
+│   Replaces ~90 lines duplicated in DCF + PROY CFS           │
+└───────────────────────────────────────────────────────────────┘
+    ↓
+┌────────────────────┬────────────────────┬────────────────────┐
+│ DCF                │ AAM                │ EEM                │
+│ buildDcfInput()    │ buildAamInput()    │ buildEemInput()    │
+│ computeDcf()       │ computeAam()       │ computeEem()       │
+│ → projected FCF    │ → adjusted BS      │ → historical FCF   │
+│ → terminal value   │ → NAV formula      │ → Borrowing Cap    │
+│ → WACC discount    │ → DLOM/DLOC        │ → excess earning   │
+└────────┬───────────┴────────┬───────────┴────────┬───────────┘
+         │                    │                    │
+         └───── computeShareValue() → per share ───┘
+                              ↓
+┌───────────────────────────────────────────────────────────────┐
+│ computeSimulasiPotensi()  [NEW S017]                         │
+│   Equity → DLOM → DLOC → Market Value → PPh Pasal 17        │
+│   Method selector: user picks DCF / AAM / EEM basis          │
+│   Progressive tax: 5 brackets (5%, 15%, 25%, 30%, 35%)       │
+│   Output: Total Potensi PPh Kurang Bayar                     │
+└───────────────────────────────────────────────────────────────┘
 ```
 
 ### 4.3 Layer Architecture
 
 ```
 src/
-├── app/                          # Next.js pages (28 routes)
+├── app/                          # Next.js pages (32 routes)
 │   ├── page.tsx                  # HOME (server component + client form)
 │   ├── input/                    # 4 data entry pages
 │   ├── historical/               # 4 historical view pages
 │   ├── analysis/                 # 6 analysis pages
 │   ├── projection/               # 5 projection pages
-│   └── valuation/                # 8 valuation pages (was 4, +4 in Session 016)
+│   ├── valuation/                # 10 valuation pages (+2 in Session 017)
+│   └── dashboard/                # [NEW S017] Dashboard with 4 Recharts charts
 │
 ├── components/
 │   ├── financial/                # FinancialTable, FormulaTooltip, DataSourceHeader, format.ts
@@ -138,17 +157,21 @@ src/
 │   └── live/                     # 15 compute adapters (live mode wiring)
 │
 ├── lib/
-│   ├── calculations/             # 14 pure calc modules (was 9, +5 in Session 016)
-│   │   ├── share-value.ts        # [NEW S016] Shared equity→DLOM→DLOC→ROUNDUP→perShare
-│   │   ├── borrowing-cap.ts      # [NEW S016] CALK borrowing capacity + weighted avg return
-│   │   ├── dcf.ts                # [NEW S016] DCF with Gordon Growth terminal value
-│   │   ├── aam-valuation.ts      # [NEW S016] Adjusted Asset Method
-│   │   ├── eem-valuation.ts      # [NEW S016] Excess Earnings Method
-│   │   ├── discount-rate.ts      # [MOD S016] Added buildDiscountRateInput()
-│   │   ├── helpers.ts            # [MOD S016] Added roundUp()
-│   │   └── ...                   # balance-sheet, income-statement, wacc, etc.
+│   ├── calculations/             # 17 pure calc modules (+3 in Session 017)
+│   │   ├── projection-pipeline.ts   # [NEW S017] Full 6-step projection chain
+│   │   ├── upstream-helpers.ts      # [NEW S017] 7 shared builders (buildAamInput, etc.)
+│   │   ├── cfi.ts                   # [NEW S017] Cash Flow to Investor
+│   │   ├── simulasi-potensi.ts      # [NEW S017] PPh Pasal 17 progressive tax
+│   │   ├── share-value.ts           # [S016] Shared equity→perShare tail
+│   │   ├── borrowing-cap.ts         # [S016] CALK borrowing + weighted return
+│   │   ├── dcf.ts                   # [S016] DCF + Gordon Growth terminal
+│   │   ├── aam-valuation.ts         # [S016] Adjusted Asset Method
+│   │   ├── eem-valuation.ts         # [S016] Excess Earnings Method
+│   │   ├── discount-rate.ts         # buildDiscountRateInput() + CAPM
+│   │   ├── helpers.ts               # roundUp, computeAvgGrowth, YKS helpers
+│   │   └── ...                      # balance-sheet, income-statement, wacc, etc.
 │   │
-│   ├── store/                    # Zustand store (v7, 11 slices, persist + migrate)
+│   ├── store/                    # Zustand store (v8, persist + migrate chain)
 │   ├── schemas/                  # Zod schemas (home.ts)
 │   ├── adapters/                 # Sign-flip adapters (fcf, cash-flow, noplat)
 │   └── validation/               # Zod validation wrappers
@@ -160,23 +183,26 @@ src/
 
 | Pattern | Penjelasan |
 |---|---|
-| **Manifest-driven rendering** | Historical/analysis pages defined by `SheetManifest` data → `buildRowsFromManifest()` → `<SheetPage>`. Tambah sheet baru = tulis manifest, zero code change di build system. |
-| **Custom page for projections + valuations** | PROY dan valuation pages punya mixed column layouts → custom `'use client'` page with `useMemo`. Bukan manifest. (LESSON-038) |
-| **Declarative computedFrom** | Subtotals/totals declared di manifest: `{ computedFrom: [6, -7] }` → auto-computed by `deriveComputedRows()`. Signed refs support subtraction. (LESSON-033) |
-| **Adapter layer** | Sign flips centralized: raw data (positive) → adapter (negate per Excel formula) → pure calc. One sign flip per value, one place per flip. (LESSON-011) |
-| **YearKeyedSeries** | `Record<number, number>` — year as key, not array index. Zero positional confusion, sparse-year safe. (LESSON-012) |
-| **Hydration gate** | Form pages: parent gates `hasHydrated` + `home !== null`, child mounts after gate → `useState(initializer)` seeds from hydrated store. (LESSON-034) |
-| **Lazy useMemo per page** | Projection/valuation pages compute on navigation, not globally. React selectors trigger re-render only when relevant slice changes. (LESSON-032) |
-| **buildDiscountRateInput()** | [NEW S016] Centralized store→DiscountRateInput mapping. Prevents debtRate-class bugs. All pages yang butuh DR harus pakai ini, JANGAN construct input manual. (LESSON-043) |
-| **computeShareValue()** | [NEW S016] Shared equity→share value tail untuk DCF + EEM. AAM tidak pakai (format berbeda — no ROUNDUP/perShare). |
+| **Manifest-driven rendering** | Historical/analysis pages defined by `SheetManifest` → `buildRowsFromManifest()` → `<SheetPage>`. Tambah sheet = tulis manifest, zero code change. |
+| **Custom page for projections + valuations** | Mixed column layouts → custom `'use client'` page with `useMemo`. (LESSON-038) |
+| **Declarative computedFrom** | Subtotals declared: `{ computedFrom: [6, -7] }` → `deriveComputedRows()`. Signed refs for subtract. (LESSON-033) |
+| **Adapter layer** | Sign flips centralized: raw → adapter (negate per Excel) → pure calc. (LESSON-011) |
+| **YearKeyedSeries** | `Record<number, number>` — year as key, not index. (LESSON-012) |
+| **Hydration gate** | Parent gates `hasHydrated` + `home !== null`, child mounts after → `useState(initializer)` safe. (LESSON-034) |
+| **Lazy useMemo per page** | Compute on navigation, not globally. Selectors trigger re-render per slice. (LESSON-032) |
+| **Centralized builders** | [NEW S017] `buildAamInput()`, `buildDcfInput()`, `buildEemInput()`, `buildBorrowingCapInput()` — ONE place per mapping. JANGAN copy-paste parameter. (LESSON-046) |
+| **`computeHistoricalUpstream()`** | [NEW S017] Single call replaces ~25 lines duplicated in 5 files. Returns allNoplat, allCfs, allFcf, allFa, roicRows, growthRate. |
+| **`computeFullProjectionPipeline()`** | [NEW S017] Single call replaces ~90 lines in DCF + PROY CFS. Returns all 6 PROY outputs + computed BS. |
+| **`computeShareValue()`** | Shared equity→DLOM→DLOC→ROUNDUP→perShare for DCF + EEM. AAM tidak pakai (format berbeda). |
+| **Risk category derivation** | [NEW S017] `deriveDlomRiskCategory()` / `deriveDlocRiskCategory()` — percentage→category. Jangan hardcode risk labels. |
 
 ---
 
-## 5. Store Shape (v7) — UPDATED Session 016
+## 5. Store Shape (v8) — UPDATED Session 017
 
 ```typescript
 interface KkaState {
-  home: HomeInputs | null                    // 7 field master input
+  home: HomeInputs | null                    // 8 fields (incl. nilaiNominalPerSaham)
   dlom: DlomState | null                     // 10-factor questionnaire
   dloc: DlocState | null                     // 5-factor questionnaire
   balanceSheet: { rows: Record<number, YearKeyedSeries> } | null
@@ -186,73 +212,131 @@ interface KkaState {
   wacc: WaccState | null                     // comparable companies + params
   discountRate: DiscountRateState | null      // CAPM params + bank rates
   keyDrivers: KeyDriversState | null         // financial/operational/BS/capex
-  borrowingCapInput: BorrowingCapInputState | null  // [NEW S016] CALK values
+  borrowingCapInput: BorrowingCapInputState | null  // [S016] CALK values
+  faAdjustment: number                       // [NEW S017] AAM fixed asset adjustment, default 0
+  nilaiPengalihanDilaporkan: number           // [NEW S017] SIMULASI POTENSI reported value, default 0
+}
+
+// HomeInputs now includes:
+interface HomeInputs {
+  namaPerusahaan: string
+  npwp: string
+  jenisPerusahaan: 'tertutup' | 'terbuka'
+  jumlahSahamBeredar: number
+  jumlahSahamYangDinilai: number
+  tahunTransaksi: number
+  objekPenilaian: 'saham' | 'bisnis'
+  nilaiNominalPerSaham: number  // [NEW S017] Par value per share, default Rp 1
+  dlomPercent: number           // auto-computed from DLOM questionnaire
+  dlocPercent: number           // auto-computed from DLOC questionnaire
 }
 ```
 
-Migration chain: v1→v2→v3→v4→v5→v6→v7. Setiap bump menambah slices baru, `null` default. Function `migratePersistedState` exported dan tested.
+Migration chain: v1→v2→v3→v4→v5→v6→v7→**v8**. Function `migratePersistedState` exported dan tested.
 
-**BorrowingCapInputState** (v7):
-```typescript
-interface BorrowingCapInputState {
-  piutangCalk: number   // CALK Piutang — external data, user input
-  persediaanCalk: number // CALK Persediaan — external data, user input
-}
-```
+**v7→v8 migration** adds:
+- `nilaiNominalPerSaham: 1` to existing `home` object (backward compatible)
+- `faAdjustment: 0` as top-level field
+- `nilaiPengalihanDilaporkan: 0` as top-level field
 
 ---
 
-## 6. Session 016 — Apa yang Baru (DETAIL)
+## 6. Session 017 — Apa yang Baru (DETAIL)
 
-### 6.1 Lima Modul Kalkulasi Baru
+### 6.1 Refactor: `computeFullProjectionPipeline()`
 
-| Modul | Input | Output | Tests |
+**Masalah**: Pipeline proyeksi ~90 baris di-copy-paste di DCF page dan PROY CFS page.
+
+**Solusi**: Extract ke `src/lib/calculations/projection-pipeline.ts` — pure function yang menerima store slices dan return semua 6 PROY outputs + computed BS. Kedua pages sekarang call 1 line.
+
+### 6.2 Store v7→v8: `nilaiNominalPerSaham` + `faAdjustment` + `nilaiPengalihanDilaporkan`
+
+**Masalah**: AAM `paidUpCapitalDeduction` asumsikan par value Rp 1 (hardcoded). FA adjustment = 0 (hardcoded). Simulasi Potensi butuh store field untuk reported value.
+
+**Solusi**: Bundled 3 field baru dalam 1 store migration. `paidUpCapitalDeduction = jumlahSahamBeredar × nilaiNominalPerSaham` — benar untuk semua perusahaan.
+
+### 6.3 AAM Page: FA Adjustment Input
+
+AAM page sekarang punya input field untuk penyesuaian aset tetap (misal: appraisal tanah vs book value). Tersimpan di store, reactive via `useMemo`. Dipakai juga oleh Simulasi Potensi dan Dashboard.
+
+### 6.4 CFI Page — Cash Flow to Investor
+
+| Row | Label | Historis | Proyeksi |
 |---|---|---|---|
-| `share-value.ts` | equityValue, DLOM%, DLOC%, proporsi, jumlahSaham | dlomDiscount, equityLessDlom, dlocDiscount, mv100, mvPortion, rounded, perShare | 5 |
-| `borrowing-cap.ts` | CALK values, BS receivables/inventory/FA, DR kd/ke | borrowingCap per asset, weights, waccTangible | 6 |
-| `aam-valuation.ts` | BS last-year (all rows), faAdjustment, DLOM/DLOC%, proporsi | adjusted BS, NAV, equity, DLOM, DLOC, marketValue, finalValue | 15 |
-| `dcf.ts` | historical + projected NOPLAT/CFS/FA, WACC, growthRate, IBD, excessCash | FCF per year, discountFactors, pvFcf, terminalValue, enterpriseValue, equityValue100 | 13 |
-| `eem-valuation.ts` | AAM adjusted data, BC rate, historical NOPLAT/CFS/FA, WACC | netTangibleAsset, earningReturn, fcf, excessEarning, capitalizedExcess, equityValue100 | 10 |
+| 7 | Free Cash Flow | FCF row 20 | DCF projected FCF |
+| 8 | Non-Operational CF | IS row 30 | PROY LR row 34 |
+| 9 | **CFI** | **= R7 + R8** | **= R7 + R8** |
 
-### 6.2 Empat Halaman Baru
+Pure calc module `computeCfi()` — merge hist+proj, compute per year. 4 tests. Tabel visual membedakan kolom historis vs proyeksi.
 
-**`/valuation/borrowing-cap`** — Rate of Return on Net Tangible Assets
-- Input CALK (piutangCalk, persediaanCalk) — external data dari Catatan Atas Laporan Keuangan
-- 70% borrowing percentage for fixed assets (named constant `BORROWING_PERCENT_DEFAULT`)
-- Output: weighted average return rate yang dipakai EEM
+### 6.5 SIMULASI POTENSI — Output Utama untuk Penilai DJP
 
-**`/valuation/dcf`** — Discounted Cash Flow
-- Full upstream chain: historical → PROY FA → PROY LR → PROY NOPLAT → PROY BS → PROY AP → PROY CFS → DCF
-- Gordon Growth terminal value: `FCF_last × (1+g) / (WACC-g)` — allows g > r when FCF negative (LESSON-045)
-- Equity → Share: via shared `computeShareValue()` with DLOM from home, DLOC = 0
+**Ini halaman terpenting** — menghitung potensi PPh kurang bayar dari pengalihan saham.
 
-**`/valuation/aam`** — Adjusted Asset Method
-- 3-column layout: Historical (C), Adjustments (D), Adjusted (E)
-- NAV formula khusus: Total Assets - (AP + Tax + Others) - Related Party NCL — bukan total liabilities
-- IBD (Interest Bearing Debt) dari HISTORICAL values (C column), bukan adjusted
-- DLOM dan DLOC dari `home.dlomPercent` / `home.dlocPercent`
-- Tidak ada ROUNDUP / perShare — format sesuai Excel
-- `paidUpCapitalDeduction` = jumlahSahamBeredar (assumes par value Rp 1 — TODO)
+**Features**:
+- **Method selector**: dropdown DCF / AAM / EEM — user pilih basis equity value
+- **DLOM + DLOC chain**: Equity → DLOM discount → DLOC discount → Market Value
+- **Resistensi WP**: derived otomatis dari DLOM/DLOC risk category (BUKAN hardcoded)
+- **PPh Pasal 17 progresif**: 5 bracket (5%/60M, 15%/190M, 25%/250M, 30%/4.5B, 35%/∞)
+- **Comparison table**: menampilkan equity value dari ketiga metode
 
-**`/valuation/eem`** — Excess Earnings Method
-- Uses HISTORICAL FCF only (bukan projected — beda dari DCF)
-- Net Tangible Asset dari AAM adjusted values
-- Normal return = NTA × Borrowing Cap rate
-- Excess Earning = FCF - Normal Return → capitalize by WACC → goodwill proxy
-- Enterprise = NTA + capitalized excess → equity via share value tail
+**Calc module**: `computeSimulasiPotensi()` — 17 tests termasuk fixture match + edge cases.
 
-### 6.3 System Hardening (post-delivery audit)
+**PPh bracket implementation**: Menggunakan bracket WIDTH (bukan cumulative limit). Waterfall pattern: `remaining -= Math.min(remaining, width)` per bracket.
 
-Bug ditemukan dan diperbaiki di sesi yang sama:
+### 6.6 Dashboard — 4 Recharts Charts
 
-1. **debtRate 100× bug** — 3 pages pakai raw average bank rate (`9.41`) alih-alih `computeDebtRateFromBanks()` yang konversi ke desimal (`0.094`). Fix: extract `buildDiscountRateInput()` shared helper.
-2. **idleAsset hardcoded 0** → sekarang computed dari ROIC rows.
-3. **borrowingPercent magic 0.7** → named constant `BORROWING_PERCENT_DEFAULT`.
-4. **Dead field `fixedAssetBeginning`** → removed dari AamInput.
+| # | Chart | Tipe | Data |
+|---|---|---|---|
+| 1 | Revenue & Net Income | BarChart | Historical IS + projected PROY LR |
+| 2 | Komposisi Neraca | BarChart | BS Total Assets/Liabilities/Equity |
+| 3 | Perbandingan Nilai Per Saham | BarChart | DCF vs AAM vs EEM per-share |
+| 4 | Free Cash Flow | LineChart | Historical FCF row 20 |
+
+Responsive 2-column grid. Compact IDR axis formatting (T/M/Jt/Rb). Design-system aligned colors.
+
+### 6.7 System Hardening — POST-DELIVERY AUDIT
+
+User bertanya: "Apakah semua pengembangan system development, bukan patching?"
+
+**Code review menemukan 2 CRITICAL + 5 HIGH issues:**
+
+| Severity | Issue | Fix |
+|---|---|---|
+| **CRITICAL** | Resistensi WP hardcoded `'Moderat'` — salah untuk semua perusahaan | `deriveDlomRiskCategory()` + `deriveDlocRiskCategory()` |
+| **CRITICAL** | EEM hardcode `faAdjustment: 0` — ignores user input | Read from store |
+| HIGH | Historical upstream chain duplicated in 5 files | `computeHistoricalUpstream()` |
+| HIGH | `computeDcf()` 15-param call duplicated in 4 files | `buildDcfInput()` |
+| HIGH | `computeAam()` 20-param call duplicated in 4 files | `buildAamInput()` |
+| HIGH | `BORROWING_PERCENT_DEFAULT` in 4 files | Centralized in `upstream-helpers.ts` |
+| HIGH | Dashboard computes historical chain twice | Reuse upstream result |
+
+**Semua diperbaiki** dalam commit `fix: system hardening — eliminate patching, centralize shared logic`.
 
 ---
 
-## 7. Excel Dependency Map — UPDATED Session 016
+## 7. Shared Builders — WAJIB PAKAI (LESSON-046)
+
+File: `src/lib/calculations/upstream-helpers.ts`
+
+**Ini file terpenting untuk memahami bagaimana pages consume calc functions.**
+
+| Builder | Input | Output | Dipakai oleh |
+|---|---|---|---|
+| `computeHistoricalUpstream()` | BS/IS/FA rows + allBs + years | allNoplat, allCfs, allFcf, allFa, roicRows, growthRate | DCF, CFI, Simulasi, Dashboard |
+| `buildAamInput()` | allBs + lastYear + home + faAdjustment | `AamInput` (20 params) | AAM, EEM, Simulasi, Dashboard |
+| `buildDcfInput()` | upstream + pipeline outputs + wacc + growthRate | `DcfInput` (15 params) | DCF, CFI, Simulasi, Dashboard |
+| `buildEemInput()` | aamResult + upstream + allBs + rates | `EemInput` | EEM, Simulasi, Dashboard |
+| `buildBorrowingCapInput()` | allBs + bcInput + dr | `BorrowingCapInput` | EEM, Simulasi, Dashboard |
+| `deriveDlomRiskCategory()` | dlomPercent | Risk category string | Simulasi Potensi |
+| `deriveDlocRiskCategory()` | dlocPercent | Risk category string | Simulasi Potensi |
+| `BORROWING_PERCENT_DEFAULT` | — | 0.7 | EEM, BC, Simulasi, Dashboard |
+
+**Aturan**: Setiap page baru yang consume calc function **WAJIB** pakai builder. JANGAN copy-paste parameter mapping. Bug yang ditemukan di Session 017 (debtRate 100×, hardcoded Resistensi WP) terjadi KARENA copy-paste.
+
+---
+
+## 8. Excel Dependency Map
 
 ```
 HOME (master input)
@@ -266,11 +350,12 @@ HOME (master input)
   │     ├── CASH FLOW STATEMENT
   │     ├── FINANCIAL RATIO
   │     ├── NOPLAT → FCF → EEM (historical FCF)
-  │     └── GROWTH REVENUE
+  │     ├── GROWTH REVENUE
+  │     └── CFI (Non-Op CF = IS row 30)
   ├── FIXED ASSET → FCF, PROY FIXED ASSETS, AAM (adjustment)
   ├── KEY DRIVERS → PROY LR
   │
-  ├── PROY LR → PROY BS, PROY NOPLAT, PROY CFS
+  ├── PROY LR → PROY BS, PROY NOPLAT, PROY CFS, CFI (proj Non-Op)
   ├── PROY BS → PROY CFS
   ├── PROY FA → PROY LR, PROY BS, PROY CFS
   ├── PROY ACC PAYABLES (hidden) → PROY CFS
@@ -279,44 +364,17 @@ HOME (master input)
   ├── WACC / DISCOUNT RATE → DCF (WACC=H10), EEM (capitalization rate)
   ├── GROWTH RATE → DCF (terminal value growth)
   ├── BORROWING CAP → EEM (return rate on tangible assets)
-  ├── AAM → EEM (adjusted NTA components)
-  ├── DLOM → HOME summary → DCF/AAM/EEM
-  └── DLOC → HOME summary → AAM (DCF/EEM use 0)
+  ├── AAM → EEM (adjusted NTA components), SIMULASI POTENSI
+  ├── DCF → CFI (projected FCF), SIMULASI POTENSI
+  ├── EEM → SIMULASI POTENSI
+  ├── DLOM → HOME summary → all valuation methods + SIMULASI POTENSI
+  ├── DLOC → HOME summary → AAM + SIMULASI POTENSI (DCF/EEM use 0)
+  └── SIMULASI POTENSI → PPh Pasal 17 progressive tax = FINAL OUTPUT
 ```
-
-### DLOM/DLOC Divergence Antar Metode
-
-| | DCF | AAM | EEM |
-|---|---|---|---|
-| **DLOM** | `home.dlomPercent` | `home.dlomPercent` | `home.dlomPercent` |
-| **DLOC** | 0 (per fixture) | `home.dlocPercent` | 0 (per fixture) |
-
-Fixture Excel punya DLOM yang berbeda antar metode (AAM=30%, DCF/EEM=40%), tapi untuk company-agnostic semua pakai `home.dlomPercent` dari questionnaire. DCF dan EEM tidak apply DLOC (B36/C37 = 0 literal di fixture).
 
 ---
 
-## 8. Compute Adapters + Calc Modules
-
-### 15 Compute Adapters (src/data/live/)
-
-| Adapter | Input | Output |
-|---|---|---|
-| `compute-cash-flow-live.ts` | BS + IS + FA + AP leaves | CFS leaf rows |
-| `compute-fcf-live.ts` | NOPLAT + FA + CFS | FCF leaf rows |
-| `compute-financial-ratio-live.ts` | BS + IS + CFS + FCF | 18 ratios |
-| `compute-growth-rate-live.ts` | ROIC + FA + BS | Growth rate per year |
-| `compute-growth-revenue-live.ts` | IS rows | Revenue + NI growth |
-| `compute-noplat-live.ts` | IS leaves | NOPLAT leaf rows |
-| `compute-roic-live.ts` | FCF + BS | ROIC per year |
-| `compute-proy-fixed-assets-live.ts` | FA historical | 6-category projected FA |
-| `compute-proy-lr-live.ts` | KEY DRIVERS + IS + PROY FA | Projected P&L |
-| `compute-proy-bs-live.ts` | BS avg growth + PROY FA + PROY LR | Projected BS |
-| `compute-proy-noplat-live.ts` | PROY LR + IS (hist) | Projected NOPLAT |
-| `compute-proy-acc-payables-live.ts` | BS loan balances | Loan schedule |
-| `compute-proy-cfs-live.ts` | PROY LR + BS + FA + AP | Projected CFS |
-| `build-cell-map.ts` | Zustand store slices | CellMap for manifest pipeline |
-
-### 14 Pure Calc Modules (src/lib/calculations/)
+## 9. Calc Modules (17 total)
 
 | Module | Fungsi | Tests |
 |---|---|---|
@@ -329,15 +387,21 @@ Fixture Excel punya DLOM yang berbeda antar metode (AAM=30%, DCF/EEM=40%), tapi 
 | `financial-ratios.ts` | 18 financial ratios | TDD |
 | `wacc.ts` | WACC comparable companies | TDD |
 | `discount-rate.ts` | CAPM BU/BL/Ke/Kd/WACC + `buildDiscountRateInput()` | TDD |
-| **`share-value.ts`** | [S016] Shared equity→DLOM→DLOC→perShare | 5 tests |
-| **`borrowing-cap.ts`** | [S016] CALK borrowing + weighted return | 6 tests |
-| **`dcf.ts`** | [S016] DCF + Gordon Growth terminal value | 13 tests |
-| **`aam-valuation.ts`** | [S016] Adjusted Asset Method | 15 tests |
-| **`eem-valuation.ts`** | [S016] Excess Earnings Method | 10 tests |
+| `key-drivers.ts` | Sales vol/price computation | 16 tests |
+| `derive-computed-rows.ts` | computedFrom[] forward pass | TDD |
+| `share-value.ts` | [S016] Shared equity→perShare | 5 tests |
+| `borrowing-cap.ts` | [S016] CALK borrowing + weighted return | 6 tests |
+| `dcf.ts` | [S016] DCF + Gordon Growth terminal | 13 tests |
+| `aam-valuation.ts` | [S016] Adjusted Asset Method | 15 tests |
+| `eem-valuation.ts` | [S016] Excess Earnings Method | 10 tests |
+| **`cfi.ts`** | **[S017] Cash Flow to Investor** | **4 tests** |
+| **`simulasi-potensi.ts`** | **[S017] PPh Pasal 17 + Resistensi WP** | **17 tests** |
+| **`projection-pipeline.ts`** | **[S017] Full 6-step PROY chain** | (structural) |
+| **`upstream-helpers.ts`** | **[S017] 7 shared builders** | (consumed by pages) |
 
 ---
 
-## 9. Session History (16 sessions)
+## 10. Session History (17 sessions)
 
 | # | Tanggal | Scope | Key Delivery |
 |---|---|---|---|
@@ -346,7 +410,7 @@ Fixture Excel punya DLOM yang berbeda antar metode (AAM=30%, DCF/EEM=40%), tapi 
 | 003 | 2026-04-11 | Hardening | YearKeyedSeries + Zod validation + adapter layer |
 | 004 | 2026-04-11 | UI Tables | FinancialTable + FormulaTooltip + 4 pages |
 | 005 | 2026-04-11 | Systematization | SheetPage 11-line pattern |
-| 006 | 2026-04-11 | Declarative Derive | DerivationSpec[] replaces callback functions |
+| 006 | 2026-04-11 | Declarative Derive | DerivationSpec[] replaces callbacks |
 | 007 | 2026-04-11/12 | 4 Remaining Pages | CF, FA, NOPLAT, Growth — pure manifest |
 | 008 | 2026-04-11/12 | ROIC + DLOM/DLOC | First interactive forms, company-agnostic refactor |
 | 009 | 2026-04-12 | Phase 3 Design | 6 architectural decisions, zero code |
@@ -356,11 +420,12 @@ Fixture Excel punya DLOM yang berbeda antar metode (AAM=30%, DCF/EEM=40%), tapi 
 | 013 | 2026-04-12 | WACC + DR + Growth Rate | Valuation foundation, store v4→v5 |
 | 014 | 2026-04-12 | KEY DRIVERS + PROY FA/LR | Projection chain start, store v5→v6 |
 | 015 | 2026-04-12 | PROY Chain Complete | 4 PROY sheets + 3-round company-agnostic audit |
-| **016** | **2026-04-12/13** | **DCF + AAM + EEM** | **First share value output! Store v6→v7. 5 calc modules, 4 pages, 49 tests. System hardening: debtRate bug + buildDiscountRateInput()** |
+| 016 | 2026-04-12/13 | DCF + AAM + EEM | First share value! Store v6→v7. 5 calc, 4 pages |
+| **017** | **2026-04-13** | **CFI + Simulasi Potensi + Dashboard + System Hardening** | **Store v7→v8. 4 new calc modules, 3 new pages, Dashboard. 7 shared builders extracted. 2 CRITICAL bugs fixed. +24 tests** |
 
 ---
 
-## 10. Lessons Learned — Promoted (selalu relevan)
+## 11. Lessons Learned — Promoted (selalu relevan)
 
 ### Framework & Stack
 | # | Lesson | Kapan berlaku |
@@ -382,9 +447,10 @@ Fixture Excel punya DLOM yang berbeda antar metode (AAM=30%, DCF/EEM=40%), tapi 
 | 035 | Trust fixture formulas, bukan manifest labels | Setiap live migration |
 | 036 | WACC vs DR different inputs | Jangan asumsikan symmetry |
 | 037 | ROUNDUP ≠ ROUND | Setiap projected value pakai rounding |
-| 039 | NOPLAT hist vs proj different sources | Setiap sheet punya mixed-source columns |
-| **044** | **[S016] Verify fixture E/F columns independently** | **Jangan trust prompt analysis — baca fixture JSON langsung** |
-| **045** | **[S016] Gordon Growth allows g > r when FCF negative** | **Jangan over-guard terminal value. Guard hanya g === r (div/0)** |
+| 039 | NOPLAT hist vs proj different sources | Mixed-source columns |
+| 044 | Verify fixture E/F columns independently | Jangan trust prompt analysis |
+| 045 | Gordon Growth allows g > r when FCF negative | Guard hanya g === r |
+| **048** | **[S017] PPh bracket WIDTH bukan cumulative limit** | **Progressive tax / tiered pricing** |
 
 ### Architecture
 | # | Lesson | Kapan berlaku |
@@ -403,48 +469,45 @@ Fixture Excel punya DLOM yang berbeda antar metode (AAM=30%, DCF/EEM=40%), tapi 
 | 038 | PROY/valuation pages → custom, bukan manifest | Projection + valuation pages |
 | 041 | Page-level wiring hides case-specific values | Audit setiap page baru |
 | 042 | Centralize projection year count | Jangan hardcode [T,T+1,T+2] |
-| **043** | **[S016] buildDiscountRateInput() — centralize store→input** | **WAJIB pakai saat consume Discount Rate. Jangan construct manual — sudah proven bug.** |
+| 043 | buildDiscountRateInput() — centralize store→input | WAJIB pakai saat consume DR |
+| **046** | **[S017] Centralize ALL builders di upstream-helpers.ts** | **WAJIB pakai builder. JANGAN copy-paste parameter mapping.** |
+| **047** | **[S017] Audit hardcoded values setelah multi-page session** | **grep "= 0," + diff parameter list antar pages** |
 
 ---
 
-## 11. Company-Agnostic Status
+## 12. Company-Agnostic Status (UPDATED S017)
 
 | Layer | Status | Catatan |
 |---|---|---|
-| 20 compute adapters | 100% parameterized | via typed interfaces |
-| 28 page files | 100% data dari store/computed | zero hardcoded company values |
+| 20+ compute adapters | 100% parameterized | via typed interfaces |
+| 32 page files | 100% data dari store/computed | zero hardcoded company values |
 | 9 manifests | Generic labels | no company names |
-| 14 calc modules | Pure functions | all fixture-grounded TDD |
+| 17 calc modules | Pure functions | all fixture-grounded TDD |
+| 7 shared builders | Centralized mappings | zero copy-paste risk |
 | Form defaults | Indonesian industry standards | user-editable |
 
-**Known Limitation** (TODO):
-- `paidUpCapitalDeduction` di AAM/EEM = `jumlahSahamBeredar` (assumes par value Rp 1). Untuk perusahaan dengan par value berbeda, butuh field `nilaiNominalPerSaham` di HomeInputs.
-- `faAdjustment` = 0 (default). Butuh input UI di AAM page untuk user-editable.
-- `BORROWING_PERCENT_DEFAULT` = 0.7 (70%). Named constant, tapi belum user-editable.
+**Resolved since Session 016**:
+- `paidUpCapitalDeduction` = `jumlahSahamBeredar × nilaiNominalPerSaham` — benar untuk semua par value
+- `faAdjustment` = user input (dari store), bukan hardcoded 0
+- Resistensi WP = derived dari actual DLOM/DLOC percentages, bukan hardcoded 'Moderat'
+- `BORROWING_PERCENT_DEFAULT` centralized — 1 constant, 4 consumers
 
-**Yang sudah di-compute dari data user**:
-- Growth rates → `computeAvgGrowth(userIS[row])` — bukan hardcoded
-- Tax rates historis → `abs(tax/PBT)` — bukan hardcoded
-- Tax rates proyeksi → KEY DRIVERS `corporateTaxRate` — user input
-- Loan balances → BS store rows 31/38 — bukan hardcoded
-- Projection years → `PROJECTION_YEAR_COUNT` — 1 constant, ubah sekali
-- Discount Rate → `buildDiscountRateInput()` → `computeDiscountRate()` — centralized
-- DLOM/DLOC → dari questionnaire form → `home.dlomPercent` / `home.dlocPercent`
-- Excess cash / idle asset → dari ROIC computation
+**Remaining Known Limitations**:
+- `BORROWING_PERCENT_DEFAULT` (0.7) belum user-editable — named constant tapi fixed
+- DLOM/DLOC risk category thresholds hardcoded berdasarkan Excel mapping — adequate untuk 3-level system
 
 ---
 
-## 12. Next Session Priorities (017)
+## 13. Next Session Priorities (018)
 
-1. **`nilaiNominalPerSaham`** di HomeInputs + form + store v7→v8 → AAM paidUpCapitalDeduction yang benar
-2. **RESUME / CFI pages** — ringkasan perbandingan DCF/AAM/EEM share values
-3. **`computeFullProjectionPipeline()`** — extract DCF upstream chain (~90 baris) ke shared function
-4. **FA Adjustment user input** di AAM page
-5. Dashboard (Recharts) — nice to have
+1. **RESUME page** — ringkasan perbandingan DCF/AAM/EEM share values side-by-side
+2. **Export ke .xlsx** via ExcelJS (`lib/export/` masih kosong)
+3. **File upload parsing** (.xlsx → live data) — eliminasi manual data entry
+4. **Polish Dashboard** — add projected FCF to FCF chart, more KPIs
 
 ---
 
-## 13. Commands
+## 14. Commands
 
 ```bash
 npm run dev              # Dev server (Turbopack)
@@ -455,3 +518,14 @@ npm run lint             # eslint
 npm run extract:fixtures # Python: regenerate fixtures dari Excel
 npm run seed:sync        # Copy fixtures ke src/data/seed/fixtures/
 ```
+
+---
+
+## 15. Catatan untuk Cowork
+
+1. **Jangan re-scaffold** — 32 pages sudah live, semua bekerja. Kalau mau tambah page baru, ikuti pattern yang ada.
+2. **WAJIB pakai shared builders** dari `upstream-helpers.ts` — ini lesson paling penting dari Session 017. Copy-paste parameter mapping = guaranteed bugs.
+3. **Test dulu, code kemudian** — setiap calc module punya fixture-grounded test. TDD: RED → GREEN → REFACTOR.
+4. **Baca fixture JSON** sebelum implement calc baru — jangan asumsikan formula dari label. `__tests__/fixtures/*.json` berisi both computed values DAN raw formulas.
+5. **Store migration wajib** setiap bump version — chain function `migratePersistedState`, tested.
+6. **Company-agnostic** adalah prinsip fundamental — zero hardcoded company values di production path.
