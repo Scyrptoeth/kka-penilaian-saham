@@ -522,7 +522,11 @@ untuk 3+ sesi ke depan:
 - LESSON-044 (Prompt fixture values vs real fixture — always verify E/F columns independently)
 - LESSON-045 (Gordon Growth Model allows g > r when FCF is negative — don't over-guard)
 
-LESSON-014, 015, 017, 020, 022, 027, 040 **TIDAK** di-promote — workflow/testing-specific
+### Session 017 (CFI + SIMULASI POTENSI + Dashboard + System Hardening)
+- LESSON-046 (Centralize store→input builders in upstream-helpers — one builder per calc consumer)
+- LESSON-047 (Audit for hardcoded values after every multi-page session)
+
+LESSON-014, 015, 017, 020, 022, 027, 040, 048 **TIDAK** di-promote — workflow/testing-specific
 insights yang general ke project lain tapi terlalu luas atau terlalu
 session-specific untuk section 8 (yang fokus KKA-specific gotchas).
 Tersimpan di lessons-learned saja.
@@ -1368,3 +1372,61 @@ Key realization: **hydration gate != loading state**. The parent page file is re
 **Cara menerapkan di masa depan**: Guard `wacc === growthRate` only. Let math work for g > r. Match Excel behavior exactly.
 
 **Proven at**: session-016 (2026-04-12, guard relaxed from `>=` to `===`)
+
+### LESSON-046: Centralize store→input builders in upstream-helpers — one builder per calc consumer
+
+**Kategori**: Anti-pattern | Workflow
+**Sesi**: session-017
+**Tanggal**: 2026-04-13
+
+**Konteks**: Saat >2 pages memanggil pure calc function yang sama dengan data dari Zustand store.
+
+**Apa yang terjadi**: Session 017 shipped 4 new pages (CFI, Simulasi Potensi, Dashboard, refactored DCF) yang semuanya membutuhkan `computeAam()`, `computeDcf()`, `computeEem()`. Masing-masing copy-paste 15-20 parameter mapping dari store → input interface. Code review menemukan: (1) EEM hardcode `faAdjustment: 0` (C2 bug — ignores user input), (2) Simulasi Potensi hardcode Resistensi WP `'Moderat'` (C1 bug — wrong for all companies). Kedua bug terjadi KARENA copy-paste mapping.
+
+**Root cause / insight**: `buildDiscountRateInput()` dari LESSON-043 adalah pattern yang benar tapi hanya diterapkan untuk 1 function. Seharusnya SETIAP calc function yang di-consume oleh >1 page mendapat builder sendiri. Pattern: `buildXxxInput(storeParams): XxxInput` sebagai pure function di `upstream-helpers.ts`.
+
+**Cara menerapkan di masa depan**:
+1. Setiap kali menambah page baru yang memanggil calc function, cek apakah builder sudah ada di `upstream-helpers.ts`
+2. Jika belum, buat builder DULU sebelum menulis page
+3. Red flag: copy-paste >5 baris parameter mapping antar files → STOP, extract builder
+4. Saat menambah field baru ke input interface (e.g. `faAdjustment`), update builder — semua consumers otomatis benar
+
+**Proven at**: session-017 (2026-04-13, 7 builders extracted: `buildAamInput`, `buildDcfInput`, `buildEemInput`, `buildBorrowingCapInput`, `computeHistoricalUpstream`, `deriveDlomRiskCategory`, `deriveDlocRiskCategory`)
+
+### LESSON-047: Audit for hardcoded values after every multi-page session
+
+**Kategori**: Workflow | Anti-pattern
+**Sesi**: session-017
+**Tanggal**: 2026-04-13
+
+**Konteks**: Setelah session yang menambah 3+ pages yang memanggil calc functions yang sama.
+
+**Apa yang terjadi**: Session 017 shipped 6 tasks, semua tests green, build clean, lint clean. User bertanya "apakah ini system development atau patching?" Code review menemukan 2 CRITICAL bugs dan 5 HIGH duplication issues yang lolos karena: (1) tests verify calc correctness, bukan page wiring correctness, (2) lint/typecheck tidak catch semantic issues seperti hardcoded values.
+
+**Root cause / insight**: Automated gates (tests, lint, typecheck) catch syntactic issues. Semantic issues (hardcoded company-specific values, parameter divergence across consumers) memerlukan manual audit. Multi-page sessions amplify this risk karena copy-paste is the fastest way to ship.
+
+**Cara menerapkan di masa depan**: Sebelum claim "session complete", run checklist:
+1. `grep -r "= 0," src/app/` — cek setiap hardcoded 0 apakah seharusnya dari store
+2. `grep -r "PERCENT_DEFAULT\|'Moderat'\|'Rendah'\|'Tinggi'" src/app/` — cek hardcoded strings
+3. Untuk setiap calc function yang dipanggil di >1 page: diff parameter list — harus identik (or use shared builder)
+
+**Proven at**: session-017 (2026-04-13, C1 + C2 bugs caught and fixed post-ship)
+
+### LESSON-048: PPh progressive tax — bracket WIDTH not cumulative limit
+
+**Kategori**: Excel | Testing
+**Sesi**: session-017
+**Tanggal**: 2026-04-13
+
+**Konteks**: Saat implement PPh Pasal 17 progressive tax computation.
+
+**Apa yang terjadi**: Prompt menyediakan PPh brackets sebagai cumulative limits (60M, 250M, 500M, 5B). Excel fixture menggunakan bracket WIDTHs (60M, 190M, 250M, 4.5B). Perbedaan:
+- Cumulative limit: 5% on first 60M, 15% on 60M-250M, etc.
+- Bracket width: 5% × 60M, 15% × 190M, 25% × 250M, 30% × 4.5B
+Same math, different representation. Using widths matches Excel formula pattern exactly.
+
+**Root cause / insight**: Excel C/D columns in SIMULASI POTENSI track "remaining taxable" and "bracket width" — the waterfall pattern. Implementing with widths produces cleaner code: `Math.min(remaining, width)` per bracket, no cumulative subtraction needed.
+
+**Cara menerapkan di masa depan**: Saat implement progressive tax or tiered pricing, use bracket WIDTH array, not cumulative limits. Width-based waterfall = simpler loop, matches Excel pattern. Verify by checking SUM of all bracket widths covers the total range.
+
+**Proven at**: session-017 (2026-04-13, 17 fixture-matched tests passing)
