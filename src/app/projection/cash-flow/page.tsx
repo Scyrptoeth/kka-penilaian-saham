@@ -2,16 +2,7 @@
 
 import { useMemo } from 'react'
 import { useKkaStore } from '@/lib/store/useKkaStore'
-import { computeHistoricalYears, computeProjectionYears } from '@/lib/calculations/year-helpers'
-import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
-import { FIXED_ASSET_MANIFEST } from '@/data/manifests/fixed-asset'
-import { BALANCE_SHEET_MANIFEST } from '@/data/manifests/balance-sheet'
-import { computeProyFixedAssetsLive } from '@/data/live/compute-proy-fixed-assets-live'
-import { computeProyLrLive, type ProyLrInput } from '@/data/live/compute-proy-lr-live'
-import { computeProyBsLive, type ProyBsInput } from '@/data/live/compute-proy-bs-live'
-import { computeProyAccPayablesLive } from '@/data/live/compute-proy-acc-payables-live'
-import { computeProyCfsLive, type ProyCfsInput } from '@/data/live/compute-proy-cfs-live'
-import { computeAvgGrowth } from '@/lib/calculations/helpers'
+import { computeFullProjectionPipeline } from '@/lib/calculations/projection-pipeline'
 import { formatIdr } from '@/components/financial/format'
 
 const ROW_DEFS: { row: number; label: string; bold?: boolean; indent?: boolean; section?: string }[] = [
@@ -48,78 +39,11 @@ export default function ProyCashFlowPage() {
   const data = useMemo(() => {
     if (!hasHydrated || !home || !balanceSheet || !incomeStatement || !keyDrivers) return null
 
-    const histYears = computeHistoricalYears(home.tahunTransaksi, 4)
-    const faYears = computeHistoricalYears(home.tahunTransaksi, 3)
-    const projYears = computeProjectionYears(home.tahunTransaksi)
-    const histYear = home.tahunTransaksi - 1
+    const pipeline = computeFullProjectionPipeline({
+      home, balanceSheet, incomeStatement, fixedAsset, keyDrivers,
+    })
 
-    // ── Step 1: PROY FA ──
-    let proyFaRows: Record<number, Record<number, number>> = {}
-    if (fixedAsset) {
-      const faComp = deriveComputedRows(FIXED_ASSET_MANIFEST.rows, fixedAsset.rows, faYears)
-      const allFa = { ...fixedAsset.rows, ...faComp }
-      proyFaRows = computeProyFixedAssetsLive(allFa, faYears, projYears)
-    }
-
-    // ── Step 2: PROY LR ──
-    const isRows = incomeStatement.rows
-    const isVal = (row: number) => isRows[row]?.[histYear] ?? 0
-    const isAvgGrowth = (row: number) => computeAvgGrowth(isRows[row] ?? {})
-
-    const lrInput: ProyLrInput = {
-      keyDrivers,
-      revenueGrowth: isAvgGrowth(6),
-      interestIncomeGrowth: isAvgGrowth(26),
-      interestExpenseGrowth: isAvgGrowth(27),
-      nonOpIncomeGrowth: isAvgGrowth(30),
-      isLastYear: {
-        revenue: isVal(6), cogs: isVal(7), grossProfit: isVal(8),
-        sellingOpex: isVal(12), gaOpex: isVal(13),
-        depreciation: -(isVal(21) ?? 0),
-        interestIncome: isVal(26), interestExpense: isVal(27),
-        nonOpIncome: isVal(30), tax: isVal(33),
-      },
-      proyFaDepreciation: proyFaRows[51] ?? {},
-    }
-    const proyLrRows = computeProyLrLive(lrInput, histYear, projYears)
-
-    // ── Step 3: PROY BS ──
-    const bsRows = balanceSheet.rows
-    const bsAvgGrowth: Record<number, number> = {}
-    const bsLastYear: Record<number, number> = {}
-    for (const [rowStr, series] of Object.entries(bsRows)) {
-      const row = Number(rowStr)
-      bsAvgGrowth[row] = computeAvgGrowth(series)
-      bsLastYear[row] = series[histYear] ?? 0
-    }
-    const bsInput: ProyBsInput = {
-      bsLastYear, bsAvgGrowth, proyFaRows,
-      proyLrNetProfit: proyLrRows[39] ?? {},
-      intangibleGrowth: bsAvgGrowth[24] ?? 0,
-    }
-    const proyBsRows = computeProyBsLive(bsInput, histYear, projYears)
-
-    // ── Step 4: PROY ACC PAYABLES ──
-    // Read loan balances from BS — works for any company (0 if no loans)
-    const proyApRows = computeProyAccPayablesLive({
-      interestRateST: keyDrivers.financialDrivers.interestRateShortTerm,
-      interestRateLT: keyDrivers.financialDrivers.interestRateLongTerm,
-      stEnding: bsLastYear[31] ?? 0, // BS row 31: Bank Loan — Short Term
-      ltEnding: bsLastYear[38] ?? 0, // BS row 38: Bank Loan — Long Term
-    }, histYear, projYears)
-
-    // ── Step 5: PROY CFS ──
-    // Historical Cash Ending = BS last year Cash on Hands + Cash in Banks
-    const bsComputed = deriveComputedRows(BALANCE_SHEET_MANIFEST.rows, bsRows, histYears)
-    const allBs = { ...bsRows, ...bsComputed }
-    const histCashEnding = (allBs[8]?.[histYear] ?? 0) + (allBs[9]?.[histYear] ?? 0)
-
-    const cfsInput: ProyCfsInput = {
-      proyLrRows, proyBsRows, proyFaRows, proyApRows,
-      histCashEnding,
-    }
-    const rows = computeProyCfsLive(cfsInput, histYear, projYears)
-    return { rows, years: projYears } // CFS only shows projected years
+    return { rows: pipeline.proyCfsRows, years: pipeline.projYears }
   }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, keyDrivers])
 
   if (!hasHydrated) {

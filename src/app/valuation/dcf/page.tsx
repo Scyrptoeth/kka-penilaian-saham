@@ -2,11 +2,7 @@
 
 import { useMemo } from 'react'
 import { useKkaStore, computeProporsiSaham } from '@/lib/store/useKkaStore'
-import { computeHistoricalYears, computeProjectionYears } from '@/lib/calculations/year-helpers'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
-import { computeAvgGrowth } from '@/lib/calculations/helpers'
-import { BALANCE_SHEET_MANIFEST } from '@/data/manifests/balance-sheet'
-import { FIXED_ASSET_MANIFEST } from '@/data/manifests/fixed-asset'
 import { NOPLAT_MANIFEST } from '@/data/manifests/noplat'
 import { CASH_FLOW_STATEMENT_MANIFEST } from '@/data/manifests/cash-flow-statement'
 import { FCF_MANIFEST } from '@/data/manifests/fcf'
@@ -15,15 +11,10 @@ import { computeCashFlowLiveRows } from '@/data/live/compute-cash-flow-live'
 import { computeFcfLiveRows } from '@/data/live/compute-fcf-live'
 import { computeRoicLiveRows } from '@/data/live/compute-roic-live'
 import { computeGrowthRateLive } from '@/data/live/compute-growth-rate-live'
-import { computeProyFixedAssetsLive } from '@/data/live/compute-proy-fixed-assets-live'
-import { computeProyLrLive, type ProyLrInput } from '@/data/live/compute-proy-lr-live'
-import { computeProyNoplatLive, type ProyNoplatInput } from '@/data/live/compute-proy-noplat-live'
-import { computeProyBsLive, type ProyBsInput } from '@/data/live/compute-proy-bs-live'
-import { computeProyAccPayablesLive } from '@/data/live/compute-proy-acc-payables-live'
-import { computeProyCfsLive, type ProyCfsInput } from '@/data/live/compute-proy-cfs-live'
 import { computeDiscountRate, buildDiscountRateInput } from '@/lib/calculations/discount-rate'
 import { computeDcf } from '@/lib/calculations/dcf'
 import { computeShareValue } from '@/lib/calculations/share-value'
+import { computeFullProjectionPipeline } from '@/lib/calculations/projection-pipeline'
 import { formatIdr, formatPercent } from '@/components/financial/format'
 
 export default function DcfPage() {
@@ -38,108 +29,30 @@ export default function DcfPage() {
   const data = useMemo(() => {
     if (!hasHydrated || !home || !balanceSheet || !incomeStatement || !keyDrivers || !discountRateState) return null
 
-    const histYears4 = computeHistoricalYears(home.tahunTransaksi, 4)
-    const histYears3 = computeHistoricalYears(home.tahunTransaksi, 3)
-    const projYears = computeProjectionYears(home.tahunTransaksi)
-    const lastHistYear = home.tahunTransaksi - 1
+    // ── Projection pipeline (shared with PROY CFS, CFI, etc.) ──
+    const pipeline = computeFullProjectionPipeline({
+      home, balanceSheet, incomeStatement, fixedAsset, keyDrivers,
+    })
+    const { allBs, faComp, proyNoplatRows, proyFaRows, proyCfsRows, histYears3, projYears, lastHistYear } = pipeline
 
-    // ── Historical upstream chain ──
-    const bsComp = deriveComputedRows(BALANCE_SHEET_MANIFEST.rows, balanceSheet.rows, histYears4)
-    const allBs = { ...balanceSheet.rows, ...bsComp }
-
+    // ── Historical upstream chain (DCF-specific) ──
     const noplatLeaf = computeNoplatLiveRows(incomeStatement.rows, histYears3)
     const noplatComp = deriveComputedRows(NOPLAT_MANIFEST.rows, noplatLeaf, histYears3)
     const allNoplat = { ...noplatLeaf, ...noplatComp }
 
     const faRows = fixedAsset?.rows ?? null
-    const faComp = faRows ? deriveComputedRows(FIXED_ASSET_MANIFEST.rows, faRows, histYears3) : null
-    const allFa = faComp ? { ...(faRows ?? {}), ...faComp } : {}
-
-    const cfsLeaf = computeCashFlowLiveRows(balanceSheet.rows, incomeStatement.rows, faRows, null, histYears3, histYears4)
+    const cfsLeaf = computeCashFlowLiveRows(balanceSheet.rows, incomeStatement.rows, faRows, null, histYears3, pipeline.histYears4)
     const cfsComp = deriveComputedRows(CASH_FLOW_STATEMENT_MANIFEST.rows, cfsLeaf, histYears3)
     const allCfs = { ...cfsLeaf, ...cfsComp }
 
-    // ── Projected upstream chain (same as PROY CFS page) ──
-    let proyFaRows: Record<number, Record<number, number>> = {}
-    if (fixedAsset) {
-      const allFaHist = { ...fixedAsset.rows, ...(faComp ?? {}) }
-      proyFaRows = computeProyFixedAssetsLive(allFaHist, histYears3, projYears)
-    }
-
-    const isRows = incomeStatement.rows
-    const isVal = (row: number) => isRows[row]?.[lastHistYear] ?? 0
-
-    const lrInput: ProyLrInput = {
-      keyDrivers,
-      revenueGrowth: computeAvgGrowth(isRows[6] ?? {}),
-      interestIncomeGrowth: computeAvgGrowth(isRows[26] ?? {}),
-      interestExpenseGrowth: computeAvgGrowth(isRows[27] ?? {}),
-      nonOpIncomeGrowth: computeAvgGrowth(isRows[30] ?? {}),
-      isLastYear: {
-        revenue: isVal(6), cogs: isVal(7), grossProfit: isVal(8),
-        sellingOpex: isVal(12), gaOpex: isVal(13),
-        depreciation: -(isVal(21) ?? 0),
-        interestIncome: isVal(26), interestExpense: isVal(27),
-        nonOpIncome: isVal(30), tax: isVal(33),
-      },
-      proyFaDepreciation: proyFaRows[51] ?? {},
-    }
-    const proyLrRows = computeProyLrLive(lrInput, lastHistYear, projYears)
-
-    const histPbt = isVal(32)
-    const histTax = isVal(33)
-    const histTaxRate = histPbt !== 0 ? Math.abs(histTax / histPbt) : 0
-    const noplatInput: ProyNoplatInput = {
-      proyLrRows,
-      taxRate: keyDrivers.financialDrivers.corporateTaxRate,
-      isLastYear: {
-        pbt: histPbt,
-        interestExpense: isVal(27),
-        interestIncome: isVal(26),
-        nonOpIncome: isVal(30),
-        tax: histTax,
-      },
-      histTaxRate,
-    }
-    const proyNoplatRows = computeProyNoplatLive(noplatInput, lastHistYear, projYears)
-
-    // BS average growth + last year for PROY BS
-    const bsAvgGrowth: Record<number, number> = {}
-    const bsLastYear: Record<number, number> = {}
-    for (const [rowStr, series] of Object.entries(balanceSheet.rows)) {
-      const row = Number(rowStr)
-      bsAvgGrowth[row] = computeAvgGrowth(series)
-      bsLastYear[row] = series[lastHistYear] ?? 0
-    }
-
-    const bsInput: ProyBsInput = {
-      bsLastYear, bsAvgGrowth, proyFaRows,
-      proyLrNetProfit: proyLrRows[39] ?? {},
-      intangibleGrowth: bsAvgGrowth[24] ?? 0,
-    }
-    const proyBsRows = computeProyBsLive(bsInput, lastHistYear, projYears)
-
-    const proyApRows = computeProyAccPayablesLive({
-      interestRateST: keyDrivers.financialDrivers.interestRateShortTerm,
-      interestRateLT: keyDrivers.financialDrivers.interestRateLongTerm,
-      stEnding: bsLastYear[31] ?? 0,
-      ltEnding: bsLastYear[38] ?? 0,
-    }, lastHistYear, projYears)
-
-    const histCashEnding = (allBs[8]?.[lastHistYear] ?? 0) + (allBs[9]?.[lastHistYear] ?? 0)
-    const cfsInput: ProyCfsInput = {
-      proyLrRows, proyBsRows, proyFaRows, proyApRows,
-      histCashEnding,
-    }
-    const proyCfsRows = computeProyCfsLive(cfsInput, lastHistYear, projYears)
-
-    // ── Discount Rate — uses buildDiscountRateInput for correct debtRate conversion ──
+    // ── Discount Rate ──
     const dr = computeDiscountRate(buildDiscountRateInput(discountRateState))
 
     // ── Growth Rate ──
     const fcfLeaf = computeFcfLiveRows(allNoplat, faComp, allCfs, histYears3)
     const fcfComp = deriveComputedRows(FCF_MANIFEST.rows, fcfLeaf, histYears3)
     const allFcf = { ...fcfLeaf, ...fcfComp }
+    const allFa = faComp ? { ...(faRows ?? {}), ...faComp } : {}
     const roicRows = computeRoicLiveRows(allFcf, allBs, histYears3)
     const grData = computeGrowthRateLive(allBs, allFa, roicRows, histYears3)
     const growthRate = grData?.result.average ?? 0
@@ -159,7 +72,6 @@ export default function DcfPage() {
       wacc: dr.wacc,
       growthRate,
       interestBearingDebt: -((allBs[31]?.[lastHistYear] ?? 0) + (allBs[38]?.[lastHistYear] ?? 0)),
-      // Excess cash & idle asset from ROIC computation (row 10 & 9, sign already flipped)
       excessCash: -(roicRows[10]?.[lastHistYear] ?? 0),
       idleAsset: -(roicRows[9]?.[lastHistYear] ?? 0),
     })
