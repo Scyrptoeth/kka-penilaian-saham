@@ -531,6 +531,11 @@ untuk 3+ sesi ke depan:
 - LESSON-050 (Always verify Excel cell positions with ExcelJS before writing cell mappings)
 - LESSON-051 (Extended catalog accounts need "RINCIAN" detail sheet in export)
 
+### Session 019 (Dynamic FA + IS Catalogs)
+- LESSON-052 (Sentinel pre-computation for downstream backward compat)
+- LESSON-053 (Generalize ManifestRow.section to string for multi-sheet catalogs)
+- LESSON-054 (RowInputGrid renders row.label not row.buttonLabel — match BS pattern)
+
 LESSON-014, 015, 017, 020, 022, 027, 040, 048 **TIDAK** di-promote — workflow/testing-specific
 insights yang general ke project lain tapi terlalu luas atau terlalu
 session-specific untuk section 8 (yang fokus KKA-specific gotchas).
@@ -1487,3 +1492,51 @@ Same math, different representation. Using widths matches Excel formula pattern 
 **Cara menerapkan di masa depan**: When expanding any financial sheet's account catalog beyond the original template, always add a corresponding "RINCIAN" detail sheet to the export. Pattern: group accounts by section → write labels + values → add SUM subtotals → section header styling. Apply this for IS and FA when their catalogs expand.
 
 **Proven at**: session-018 (2026-04-13, export test verifies detail sheet contains accounts with correct values)
+
+### LESSON-052: Sentinel pre-computation for downstream backward compatibility
+
+**Kategori**: Workflow | Anti-pattern | Design
+**Sesi**: session-019
+**Tanggal**: 2026-04-14
+
+**Konteks**: Converting IS from static manifest to catalog-driven dynamic editor. 20+ downstream files reference specific IS row numbers (6=Revenue, 7=COGS, 8=GP, 18=EBITDA, 32=PBT, 35=NP).
+
+**Apa yang terjadi**: Making Revenue a dynamic section with multiple accounts means row 6 becomes a subtotal computed from extended rows (100, 101, ...). Downstream pages read `incomeStatement.rows[6]` directly from the store — they'd get undefined since subtotals aren't stored. The static IS manifest's `computedFrom: [12, 13]` for OpEx total (row 15) also can't see extended accounts, producing incorrect totals.
+
+**Root cause / insight**: The store `rows` only contains leaf data. Computed values are generated on-the-fly per-page via `deriveComputedRows`. When the IS goes dynamic, the static manifest becomes incomplete — it doesn't know about extended accounts. Two options: (A) update 20+ downstream files to use the dynamic manifest, (B) pre-compute sentinel values at original row positions at persist time. Option B is 10× cheaper.
+
+**Cara menerapkan di masa depan**: When converting a static manifest to catalog-driven, if >5 downstream consumers reference specific row numbers, use sentinel pre-computation: the editor computes ALL section subtotals + higher-level computed values at persist time and stores them at the original row positions. Downstream reads unchanged. Also update the 3-4 downstream compute files that call `deriveComputedRows(STATIC_MANIFEST, ...)` to read IS values directly.
+
+**Proven at**: session-019 (2026-04-14, 837 tests pass, 4 downstream compute files updated, 20+ page consumers unchanged)
+
+### LESSON-053: Generalize ManifestRow.section to string for multi-sheet catalogs
+
+**Kategori**: TypeScript | Design
+**Sesi**: session-019
+**Tanggal**: 2026-04-13
+
+**Konteks**: `ManifestRow.section` was typed as `BsSection` (BS-specific union type). Adding FA and IS catalogs requires each sheet's own section type.
+
+**Apa yang terjadi**: Changed `ManifestRow.section` from `import(...).BsSection` to `string`. Added generic `CatalogAccount` interface in `types.ts` that BS, FA, and IS catalog types all conform to. RowInputGrid now uses `CatalogAccount` and `string` instead of BS-specific types.
+
+**Root cause / insight**: The first implementation of a feature (BS catalog) naturally uses tight types. When the pattern expands to 2+ consumers, the shared infrastructure needs generic types. The cost of generalization is low (3 type widening changes + 3 casts in BS editor) vs the alternative (separate RowInputGrid per sheet).
+
+**Cara menerapkan di masa depan**: When a shared component (RowInputGrid, ManifestRow, etc.) is used by the first sheet-specific feature, use the specific type. When the second sheet needs it, generalize to `string`/generic interface. Don't pre-generalize before the second consumer exists (YAGNI), but don't resist generalizing when it arrives.
+
+**Proven at**: session-019 (2026-04-13, BS/FA/IS all use the same RowInputGrid with generic CatalogAccount)
+
+### LESSON-054: RowInputGrid renders row.label not row.buttonLabel — match BS pattern
+
+**Kategori**: Anti-pattern | Design
+**Sesi**: session-019
+**Tanggal**: 2026-04-13
+
+**Konteks**: FA manifest builder set add-button `label: ''` and text in `buttonLabel`. Button was invisible in the UI.
+
+**Apa yang terjadi**: `ManifestRow` type has both `label` and `buttonLabel` fields. RowInputGrid's add-button rendering uses `{row.label}` for the button text. The `buttonLabel` field exists in the type but is never read by the grid. The FA builder followed the type definition rather than the rendering implementation, producing an invisible button.
+
+**Root cause / insight**: Type definitions describe SHAPE, not BEHAVIOR. The presence of `buttonLabel` in `ManifestRow` doesn't mean any renderer uses it. Always check the rendering code (RowInputGrid add-button branch) to know which field is displayed.
+
+**Cara menerapkan di masa depan**: When creating a new manifest builder that produces add-button rows, look at how the BS manifest builder creates the same row type. Copy the exact field assignments — don't invent based on type definitions alone. Also consider removing `buttonLabel` from ManifestRow if it's truly unused.
+
+**Proven at**: session-019 (2026-04-13, fixed within minutes after user reported invisible button)
