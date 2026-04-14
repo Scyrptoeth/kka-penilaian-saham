@@ -534,9 +534,13 @@ untuk 3+ sesi ke depan:
 ### Session 019 (Dynamic FA + IS Catalogs)
 - LESSON-052 (Sentinel pre-computation for downstream backward compat)
 - LESSON-053 (Generalize ManifestRow.section to string for multi-sheet catalogs)
-- LESSON-054 (RowInputGrid renders row.label not row.buttonLabel — match BS pattern)
 
-LESSON-014, 015, 017, 020, 022, 027, 040, 048 **TIDAK** di-promote — workflow/testing-specific
+### Session 020 (Audit Gate + IS Sign Fix + Analysis Live Mode)
+- LESSON-055 (Excel uses plain addition for IS — expenses negative, formulas SUM)
+- LESSON-056 (Sentinel pre-computation needed for ALL dynamic catalog sheets)
+- LESSON-057 (Downstream merge order: recomputed first, then storeRows — sentinels win)
+
+LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054 **TIDAK** di-promote — workflow/session-specific
 insights yang general ke project lain tapi terlalu luas atau terlalu
 session-specific untuk section 8 (yang fokus KKA-specific gotchas).
 Tersimpan di lessons-learned saja.
@@ -1540,3 +1544,51 @@ Same math, different representation. Using widths matches Excel formula pattern 
 **Cara menerapkan di masa depan**: When creating a new manifest builder that produces add-button rows, look at how the BS manifest builder creates the same row type. Copy the exact field assignments — don't invent based on type definitions alone. Also consider removing `buttonLabel` from ManifestRow if it's truly unused.
 
 **Proven at**: session-019 (2026-04-13, fixed within minutes after user reported invisible button)
+
+### LESSON-055: Excel uses plain addition for IS — expenses stored negative, formulas SUM
+
+**Kategori**: Excel | Anti-pattern
+**Sesi**: session-020
+**Tanggal**: 2026-04-14
+
+**Konteks**: Dynamic IS manifest computedFrom convention vs Excel convention.
+
+**Apa yang terjadi**: `buildDynamicIsManifest` used signed `computedFrom: [6, -7]` for Gross Profit (Revenue minus COGS). This assumed users enter expenses as POSITIVE and the formula subtracts. But the Excel prototipe stores COGS as NEGATIVE (-33B), and Gross Profit formula is `=SUM(D6:D7)` — plain addition. When user entered COGS with minus sign (matching Excel), the double-negation caused Gross Profit = Revenue + COGS instead of Revenue - COGS.
+
+**Root cause / insight**: The Excel prototipe uses a CONSISTENT convention: revenue positive, expenses negative, ALL formulas use plain SUM or +. There is NO explicit subtraction in any IS formula. The signed `computedFrom` was an over-engineering that assumed a convention the Excel doesn't use.
+
+**Cara menerapkan di masa depan**: Before writing computedFrom for any manifest, ALWAYS check the actual Excel fixture formula (`formula` field in cell JSON). If Excel uses `=SUM()` or `=+D8+D15`, use plain addition computedFrom. Only use signed refs when Excel explicitly subtracts (like FA Net Value `=+C26-C54`). Verify with: `python3 -c "import json; ..."` to print formula field.
+
+**Proven at**: session-020 (2026-04-14). Fixture verification: IS row 8 formula `=SUM(D6:D7)`, row 18 `=D8+D15`, row 22 `=+D18+D21`, row 35 `=+D32+D33` — all plain addition.
+
+### LESSON-056: Sentinel pre-computation needed for ALL dynamic catalog sheets (BS + FA + IS)
+
+**Kategori**: Workflow | Anti-pattern
+**Sesi**: session-020
+**Tanggal**: 2026-04-14
+
+**Konteks**: Dynamic editors with offset-based row keys must map to legacy positions for downstream compat.
+
+**Apa yang terjadi**: Session 019 added sentinel pre-computation to IS editor but NOT to FA or BS. FA editor stored data at FA_OFFSET keys (2008, 4008, 5008) while all 12+ downstream consumers expected legacy positions (17, 36, 45). Result: EVERY FA-dependent computation silently produced zeros. BS had a subtler issue: extended accounts (excelRow 100+) weren't included in static manifest's computedFrom, so subtotals were wrong.
+
+**Root cause / insight**: When introducing a new storage convention (offset keys) for a dynamic editor, you MUST also add a mapping layer at persist time. The pattern: (1) compute all derived values using the dynamic manifest, (2) store sentinels at canonical positions, (3) for original accounts map offset keys to legacy keys. Without this, downstream consumers — which were written for the old convention — silently break.
+
+**Cara menerapkan di masa depan**: Every time a new dynamic catalog editor is created: (a) add sentinel pre-computation in schedulePersist + handleSave, (b) define SENTINEL_ROWS constant in catalog file, (c) filter sentinels out in localRows initialization. Apply the merge-order fix: `{ ...recomputed, ...storeRows }` so sentinel values take priority.
+
+**Proven at**: session-020 (2026-04-14). FA `computeFaSentinels()` + BS sentinel + 10 downstream merge fixes.
+
+### LESSON-057: Downstream merge order: `{ ...recomputed, ...storeRows }` not `{ ...storeRows, ...recomputed }`
+
+**Kategori**: Anti-pattern
+**Sesi**: session-020
+**Tanggal**: 2026-04-14
+
+**Konteks**: When downstream consumers call `deriveComputedRows(STATIC_MANIFEST, storeRows)` and then merge results.
+
+**Apa yang terjadi**: Code pattern `allBs = { ...bsRows, ...bsComp }` means re-derived subtotals OVERWRITE any pre-computed sentinel values in the store. Since static manifest's computedFrom only references original accounts, the re-derived subtotals miss extended catalog accounts. The sentinel (correct total including extended) gets overwritten by the wrong value.
+
+**Root cause / insight**: Spread operator merge order determines which value wins. Store sentinels are more accurate (include ALL accounts from dynamic manifest). Re-derived values from static manifest are less accurate (only original accounts). Store must win.
+
+**Cara menerapkan di masa depan**: Any code that does `const all = { ...leafRows, ...computedRows }` where leafRows might contain sentinels must flip to `{ ...computedRows, ...leafRows }`. Search pattern: `grep -rn "\.\.\.\(balanceSheet\|fixedAsset\|incomeStatement\).*\.\.\." src/` to find merge sites.
+
+**Proven at**: session-020 (2026-04-14). 10 files updated across upstream-helpers, projection-pipeline, CFS, and 6 page-level callers.
