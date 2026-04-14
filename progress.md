@@ -1,15 +1,15 @@
 # Progress — KKA Penilaian Saham
 
-> Latest state after Session 020 (2026-04-14)
+> Latest state after Session 021 (2026-04-14)
 
 ## Verification Results
 ```
-Tests:     837 / 837 passing (57 files)
-Build:     ✅ 32 static pages
+Tests:     838 / 838 passing (57 files)
+Build:     ✅ 34 static pages
 Typecheck: ✅ clean
 Lint:      ✅ clean
 Live:      https://kka-penilaian-saham.vercel.app (HTTP 200)
-Store:     v13
+Store:     v14
 ```
 
 ## Delivered (cumulative)
@@ -17,27 +17,32 @@ Store:     v13
 ### Infrastructure
 - Next 16 + React 19 + TS strict + Tailwind v4 + Zustand 5 + RHF 7 + Zod 4 + ExcelJS 4 + Recharts 3
 - Design system: IBM Plex Sans/Mono, navy+gold palette, 4px radius, tabular-nums
-- Store v13 with chained migration v1→v13 (13 versions, fully backward-compatible)
+- Store v14 with chained migration v1→v14 (14 versions, fully backward-compatible)
 - Generic `CatalogAccount` interface + `ManifestRow.section: string` for multi-sheet catalogs
 - Sentinel pre-computation pattern standardized across BS, IS, FA editors
 - IS sign convention: expenses negative, formulas plain addition (matching Excel)
+- **Universal auto-save**: all editors debounced 500ms, no SIMPAN buttons, HomeForm onBlur + beforeunload
+- **PageEmptyState**: universal empty state component across all sections (INPUT DATA, ANALISIS, PROYEKSI, PENILAIAN, RINGKASAN)
 
-### Pages (32 total)
-- **Input**: HOME, Balance Sheet (dynamic 84-account + Common Size + Growth YoY), Income Statement (dynamic 41-account + Common Size + Growth YoY), Fixed Asset (dynamic 20-account), Key Drivers (auto-integrated with IS)
-- **Historical**: BS, IS, Cash Flow, Fixed Asset (HIDDEN from sidebar — still accessible via URL)
-- **Analysis**: Financial Ratio (18/18), FCF, NOPLAT, Growth Revenue, ROIC, Growth Rate — ALL live-only with empty state + redirect
+### Pages (34 total)
+- **Input**: HOME (auto-save onBlur), Balance Sheet (dynamic 84-account), Income Statement (dynamic 41-account), Fixed Asset (dynamic 20-account), Key Drivers (auto-integrated with IS), **Acc Payables** (ST/LT Bank Loan Schedules)
+- **Historical**: BS, IS, Cash Flow, Fixed Asset (HIDDEN from sidebar)
+- **Analysis**: Financial Ratio (18/18), FCF, NOPLAT, Growth Revenue, ROIC, Growth Rate, **Cash Flow Statement** — ALL live-only with PageEmptyState
 - **Projection**: Proy L/R, Proy FA, Proy BS, Proy NOPLAT, Proy CFS
-- **Valuation**: DLOM, DLOC, WACC, Discount Rate, Borrowing Cap, DCF, AAM, EEM, CFI, Simulasi Potensi
+- **Valuation**: DLOM (scroll fix applied), DLOC (PFC), WACC, Discount Rate, Borrowing Cap, DCF, **AAM** (per-row Penyesuaian editable), EEM, CFI, Simulasi Potensi
 - **Dashboard**: 4 Recharts charts
 
-### Session 020 Deliverables (5 commits)
-- **Audit Gate**: FA sentinel pre-computation (CRITICAL fix), BS sentinel, 10 downstream merge fixes, yearCount cap
-- **IS Sign Fix**: 5 computedFrom → plain addition, NOPLAT/CFS adapters updated, 4 test files fixed
-- **Common Size + Growth YoY**: RowInputGrid extended, BS (% Total Assets) + IS (% Revenue) derivation columns
-- **Key Drivers Integration**: auto-populate COGS ratio, OpEx ratio, Tax rate from IS store
-- **ANALISIS Live-Only**: 6 pages show AnalysisEmptyState when INPUT incomplete, live data when complete
-- **HISTORIS Hidden**: removed from sidebar navigation
-- **Demo Company Removed**: "PT Raja Voltama Elektrik" stripped from DataSourceHeader
+### Session 021 Deliverables (2 commits)
+- **BS sentinel cross-ref fix (CRITICAL)**: FA cross-ref values included in sentinel computation → Financial Ratios now correct
+- **IS Depreciation/Tax data loss fix**: IS_COMPUTED_SENTINEL_ROWS excludes fixed leaf rows 21/33
+- **DLOM scroll jump fix**: `relative` class on QuestionnaireForm labels
+- **FormulaTooltip removed**: deleted from entire website
+- **Auto-save everywhere**: 7 editors converted, SIMPAN buttons removed, "Otomatis tersimpan" indicator
+- **PageEmptyState universal**: 18 pages across all sections
+- **ANALISIS — Cash Flow Statement**: new page with live-only + PageEmptyState
+- **INPUT DATA — Acc Payables**: Bank Loan Schedules input (ST/LT)
+- **AAM per-row Penyesuaian**: editable D column for every BS row, E=C+D, store v14
+- **BS year button labels**: standardized to match FA/IS convention
 
 ## Next Session Priorities
 
@@ -48,4 +53,4 @@ Store:     v13
 5. **Dashboard polish** — projected FCF chart, more KPIs
 
 ## Latest Session
-- [Session 020](history/session-020-audit-gate-sign-fix-analysis.md) (2026-04-14): Audit gate + IS sign fix + Common Size/Growth YoY + ANALISIS live-only + HISTORIS hidden
+- [Session 021](history/session-021-ux-fixes-auto-save-aam-adjustments.md) (2026-04-14): UX fixes + auto-save + PageEmptyState + AAM per-row adjustments

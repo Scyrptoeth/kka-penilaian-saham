@@ -540,6 +540,12 @@ untuk 3+ sesi ke depan:
 - LESSON-056 (Sentinel pre-computation needed for ALL dynamic catalog sheets)
 - LESSON-057 (Downstream merge order: recomputed first, then storeRows — sentinels win)
 
+### Session 021 (UX Fixes + Auto-Save + AAM Per-Row Adjustments)
+- LESSON-058 (BS sentinel must include FA cross-ref values at persist time)
+- LESSON-059 (Distinguish computed sentinels from fixed leaf rows)
+- LESSON-060 (sr-only inputs need positioned parent to prevent scroll jump)
+- LESSON-061 (Replace scalar adjustments with per-row Record for extensibility)
+
 LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054 **TIDAK** di-promote — workflow/session-specific
 insights yang general ke project lain tapi terlalu luas atau terlalu
 session-specific untuk section 8 (yang fokus KKA-specific gotchas).
@@ -1592,3 +1598,77 @@ Same math, different representation. Using widths matches Excel formula pattern 
 **Cara menerapkan di masa depan**: Any code that does `const all = { ...leafRows, ...computedRows }` where leafRows might contain sentinels must flip to `{ ...computedRows, ...leafRows }`. Search pattern: `grep -rn "\.\.\.\(balanceSheet\|fixedAsset\|incomeStatement\).*\.\.\." src/` to find merge sites.
 
 **Proven at**: session-020 (2026-04-14). 10 files updated across upstream-helpers, projection-pipeline, CFS, and 6 page-level callers.
+
+---
+
+## Session 021 — UX Fixes + Auto-Save + AAM Per-Row Adjustments
+
+### LESSON-058: BS sentinel must include FA cross-ref values at persist time
+
+**Kategori**: Framework | Anti-pattern
+**Sesi**: session-021
+**Tanggal**: 2026-04-14
+
+**Konteks**: When DynamicBsEditor computes sentinels for downstream (TOTAL ASSETS, etc.) at persist time.
+
+**Apa yang terjadi**: BS sentinel pre-computation in `schedulePersist` and `handleSave` used `localRows` only — excluding FA cross-reference values (rows 20/21). This caused TOTAL ASSETS to be too low (missing FA Net), inflating all Financial Ratios that use Total Assets as denominator (Debt+Equity > 100%).
+
+**Root cause / insight**: Cross-reference values are computed from a different store slice (fixedAsset) and only merged for display (via `crossRefValues` useMemo), not for persistence. Sentinel computation at persist time must include ALL sources of truth, not just local editable rows.
+
+**Cara menerapkan di masa depan**: Any editor that has cross-reference values from other store slices MUST include those cross-refs when computing sentinels. Use `useKkaStore.getState()` inside the timeout callback to read latest cross-ref data (avoids stale closure). Add useEffect to re-persist when cross-ref source changes.
+
+**Proven at**: session-021 (2026-04-14). `computeBsCrossRefValues` extracted, `schedulePersist` + `handleSave` + useEffect all updated.
+
+---
+
+### LESSON-059: Distinguish computed sentinels from fixed leaf rows (IS Depreciation/Tax)
+
+**Kategori**: Anti-pattern | Framework
+**Sesi**: session-021
+**Tanggal**: 2026-04-14
+
+**Konteks**: When DynamicIsEditor initializes `localRows` from store, filtering out sentinel rows.
+
+**Apa yang terjadi**: `IS_SENTINEL_ROWS` included rows 21 (Depreciation) and 33 (Tax), which are user-editable fixed leaf rows, not computed sentinels. The editor's `localRows` initializer filtered them out on remount, causing user-entered Depreciation and Tax values to disappear.
+
+**Root cause / insight**: The sentinel constant conflated two different concepts: (a) truly computed rows (subtotals derived from `computedFrom`) and (b) fixed leaf rows that happen to live in the sentinel range. Both are needed for downstream backward compat, but only (a) should be filtered out during editor initialization.
+
+**Cara menerapkan di masa depan**: Create separate constants: `IS_SENTINEL_ROWS` (all rows for downstream) and `IS_COMPUTED_SENTINEL_ROWS` (only computed rows, excluding fixed leaves). Use the computed-only constant for editor initializer filters.
+
+**Proven at**: session-021 (2026-04-14). `IS_COMPUTED_SENTINEL_ROWS` added to `income-statement-catalog.ts`.
+
+---
+
+### LESSON-060: sr-only inputs need positioned parent to prevent scroll jump
+
+**Kategori**: Design | Framework
+**Sesi**: session-021
+**Tanggal**: 2026-04-14
+
+**Konteks**: Any component using sr-only (visually hidden) radio/checkbox inputs with label click behavior.
+
+**Apa yang terjadi**: DLOM QuestionnaireForm labels didn't have `position: relative`. The sr-only input (`position: absolute`) resolved to a distant ancestor. When browser focused the input after label click + React re-render, scroll-to-focus jumped to wrong position. Factors 1-5 (near top) were fine; factors 6-10 (below fold) caused visible scroll jump.
+
+**Root cause / insight**: Browser's native scroll-to-focus behavior uses the element's bounding box in the layout. Without a positioned parent on the label, the sr-only input's position context is wrong, causing scroll to a distant position.
+
+**Cara menerapkan di masa depan**: Always add `relative` class to any parent element containing an sr-only (absolute-positioned) input. One-line fix prevents scroll jump.
+
+**Proven at**: session-021 (2026-04-14). Single `relative` class added to label in QuestionnaireForm.tsx.
+
+---
+
+### LESSON-061: Replace scalar adjustments with per-row Record for extensibility
+
+**Kategori**: Design | Workflow
+**Sesi**: session-021
+**Tanggal**: 2026-04-14
+
+**Konteks**: When a computation takes user adjustments that might apply to multiple rows.
+
+**Apa yang terjadi**: AAM originally had `faAdjustment: number` — a single scalar adjusting only Fixed Asset Net. User needed per-row adjustments for every BS line item. Migrating from scalar to `Record<number, number>` required updating store, computation, UI, and 6 downstream consumers.
+
+**Root cause / insight**: Starting with a scalar "shortcut" creates technical debt. `Record<number, number>` is trivially simple, handles 0 adjustments (empty object = no adjustment), handles 1 adjustment (same as scalar), and handles N adjustments. Zero additional complexity for the general case.
+
+**Cara menerapkan di masa depan**: When building adjustment/override features, default to `Record<key, value>` from the start. Caller pre-adjusts values (C+D) before passing to pure computation function. Computation receives E-column values directly — cleaner interface, no adjustment logic in the pure function.
+
+**Proven at**: session-021 (2026-04-14). `aamAdjustments: Record<number, number>` replaces `faAdjustment: number`. Store v13→v14.
