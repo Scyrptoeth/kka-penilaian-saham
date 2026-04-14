@@ -6,6 +6,7 @@ import { GROWTH_REVENUE_MANIFEST } from '@/data/manifests/growth-revenue'
 import { useKkaStore } from '@/lib/store/useKkaStore'
 import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
 import { computeGrowthRevenueLiveRows } from '@/data/live/compute-growth-revenue-live'
+import { AnalysisEmptyState } from './AnalysisEmptyState'
 
 /**
  * Growth Revenue live-mode wrapper — projects IS Revenue (row 6) and
@@ -26,6 +27,19 @@ export function GrowthRevenueLiveView() {
     )
     return computeGrowthRevenueLiveRows(incomeStatement.rows, years)
   }, [hasHydrated, home, incomeStatement])
+
+  if (!hasHydrated) return null
+  if (!home || !incomeStatement) {
+    return (
+      <AnalysisEmptyState
+        title="Growth Revenue"
+        inputs={[
+          { label: 'HOME', href: '/', filled: !!home },
+          { label: 'Income Statement', href: '/input/income-statement', filled: !!incomeStatement },
+        ]}
+      />
+    )
+  }
 
   return <SheetPage manifest={GROWTH_REVENUE_MANIFEST} liveRows={liveRows} />
 }

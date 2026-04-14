@@ -14,6 +14,7 @@ import { computeCashFlowLiveRows } from '@/data/live/compute-cash-flow-live'
 import { computeNoplatLiveRows } from '@/data/live/compute-noplat-live'
 import { computeFcfLiveRows } from '@/data/live/compute-fcf-live'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
+import { AnalysisEmptyState } from './AnalysisEmptyState'
 
 /**
  * Financial Ratio live-mode wrapper. Computes all 18 ratios when BS + IS
@@ -84,6 +85,20 @@ export function FinancialRatioLiveView() {
       allFcfRows,
     )
   }, [isLive, home, balanceSheet, incomeStatement, fixedAsset, accPayables])
+
+  if (!hasHydrated) return null
+  if (!home || !balanceSheet || !incomeStatement) {
+    return (
+      <AnalysisEmptyState
+        title="Financial Ratio"
+        inputs={[
+          { label: 'HOME', href: '/', filled: !!home },
+          { label: 'Balance Sheet', href: '/input/balance-sheet', filled: !!balanceSheet },
+          { label: 'Income Statement', href: '/input/income-statement', filled: !!incomeStatement },
+        ]}
+      />
+    )
+  }
 
   return (
     <>

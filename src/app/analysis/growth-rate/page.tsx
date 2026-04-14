@@ -15,6 +15,7 @@ import { CASH_FLOW_STATEMENT_MANIFEST } from '@/data/manifests/cash-flow-stateme
 import { FCF_MANIFEST } from '@/data/manifests/fcf'
 import { BALANCE_SHEET_MANIFEST } from '@/data/manifests/balance-sheet'
 import { formatPercent, formatIdr } from '@/components/financial/format'
+import { AnalysisEmptyState } from '@/components/analysis/AnalysisEmptyState'
 
 type RowKey = 'netFaEnd' | 'netCaEnd' | 'netFaBeg' | 'netCaBeg' | 'totalNetInvestment' | 'totalIcBoy' | 'growthRate'
 
@@ -73,11 +74,18 @@ export default function GrowthRatePage() {
     return computeGrowthRateLive(allBs, allFa, roicRows, years3)
   }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, accPayables])
 
-  if (!hasHydrated) {
+  if (!hasHydrated) return null
+  if (!home || !balanceSheet || !incomeStatement) {
     return (
-      <div className="mx-auto max-w-[900px] p-6 text-sm text-ink-muted">
-        Memuat data…
-      </div>
+      <AnalysisEmptyState
+        title="Growth Rate"
+        inputs={[
+          { label: 'HOME', href: '/', filled: !!home },
+          { label: 'Balance Sheet', href: '/input/balance-sheet', filled: !!balanceSheet },
+          { label: 'Income Statement', href: '/input/income-statement', filled: !!incomeStatement },
+          { label: 'Fixed Asset', href: '/input/fixed-asset', filled: !!fixedAsset },
+        ]}
+      />
     )
   }
 
@@ -87,9 +95,6 @@ export default function GrowthRatePage() {
         <h1 className="mb-2 text-2xl font-semibold tracking-tight text-ink">Growth Rate</h1>
         <div className="rounded border border-grid bg-canvas-raised px-4 py-6 text-center text-sm text-ink-muted">
           <p>Data belum tersedia.</p>
-          <p className="mt-1">
-            Isi <strong>HOME</strong>, <strong>Balance Sheet</strong>, <strong>Income Statement</strong>, dan <strong>Fixed Asset</strong> terlebih dahulu.
-          </p>
         </div>
       </div>
     )

@@ -6,7 +6,7 @@ import { useKkaStore } from '@/lib/store/useKkaStore'
  * Mode-aware header that sits above every financial sheet page.
  *
  * Why mode-aware: SheetPage saat ini me-render data dari seed fixture
- * (workbook prototipe — PT Raja Voltama Elektrik). Tabel di bawah header
+ * (workbook prototipe). Tabel di bawah header
  * ini TIDAK terhubung ke `home.namaPerusahaan` yang user isi di HOME
  * form. Menampilkan user's company name di header sambil tabel
  * menampilkan data perusahaan lain = misleading UX.
@@ -47,13 +47,11 @@ export function DataSourceHeader({ mode }: DataSourceHeaderProps) {
           Mode Demo · Workbook Prototipe
         </p>
         <p className="mt-1.5 text-xs leading-relaxed text-ink-muted">
-          Data pada halaman ini adalah angka contoh dari workbook prototipe
-          (PT Raja Voltama Elektrik), dipakai untuk demonstrasi sistem.{' '}
+          Data pada halaman ini adalah angka contoh dari workbook prototipe,
+          dipakai untuk demonstrasi sistem.{' '}
           <strong className="text-ink">
-            Data ini tidak terhubung ke HOME form Anda.
-          </strong>{' '}
-          Phase 3 akan menambahkan input mode sehingga halaman ini bisa
-          menampilkan data perusahaan Anda sendiri.
+            Lengkapi Input Data untuk melihat data perusahaan Anda.
+          </strong>
         </p>
       </div>
     )

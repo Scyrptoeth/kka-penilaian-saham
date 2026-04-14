@@ -29,15 +29,8 @@ export const NAV_TREE: NavGroup[] = [
       { label: 'Key Drivers', href: '/input/key-drivers' },
     ],
   },
-  {
-    label: 'Historis',
-    items: [
-      { label: 'Balance Sheet', href: '/historical/balance-sheet' },
-      { label: 'Income Statement', href: '/historical/income-statement' },
-      { label: 'Cash Flow', href: '/historical/cash-flow' },
-      { label: 'Fixed Asset', href: '/historical/fixed-asset' },
-    ],
-  },
+  // Historis section hidden — users work directly with INPUT DATA + ANALISIS.
+  // Pages still exist at /historical/* for backward compat but are not in nav.
   {
     label: 'Analisis',
     items: [
