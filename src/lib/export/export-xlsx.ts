@@ -28,6 +28,7 @@ import {
   ALL_DYNAMIC_ROWS_MAPPINGS,
   DLOM_ANSWER_ROWS,
   DLOC_ANSWER_ROWS,
+  BS_ROW_TO_AAM_D_ROW,
   offsetCol,
   type ScalarCellMapping,
 } from './cell-mapping'
@@ -54,7 +55,7 @@ export interface ExportableState {
   dlom: DlomState | null
   dloc: DlocState | null
   borrowingCapInput: BorrowingCapInputState | null
-  faAdjustment: number
+  aamAdjustments: Record<number, number>
   nilaiPengalihanDilaporkan: number
 }
 
@@ -83,6 +84,7 @@ export async function exportToXlsx(state: ExportableState): Promise<Blob> {
   injectDlomAnswers(workbook, state)
   injectDlocAnswers(workbook, state)
   injectDlomJenisPerusahaan(workbook, state)
+  injectAamAdjustments(workbook, state)
 
   // 5. Add "RINCIAN NERACA" detail sheet with ALL BS accounts
   if (state.balanceSheet && state.home) {
@@ -367,6 +369,31 @@ function injectDlomJenisPerusahaan(workbook: ExcelJS.Workbook, state: Exportable
     jenis === 'tertutup'
       ? 'DLOM Perusahaan tertutup '
       : 'DLOM Perusahaan terbuka '
+}
+
+// ---------------------------------------------------------------------------
+// Internal: AAM per-row adjustments
+// ---------------------------------------------------------------------------
+
+/**
+ * Inject per-row AAM adjustments into the AAM sheet D column.
+ * Each BS row number maps to a specific AAM Excel row via BS_ROW_TO_AAM_D_ROW.
+ */
+function injectAamAdjustments(workbook: ExcelJS.Workbook, state: ExportableState): void {
+  const adj = state.aamAdjustments
+  if (!adj || Object.keys(adj).length === 0) return
+
+  const ws = workbook.getWorksheet('AAM')
+  if (!ws) return
+
+  for (const [bsRowStr, value] of Object.entries(adj)) {
+    if (value === 0) continue
+    const bsRow = Number(bsRowStr)
+    const aamRow = BS_ROW_TO_AAM_D_ROW[bsRow]
+    if (aamRow !== undefined) {
+      ws.getCell(`D${aamRow}`).value = value
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------

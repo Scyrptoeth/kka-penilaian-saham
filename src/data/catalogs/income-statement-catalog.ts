@@ -184,6 +184,14 @@ export const IS_SENTINEL = {
 /** All sentinel row numbers that the editor pre-computes for downstream */
 export const IS_SENTINEL_ROWS: readonly number[] = Object.values(IS_SENTINEL)
 
+/** Fixed leaf rows that live in sentinel range but are user-editable (Depreciation, Tax) */
+const IS_FIXED_LEAF_ROWS = new Set<number>([IS_SENTINEL.DEPRECIATION, IS_SENTINEL.TAX])
+
+/** Computed sentinel rows only — used by editor initializer to filter out non-leaf data.
+ *  Excludes DEPRECIATION (21) and TAX (33) which are user-editable fixed leaves. */
+export const IS_COMPUTED_SENTINEL_ROWS: readonly number[] =
+  IS_SENTINEL_ROWS.filter((r) => !IS_FIXED_LEAF_ROWS.has(r))
+
 /** Original leaf rows mapping to catalog IDs (for store migration) */
 export const ORIGINAL_ROW_TO_CATALOG: Record<number, string> = {
   6: 'revenue',

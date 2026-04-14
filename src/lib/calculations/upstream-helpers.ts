@@ -91,26 +91,28 @@ export interface BuildAamParams {
   allBs: Record<number, YearKeyedSeries>
   lastYear: number
   home: HomeInputs
-  faAdjustment: number
+  aamAdjustments: Record<number, number>
 }
 
-/** Build AamInput from BS rows + home. Eliminates 20-param copy-paste. */
+/** Build AamInput from BS rows + per-row adjustments. Each value = C + D. */
 export function buildAamInput(params: BuildAamParams): AamInput {
-  const { allBs, lastYear: ly, home, faAdjustment } = params
+  const { allBs, lastYear: ly, home, aamAdjustments: adj } = params
   const bs = (row: number) => allBs[row]?.[ly] ?? 0
+  const a = (row: number) => adj[row] ?? 0
+  const totalAdjustments = Object.values(adj).reduce((sum, v) => sum + v, 0)
 
   return {
-    cashOnHands: bs(8), cashOnBank: bs(9),
-    accountReceivable: bs(10), otherReceivable: bs(11),
-    inventory: bs(12), otherCurrentAssets: bs(14),
-    fixedAssetNet: bs(22), otherNonCurrentAssets: bs(23),
-    intangibleAssets: bs(24), totalNonCurrentAssets: bs(25),
-    faAdjustment,
-    bankLoanST: bs(31), accountPayable: bs(32),
-    taxPayable: bs(33), otherCurrentLiabilities: bs(34),
-    bankLoanLT: bs(38), relatedPartyNCL: bs(39),
-    modalDisetor: bs(43), agioDisagio: bs(44),
-    retainedCurrentYear: bs(46), retainedPriorYears: bs(47),
+    cashOnHands: bs(8) + a(8), cashOnBank: bs(9) + a(9),
+    accountReceivable: bs(10) + a(10), otherReceivable: bs(11) + a(11),
+    inventory: bs(12) + a(12), otherCurrentAssets: bs(14) + a(14),
+    fixedAssetNet: bs(22) + a(22), otherNonCurrentAssets: bs(23) + a(23),
+    intangibleAssets: bs(24) + a(24), totalNonCurrentAssets: bs(25) + a(25),
+    totalAdjustments,
+    bankLoanST: bs(31) + a(31), accountPayable: bs(32) + a(32),
+    taxPayable: bs(33) + a(33), otherCurrentLiabilities: bs(34) + a(34),
+    bankLoanLT: bs(38) + a(38), relatedPartyNCL: bs(39) + a(39),
+    modalDisetor: bs(43) + a(43), agioDisagio: bs(44) + a(44),
+    retainedCurrentYear: bs(46) + a(46), retainedPriorYears: bs(47) + a(47),
     dlomPercent: home.dlomPercent,
     dlocPercent: home.dlocPercent,
     proporsiSaham: computeProporsiSaham(home),

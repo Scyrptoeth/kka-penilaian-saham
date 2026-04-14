@@ -48,7 +48,7 @@ const FIXTURE_INPUT: AamInput = {
   intangibleAssets: 0, // BS!F24
   totalNonCurrentAssets: 6264339945, // BS!F25
   // Adjustments (all 0 in prototype)
-  faAdjustment: 0, // FIXED ASSET!H74
+  totalAdjustments: 0,
   // Current liabilities
   bankLoanST: 1000000000, // BS!F31
   accountPayable: 1096222695, // BS!F32

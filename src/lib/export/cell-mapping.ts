@@ -268,13 +268,33 @@ const BORROWING_CAP_SCALARS: ScalarCellMapping[] = [
 // ---------------------------------------------------------------------------
 
 const STANDALONE_SCALARS: ScalarCellMapping[] = [
-  // faAdjustment → overwrite AAM!D20 formula (FIXED ASSET!H74)
-  { kind: 'scalar', storeSlice: '_root', storeField: 'faAdjustment', excelSheet: 'AAM', excelCell: 'D20', valueType: 'number' },
   // nilaiPengalihanDilaporkan → SIMULASI POTENSI (AAM)!E11
   { kind: 'scalar', storeSlice: '_root', storeField: 'nilaiPengalihanDilaporkan', excelSheet: 'SIMULASI POTENSI (AAM)', excelCell: 'E11', valueType: 'number' },
   // WACC taxRate → IS!B33 (used by WACC Hamada equation formulas)
   { kind: 'scalar', storeSlice: 'wacc', storeField: 'taxRate', excelSheet: 'INCOME STATEMENT', excelCell: 'B33', valueType: 'number' },
 ]
+
+/**
+ * BS row number → AAM Excel D-column row number.
+ * Used to inject per-row adjustments from aamAdjustments store into AAM sheet.
+ * Derived from prompt-session-016 AAM sheet analysis.
+ */
+export const BS_ROW_TO_AAM_D_ROW: Readonly<Record<number, number>> = {
+  8: 9,    // Cash on Hands
+  9: 10,   // Cash in Banks
+  10: 11,  // Account Receivable
+  11: 12,  // Other Receivable
+  12: 13,  // Inventory
+  14: 14,  // Others (Current Assets)
+  22: 20,  // Fixed Asset Net
+  23: 21,  // Other Non-Current Assets
+  31: 28,  // Bank Loan (Short Term)
+  32: 29,  // Account Payable
+  33: 30,  // Tax Payable
+  34: 31,  // Others Current Liabilities
+  38: 35,  // Bank Loan (Long Term)
+  39: 36,  // Related Party NCL
+}
 
 // ---------------------------------------------------------------------------
 // Combined registry
@@ -321,5 +341,5 @@ export const MAPPED_STORE_SLICES = [
   'dlom',
   'dloc',
   'borrowingCapInput',
-  '_root', // faAdjustment, nilaiPengalihanDilaporkan
+  '_root', // aamAdjustments, nilaiPengalihanDilaporkan
 ] as const

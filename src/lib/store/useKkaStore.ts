@@ -125,8 +125,8 @@ interface KkaState {
   keyDrivers: KeyDriversState | null
   /** Session 016 — Borrowing Cap CALK values for EEM tangible asset return. */
   borrowingCapInput: BorrowingCapInputState | null
-  /** Session 017 — AAM fixed asset adjustment (from ADJUSTMENT TANAH sheet). Default 0. */
-  faAdjustment: number
+  /** Session 021 — AAM per-row adjustments keyed by BS row number. */
+  aamAdjustments: Record<number, number>
   /** Session 017 — SIMULASI POTENSI reported share transfer value (user input). Default 0. */
   nilaiPengalihanDilaporkan: number
   setHome: (home: HomeInputs) => void
@@ -156,7 +156,7 @@ interface KkaState {
   resetDiscountRate: () => void
   resetKeyDrivers: () => void
   resetBorrowingCapInput: () => void
-  setFaAdjustment: (v: number) => void
+  setAamAdjustments: (adj: Record<number, number>) => void
   setNilaiPengalihanDilaporkan: (v: number) => void
   /** Reset ALL store slices to initial state (destructive — clears all user data). */
   resetAll: () => void
@@ -165,7 +165,7 @@ interface KkaState {
 }
 
 const STORE_KEY = 'kka-penilaian-saham'
-const STORE_VERSION = 13
+const STORE_VERSION = 14
 
 /**
  * Migrate persisted state from older versions to the current schema.
@@ -266,7 +266,7 @@ export function migratePersistedState(
     }
     state = {
       ...state,
-      faAdjustment: state.faAdjustment ?? 0,
+      aamAdjustments: state.aamAdjustments ?? (state.faAdjustment ? { 22: state.faAdjustment } : {}),
       nilaiPengalihanDilaporkan: state.nilaiPengalihanDilaporkan ?? 0,
     }
   }
@@ -465,6 +465,15 @@ export function migratePersistedState(
     }
   }
 
+  // v13→v14: Replace faAdjustment (scalar) with aamAdjustments (per-row map)
+  if (fromVersion < 14) {
+    const fa = (state as Record<string, unknown>).faAdjustment
+    const adj: Record<number, number> = {}
+    if (typeof fa === 'number' && fa !== 0) adj[22] = fa
+    state = { ...state, aamAdjustments: adj }
+    delete (state as Record<string, unknown>).faAdjustment
+  }
+
   return state
 }
 
@@ -482,7 +491,7 @@ export const useKkaStore = create<KkaState>()(
       discountRate: null,
       keyDrivers: null,
       borrowingCapInput: null,
-      faAdjustment: 0,
+      aamAdjustments: {},
       nilaiPengalihanDilaporkan: 0,
       setHome: (home) => set({ home }),
       resetHome: () => set({ home: null }),
@@ -512,7 +521,7 @@ export const useKkaStore = create<KkaState>()(
       resetDiscountRate: () => set({ discountRate: null }),
       resetKeyDrivers: () => set({ keyDrivers: null }),
       resetBorrowingCapInput: () => set({ borrowingCapInput: null }),
-      setFaAdjustment: (v) => set({ faAdjustment: v }),
+      setAamAdjustments: (adj) => set({ aamAdjustments: adj }),
       setNilaiPengalihanDilaporkan: (v) => set({ nilaiPengalihanDilaporkan: v }),
       resetAll: () => set({
         home: null,
@@ -526,7 +535,7 @@ export const useKkaStore = create<KkaState>()(
         discountRate: null,
         keyDrivers: null,
         borrowingCapInput: null,
-        faAdjustment: 0,
+        aamAdjustments: {},
         nilaiPengalihanDilaporkan: 0,
       }),
       _hasHydrated: false,
@@ -548,7 +557,7 @@ export const useKkaStore = create<KkaState>()(
         discountRate: state.discountRate,
         keyDrivers: state.keyDrivers,
         borrowingCapInput: state.borrowingCapInput,
-        faAdjustment: state.faAdjustment,
+        aamAdjustments: state.aamAdjustments,
         nilaiPengalihanDilaporkan: state.nilaiPengalihanDilaporkan,
       }),
       migrate: migratePersistedState,

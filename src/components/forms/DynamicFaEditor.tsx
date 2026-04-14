@@ -124,8 +124,6 @@ export default function DynamicFaEditor() {
   const [showDropdown, setShowDropdown] = useState(false)
   const [showResetFA, setShowResetFA] = useState(false)
   const [showResetAll, setShowResetAll] = useState(false)
-  const [saved, setSaved] = useState(false)
-
   // Debounced persist with sentinel pre-computation
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   function schedulePersist(
@@ -266,14 +264,6 @@ export default function DynamicFaEditor() {
     })
   }
 
-  function handleSave() {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    const sentinels = computeFaSentinels(accounts, localRows, dynamicManifest, years)
-    setFixedAsset({ accounts, yearCount, language, rows: { ...localRows, ...sentinels } })
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
-  }
-
   function handleResetFA() {
     resetFixedAsset()
     setAccounts([])
@@ -381,15 +371,9 @@ export default function DynamicFaEditor() {
         language={language}
       />
 
-      {/* Footer: SIMPAN + RESET */}
+      {/* Footer: RESET + auto-save indicator */}
       <footer className="flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          onClick={handleSave}
-          className="rounded-sm bg-accent px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-accent/90"
-        >
-          Simpan
-        </button>
+        <p className="text-xs text-ink-muted">Otomatis tersimpan</p>
         <button
           type="button"
           onClick={() => setShowResetFA(true)}
@@ -404,11 +388,6 @@ export default function DynamicFaEditor() {
         >
           Reset Seluruh Data
         </button>
-        {saved && (
-          <span className="text-xs font-medium text-positive" role="status">
-            Tersimpan
-          </span>
-        )}
       </footer>
 
       {/* Confirmation dialogs */}

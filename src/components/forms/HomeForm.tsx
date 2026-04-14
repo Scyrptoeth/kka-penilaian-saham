@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { homeInputsSchema, type HomeInputsSchema } from '@/lib/schemas/home'
@@ -13,7 +13,6 @@ import {
 import { Field } from '@/components/ui/Field'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
-import { Button } from '@/components/ui/Button'
 
 const DEFAULTS: HomeInputsSchema = {
   namaPerusahaan: '',
@@ -49,10 +48,9 @@ export function HomeForm() {
 
   const {
     register,
-    handleSubmit,
     control,
     reset,
-    formState: { errors, isDirty, isSubmitSuccessful },
+    formState: { errors },
   } = useForm<HomeInputsSchema>({
     resolver: zodResolver(homeInputsSchema),
     defaultValues: DEFAULTS,
@@ -64,6 +62,45 @@ export function HomeForm() {
       reset(home)
     }
   }, [hasHydrated, home, reset])
+
+  // Auto-save: watch all form values and debounce persist
+  const watchedValues = useWatch({ control })
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const isInitialMount = useRef(true)
+
+  const flushSave = useCallback(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current)
+      debounceRef.current = null
+    }
+    const result = homeInputsSchema.safeParse(watchedValues)
+    if (result.success) {
+      setHome(result.data)
+    }
+  }, [watchedValues, setHome])
+
+  useEffect(() => {
+    // Skip auto-save on initial mount (data loaded from store)
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      return
+    }
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      const result = homeInputsSchema.safeParse(watchedValues)
+      if (result.success) {
+        setHome(result.data)
+      }
+    }, 500)
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
+  }, [watchedValues, setHome])
+
+  // Flush pending save on page unload
+  useEffect(() => {
+    const handler = () => flushSave()
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [flushSave])
 
   // Derived state — conditional labels (LESSON-016: derive, don't setState)
   const jenisInfo = useWatch({ control, name: 'jenisInformasiPeralihan' })
@@ -101,12 +138,8 @@ export function HomeForm() {
     setShowResetAll(false)
   }
 
-  function onSubmit(data: HomeInputsSchema) {
-    setHome(data)
-  }
-
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8" noValidate>
+    <div className="space-y-8">
       <header>
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-muted">
           Input Master
@@ -357,11 +390,9 @@ export function HomeForm() {
         </dl>
       </section>
 
-      {/* Footer: Simpan + Reset buttons (Sub-Revisi 7) */}
+      {/* Footer: Reset buttons + auto-save indicator */}
       <footer className="flex flex-wrap items-center gap-3">
-        <Button type="submit" disabled={!isDirty && !!home}>
-          Simpan
-        </Button>
+        <p className="text-xs text-ink-muted">Otomatis tersimpan</p>
 
         <button
           type="button"
@@ -378,12 +409,6 @@ export function HomeForm() {
         >
           Reset Seluruh Data
         </button>
-
-        {isSubmitSuccessful && !isDirty && (
-          <span className="text-xs font-medium text-positive" role="status">
-            Tersimpan ke penyimpanan lokal
-          </span>
-        )}
       </footer>
 
       {/* Reset HOME confirmation dialog */}
@@ -408,7 +433,7 @@ export function HomeForm() {
           onCancel={() => setShowResetAll(false)}
         />
       )}
-    </form>
+    </div>
   )
 }
 

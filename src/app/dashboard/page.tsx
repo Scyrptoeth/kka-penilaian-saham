@@ -59,7 +59,7 @@ export default function DashboardPage() {
   const keyDrivers = useKkaStore(s => s.keyDrivers)
   const discountRateState = useKkaStore(s => s.discountRate)
   const bcInput = useKkaStore(s => s.borrowingCapInput)
-  const faAdjustment = useKkaStore(s => s.faAdjustment)
+  const aamAdjustments = useKkaStore(s => s.aamAdjustments)
   const hasHydrated = useKkaStore(s => s._hasHydrated)
 
   const data = useMemo(() => {
@@ -105,7 +105,7 @@ export default function DashboardPage() {
 
     // ── Chart 3: Valuation Comparison ──
     const valuationData: Array<{ method: string; perShare: number }> = []
-    const aamResult = computeAam(buildAamInput({ allBs, lastYear: ly, home, faAdjustment }))
+    const aamResult = computeAam(buildAamInput({ allBs, lastYear: ly, home, aamAdjustments }))
     valuationData.push({
       method: 'AAM',
       perShare: aamResult.finalValue / (home.jumlahSahamBeredar * proporsiSaham || 1),
@@ -165,7 +165,7 @@ export default function DashboardPage() {
     }))
 
     return { revenueData, bsData, valuationData, fcfData }
-  }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, keyDrivers, discountRateState, bcInput, faAdjustment])
+  }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, keyDrivers, discountRateState, bcInput, aamAdjustments])
 
   if (!hasHydrated) {
     return <div className="mx-auto max-w-[1200px] p-6 text-sm text-ink-muted">Memuat data…</div>

@@ -1,12 +1,14 @@
 'use client'
 
-import { useMemo, useCallback } from 'react'
+import { useMemo, useState, useCallback } from 'react'
 import { useKkaStore, computeProporsiSaham } from '@/lib/store/useKkaStore'
 import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { BALANCE_SHEET_MANIFEST } from '@/data/manifests/balance-sheet'
 import { computeAam } from '@/lib/calculations/aam-valuation'
+import { buildAamInput } from '@/lib/calculations/upstream-helpers'
 import { formatIdr, formatPercent } from '@/components/financial/format'
+import { parseFinancialInput } from '@/components/forms/parse-financial-input'
 import { PageEmptyState } from '@/components/shared/PageEmptyState'
 
 /** Row definitions for the 3-column adjusted balance sheet display. */
@@ -20,6 +22,8 @@ type AamRowDef = {
   section?: string
   /** Key in AAM result to show in adjusted (E) column. */
   resultKey?: string
+  /** BS rows whose adjustments sum into this total row's D column. */
+  adjSumRows?: number[]
 }
 
 const ASSET_ROWS: AamRowDef[] = [
@@ -30,13 +34,13 @@ const ASSET_ROWS: AamRowDef[] = [
   { label: 'Other Receivable', bsRow: 11 },
   { label: 'Inventory', bsRow: 12 },
   { label: 'Others', bsRow: 14 },
-  { label: 'Total Current Assets', bold: true, resultKey: 'totalCurrentAssets' },
+  { label: 'Total Current Assets', bold: true, resultKey: 'totalCurrentAssets', adjSumRows: [8, 9, 10, 11, 12, 14] },
   { section: 'Aktiva Tidak Lancar' },
   { label: 'Fixed Asset Net', bsRow: 22, resultKey: 'adjustedFixedAssetNet' },
   { label: 'Other Non-Current Assets', bsRow: 23 },
-  { label: 'Total Non-Current Assets', bold: true, resultKey: 'totalNonCurrentAssets' },
+  { label: 'Total Non-Current Assets', bold: true, resultKey: 'totalNonCurrentAssets', adjSumRows: [22, 23] },
   { label: 'Intangible Assets', bsRow: 24 },
-  { label: 'TOTAL ASSETS', bold: true, resultKey: 'totalAssets' },
+  { label: 'TOTAL ASSETS', bold: true, resultKey: 'totalAssets', adjSumRows: [8, 9, 10, 11, 12, 14, 22, 23, 24] },
 ]
 
 const LIABILITY_ROWS: AamRowDef[] = [
@@ -45,24 +49,81 @@ const LIABILITY_ROWS: AamRowDef[] = [
   { label: 'Account Payable', bsRow: 32 },
   { label: 'Tax Payable', bsRow: 33 },
   { label: 'Others Current Liabilities', bsRow: 34 },
-  { label: 'Total Current Liabilities', bold: true, resultKey: 'totalCurrentLiabilities' },
+  { label: 'Total Current Liabilities', bold: true, resultKey: 'totalCurrentLiabilities', adjSumRows: [31, 32, 33, 34] },
   { section: 'Kewajiban Jangka Panjang' },
   { label: 'Bank Loan (Long Term)', bsRow: 38 },
   { label: 'Related Party', bsRow: 39 },
-  { label: 'Total Non-Current Liabilities', bold: true, resultKey: 'totalNonCurrentLiabilities' },
+  { label: 'Total Non-Current Liabilities', bold: true, resultKey: 'totalNonCurrentLiabilities', adjSumRows: [38, 39] },
 ]
+
+/** Inline editable cell for the D (Penyesuaian) column. */
+function AdjustmentCell({
+  value,
+  onCommit,
+}: {
+  value: number
+  onCommit: (v: number) => void
+}) {
+  const [draft, setDraft] = useState<string | null>(null)
+  const isEditing = draft !== null
+
+  const handleBlur = useCallback(() => {
+    if (draft === null) return
+    const parsed = parseFinancialInput(draft)
+    if (parsed !== value) onCommit(parsed)
+    setDraft(null)
+  }, [draft, value, onCommit])
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.currentTarget.blur()
+    } else if (e.key === 'Escape') {
+      setDraft(null)
+    }
+  }, [])
+
+  return (
+    <td className="px-1 py-1 text-right">
+      {isEditing ? (
+        <input
+          type="text"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
+          autoFocus
+          className="w-full rounded border border-accent/40 bg-canvas px-2 py-1 text-right font-mono text-sm tabular-nums text-ink focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+        />
+      ) : (
+        <button
+          type="button"
+          onClick={() => setDraft(value === 0 ? '' : String(value))}
+          className="w-full rounded px-2 py-1 text-right font-mono text-sm tabular-nums text-accent hover:bg-accent/5 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
+          title="Klik untuk edit penyesuaian"
+        >
+          {formatIdr(value)}
+        </button>
+      )}
+    </td>
+  )
+}
 
 export default function AamPage() {
   const home = useKkaStore(s => s.home)
   const balanceSheet = useKkaStore(s => s.balanceSheet)
-  const faAdjustment = useKkaStore(s => s.faAdjustment)
-  const setFaAdjustment = useKkaStore(s => s.setFaAdjustment)
+  const aamAdjustments = useKkaStore(s => s.aamAdjustments)
+  const setAamAdjustments = useKkaStore(s => s.setAamAdjustments)
   const hasHydrated = useKkaStore(s => s._hasHydrated)
 
-  const handleFaAdjustmentChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = Number(e.target.value)
-    setFaAdjustment(Number.isFinite(val) ? val : 0)
-  }, [setFaAdjustment])
+  const handleAdjustmentCommit = useCallback((bsRow: number, value: number) => {
+    const next = { ...aamAdjustments }
+    if (value === 0) {
+      delete next[bsRow]
+    } else {
+      next[bsRow] = value
+    }
+    setAamAdjustments(next)
+  }, [aamAdjustments, setAamAdjustments])
 
   const data = useMemo(() => {
     if (!hasHydrated || !home || !balanceSheet) return null
@@ -72,41 +133,13 @@ export default function AamPage() {
     const allBs = { ...bsComp, ...balanceSheet.rows }
     const ly = histYears[histYears.length - 1]! // last year
 
-    const bs = (row: number) => allBs[row]?.[ly] ?? 0
-
-    const result = computeAam({
-      cashOnHands: bs(8),
-      cashOnBank: bs(9),
-      accountReceivable: bs(10),
-      otherReceivable: bs(11),
-      inventory: bs(12),
-      otherCurrentAssets: bs(14),
-      fixedAssetNet: bs(22),
-      otherNonCurrentAssets: bs(23),
-      intangibleAssets: bs(24),
-      totalNonCurrentAssets: bs(25),
-      faAdjustment,
-      bankLoanST: bs(31),
-      accountPayable: bs(32),
-      taxPayable: bs(33),
-      otherCurrentLiabilities: bs(34),
-      bankLoanLT: bs(38),
-      relatedPartyNCL: bs(39),
-      modalDisetor: bs(43),
-      agioDisagio: bs(44),
-      retainedCurrentYear: bs(46),
-      retainedPriorYears: bs(47),
-      dlomPercent: home.dlomPercent,
-      dlocPercent: home.dlocPercent,
-      proporsiSaham: computeProporsiSaham(home),
-      paidUpCapitalDeduction: home.jumlahSahamBeredar * home.nilaiNominalPerSaham,
-    })
+    const result = computeAam(buildAamInput({ allBs, lastYear: ly, home, aamAdjustments }))
 
     return { result, allBs, ly }
-  }, [hasHydrated, home, balanceSheet, faAdjustment])
+  }, [hasHydrated, home, balanceSheet, aamAdjustments])
 
   if (!hasHydrated) {
-    return <div className="mx-auto max-w-[1100px] p-6 text-sm text-ink-muted">Memuat data…</div>
+    return <div className="mx-auto max-w-[1100px] p-6 text-sm text-ink-muted">Memuat data...</div>
   }
 
   if (!data) {
@@ -125,7 +158,10 @@ export default function AamPage() {
   const { result: r, allBs, ly } = data
   const bs = (row: number) => allBs[row]?.[ly] ?? 0
 
-  const renderRow = (def: AamRowDef, bsVal?: number, adjVal?: number, eVal?: number) => {
+  /** Sum adjustments for a set of BS rows (used for bold/total rows). */
+  const sumAdj = (rows: number[]) => rows.reduce((s, row) => s + (aamAdjustments[row] ?? 0), 0)
+
+  const renderRow = (def: AamRowDef) => {
     if (def.section) {
       return (
         <tr key={def.section} className="border-t-2 border-grid-strong">
@@ -133,48 +169,51 @@ export default function AamPage() {
         </tr>
       )
     }
+
+    const bsVal = def.bsRow !== undefined ? bs(def.bsRow) : undefined
     const cls = def.bold ? 'border-t border-grid-strong bg-canvas-raised font-semibold' : 'border-b border-grid'
-    const adjusted = eVal ?? bsVal ?? 0
+
+    // Bold/total rows: D shows sum of constituent adjustments, E from result
+    if (def.bold) {
+      const adjTotal = def.adjSumRows ? sumAdj(def.adjSumRows) : 0
+      const eVal = def.resultKey ? (r as unknown as Record<string, number>)[def.resultKey] : bsVal
+      return (
+        <tr key={def.label} className={cls}>
+          <td className="px-3 py-2 text-ink">{def.label}</td>
+          <td className="px-3 py-2 text-right font-mono tabular-nums">{bsVal !== undefined ? formatIdr(bsVal) : ''}</td>
+          <td className="px-3 py-2 text-right font-mono tabular-nums text-ink-muted">{formatIdr(adjTotal)}</td>
+          <td className="px-3 py-2 text-right font-mono tabular-nums">{eVal !== undefined ? formatIdr(eVal) : ''}</td>
+        </tr>
+      )
+    }
+
+    // Non-bold data rows: editable D column
+    const adjVal = def.bsRow !== undefined ? (aamAdjustments[def.bsRow] ?? 0) : 0
+    const eVal = def.resultKey
+      ? (r as unknown as Record<string, number>)[def.resultKey]
+      : bsVal !== undefined ? bsVal + adjVal : undefined
+
     return (
       <tr key={def.label} className={cls}>
         <td className="px-3 py-2 text-ink">{def.label}</td>
         <td className="px-3 py-2 text-right font-mono tabular-nums">{bsVal !== undefined ? formatIdr(bsVal) : ''}</td>
-        <td className="px-3 py-2 text-right font-mono tabular-nums text-ink-muted">{adjVal !== undefined ? formatIdr(adjVal) : formatIdr(0)}</td>
-        <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(adjusted)}</td>
+        {def.bsRow !== undefined ? (
+          <AdjustmentCell
+            value={adjVal}
+            onCommit={(v) => handleAdjustmentCommit(def.bsRow!, v)}
+          />
+        ) : (
+          <td className="px-3 py-2 text-right font-mono tabular-nums text-ink-muted">{formatIdr(0)}</td>
+        )}
+        <td className="px-3 py-2 text-right font-mono tabular-nums">{eVal !== undefined ? formatIdr(eVal) : ''}</td>
       </tr>
     )
-  }
-
-  // Determine adjustment value per row for the D column
-  const getAdjVal = (def: AamRowDef): number => {
-    // Only Fixed Asset Net has a user-editable adjustment
-    if (def.bsRow === 22) return faAdjustment
-    return 0
   }
 
   return (
     <div className="mx-auto max-w-[1100px] p-6">
       <h1 className="mb-1 text-2xl font-semibold tracking-tight text-ink">Adjusted Asset Method (AAM)</h1>
-      <p className="mb-6 text-sm text-ink-muted">Metode Penyesuaian Aset Bersih — valuasi berdasarkan neraca yang disesuaikan.</p>
-
-      {/* FA Adjustment Input */}
-      <div className="mb-6 rounded border border-grid bg-canvas-raised p-4">
-        <label htmlFor="faAdjustment" className="mb-1 block text-sm font-medium text-ink">
-          Penyesuaian Aset Tetap (Rp)
-        </label>
-        <p className="mb-2 text-xs text-ink-muted">
-          Selisih antara nilai buku dan nilai pasar aset tetap (misal: adjustment appraisal tanah). Positif = naik, negatif = turun.
-        </p>
-        <input
-          id="faAdjustment"
-          type="number"
-          step="any"
-          value={faAdjustment || ''}
-          onChange={handleFaAdjustmentChange}
-          placeholder="0"
-          className="w-full max-w-xs rounded border border-grid bg-canvas px-3 py-2 font-mono text-sm tabular-nums text-ink focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
-        />
-      </div>
+      <p className="mb-6 text-sm text-ink-muted">Metode Penyesuaian Aset Bersih — klik angka di kolom Penyesuaian (D) untuk mengedit.</p>
 
       {/* 3-column Balance Sheet */}
       <div className="mb-8 overflow-x-auto">
@@ -188,22 +227,8 @@ export default function AamPage() {
             </tr>
           </thead>
           <tbody>
-            {ASSET_ROWS.map(def =>
-              renderRow(
-                def,
-                def.bsRow !== undefined ? bs(def.bsRow) : undefined,
-                def.section ? undefined : getAdjVal(def),
-                def.resultKey ? (r as unknown as Record<string, number>)[def.resultKey] : def.bsRow !== undefined ? bs(def.bsRow) : undefined,
-              ),
-            )}
-            {LIABILITY_ROWS.map(def =>
-              renderRow(
-                def,
-                def.bsRow !== undefined ? bs(def.bsRow) : undefined,
-                def.section ? undefined : 0,
-                def.resultKey ? (r as unknown as Record<string, number>)[def.resultKey] : def.bsRow !== undefined ? bs(def.bsRow) : undefined,
-              ),
-            )}
+            {ASSET_ROWS.map(def => renderRow(def))}
+            {LIABILITY_ROWS.map(def => renderRow(def))}
           </tbody>
         </table>
       </div>

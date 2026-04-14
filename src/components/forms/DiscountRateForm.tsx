@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { cn } from '@/lib/utils/cn'
 import {
   computeDiscountRate,
@@ -73,6 +73,20 @@ export function DiscountRateForm({ initial, onSave }: DiscountRateFormProps) {
       bankRates,
     })
   }, [onSave, taxRate, riskFree, beta, erp, countrySpread, der, bankRates])
+
+  // Auto-save with debounce
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const isInitialMount = useRef(true)
+  useEffect(() => {
+    // Skip auto-save on initial mount (data loaded from store)
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      return
+    }
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => persist(), 500)
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
+  }, [persist])
 
   const updateBankRate = (idx: number, raw: string) => {
     const v = parseFloat(raw)
@@ -221,14 +235,8 @@ export function DiscountRateForm({ initial, onSave }: DiscountRateFormProps) {
         </div>
       </section>
 
-      {/* Save Button */}
-      <button
-        type="button"
-        onClick={persist}
-        className="rounded border-2 border-ink bg-ink px-6 py-2.5 text-sm font-semibold text-canvas transition-colors hover:bg-transparent hover:text-ink focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
-      >
-        Simpan Discount Rate
-      </button>
+      {/* Auto-save indicator */}
+      <p className="text-xs text-ink-muted">Otomatis tersimpan</p>
     </div>
   )
 }

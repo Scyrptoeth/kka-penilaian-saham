@@ -2,7 +2,6 @@ import { cn } from '@/lib/utils/cn'
 import type {
   FinancialRow,
   FinancialTableProps,
-  FormulaMeta,
   ValueKind,
 } from './types'
 import {
@@ -11,17 +10,11 @@ import {
   formatRatio,
   isNegative,
 } from './format'
-import { FormulaTooltip } from './FormulaTooltip'
-
 /**
  * <FinancialTable> — the reusable core table for every Historis/Analisis
  * page. Renders a sticky-header table with right-aligned tabular-nums, an
  * always-visible first column (label), optional common-size and growth
- * column groups, and per-cell formula tooltips for derived rows.
- *
- * This is a Server Component by default. The only client boundary is
- * `<FormulaTooltip>` which handles hover/focus state for the tooltip
- * popover.
+ * column groups.
  */
 export function FinancialTable({
   title,
@@ -232,8 +225,6 @@ function TableRow({
           value={row.values[year]}
           kind="value"
           valueKind={row.valueKind ?? 'idr'}
-          formula={row.formula?.values}
-          year={year}
           rowType={type}
           baseBg={baseBg}
         />
@@ -244,8 +235,6 @@ function TableRow({
           key={`cs-${year}`}
           value={row.commonSize?.[year]}
           kind="percent"
-          formula={row.formula?.commonSize}
-          year={year}
           rowType={type}
           baseBg={baseBg}
           borderLeft={idx === 0}
@@ -257,8 +246,6 @@ function TableRow({
           key={`gr-${year}`}
           value={row.growth?.[year]}
           kind="percent"
-          formula={row.formula?.growth}
-          year={year}
           rowType={type}
           baseBg={baseBg}
           borderLeft={idx === 0}
@@ -272,8 +259,6 @@ interface NumericCellProps {
   value: number | undefined
   kind: 'value' | 'percent'
   valueKind?: ValueKind
-  formula?: FormulaMeta
-  year: number
   rowType: FinancialRow['type']
   baseBg: string
   borderLeft?: boolean
@@ -283,8 +268,6 @@ function NumericCell({
   value,
   kind,
   valueKind,
-  formula,
-  year,
   rowType,
   baseBg,
   borderLeft,
@@ -313,23 +296,9 @@ function NumericCell({
           ? formatRatio(value)
           : formatIdr(value)
   const negative = isNegative(value)
-  const excel = formula?.excelByYear?.[year]
-  const hasTooltip = Boolean(formula?.description || excel)
-
   const colorClass = negative ? 'text-negative' : 'text-ink'
 
-  const inner = hasTooltip ? (
-    <FormulaTooltip
-      description={formula?.description ?? ''}
-      excel={excel}
-    >
-      <span className={colorClass}>{text}</span>
-    </FormulaTooltip>
-  ) : (
-    <span className={colorClass}>{text}</span>
-  )
-
-  return <td className={cellClasses}>{inner}</td>
+  return <td className={cellClasses}><span className={colorClass}>{text}</span></td>
 }
 
 function getIndentClass(indent: 0 | 1 | 2 | undefined): string {

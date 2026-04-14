@@ -13,7 +13,7 @@ import { computeCashFlowLiveRows } from '@/data/live/compute-cash-flow-live'
 import { computeDiscountRate, buildDiscountRateInput } from '@/lib/calculations/discount-rate'
 
 import { computeBorrowingCap } from '@/lib/calculations/borrowing-cap'
-import { BORROWING_PERCENT_DEFAULT } from '@/lib/calculations/upstream-helpers'
+import { BORROWING_PERCENT_DEFAULT, buildAamInput } from '@/lib/calculations/upstream-helpers'
 import { computeAam } from '@/lib/calculations/aam-valuation'
 import { computeEem } from '@/lib/calculations/eem-valuation'
 import { computeShareValue } from '@/lib/calculations/share-value'
@@ -28,7 +28,7 @@ export default function EemPage() {
   const accPayables = useKkaStore(s => s.accPayables)
   const discountRateState = useKkaStore(s => s.discountRate)
   const bcInput = useKkaStore(s => s.borrowingCapInput)
-  const faAdjustment = useKkaStore(s => s.faAdjustment)
+  const aamAdjustments = useKkaStore(s => s.aamAdjustments)
   const hasHydrated = useKkaStore(s => s._hasHydrated)
 
   const data = useMemo(() => {
@@ -75,33 +75,7 @@ export default function EemPage() {
 
     // ── AAM (for adjusted values) ──
     const proporsiSaham = computeProporsiSaham(home)
-    const aam = computeAam({
-      cashOnHands: bs(8),
-      cashOnBank: bs(9),
-      accountReceivable: bs(10),
-      otherReceivable: bs(11),
-      inventory: bs(12),
-      otherCurrentAssets: bs(14),
-      fixedAssetNet: bs(22),
-      otherNonCurrentAssets: bs(23),
-      intangibleAssets: bs(24),
-      totalNonCurrentAssets: bs(25),
-      faAdjustment,
-      bankLoanST: bs(31),
-      accountPayable: bs(32),
-      taxPayable: bs(33),
-      otherCurrentLiabilities: bs(34),
-      bankLoanLT: bs(38),
-      relatedPartyNCL: bs(39),
-      modalDisetor: bs(43),
-      agioDisagio: bs(44),
-      retainedCurrentYear: bs(46),
-      retainedPriorYears: bs(47),
-      dlomPercent: home.dlomPercent,
-      dlocPercent: home.dlocPercent,
-      proporsiSaham,
-      paidUpCapitalDeduction: home.jumlahSahamBeredar * home.nilaiNominalPerSaham,
-    })
+    const aam = computeAam(buildAamInput({ allBs, lastYear: lastHistYear, home, aamAdjustments }))
 
     // ── EEM ──
     const eemResult = computeEem({
@@ -132,7 +106,7 @@ export default function EemPage() {
     })
 
     return { eemResult, sv, bc, proporsiSaham, home }
-  }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, accPayables, discountRateState, bcInput, faAdjustment])
+  }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, accPayables, discountRateState, bcInput, aamAdjustments])
 
   if (!hasHydrated) {
     return <div className="mx-auto max-w-[1100px] p-6 text-sm text-ink-muted">Memuat data…</div>

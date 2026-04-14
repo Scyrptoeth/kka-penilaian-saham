@@ -116,7 +116,7 @@ function FactorCard({
               key={option.label}
               htmlFor={id}
               className={cn(
-                'flex cursor-pointer items-center justify-between gap-2 border px-3 py-2 text-sm transition-colors',
+                'relative flex cursor-pointer items-center justify-between gap-2 border px-3 py-2 text-sm transition-colors',
                 checked
                   ? 'border-ink bg-ink text-canvas-raised'
                   : 'border-grid bg-canvas hover:border-ink',

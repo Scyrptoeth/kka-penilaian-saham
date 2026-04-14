@@ -7,6 +7,7 @@ import {
   getCatalogBySection,
   generateCustomExcelRow,
   IS_SENTINEL_ROWS,
+  IS_COMPUTED_SENTINEL_ROWS,
   type IsAccountEntry,
   type IsCatalogAccount,
   type IsSection,
@@ -48,10 +49,10 @@ export default function DynamicIsEditor() {
     () => incomeStatement?.language ?? 'id',
   )
   const [localRows, setLocalRows] = useState<Record<number, YearKeyedSeries>>(() => {
-    // Filter OUT sentinel rows from store — editor only shows leaf data
+    // Filter OUT computed sentinel rows from store — keep fixed leaves (Depreciation, Tax)
     if (!incomeStatement?.rows) return {}
     const leafOnly: Record<number, YearKeyedSeries> = {}
-    const sentinelSet = new Set(IS_SENTINEL_ROWS)
+    const sentinelSet = new Set(IS_COMPUTED_SENTINEL_ROWS)
     for (const [key, val] of Object.entries(incomeStatement.rows)) {
       if (!sentinelSet.has(Number(key))) {
         leafOnly[Number(key)] = val
@@ -65,8 +66,6 @@ export default function DynamicIsEditor() {
   const [openDropdownSection, setOpenDropdownSection] = useState<IsSection | null>(null)
   const [showResetIS, setShowResetIS] = useState(false)
   const [showResetAll, setShowResetAll] = useState(false)
-  const [saved, setSaved] = useState(false)
-
   // Debounced persist with sentinel pre-computation
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   function schedulePersist(
@@ -233,19 +232,6 @@ export default function DynamicIsEditor() {
     })
   }
 
-  function handleSave() {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    const manifest = buildDynamicIsManifest(accounts, language, yearCount, tahunTransaksi)
-    const computed = deriveComputedRows(manifest.rows, localRows, years)
-    const sentinels: Record<number, YearKeyedSeries> = {}
-    for (const r of IS_SENTINEL_ROWS) {
-      if (computed[r]) sentinels[r] = computed[r]
-    }
-    setIncomeStatement({ accounts, yearCount, language, rows: { ...localRows, ...sentinels } })
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
-  }
-
   function handleResetIS() {
     resetIncomeStatement()
     setAccounts([])
@@ -357,15 +343,9 @@ export default function DynamicIsEditor() {
         growthYears={growthYears}
       />
 
-      {/* Footer: SIMPAN + RESET */}
+      {/* Footer: RESET + auto-save indicator */}
       <footer className="flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          onClick={handleSave}
-          className="rounded-sm bg-accent px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-accent/90"
-        >
-          Simpan
-        </button>
+        <p className="text-xs text-ink-muted">Otomatis tersimpan</p>
         <button
           type="button"
           onClick={() => setShowResetIS(true)}
@@ -380,11 +360,6 @@ export default function DynamicIsEditor() {
         >
           Reset Seluruh Data
         </button>
-        {saved && (
-          <span className="text-xs font-medium text-positive" role="status">
-            Tersimpan
-          </span>
-        )}
       </footer>
 
       {/* Confirmation dialogs */}

@@ -37,7 +37,7 @@ export function ExportButton() {
         dlom: state.dlom,
         dloc: state.dloc,
         borrowingCapInput: state.borrowingCapInput,
-        faAdjustment: state.faAdjustment,
+        aamAdjustments: state.aamAdjustments,
         nilaiPengalihanDilaporkan: state.nilaiPengalihanDilaporkan,
       }
 

@@ -9,6 +9,7 @@ import {
   ALL_GRID_MAPPINGS,
   DLOM_ANSWER_ROWS,
   DLOC_ANSWER_ROWS,
+  BS_ROW_TO_AAM_D_ROW,
   offsetCol,
   ALL_ARRAY_MAPPINGS,
   ALL_DYNAMIC_ROWS_MAPPINGS,
@@ -216,6 +217,20 @@ function injectAll(wb: ExcelJS.Workbook, state: ExportableState): void {
           : 'DLOM Perusahaan terbuka '
     }
   }
+
+  // AAM per-row adjustments
+  if (state.aamAdjustments && Object.keys(state.aamAdjustments).length > 0) {
+    const ws = wb.getWorksheet('AAM')
+    if (ws) {
+      for (const [bsRowStr, value] of Object.entries(state.aamAdjustments)) {
+        if (value === 0) continue
+        const aamRow = BS_ROW_TO_AAM_D_ROW[Number(bsRowStr)]
+        if (aamRow !== undefined) {
+          ws.getCell(`D${aamRow}`).value = value
+        }
+      }
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -289,7 +304,7 @@ const TEST_STATE: ExportableState = {
     percentage: 0.54,
   },
   borrowingCapInput: { piutangCalk: 333625997484, persediaanCalk: 425521174257 },
-  faAdjustment: 5000000,
+  aamAdjustments: { 22: 5000000 },
   nilaiPengalihanDilaporkan: 600000000,
 }
 
@@ -419,10 +434,11 @@ describe('export-xlsx (template-based)', () => {
     expect(bc.getCell('D6').value).toBe(425521174257)
   })
 
-  it('injects faAdjustment into AAM D20', async () => {
+  it('injects aamAdjustments into AAM D column', async () => {
     const wb = await simulateExport(TEST_STATE)
     const aam = wb.getWorksheet('AAM')!
 
+    // BS row 22 (Fixed Asset Net) maps to AAM row 20
     expect(aam.getCell('D20').value).toBe(5000000)
   })
 
@@ -445,7 +461,7 @@ describe('export-xlsx (template-based)', () => {
       dlom: null,
       dloc: null,
       borrowingCapInput: null,
-      faAdjustment: 0,
+      aamAdjustments: {},
       nilaiPengalihanDilaporkan: 0,
     }
     // Should not throw

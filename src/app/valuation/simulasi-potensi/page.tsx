@@ -30,7 +30,7 @@ export default function SimulasiPotensiPage() {
   const keyDrivers = useKkaStore(s => s.keyDrivers)
   const discountRateState = useKkaStore(s => s.discountRate)
   const bcInput = useKkaStore(s => s.borrowingCapInput)
-  const faAdjustment = useKkaStore(s => s.faAdjustment)
+  const aamAdjustments = useKkaStore(s => s.aamAdjustments)
   const nilaiPengalihanDilaporkan = useKkaStore(s => s.nilaiPengalihanDilaporkan)
   const setNilaiPengalihanDilaporkan = useKkaStore(s => s.setNilaiPengalihanDilaporkan)
   const hasHydrated = useKkaStore(s => s._hasHydrated)
@@ -52,7 +52,7 @@ export default function SimulasiPotensiPage() {
     const ly = histYears4[histYears4.length - 1]!
 
     // ── AAM (always available with BS) ──
-    const aamResult = computeAam(buildAamInput({ allBs, lastYear: ly, home, faAdjustment }))
+    const aamResult = computeAam(buildAamInput({ allBs, lastYear: ly, home, aamAdjustments }))
 
     const result: Record<ValuationMethod, number | null> = {
       AAM: aamResult.equityValue,
@@ -99,7 +99,7 @@ export default function SimulasiPotensiPage() {
     }
 
     return result
-  }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, keyDrivers, discountRateState, bcInput, faAdjustment])
+  }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, keyDrivers, discountRateState, bcInput, aamAdjustments])
 
   // Derive risk categories from actual DLOM/DLOC percentages (not hardcoded!)
   const dlomRisk = home ? deriveDlomRiskCategory(home.dlomPercent) : 'Moderat'

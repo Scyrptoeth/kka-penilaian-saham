@@ -24,8 +24,8 @@ export interface AamInput {
   otherNonCurrentAssets: number // BS!F23
   intangibleAssets: number // BS!F24
   totalNonCurrentAssets: number // BS!F25
-  // Adjustments (default 0, user-editable in future)
-  faAdjustment: number // FIXED ASSET!H74
+  // Sum of all per-row adjustments (D column total, for revaluation row)
+  totalAdjustments: number
   // Current liabilities
   bankLoanST: number // BS!F31
   accountPayable: number // BS!F32
@@ -81,7 +81,7 @@ export function computeAam(input: AamInput): AamResult {
     fixedAssetNet,
     otherNonCurrentAssets,
     intangibleAssets,
-    faAdjustment,
+    totalAdjustments,
     bankLoanST,
     accountPayable,
     taxPayable,
@@ -104,10 +104,9 @@ export function computeAam(input: AamInput): AamResult {
   const totalCurrentAssets =
     cashOnHands + cashOnBank + accountReceivable + otherReceivable + inventory + otherCurrentAssets
 
-  // Non-current assets: only FA Net has adjustment
-  const adjustedFixedAssetNet = fixedAssetNet + faAdjustment // E20
-  const adjustedOtherNC = otherNonCurrentAssets // E21, no adjustment
-  const totalNonCurrentAssets = adjustedFixedAssetNet + adjustedOtherNC // E22
+  // Non-current assets (all values pre-adjusted by caller)
+  const adjustedFixedAssetNet = fixedAssetNet // E20 (already includes adjustment)
+  const totalNonCurrentAssets = fixedAssetNet + otherNonCurrentAssets // E22
 
   // E24: Total Assets = Total Current + Total Non-Current + Intangible
   const totalAssets = totalCurrentAssets + totalNonCurrentAssets + intangibleAssets
@@ -120,7 +119,7 @@ export function computeAam(input: AamInput): AamResult {
   const totalNonCurrentLiabilities = bankLoanLT + relatedPartyNCL
 
   // Equity
-  const revaluation = faAdjustment + 0 // D46 = D20 + D21 (D21 = 0)
+  const revaluation = totalAdjustments // D46 = sum of all D column adjustments
   const retainedTotal = retainedCurrentYear + retainedPriorYears // E45
   const totalEquity = modalDisetor + retainedTotal + agioDisagio + revaluation // E47
 

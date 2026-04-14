@@ -33,7 +33,7 @@ describe('migratePersistedState — v1 → v9 (chained)', () => {
     expect(migrated.discountRate).toBeNull()
     expect(migrated.keyDrivers).toBeNull()
     expect(migrated.borrowingCapInput).toBeNull()
-    expect(migrated.faAdjustment).toBe(0)
+    expect(migrated.aamAdjustments).toEqual({})
     expect(migrated.nilaiPengalihanDilaporkan).toBe(0)
   })
 })
@@ -54,7 +54,7 @@ describe('migratePersistedState — v4 → v8 (chained)', () => {
     expect(migrated.discountRate).toBeNull()
     expect(migrated.keyDrivers).toBeNull()
     expect(migrated.borrowingCapInput).toBeNull()
-    expect(migrated.faAdjustment).toBe(0)
+    expect(migrated.aamAdjustments).toEqual({})
     const home = migrated.home as Record<string, unknown>
     expect(home.nilaiNominalPerSaham).toBe(1)
   })
@@ -79,7 +79,7 @@ describe('migratePersistedState — v5 → v8 (chained)', () => {
     expect(home.nilaiNominalPerSaham).toBe(1)
     expect(migrated.keyDrivers).toBeNull()
     expect(migrated.borrowingCapInput).toBeNull()
-    expect(migrated.faAdjustment).toBe(0)
+    expect(migrated.aamAdjustments).toEqual({})
   })
 })
 
@@ -99,14 +99,14 @@ describe('migratePersistedState — v6 → v8 (chained)', () => {
     }
     const migrated = migratePersistedState(v6State, 6) as Record<string, unknown>
     expect(migrated.borrowingCapInput).toBeNull()
-    expect(migrated.faAdjustment).toBe(0)
+    expect(migrated.aamAdjustments).toEqual({})
     const home = migrated.home as Record<string, unknown>
     expect(home.nilaiNominalPerSaham).toBe(1)
   })
 })
 
 describe('migratePersistedState — v7 → v8', () => {
-  it('adds nilaiNominalPerSaham to home + faAdjustment + nilaiPengalihanDilaporkan', () => {
+  it('adds nilaiNominalPerSaham to home + aamAdjustments + nilaiPengalihanDilaporkan', () => {
     const v7State = {
       home: HOME_FIXTURE,
       dlom: null,
@@ -124,7 +124,7 @@ describe('migratePersistedState — v7 → v8', () => {
     const home = migrated.home as Record<string, unknown>
     expect(home.nilaiNominalPerSaham).toBe(1)
     expect(home.namaPerusahaan).toBe('PT Test Sejahtera')
-    expect(migrated.faAdjustment).toBe(0)
+    expect(migrated.aamAdjustments).toEqual({})
     expect(migrated.nilaiPengalihanDilaporkan).toBe(0)
   })
 
@@ -145,7 +145,7 @@ describe('migratePersistedState — v7 → v8', () => {
     }
     const migrated = migratePersistedState(v7NullHome, 7) as Record<string, unknown>
     expect(migrated.home).toBeNull()
-    expect(migrated.faAdjustment).toBe(0)
+    expect(migrated.aamAdjustments).toEqual({})
     expect(migrated.nilaiPengalihanDilaporkan).toBe(0)
   })
 })
@@ -389,11 +389,19 @@ describe('migratePersistedState — v12 → v13 (IS dynamic accounts)', () => {
   })
 })
 
-describe('migratePersistedState — v13 and future', () => {
-  it('v13 → v13 passes through unchanged (no-op)', () => {
-    const v13State = { home: null, futureSlice: {} }
-    const migrated = migratePersistedState(v13State, 13)
-    expect(migrated).toBe(v13State)
+describe('migratePersistedState — v13 → v14 (faAdjustment → aamAdjustments)', () => {
+  it('v13 → v14 converts faAdjustment to aamAdjustments', () => {
+    const v13State = { home: null, faAdjustment: 5000000 }
+    const migrated = migratePersistedState(v13State, 13) as Record<string, unknown>
+    expect(migrated.aamAdjustments).toEqual({ 22: 5000000 })
+    expect(migrated.faAdjustment).toBeUndefined()
+  })
+
+  it('v13 → v14 with zero faAdjustment produces empty aamAdjustments', () => {
+    const v13State = { home: null, faAdjustment: 0 }
+    const migrated = migratePersistedState(v13State, 13) as Record<string, unknown>
+    expect(migrated.aamAdjustments).toEqual({})
+    expect(migrated.faAdjustment).toBeUndefined()
   })
 
   it('passes future versions through unchanged', () => {

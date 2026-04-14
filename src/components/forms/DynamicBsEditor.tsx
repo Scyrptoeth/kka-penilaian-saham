@@ -41,7 +41,7 @@ function computeBsCrossRefValues(
 
 /**
  * Dynamic Balance Sheet editor — user selects accounts from catalog dropdowns,
- * with bilingual labels, dynamic year columns, and SIMPAN/RESET buttons.
+ * with bilingual labels, dynamic year columns, and auto-save.
  *
  * Replaces ManifestEditor for the BS input page (Session 020).
  */
@@ -84,7 +84,6 @@ export default function DynamicBsEditor() {
   // Reset dialog state
   const [showResetBS, setShowResetBS] = useState(false)
   const [showResetAll, setShowResetAll] = useState(false)
-  const [saved, setSaved] = useState(false)
   // Inline dropdown state for add-button rows
   const [openDropdownSection, setOpenDropdownSection] = useState<BsSection | null>(null)
 
@@ -271,20 +270,6 @@ export default function DynamicBsEditor() {
     })
   }
 
-  function handleSave() {
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    // Include latest FA cross-refs so sentinels (Total Assets etc.) are correct
-    const refs = computeBsCrossRefValues(useKkaStore.getState().fixedAsset?.rows)
-    const computed = deriveComputedRows(dynamicManifest.rows, { ...localRows, ...refs }, years)
-    const sentinels: Record<number, YearKeyedSeries> = {}
-    for (const r of BS_SENTINEL_ROWS) {
-      if (computed[r]) sentinels[r] = computed[r]
-    }
-    setBalanceSheet({ accounts, yearCount, language, rows: { ...localRows, ...sentinels } })
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
-  }
-
   function handleResetBS() {
     resetBalanceSheet()
     setAccounts([])
@@ -396,15 +381,9 @@ export default function DynamicBsEditor() {
         growthYears={growthYears}
       />
 
-      {/* Footer: SIMPAN + RESET */}
+      {/* Footer: RESET + auto-save indicator */}
       <footer className="flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          onClick={handleSave}
-          className="rounded-sm bg-accent px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-accent/90"
-        >
-          Simpan
-        </button>
+        <p className="text-xs text-ink-muted">Otomatis tersimpan</p>
         <button
           type="button"
           onClick={() => setShowResetBS(true)}
@@ -419,11 +398,6 @@ export default function DynamicBsEditor() {
         >
           Reset Seluruh Data
         </button>
-        {saved && (
-          <span className="text-xs font-medium text-positive" role="status">
-            Tersimpan
-          </span>
-        )}
       </footer>
 
       {/* Confirmation dialogs */}
