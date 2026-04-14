@@ -14,6 +14,7 @@ import {
 import { RowInputGrid } from './RowInputGrid'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
+import { ratioOfBase, yoyChangeSafe } from '@/lib/calculations/helpers'
 import type { YearKeyedSeries } from '@/types/financial'
 import { getBsStrings } from '@/lib/i18n/balance-sheet'
 
@@ -130,6 +131,44 @@ export default function DynamicBsEditor() {
     () => deriveComputedRows(dynamicManifest.rows, mergedValues, years),
     [dynamicManifest.rows, mergedValues, years],
   )
+
+  // Derivation columns: Common Size (% of Total Assets) + Growth YoY
+  const allValues = useMemo(
+    () => ({ ...mergedValues, ...computedValues }),
+    [mergedValues, computedValues],
+  )
+  const commonSizeData = useMemo(() => {
+    const totalAssets = allValues[27] // BS row 27 = TOTAL ASSETS
+    if (!totalAssets) return {}
+    const out: Record<number, YearKeyedSeries> = {}
+    for (const row of dynamicManifest.rows) {
+      if (row.excelRow === undefined) continue
+      const line = allValues[row.excelRow]
+      if (!line) continue
+      const series: YearKeyedSeries = {}
+      for (const y of years) series[y] = ratioOfBase(line[y] ?? 0, totalAssets[y] ?? 0)
+      out[row.excelRow] = series
+    }
+    return out
+  }, [allValues, dynamicManifest.rows, years])
+
+  const growthData = useMemo(() => {
+    if (years.length < 2) return {}
+    const out: Record<number, YearKeyedSeries> = {}
+    for (const row of dynamicManifest.rows) {
+      if (row.excelRow === undefined) continue
+      const line = allValues[row.excelRow]
+      if (!line) continue
+      const series: YearKeyedSeries = {}
+      for (let i = 1; i < years.length; i++) {
+        series[years[i]] = yoyChangeSafe(line[years[i]] ?? 0, line[years[i - 1]] ?? 0)
+      }
+      out[row.excelRow] = series
+    }
+    return out
+  }, [allValues, dynamicManifest.rows, years])
+
+  const growthYears = useMemo(() => years.length >= 2 ? years.slice(1) : [], [years])
 
   // Existing account IDs for filtering dropdowns
   const existingIds = useMemo(() => new Set(accounts.map((a) => a.catalogId)), [accounts])
@@ -331,6 +370,10 @@ export default function DynamicBsEditor() {
         onCloseDropdown={() => setOpenDropdownSection(null)}
         dropdownStrings={{ manualEntry: t.manualEntry, allAccountsAdded: t.allAccountsAdded, accountNamePlaceholder: t.accountNamePlaceholder, cancel: t.cancel, add: t.add }}
         language={language}
+        commonSize={commonSizeData}
+        commonSizeYears={years}
+        growth={growthData}
+        growthYears={growthYears}
       />
 
       {/* Footer: SIMPAN + RESET */}

@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import type { ManifestRow, CatalogAccount } from '@/data/manifests/types'
 import type { YearKeyedSeries } from '@/types/financial'
 import { cn } from '@/lib/utils/cn'
-import { formatIdr, isNegative } from '@/components/financial/format'
+import { formatIdr, formatPercent, isNegative } from '@/components/financial/format'
 import { parseFinancialInput } from './parse-financial-input'
 
 interface RowInputGridProps {
@@ -26,6 +26,14 @@ interface RowInputGridProps {
   dropdownStrings?: { manualEntry: string; allAccountsAdded: string; accountNamePlaceholder: string; cancel: string; add: string }
   /** Active language for catalog labels */
   language?: 'en' | 'id'
+  /** Optional Common Size derivation: excelRow → { year → ratio } */
+  commonSize?: Readonly<Record<number, YearKeyedSeries>>
+  /** Years to show Common Size columns for (all years with data) */
+  commonSizeYears?: readonly number[]
+  /** Optional Growth YoY derivation: excelRow → { year → ratio } */
+  growth?: Readonly<Record<number, YearKeyedSeries>>
+  /** Years to show Growth columns for (years[1:] — need prior year) */
+  growthYears?: readonly number[]
 }
 
 export function RowInputGrid({
@@ -44,8 +52,12 @@ export function RowInputGrid({
   onCloseDropdown,
   dropdownStrings,
   language = 'id',
+  commonSize,
+  commonSizeYears = [],
+  growth,
+  growthYears = [],
 }: RowInputGridProps) {
-  const colCount = 1 + years.length
+  const colCount = 1 + years.length + commonSizeYears.length + growthYears.length
   return (
     <div className="overflow-x-auto rounded-sm border border-grid bg-canvas-raised shadow-[0_1px_0_rgba(10,22,40,0.04)]">
       <table className="min-w-full border-collapse text-[13px]">
@@ -66,7 +78,37 @@ export function RowInputGrid({
                 {year}
               </th>
             ))}
+            {commonSizeYears.length > 0 && (
+              <th
+                scope="colgroup"
+                colSpan={commonSizeYears.length}
+                className="sticky top-0 z-10 border-b border-l border-grid-strong bg-canvas-raised px-3 py-2 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-accent"
+              >
+                Common Size
+              </th>
+            )}
+            {growthYears.length > 0 && (
+              <th
+                scope="colgroup"
+                colSpan={growthYears.length}
+                className="sticky top-0 z-10 border-b border-l border-grid-strong bg-canvas-raised px-3 py-2 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-accent"
+              >
+                Growth YoY
+              </th>
+            )}
           </tr>
+          {(commonSizeYears.length > 0 || growthYears.length > 0) && (
+            <tr className="bg-canvas-raised">
+              <th className="sticky left-0 z-20 border-b border-grid bg-canvas-raised shadow-[1px_0_0_rgba(10,22,40,0.06)]" />
+              {years.map((y) => <th key={`sub-${y}`} className="border-b border-grid bg-canvas-raised" />)}
+              {commonSizeYears.map((y) => (
+                <th key={`cs-${y}`} className="border-b border-l border-grid bg-canvas-raised px-2 py-1 text-right text-[10px] font-medium text-ink-muted">{y}</th>
+              ))}
+              {growthYears.map((y) => (
+                <th key={`gr-${y}`} className="border-b border-l border-grid bg-canvas-raised px-2 py-1 text-right text-[10px] font-medium text-ink-muted">{y}</th>
+              ))}
+            </tr>
+          )}
         </thead>
         <tbody>
           {rows.map((row, idx) => {
@@ -188,6 +230,34 @@ export function RowInputGrid({
                       )}
                     >
                       {formatIdr(computed)}
+                    </td>
+                  )
+                })}
+                {commonSizeYears.map((y) => {
+                  const v = commonSize?.[excelRow]?.[y] ?? 0
+                  return (
+                    <td key={`cs-${excelRow}-${y}`} className={cn(
+                      'border-l border-grid/50 px-2 py-1.5 text-right font-mono text-[12px] tabular-nums',
+                      baseBg,
+                      type === 'subtotal' && 'border-t border-grid-strong font-semibold',
+                      type === 'total' && 'border-t-2 border-ink font-bold',
+                      isNegative(v) ? 'text-negative' : 'text-ink-muted',
+                    )}>
+                      {formatPercent(v)}
+                    </td>
+                  )
+                })}
+                {growthYears.map((y) => {
+                  const v = growth?.[excelRow]?.[y] ?? 0
+                  return (
+                    <td key={`gr-${excelRow}-${y}`} className={cn(
+                      'border-l border-grid/50 px-2 py-1.5 text-right font-mono text-[12px] tabular-nums',
+                      baseBg,
+                      type === 'subtotal' && 'border-t border-grid-strong font-semibold',
+                      type === 'total' && 'border-t-2 border-ink font-bold',
+                      isNegative(v) ? 'text-negative' : 'text-ink-muted',
+                    )}>
+                      {formatPercent(v)}
                     </td>
                   )
                 })}

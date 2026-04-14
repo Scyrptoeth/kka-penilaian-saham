@@ -45,10 +45,24 @@ interface KeyDriversFormProps {
   initial: KeyDriversState | null
   baseYear: number
   onSave: (state: KeyDriversState) => void
+  /** Auto-computed ratios from IS data — used as defaults if Key Drivers not yet saved */
+  isAutoRatios?: { cogsRatio: number; opexRatio: number; taxRate: number } | null
 }
 
-export function KeyDriversForm({ initial, baseYear, onSave }: KeyDriversFormProps) {
-  const [state, setState] = useState<KeyDriversState>(initial ?? defaultState)
+export function KeyDriversForm({ initial, baseYear, onSave, isAutoRatios }: KeyDriversFormProps) {
+  const [state, setState] = useState<KeyDriversState>(() => {
+    if (initial) return initial
+    const base = defaultState()
+    // Auto-populate from IS data if Key Drivers not yet saved
+    if (isAutoRatios) {
+      return {
+        ...base,
+        financialDrivers: { ...base.financialDrivers, corporateTaxRate: isAutoRatios.taxRate },
+        operationalDrivers: { ...base.operationalDrivers, cogsRatio: isAutoRatios.cogsRatio, gaExpenseRatio: isAutoRatios.opexRatio },
+      }
+    }
+    return base
+  })
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const projYears = useMemo(
