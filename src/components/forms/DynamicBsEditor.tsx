@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { useKkaStore } from '@/lib/store/useKkaStore'
 import { buildDynamicBsManifest } from '@/data/manifests/build-dynamic-bs'
 import {
@@ -17,6 +17,27 @@ import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
 import { ratioOfBase, yoyChangeSafe } from '@/lib/calculations/helpers'
 import type { YearKeyedSeries } from '@/types/financial'
 import { getBsStrings } from '@/lib/i18n/balance-sheet'
+
+/**
+ * Compute BS cross-reference values from Fixed Asset store data.
+ * FA row 32 (Total Ending Acquisition Cost) → BS row 20 (FA Beginning, positive)
+ * FA row 60 (Total Ending Accum Depreciation) → BS row 21 (Accum Depr, negated for BS convention)
+ */
+function computeBsCrossRefValues(
+  faRows: Record<number, YearKeyedSeries> | undefined,
+): Record<number, YearKeyedSeries> {
+  const rows = faRows ?? {}
+  const refs: Record<number, YearKeyedSeries> = {}
+  if (rows[32]) refs[20] = { ...rows[32] }
+  if (rows[60]) {
+    const negated: YearKeyedSeries = {}
+    for (const [yr, val] of Object.entries(rows[60])) {
+      negated[Number(yr)] = -(val ?? 0)
+    }
+    refs[21] = negated
+  }
+  return refs
+}
 
 /**
  * Dynamic Balance Sheet editor — user selects accounts from catalog dropdowns,
@@ -80,7 +101,9 @@ export default function DynamicBsEditor() {
       // Build manifest and compute sentinels for downstream compat
       const manifest = buildDynamicBsManifest(nextAccounts, nextLanguage, nextYearCount, tahunTransaksi)
       const yrs = computeHistoricalYears(tahunTransaksi, nextYearCount)
-      const computed = deriveComputedRows(manifest.rows, nextRows, yrs)
+      // Include latest FA cross-refs so sentinels (Total Assets etc.) are correct
+      const refs = computeBsCrossRefValues(useKkaStore.getState().fixedAsset?.rows)
+      const computed = deriveComputedRows(manifest.rows, { ...nextRows, ...refs }, yrs)
       const sentinels: Record<number, YearKeyedSeries> = {}
       for (const r of BS_SENTINEL_ROWS) {
         if (computed[r]) sentinels[r] = computed[r]
@@ -101,25 +124,10 @@ export default function DynamicBsEditor() {
   )
 
   // Cross-ref: map Fixed Asset store → BS rows 20/21
-  // FA row 32 (Total Ending Acquisition Cost) → BS row 20 (FA Beginning, positive)
-  // FA row 60 (Total Ending Accum Depreciation) → BS row 21 (Accum Depr, negated for BS convention)
-  const crossRefValues = useMemo(() => {
-    const faRows = fixedAsset?.rows ?? {}
-    const refs: Record<number, YearKeyedSeries> = {}
-    const fa32 = faRows[32]
-    const fa60 = faRows[60]
-    if (fa32) {
-      refs[20] = { ...fa32 }
-    }
-    if (fa60) {
-      const negated: YearKeyedSeries = {}
-      for (const [yr, val] of Object.entries(fa60)) {
-        negated[Number(yr)] = -(val ?? 0)
-      }
-      refs[21] = negated
-    }
-    return refs
-  }, [fixedAsset?.rows])
+  const crossRefValues = useMemo(
+    () => computeBsCrossRefValues(fixedAsset?.rows),
+    [fixedAsset?.rows],
+  )
 
   // Merge user rows + cross-ref values for computation
   const mergedValues = useMemo(
@@ -131,6 +139,16 @@ export default function DynamicBsEditor() {
     () => deriveComputedRows(dynamicManifest.rows, mergedValues, years),
     [dynamicManifest.rows, mergedValues, years],
   )
+
+  // Re-persist BS sentinels when FA cross-ref values change (e.g. user edits FA page)
+  // so downstream pages (Financial Ratio, ROIC, etc.) see correct TOTAL ASSETS
+  const prevCrossRefRef = useRef(crossRefValues)
+  useEffect(() => {
+    if (prevCrossRefRef.current === crossRefValues) return
+    prevCrossRefRef.current = crossRefValues
+    if (accounts.length === 0) return
+    schedulePersist(accounts, localRows, yearCount, language)
+  })
 
   // Derivation columns: Common Size (% of Total Assets) + Growth YoY
   const allValues = useMemo(
@@ -255,7 +273,9 @@ export default function DynamicBsEditor() {
 
   function handleSave() {
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    const computed = deriveComputedRows(dynamicManifest.rows, localRows, years)
+    // Include latest FA cross-refs so sentinels (Total Assets etc.) are correct
+    const refs = computeBsCrossRefValues(useKkaStore.getState().fixedAsset?.rows)
+    const computed = deriveComputedRows(dynamicManifest.rows, { ...localRows, ...refs }, years)
     const sentinels: Record<number, YearKeyedSeries> = {}
     for (const r of BS_SENTINEL_ROWS) {
       if (computed[r]) sentinels[r] = computed[r]

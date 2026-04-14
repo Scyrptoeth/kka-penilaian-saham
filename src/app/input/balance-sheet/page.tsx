@@ -1,8 +1,8 @@
 'use client'
 
-import Link from 'next/link'
 import { useKkaStore } from '@/lib/store/useKkaStore'
 import DynamicBsEditor from '@/components/forms/DynamicBsEditor'
+import { PageEmptyState } from '@/components/shared/PageEmptyState'
 
 /**
  * Balance Sheet input page — dynamic accounts, bilingual labels,
@@ -25,24 +25,11 @@ export default function InputBalanceSheetPage() {
 
   if (!home) {
     return (
-      <div className="mx-auto max-w-[1400px]">
-        <div className="rounded-sm border-l-4 border-accent bg-canvas-raised px-5 py-4">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-accent">
-            HOME form belum diisi
-          </p>
-          <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">
-            Lengkapi <strong className="text-ink">HOME form</strong> terlebih
-            dahulu — tahun transaksi yang Anda masukkan menentukan rentang
-            tahun historis yang akan diinput di halaman ini.
-          </p>
-          <Link
-            href="/"
-            className="mt-3 inline-block text-xs font-semibold uppercase tracking-[0.14em] text-accent underline underline-offset-4 hover:text-ink"
-          >
-            → Ke HOME form
-          </Link>
-        </div>
-      </div>
+      <PageEmptyState
+        section="INPUT DATA"
+        title="Balance Sheet"
+        inputs={[{ label: 'HOME', href: '/', filled: false }]}
+      />
     )
   }
 

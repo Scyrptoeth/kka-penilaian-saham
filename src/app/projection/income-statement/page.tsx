@@ -9,6 +9,7 @@ import { computeProyFixedAssetsLive } from '@/data/live/compute-proy-fixed-asset
 import { computeProyLrLive, type ProyLrInput } from '@/data/live/compute-proy-lr-live'
 import { computeAvgGrowth } from '@/lib/calculations/helpers'
 import { formatIdr, formatPercent } from '@/components/financial/format'
+import { PageEmptyState } from '@/components/shared/PageEmptyState'
 
 const ROW_DEFS: { row: number; label: string; kind: 'idr' | 'percent'; bold?: boolean; indent?: boolean }[] = [
   { row: 8, label: 'Revenue', kind: 'idr', bold: true },
@@ -95,12 +96,15 @@ export default function ProyIncomeStatementPage() {
 
   if (!data) {
     return (
-      <div className="mx-auto max-w-[1100px] p-6">
-        <h1 className="mb-2 text-2xl font-semibold tracking-tight text-ink">Proy. Laba Rugi</h1>
-        <div className="rounded border border-grid bg-canvas-raised px-4 py-6 text-center text-sm text-ink-muted">
-          <p>Isi <strong>HOME</strong>, <strong>Income Statement</strong>, dan <strong>Key Drivers</strong> terlebih dahulu.</p>
-        </div>
-      </div>
+      <PageEmptyState
+        section="PROYEKSI"
+        title="Proy. L/R"
+        inputs={[
+          { label: 'HOME', href: '/', filled: !!home },
+          { label: 'Income Statement', href: '/input/income-statement', filled: !!incomeStatement },
+          { label: 'Key Drivers', href: '/input/key-drivers', filled: !!keyDrivers },
+        ]}
+      />
     )
   }
 

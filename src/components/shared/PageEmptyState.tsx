@@ -6,30 +6,38 @@ interface RequiredInput {
   filled: boolean
 }
 
-interface AnalysisEmptyStateProps {
+interface PageEmptyStateProps {
+  /** Section label shown above the title (e.g. "INPUT DATA", "ANALISIS", "PROYEKSI") */
+  section: string
+  /** Page title (e.g. "Balance Sheet", "Financial Ratio") */
   title: string
+  /** Required upstream inputs with fill status and navigation links */
   inputs: RequiredInput[]
 }
 
 /**
- * Empty state for ANALISIS pages when required INPUT DATA is incomplete.
- * Shows which inputs are needed + direct links to fill them.
+ * Universal empty state for pages that depend on upstream data.
+ * Shows section label, page title, checklist of required inputs with hyperlinks,
+ * and a CTA button to the first missing input.
+ *
+ * Standardized design matching the ANALISIS empty state pattern — used across
+ * INPUT DATA, ANALISIS, PROYEKSI, PENILAIAN, and RINGKASAN sections.
  */
-export function AnalysisEmptyState({ title, inputs }: AnalysisEmptyStateProps) {
+export function PageEmptyState({ section, title, inputs }: PageEmptyStateProps) {
   const missing = inputs.filter((i) => !i.filled)
 
   return (
     <div className="mx-auto max-w-3xl p-6">
       <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-muted">
-        Analisis
+        {section}
       </p>
       <h1 className="mt-1 text-2xl font-semibold tracking-tight text-ink">
         {title}
       </h1>
       <div className="mt-6 rounded-sm border border-grid bg-canvas-raised p-6">
         <p className="text-sm text-ink-soft">
-          Halaman ini membutuhkan data dari bagian <strong>Input Data</strong>.
-          Lengkapi input berikut untuk melihat hasil analisis:
+          Halaman ini membutuhkan data dari halaman lain.
+          Lengkapi input berikut terlebih dahulu:
         </p>
         <ul className="mt-4 space-y-2">
           {inputs.map((input) => (
@@ -60,7 +68,7 @@ export function AnalysisEmptyState({ title, inputs }: AnalysisEmptyStateProps) {
               className="inline-flex items-center gap-2 rounded-sm bg-accent px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-accent/90"
             >
               Lengkapi {missing[0].label}
-              <span aria-hidden="true">→</span>
+              <span aria-hidden="true">&rarr;</span>
             </Link>
           </div>
         )}

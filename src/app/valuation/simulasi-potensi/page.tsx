@@ -18,6 +18,7 @@ import {
   deriveDlomRiskCategory, deriveDlocRiskCategory,
 } from '@/lib/calculations/upstream-helpers'
 import { formatIdr, formatPercent } from '@/components/financial/format'
+import { PageEmptyState } from '@/components/shared/PageEmptyState'
 
 type ValuationMethod = 'AAM' | 'DCF' | 'EEM'
 
@@ -126,13 +127,14 @@ export default function SimulasiPotensiPage() {
 
   if (!equityValues || !home) {
     return (
-      <div className="mx-auto max-w-[1100px] p-6">
-        <h1 className="mb-2 text-2xl font-semibold tracking-tight text-ink">Simulasi Potensi PPh</h1>
-        <div className="rounded border border-grid bg-canvas-raised px-4 py-6 text-center text-sm text-ink-muted">
-          <p>Data belum tersedia.</p>
-          <p className="mt-1">Isi <strong>HOME</strong> dan <strong>Balance Sheet</strong> minimal.</p>
-        </div>
-      </div>
+      <PageEmptyState
+        section="PENILAIAN"
+        title="Simulasi Potensi"
+        inputs={[
+          { label: 'HOME', href: '/', filled: !!home },
+          { label: 'Balance Sheet', href: '/input/balance-sheet', filled: !!balanceSheet },
+        ]}
+      />
     )
   }
 

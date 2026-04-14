@@ -109,9 +109,9 @@ const en: BsStrings = {
 
   lineItemHeader: 'Line Item',
 
-  addHistoricalYear: 'ADD HISTORICAL YEAR',
-  addYear: '+ Add Year',
-  reduceYear: '- Reduce',
+  addHistoricalYear: 'Historical Year Count',
+  addYear: '+ Year',
+  reduceYear: '− Year',
 
   addButtonLabels: {
     current_assets: '+ Add Current Asset',
@@ -177,9 +177,9 @@ const id: BsStrings = {
 
   lineItemHeader: 'Pos-Pos',
 
-  addHistoricalYear: 'TAMBAH TAHUN HISTORIS',
-  addYear: '+ Tambah Tahun',
-  reduceYear: '- Kurangi',
+  addHistoricalYear: 'Jumlah Tahun Historis',
+  addYear: '+ Tahun',
+  reduceYear: '− Tahun',
 
   addButtonLabels: {
     current_assets: '+ Tambah Aset Lancar',

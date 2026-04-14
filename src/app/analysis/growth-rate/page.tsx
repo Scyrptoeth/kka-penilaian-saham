@@ -15,7 +15,7 @@ import { CASH_FLOW_STATEMENT_MANIFEST } from '@/data/manifests/cash-flow-stateme
 import { FCF_MANIFEST } from '@/data/manifests/fcf'
 import { BALANCE_SHEET_MANIFEST } from '@/data/manifests/balance-sheet'
 import { formatPercent, formatIdr } from '@/components/financial/format'
-import { AnalysisEmptyState } from '@/components/analysis/AnalysisEmptyState'
+import { PageEmptyState } from '@/components/shared/PageEmptyState'
 
 type RowKey = 'netFaEnd' | 'netCaEnd' | 'netFaBeg' | 'netCaBeg' | 'totalNetInvestment' | 'totalIcBoy' | 'growthRate'
 
@@ -77,7 +77,7 @@ export default function GrowthRatePage() {
   if (!hasHydrated) return null
   if (!home || !balanceSheet || !incomeStatement) {
     return (
-      <AnalysisEmptyState
+      <PageEmptyState section="ANALISIS"
         title="Growth Rate"
         inputs={[
           { label: 'HOME', href: '/', filled: !!home },

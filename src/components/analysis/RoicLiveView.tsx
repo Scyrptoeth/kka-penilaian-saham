@@ -15,7 +15,7 @@ import { computeFcfLiveRows } from '@/data/live/compute-fcf-live'
 import { computeNoplatLiveRows } from '@/data/live/compute-noplat-live'
 import { computeCashFlowLiveRows } from '@/data/live/compute-cash-flow-live'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
-import { AnalysisEmptyState } from './AnalysisEmptyState'
+import { PageEmptyState } from '@/components/shared/PageEmptyState'
 
 /**
  * ROIC live-mode wrapper. Builds the full upstream chain:
@@ -72,7 +72,7 @@ export function RoicLiveView() {
   if (!hasHydrated) return null
   if (!home || !balanceSheet || !incomeStatement) {
     return (
-      <AnalysisEmptyState
+      <PageEmptyState section="ANALISIS"
         title="ROIC"
         inputs={[
           { label: 'HOME', href: '/', filled: !!home },

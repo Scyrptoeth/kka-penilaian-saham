@@ -6,16 +6,14 @@ import { CASH_FLOW_STATEMENT_MANIFEST } from '@/data/manifests/cash-flow-stateme
 import { useKkaStore } from '@/lib/store/useKkaStore'
 import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
 import { computeCashFlowLiveRows } from '@/data/live/compute-cash-flow-live'
+import { PageEmptyState } from '@/components/shared/PageEmptyState'
 
 /**
- * Page wrapper that derives CFS live rows from BS + IS + FA + AP
- * store slices, then hands them to SheetPage via the `liveRows` prop.
+ * Live-only view for Cash Flow Statement — derives CFS rows from
+ * BS + IS + FA + AP store slices, shows PageEmptyState when incomplete.
  *
- * Mode semantics (LESSON-031):
- *   Any required upstream slice null → liveRows = null → seed mode
- *   BS + IS both present            → compute CFS → live mode
- *   FA optional (CapEx defaults to 0 if null)
- *   AP optional (financing defaults to 0 if null)
+ * FA optional (CapEx defaults to 0 if null)
+ * AP optional (financing defaults to 0 if null)
  */
 export function CashFlowLiveView() {
   const home = useKkaStore((s) => s.home)
@@ -43,6 +41,22 @@ export function CashFlowLiveView() {
       bsYears,
     )
   }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, accPayables])
+
+  if (!hasHydrated) return null
+
+  if (!liveRows) {
+    return (
+      <PageEmptyState
+        section="ANALISIS"
+        title="Cash Flow Statement"
+        inputs={[
+          { label: 'HOME', href: '/', filled: !!home },
+          { label: 'Balance Sheet', href: '/input/balance-sheet', filled: !!balanceSheet },
+          { label: 'Income Statement', href: '/input/income-statement', filled: !!incomeStatement },
+        ]}
+      />
+    )
+  }
 
   return <SheetPage manifest={CASH_FLOW_STATEMENT_MANIFEST} liveRows={liveRows} />
 }

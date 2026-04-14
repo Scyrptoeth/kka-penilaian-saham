@@ -6,7 +6,7 @@ import { NOPLAT_MANIFEST } from '@/data/manifests/noplat'
 import { useKkaStore } from '@/lib/store/useKkaStore'
 import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
 import { computeNoplatLiveRows } from '@/data/live/compute-noplat-live'
-import { AnalysisEmptyState } from './AnalysisEmptyState'
+import { PageEmptyState } from '@/components/shared/PageEmptyState'
 
 export function NoplatLiveView() {
   const home = useKkaStore((s) => s.home)
@@ -25,7 +25,7 @@ export function NoplatLiveView() {
   if (!hasHydrated) return null
   if (!home || !incomeStatement) {
     return (
-      <AnalysisEmptyState
+      <PageEmptyState section="ANALISIS"
         title="NOPLAT"
         inputs={[
           { label: 'HOME', href: '/', filled: !!home },

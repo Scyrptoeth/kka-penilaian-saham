@@ -12,7 +12,7 @@ import { computeFcfLiveRows } from '@/data/live/compute-fcf-live'
 import { computeNoplatLiveRows } from '@/data/live/compute-noplat-live'
 import { computeCashFlowLiveRows } from '@/data/live/compute-cash-flow-live'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
-import { AnalysisEmptyState } from './AnalysisEmptyState'
+import { PageEmptyState } from '@/components/shared/PageEmptyState'
 
 /**
  * FCF live-mode wrapper. Builds the full upstream computation chain:
@@ -65,7 +65,7 @@ export function FcfLiveView() {
   if (!hasHydrated) return null
   if (!home || !balanceSheet || !incomeStatement) {
     return (
-      <AnalysisEmptyState
+      <PageEmptyState section="ANALISIS"
         title="Free Cash Flow"
         inputs={[
           { label: 'HOME', href: '/', filled: !!home },

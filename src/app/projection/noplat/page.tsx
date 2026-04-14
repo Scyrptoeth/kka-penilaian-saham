@@ -10,6 +10,7 @@ import { computeProyLrLive, type ProyLrInput } from '@/data/live/compute-proy-lr
 import { computeProyNoplatLive, type ProyNoplatInput } from '@/data/live/compute-proy-noplat-live'
 import { computeAvgGrowth } from '@/lib/calculations/helpers'
 import { formatIdr } from '@/components/financial/format'
+import { PageEmptyState } from '@/components/shared/PageEmptyState'
 
 const ROW_DEFS: { row: number; label: string; bold?: boolean; indent?: boolean; section?: string }[] = [
   { row: 7, label: 'Profit Before Tax', section: 'EBIT' },
@@ -99,12 +100,15 @@ export default function ProyNoplatPage() {
 
   if (!data) {
     return (
-      <div className="mx-auto max-w-[1100px] p-6">
-        <h1 className="mb-2 text-2xl font-semibold tracking-tight text-ink">Proy. NOPLAT</h1>
-        <div className="rounded border border-grid bg-canvas-raised px-4 py-6 text-center text-sm text-ink-muted">
-          <p>Isi <strong>HOME</strong>, <strong>Income Statement</strong>, dan <strong>Key Drivers</strong> terlebih dahulu.</p>
-        </div>
-      </div>
+      <PageEmptyState
+        section="PROYEKSI"
+        title="Proy. NOPLAT"
+        inputs={[
+          { label: 'HOME', href: '/', filled: !!home },
+          { label: 'Income Statement', href: '/input/income-statement', filled: !!incomeStatement },
+          { label: 'Key Drivers', href: '/input/key-drivers', filled: !!keyDrivers },
+        ]}
+      />
     )
   }
 

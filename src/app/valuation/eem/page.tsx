@@ -18,6 +18,7 @@ import { computeAam } from '@/lib/calculations/aam-valuation'
 import { computeEem } from '@/lib/calculations/eem-valuation'
 import { computeShareValue } from '@/lib/calculations/share-value'
 import { formatIdr, formatPercent } from '@/components/financial/format'
+import { PageEmptyState } from '@/components/shared/PageEmptyState'
 
 export default function EemPage() {
   const home = useKkaStore(s => s.home)
@@ -139,13 +140,16 @@ export default function EemPage() {
 
   if (!data) {
     return (
-      <div className="mx-auto max-w-[1100px] p-6">
-        <h1 className="mb-2 text-2xl font-semibold tracking-tight text-ink">Excess Earnings Method (EEM)</h1>
-        <div className="rounded border border-grid bg-canvas-raised px-4 py-6 text-center text-sm text-ink-muted">
-          <p>Data belum tersedia.</p>
-          <p className="mt-1">Isi <strong>HOME</strong>, <strong>Balance Sheet</strong>, <strong>Income Statement</strong>, dan <strong>Discount Rate</strong> terlebih dahulu.</p>
-        </div>
-      </div>
+      <PageEmptyState
+        section="PENILAIAN"
+        title="EEM"
+        inputs={[
+          { label: 'HOME', href: '/', filled: !!home },
+          { label: 'Balance Sheet', href: '/input/balance-sheet', filled: !!balanceSheet },
+          { label: 'Income Statement', href: '/input/income-statement', filled: !!incomeStatement },
+          { label: 'Discount Rate', href: '/valuation/discount-rate', filled: !!discountRateState },
+        ]}
+      />
     )
   }
 

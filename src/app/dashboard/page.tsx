@@ -21,6 +21,7 @@ import {
   computeHistoricalUpstream,
   buildAamInput, buildDcfInput, buildEemInput, buildBorrowingCapInput,
 } from '@/lib/calculations/upstream-helpers'
+import { PageEmptyState } from '@/components/shared/PageEmptyState'
 
 /** Compact IDR formatter for chart axes */
 function compactIdr(value: number): string {
@@ -172,13 +173,15 @@ export default function DashboardPage() {
 
   if (!data) {
     return (
-      <div className="mx-auto max-w-[1200px] p-6">
-        <h1 className="mb-2 text-2xl font-semibold tracking-tight text-ink">Dashboard</h1>
-        <div className="rounded border border-grid bg-canvas-raised px-4 py-6 text-center text-sm text-ink-muted">
-          <p>Data belum tersedia.</p>
-          <p className="mt-1">Isi <strong>HOME</strong>, <strong>Balance Sheet</strong>, dan <strong>Income Statement</strong> terlebih dahulu.</p>
-        </div>
-      </div>
+      <PageEmptyState
+        section="RINGKASAN"
+        title="Dashboard"
+        inputs={[
+          { label: 'HOME', href: '/', filled: !!home },
+          { label: 'Balance Sheet', href: '/input/balance-sheet', filled: !!balanceSheet },
+          { label: 'Income Statement', href: '/input/income-statement', filled: !!incomeStatement },
+        ]}
+      />
     )
   }
 

@@ -10,6 +10,7 @@ import { computeProyLrLive, type ProyLrInput } from '@/data/live/compute-proy-lr
 import { computeProyBsLive, type ProyBsInput } from '@/data/live/compute-proy-bs-live'
 import { computeAvgGrowth } from '@/lib/calculations/helpers'
 import { formatIdr, formatPercent } from '@/components/financial/format'
+import { PageEmptyState } from '@/components/shared/PageEmptyState'
 
 const ROW_DEFS: { row: number; label: string; kind: 'idr' | 'percent'; bold?: boolean; indent?: boolean; section?: string }[] = [
   // Current Assets
@@ -128,12 +129,16 @@ export default function ProyBalanceSheetPage() {
 
   if (!data) {
     return (
-      <div className="mx-auto max-w-[1100px] p-6">
-        <h1 className="mb-2 text-2xl font-semibold tracking-tight text-ink">Proy. Neraca</h1>
-        <div className="rounded border border-grid bg-canvas-raised px-4 py-6 text-center text-sm text-ink-muted">
-          <p>Isi <strong>HOME</strong>, <strong>Balance Sheet</strong>, <strong>Income Statement</strong>, dan <strong>Key Drivers</strong> terlebih dahulu.</p>
-        </div>
-      </div>
+      <PageEmptyState
+        section="PROYEKSI"
+        title="Proy. Balance Sheet"
+        inputs={[
+          { label: 'HOME', href: '/', filled: !!home },
+          { label: 'Balance Sheet', href: '/input/balance-sheet', filled: !!balanceSheet },
+          { label: 'Income Statement', href: '/input/income-statement', filled: !!incomeStatement },
+          { label: 'Key Drivers', href: '/input/key-drivers', filled: !!keyDrivers },
+        ]}
+      />
     )
   }
 

@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { useKkaStore } from '@/lib/store/useKkaStore'
 import { computeFullProjectionPipeline } from '@/lib/calculations/projection-pipeline'
 import { formatIdr } from '@/components/financial/format'
+import { PageEmptyState } from '@/components/shared/PageEmptyState'
 
 const ROW_DEFS: { row: number; label: string; bold?: boolean; indent?: boolean; section?: string }[] = [
   { row: 5, label: 'EBITDA', section: 'Cash Flow from Operations' },
@@ -52,12 +53,17 @@ export default function ProyCashFlowPage() {
 
   if (!data) {
     return (
-      <div className="mx-auto max-w-[1100px] p-6">
-        <h1 className="mb-2 text-2xl font-semibold tracking-tight text-ink">Proy. Arus Kas</h1>
-        <div className="rounded border border-grid bg-canvas-raised px-4 py-6 text-center text-sm text-ink-muted">
-          <p>Isi <strong>HOME</strong>, <strong>Balance Sheet</strong>, <strong>Income Statement</strong>, <strong>Fixed Asset</strong>, dan <strong>Key Drivers</strong> terlebih dahulu.</p>
-        </div>
-      </div>
+      <PageEmptyState
+        section="PROYEKSI"
+        title="Proy. Cash Flow"
+        inputs={[
+          { label: 'HOME', href: '/', filled: !!home },
+          { label: 'Balance Sheet', href: '/input/balance-sheet', filled: !!balanceSheet },
+          { label: 'Income Statement', href: '/input/income-statement', filled: !!incomeStatement },
+          { label: 'Fixed Asset', href: '/input/fixed-asset', filled: !!fixedAsset },
+          { label: 'Key Drivers', href: '/input/key-drivers', filled: !!keyDrivers },
+        ]}
+      />
     )
   }
 

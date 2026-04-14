@@ -9,6 +9,7 @@ import { computeHistoricalUpstream, buildDcfInput } from '@/lib/calculations/ups
 import { computeCfi } from '@/lib/calculations/cfi'
 import type { YearKeyedSeries } from '@/types/financial'
 import { formatIdr } from '@/components/financial/format'
+import { PageEmptyState } from '@/components/shared/PageEmptyState'
 
 const ROW_DEFS: { key: keyof ReturnType<typeof computeCfi>; label: string; bold?: boolean }[] = [
   { key: 'fcf', label: 'Free Cash Flow' },
@@ -78,13 +79,17 @@ export default function CfiPage() {
 
   if (!data) {
     return (
-      <div className="mx-auto max-w-[1100px] p-6">
-        <h1 className="mb-2 text-2xl font-semibold tracking-tight text-ink">Cash Flow to Investor (CFI)</h1>
-        <div className="rounded border border-grid bg-canvas-raised px-4 py-6 text-center text-sm text-ink-muted">
-          <p>Data belum tersedia.</p>
-          <p className="mt-1">Isi <strong>HOME</strong>, <strong>Balance Sheet</strong>, <strong>Income Statement</strong>, <strong>Key Drivers</strong>, dan <strong>Discount Rate</strong> terlebih dahulu.</p>
-        </div>
-      </div>
+      <PageEmptyState
+        section="PENILAIAN"
+        title="CFI"
+        inputs={[
+          { label: 'HOME', href: '/', filled: !!home },
+          { label: 'Balance Sheet', href: '/input/balance-sheet', filled: !!balanceSheet },
+          { label: 'Income Statement', href: '/input/income-statement', filled: !!incomeStatement },
+          { label: 'Key Drivers', href: '/input/key-drivers', filled: !!keyDrivers },
+          { label: 'Discount Rate', href: '/valuation/discount-rate', filled: !!discountRateState },
+        ]}
+      />
     )
   }
 

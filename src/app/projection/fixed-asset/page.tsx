@@ -7,6 +7,7 @@ import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { FIXED_ASSET_MANIFEST } from '@/data/manifests/fixed-asset'
 import { computeProyFixedAssetsLive } from '@/data/live/compute-proy-fixed-assets-live'
 import { formatIdr } from '@/components/financial/format'
+import { PageEmptyState } from '@/components/shared/PageEmptyState'
 
 /** Simplified row labels for PROY FA display. */
 const SECTIONS = [
@@ -61,12 +62,14 @@ export default function ProyFixedAssetPage() {
 
   if (!data) {
     return (
-      <div className="mx-auto max-w-[1100px] p-6">
-        <h1 className="mb-2 text-2xl font-semibold tracking-tight text-ink">Proy. Fixed Asset</h1>
-        <div className="rounded border border-grid bg-canvas-raised px-4 py-6 text-center text-sm text-ink-muted">
-          <p>Isi <strong>HOME</strong> dan <strong>Fixed Asset</strong> terlebih dahulu.</p>
-        </div>
-      </div>
+      <PageEmptyState
+        section="PROYEKSI"
+        title="Proy. Fixed Asset"
+        inputs={[
+          { label: 'HOME', href: '/', filled: !!home },
+          { label: 'Fixed Asset', href: '/input/fixed-asset', filled: !!fixedAsset },
+        ]}
+      />
     )
   }
 

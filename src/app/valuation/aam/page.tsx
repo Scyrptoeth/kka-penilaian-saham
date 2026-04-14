@@ -7,6 +7,7 @@ import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { BALANCE_SHEET_MANIFEST } from '@/data/manifests/balance-sheet'
 import { computeAam } from '@/lib/calculations/aam-valuation'
 import { formatIdr, formatPercent } from '@/components/financial/format'
+import { PageEmptyState } from '@/components/shared/PageEmptyState'
 
 /** Row definitions for the 3-column adjusted balance sheet display. */
 type AamRowDef = {
@@ -110,13 +111,14 @@ export default function AamPage() {
 
   if (!data) {
     return (
-      <div className="mx-auto max-w-[1100px] p-6">
-        <h1 className="mb-2 text-2xl font-semibold tracking-tight text-ink">Adjusted Asset Method (AAM)</h1>
-        <div className="rounded border border-grid bg-canvas-raised px-4 py-6 text-center text-sm text-ink-muted">
-          <p>Data belum tersedia.</p>
-          <p className="mt-1">Isi <strong>HOME</strong> dan <strong>Balance Sheet</strong> terlebih dahulu.</p>
-        </div>
-      </div>
+      <PageEmptyState
+        section="PENILAIAN"
+        title="AAM"
+        inputs={[
+          { label: 'HOME', href: '/', filled: !!home },
+          { label: 'Balance Sheet', href: '/input/balance-sheet', filled: !!balanceSheet },
+        ]}
+      />
     )
   }
 

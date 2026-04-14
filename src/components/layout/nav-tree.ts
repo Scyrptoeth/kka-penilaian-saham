@@ -27,6 +27,7 @@ export const NAV_TREE: NavGroup[] = [
       { label: 'Balance Sheet', href: '/input/balance-sheet' },
       { label: 'Income Statement', href: '/input/income-statement' },
       { label: 'Key Drivers', href: '/input/key-drivers' },
+      { label: 'Acc Payables', href: '/input/acc-payables' },
     ],
   },
   // Historis section hidden — users work directly with INPUT DATA + ANALISIS.
@@ -40,6 +41,7 @@ export const NAV_TREE: NavGroup[] = [
       { label: 'Growth Revenue', href: '/analysis/growth-revenue' },
       { label: 'ROIC', href: '/analysis/roic' },
       { label: 'Growth Rate', href: '/analysis/growth-rate' },
+      { label: 'Cash Flow Statement', href: '/analysis/cash-flow-statement' },
     ],
   },
   {
