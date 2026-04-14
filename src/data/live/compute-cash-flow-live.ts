@@ -91,9 +91,9 @@ export function computeCashFlowLiveRows(
     // Row 5: EBITDA = IS row 18 (sentinel, positive for profit)
     set(5, year, isLeaves[18]?.[year] ?? 0)
 
-    // Row 6: Corporate Tax = IS row 33 (user-positive → negate)
-    // Workbook: ='INCOME STATEMENT'!D33 (stored negative)
-    set(6, year, -(isLeaves[33]?.[year] ?? 0))
+    // Row 6: Corporate Tax = IS row 33 (direct — already negative per Excel convention)
+    // Workbook: ='INCOME STATEMENT'!D33 (no sign flip)
+    set(6, year, isLeaves[33]?.[year] ?? 0)
 
     // Row 8: Current Assets change (excl cash)
     // Year 1: -(absolute CA level) — workbook formula: =(BS!D10+D11+D12+D14)*-1
@@ -141,9 +141,9 @@ export function computeCashFlowLiveRows(
       (apRows?.[10]?.[year] ?? 0) + (apRows?.[19]?.[year] ?? 0),
     )
 
-    // Row 24: Interest Payment = IS row 27 (user-positive → negate)
-    // Workbook: ='INCOME STATEMENT'!D27 (stored negative in workbook)
-    set(24, year, -(isLeaves[27]?.[year] ?? 0))
+    // Row 24: Interest Payment = IS row 27 (direct — already negative per Excel convention)
+    // Workbook: ='INCOME STATEMENT'!D27 (no sign flip)
+    set(24, year, isLeaves[27]?.[year] ?? 0)
 
     // Row 25: Interest Income = IS row 26 (not expense, direct)
     set(25, year, isLeaves[26]?.[year] ?? 0)

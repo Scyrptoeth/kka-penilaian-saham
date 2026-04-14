@@ -14,7 +14,7 @@ import { describe, expect, it } from 'vitest'
 import { computeCashFlowLiveRows } from '@/data/live/compute-cash-flow-live'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { CASH_FLOW_STATEMENT_MANIFEST } from '@/data/manifests/cash-flow-statement'
-import { INCOME_STATEMENT_MANIFEST } from '@/data/manifests/income-statement'
+// INCOME_STATEMENT_MANIFEST removed — IS values read directly from fixture
 import type { YearKeyedSeries } from '@/types/financial'
 import {
   balanceSheetCells,
@@ -53,7 +53,6 @@ const CFS_YEARS = [2019, 2020, 2021]
 
 // ── IS leaf configuration ──
 const IS_LEAF_ROWS = [6, 7, 12, 13, 21, 26, 27, 30, 33]
-const IS_EXPENSE_ROWS = new Set([7, 12, 13, 21, 27, 33])
 
 // ── BS leaf rows referenced by CFS ──
 const BS_ROWS = [8, 9, 10, 11, 12, 13, 14, 31, 32, 33, 34]
@@ -80,18 +79,18 @@ function loadBsLeaves(): Record<number, YearKeyedSeries> {
 
 function loadIsLeaves(): Record<number, YearKeyedSeries> {
   const out: Record<number, YearKeyedSeries> = {}
-  for (const row of IS_LEAF_ROWS) {
+  // Read IS values in Excel convention (expenses negative) — NO sign flip.
+  // Sentinel rows (8, 18, 22, 28, 32, 35) read directly from fixture.
+  const ALL_IS_ROWS = [...IS_LEAF_ROWS, 8, 15, 18, 22, 26, 27, 28, 30, 32, 33, 35]
+  const unique = [...new Set(ALL_IS_ROWS)]
+  for (const row of unique) {
     const series: YearKeyedSeries = {}
     for (const year of CFS_YEARS) {
-      const raw = numOpt(incomeStatementCells, `${IS_COL[year]}${row}`) ?? 0
-      // Flip expense rows to user-positive convention
-      series[year] = IS_EXPENSE_ROWS.has(row) ? -raw : raw
+      series[year] = numOpt(incomeStatementCells, `${IS_COL[year]}${row}`) ?? 0
     }
     out[row] = series
   }
-  // Merge pre-computed IS sentinels (mimics DynamicIsEditor persist behavior)
-  const sentinels = deriveComputedRows(INCOME_STATEMENT_MANIFEST.rows, out, CFS_YEARS)
-  return { ...out, ...sentinels }
+  return out
 }
 
 function loadFaLeaves(): Record<number, YearKeyedSeries> {

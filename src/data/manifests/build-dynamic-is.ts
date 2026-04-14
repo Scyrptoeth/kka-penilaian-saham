@@ -149,12 +149,12 @@ function buildRows(
 
   rows.push({ label: '', type: 'separator' })
 
-  // Gross Profit = Revenue − COGS
+  // Gross Profit = Revenue + COGS (COGS entered negative by user — plain SUM per Excel)
   rows.push({
     excelRow: IS_SENTINEL.GROSS_PROFIT,
     label: t.grossProfit,
     type: 'subtotal',
-    computedFrom: [IS_SENTINEL.REVENUE, -IS_SENTINEL.COGS],
+    computedFrom: [IS_SENTINEL.REVENUE, IS_SENTINEL.COGS],
   })
 
   rows.push({ label: '', type: 'separator' })
@@ -174,12 +174,12 @@ function buildRows(
 
   rows.push({ label: '', type: 'separator' })
 
-  // EBITDA = Gross Profit − Total OpEx
+  // EBITDA = Gross Profit + Total OpEx (OpEx entered negative — plain addition per Excel)
   rows.push({
     excelRow: IS_SENTINEL.EBITDA,
     label: t.ebitda,
     type: 'subtotal',
-    computedFrom: [IS_SENTINEL.GROSS_PROFIT, -IS_SENTINEL.TOTAL_OPEX],
+    computedFrom: [IS_SENTINEL.GROSS_PROFIT, IS_SENTINEL.TOTAL_OPEX],
   })
 
   // Depreciation — fixed leaf row (not part of any section)
@@ -189,12 +189,12 @@ function buildRows(
     indent: 1,
   })
 
-  // EBIT = EBITDA − Depreciation
+  // EBIT = EBITDA + Depreciation (Depreciation entered negative — plain addition per Excel)
   rows.push({
     excelRow: IS_SENTINEL.EBIT,
     label: t.ebit,
     type: 'subtotal',
-    computedFrom: [IS_SENTINEL.EBITDA, -IS_SENTINEL.DEPRECIATION],
+    computedFrom: [IS_SENTINEL.EBITDA, IS_SENTINEL.DEPRECIATION],
   })
 
   rows.push({ label: '', type: 'separator' })
@@ -227,12 +227,12 @@ function buildRows(
   // Add-button for Net Interest (single button, shown between the two sub-groups)
   rows.push({ label: t.addButtonLabels.net_interest, type: 'add-button', section: 'net_interest' })
 
-  // Net Interest = Interest Income − Interest Expense
+  // Net Interest = Interest Income + Interest Expense (IE entered negative — plain addition per Excel)
   rows.push({
     excelRow: IS_SENTINEL.NET_INTEREST,
     label: t.netInterest,
     type: 'subtotal',
-    computedFrom: [IS_SENTINEL.INTEREST_INCOME, -IS_SENTINEL.INTEREST_EXPENSE],
+    computedFrom: [IS_SENTINEL.INTEREST_INCOME, IS_SENTINEL.INTEREST_EXPENSE],
   })
 
   rows.push({ label: '', type: 'separator' })
@@ -271,12 +271,12 @@ function buildRows(
     indent: 1,
   })
 
-  // Net Profit = PBT − Tax
+  // Net Profit = PBT + Tax (Tax entered negative — plain addition per Excel)
   rows.push({
     excelRow: IS_SENTINEL.NET_PROFIT,
     label: t.netProfitAfterTax,
     type: 'total',
-    computedFrom: [IS_SENTINEL.PBT, -IS_SENTINEL.TAX],
+    computedFrom: [IS_SENTINEL.PBT, IS_SENTINEL.TAX],
   })
 
   return rows

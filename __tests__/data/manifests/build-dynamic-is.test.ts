@@ -44,22 +44,22 @@ describe('buildDynamicIsManifest', () => {
     expect(cogsSubtotal!.computedFrom).toEqual([200])
   })
 
-  it('Gross Profit = Revenue − COGS (signed computedFrom)', () => {
+  it('Gross Profit = Revenue + COGS (plain addition, COGS entered negative)', () => {
     const m = buildDynamicIsManifest(DEFAULT_IS_ACCOUNTS, 'en', 4, TAHUN)
     const gp = m.rows.find((r) => r.excelRow === IS_SENTINEL.GROSS_PROFIT)
-    expect(gp!.computedFrom).toEqual([IS_SENTINEL.REVENUE, -IS_SENTINEL.COGS])
+    expect(gp!.computedFrom).toEqual([IS_SENTINEL.REVENUE, IS_SENTINEL.COGS])
   })
 
-  it('EBITDA = Gross Profit − Total OpEx', () => {
+  it('EBITDA = Gross Profit + Total OpEx (plain addition, OpEx entered negative)', () => {
     const m = buildDynamicIsManifest(DEFAULT_IS_ACCOUNTS, 'en', 4, TAHUN)
     const ebitda = m.rows.find((r) => r.excelRow === IS_SENTINEL.EBITDA)
-    expect(ebitda!.computedFrom).toEqual([IS_SENTINEL.GROSS_PROFIT, -IS_SENTINEL.TOTAL_OPEX])
+    expect(ebitda!.computedFrom).toEqual([IS_SENTINEL.GROSS_PROFIT, IS_SENTINEL.TOTAL_OPEX])
   })
 
-  it('EBIT = EBITDA − Depreciation', () => {
+  it('EBIT = EBITDA + Depreciation (plain addition, Dep entered negative)', () => {
     const m = buildDynamicIsManifest(DEFAULT_IS_ACCOUNTS, 'en', 4, TAHUN)
     const ebit = m.rows.find((r) => r.excelRow === IS_SENTINEL.EBIT)
-    expect(ebit!.computedFrom).toEqual([IS_SENTINEL.EBITDA, -IS_SENTINEL.DEPRECIATION])
+    expect(ebit!.computedFrom).toEqual([IS_SENTINEL.EBITDA, IS_SENTINEL.DEPRECIATION])
   })
 
   it('Net Interest: income/expense sub-groups with separate subtotals', () => {
@@ -77,7 +77,7 @@ describe('buildDynamicIsManifest', () => {
     expect(ieSubtotal!.computedFrom).toEqual([501])
 
     const netInterest = m.rows.find((r) => r.excelRow === IS_SENTINEL.NET_INTEREST)
-    expect(netInterest!.computedFrom).toEqual([IS_SENTINEL.INTEREST_INCOME, -IS_SENTINEL.INTEREST_EXPENSE])
+    expect(netInterest!.computedFrom).toEqual([IS_SENTINEL.INTEREST_INCOME, IS_SENTINEL.INTEREST_EXPENSE])
   })
 
   it('PBT = EBIT + Net Interest + Non-Operating', () => {
@@ -86,11 +86,11 @@ describe('buildDynamicIsManifest', () => {
     expect(pbt!.computedFrom).toEqual([IS_SENTINEL.EBIT, IS_SENTINEL.NET_INTEREST, IS_SENTINEL.NON_OPERATING])
   })
 
-  it('Net Profit = PBT − Tax (total type)', () => {
+  it('Net Profit = PBT + Tax (plain addition, Tax entered negative)', () => {
     const m = buildDynamicIsManifest(DEFAULT_IS_ACCOUNTS, 'en', 4, TAHUN)
     const np = m.rows.find((r) => r.excelRow === IS_SENTINEL.NET_PROFIT)
     expect(np!.type).toBe('total')
-    expect(np!.computedFrom).toEqual([IS_SENTINEL.PBT, -IS_SENTINEL.TAX])
+    expect(np!.computedFrom).toEqual([IS_SENTINEL.PBT, IS_SENTINEL.TAX])
   })
 
   it('Depreciation and Tax are fixed leaf rows (no computedFrom)', () => {

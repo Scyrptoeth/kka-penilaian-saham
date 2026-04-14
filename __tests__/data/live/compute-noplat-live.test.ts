@@ -13,7 +13,7 @@ import { describe, expect, it } from 'vitest'
 import { computeNoplatLiveRows } from '@/data/live/compute-noplat-live'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { NOPLAT_MANIFEST } from '@/data/manifests/noplat'
-import { INCOME_STATEMENT_MANIFEST } from '@/data/manifests/income-statement'
+// INCOME_STATEMENT_MANIFEST removed — IS values read directly from fixture
 import type { YearKeyedSeries } from '@/types/financial'
 import {
   incomeStatementCells,
@@ -35,23 +35,22 @@ const NOPLAT_COL: Record<number, string> = {
 const NOPLAT_YEARS = [2019, 2020, 2021]
 
 const IS_LEAF_ROWS = [6, 7, 12, 13, 21, 26, 27, 30, 33]
-const IS_EXPENSE_ROWS = new Set([7, 12, 13, 21, 27, 33])
 
 function loadIsLeaves(
   years: readonly number[],
 ): Record<number, YearKeyedSeries> {
   const out: Record<number, YearKeyedSeries> = {}
-  for (const excelRow of IS_LEAF_ROWS) {
+  // Read IS values in Excel convention (expenses negative) — NO sign flip.
+  // Include sentinel rows directly from fixture (mimics DynamicIsEditor persist).
+  const ALL_ROWS = [...new Set([...IS_LEAF_ROWS, 8, 15, 18, 22, 26, 27, 28, 30, 32, 33, 35])]
+  for (const excelRow of ALL_ROWS) {
     const series: YearKeyedSeries = {}
     for (const year of years) {
-      const raw = num(incomeStatementCells, `${IS_COL[year]}${excelRow}`)
-      series[year] = IS_EXPENSE_ROWS.has(excelRow) ? -raw : raw
+      series[year] = num(incomeStatementCells, `${IS_COL[year]}${excelRow}`)
     }
     out[excelRow] = series
   }
-  // Merge pre-computed IS sentinels (mimics DynamicIsEditor persist behavior)
-  const sentinels = deriveComputedRows(INCOME_STATEMENT_MANIFEST.rows, out, years)
-  return { ...out, ...sentinels }
+  return out
 }
 
 describe('computeNoplatLiveRows + NOPLAT manifest computedFrom match fixture', () => {

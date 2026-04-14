@@ -16,7 +16,7 @@ import { computeNoplatLiveRows } from '@/data/live/compute-noplat-live'
 import { computeFcfLiveRows } from '@/data/live/compute-fcf-live'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { CASH_FLOW_STATEMENT_MANIFEST } from '@/data/manifests/cash-flow-statement'
-import { INCOME_STATEMENT_MANIFEST } from '@/data/manifests/income-statement'
+// INCOME_STATEMENT_MANIFEST removed — IS values read directly from fixture
 import { NOPLAT_MANIFEST } from '@/data/manifests/noplat'
 import { FIXED_ASSET_MANIFEST } from '@/data/manifests/fixed-asset'
 import { FCF_MANIFEST } from '@/data/manifests/fcf'
@@ -62,7 +62,6 @@ const BS_YEARS = [2018, 2019, 2020, 2021]
 const BS_LEAF_ROWS = [8, 9, 10, 11, 12, 13, 14, 20, 21, 22, 24, 31, 32, 33, 34, 38, 39, 43, 44, 48]
 const BS_CFS_ROWS = [8, 9, 10, 11, 12, 13, 14, 31, 32, 33, 34]
 const IS_LEAF_ROWS = [6, 7, 12, 13, 21, 26, 27, 30, 33]
-const IS_EXPENSE_ROWS = new Set([7, 12, 13, 21, 27, 33])
 const FA_LEAF_ROWS = [
   8, 9, 10, 11, 12, 13, 17, 18, 19, 20, 21, 22,
   36, 37, 38, 39, 40, 41, 45, 46, 47, 48, 49, 50,
@@ -82,17 +81,17 @@ function loadBsLeaves(): Record<number, YearKeyedSeries> {
 
 function loadIsLeaves(): Record<number, YearKeyedSeries> {
   const out: Record<number, YearKeyedSeries> = {}
-  for (const excelRow of IS_LEAF_ROWS) {
+  // Read IS values in Excel convention (expenses negative) — NO sign flip.
+  // Include sentinel rows directly from fixture.
+  const ALL_ROWS = [...new Set([...IS_LEAF_ROWS, 8, 15, 18, 22, 26, 27, 28, 30, 32, 33, 35])]
+  for (const excelRow of ALL_ROWS) {
     const series: YearKeyedSeries = {}
     for (const year of YEARS) {
-      const raw = num(incomeStatementCells, `${IS_COL[year]}${excelRow}`)
-      series[year] = IS_EXPENSE_ROWS.has(excelRow) ? -raw : raw
+      series[year] = num(incomeStatementCells, `${IS_COL[year]}${excelRow}`)
     }
     out[excelRow] = series
   }
-  // Merge pre-computed IS sentinels (mimics DynamicIsEditor persist behavior)
-  const sentinels = deriveComputedRows(INCOME_STATEMENT_MANIFEST.rows, out, YEARS)
-  return { ...out, ...sentinels }
+  return out
 }
 
 function loadBsLeaves4Y(): Record<number, YearKeyedSeries> {
