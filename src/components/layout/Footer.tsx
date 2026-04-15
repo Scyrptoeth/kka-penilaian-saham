@@ -8,7 +8,7 @@ export function Footer() {
           <div aria-hidden className="hidden md:block" />
           <div className="flex items-center gap-5">
             <a
-              href="https://github.com/Scyrptoeth/kka-penilaian-saham"
+              href="https://persiapantubel.com/"
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Repository GitHub KKA Penilaian Saham"
