@@ -29,7 +29,7 @@ export function ThemeToggle() {
   const next = isDark ? 'light' : 'dark'
   // Label reflects the CURRENT active mode (parallel to the privacy badge
   // which states a current state, not an action). On click, mode flips.
-  const label = !mounted ? 'Mode Tampilan' : isDark ? 'Mode Gelap' : 'Mode Terang'
+  const label = !mounted ? 'Mode Tampilan' : isDark ? 'Klik untuk Ganti ke Dark Mode' : 'Klik untuk Ganti ke Light Mode'
   const ariaLabel = !mounted
     ? 'Tema'
     : `Tema saat ini: ${isDark ? 'gelap' : 'terang'}. Klik untuk ganti ke ${next === 'dark' ? 'gelap' : 'terang'}.`
