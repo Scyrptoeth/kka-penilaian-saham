@@ -77,6 +77,7 @@ export async function exportToXlsx(state: ExportableState): Promise<Blob> {
   // 4. Inject user data
   injectScalarCells(workbook, state)
   injectGridCells(workbook, state)
+  injectBsCrossRefValues(workbook, state)
   injectArrayCells(workbook, state)
   injectDynamicRows(workbook, state)
   injectDlomAnswers(workbook, state)
@@ -421,6 +422,52 @@ function injectScalarCells(workbook: ExcelJS.Workbook, state: ExportableState): 
 // ---------------------------------------------------------------------------
 // Internal: Inject grids (BS, IS, FA)
 // ---------------------------------------------------------------------------
+
+/**
+ * Inject BS cross-reference values (rows 20 & 21) computed from Fixed
+ * Asset store data. These rows are never persisted to the BS store by
+ * design — DynamicBsEditor derives them at render time from FA rows 32
+ * (Total Ending Acquisition Cost, positive) and 60 (Total Ending Accum
+ * Depreciation, negated for BS's negative-accum-dep convention).
+ *
+ * Without this injection, cells BS!C20:F21 stay empty after export,
+ * causing BS!C22:F22 (Fixed Assets, Net = C20+C21) to evaluate to 0 and
+ * cascading zero into TOTAL ASSETS + all downstream ratios.
+ *
+ * Mirrors `computeBsCrossRefValues` in DynamicBsEditor exactly so the
+ * exported workbook matches the website display.
+ */
+export function injectBsCrossRefValues(workbook: ExcelJS.Workbook, state: ExportableState): void {
+  const faRows = state.fixedAsset?.rows
+  if (!faRows) return
+  const ws = workbook.getWorksheet('BALANCE SHEET')
+  if (!ws) return
+
+  const yearColumns = BALANCE_SHEET_GRID_COLUMNS
+  const acqEnding = faRows[32]
+  const depEnding = faRows[60]
+
+  if (acqEnding) {
+    for (const [yearStr, col] of Object.entries(yearColumns)) {
+      const v = acqEnding[Number(yearStr)]
+      if (v !== undefined && v !== null) ws.getCell(`${col}20`).value = v
+    }
+  }
+  if (depEnding) {
+    for (const [yearStr, col] of Object.entries(yearColumns)) {
+      const v = depEnding[Number(yearStr)]
+      if (v !== undefined && v !== null) ws.getCell(`${col}21`).value = -v
+    }
+  }
+}
+
+/** BS grid year → column map, shared by injectGridCells and cross-ref injector. */
+const BALANCE_SHEET_GRID_COLUMNS: Readonly<Record<number, string>> = {
+  2018: 'C',
+  2019: 'D',
+  2020: 'E',
+  2021: 'F',
+}
 
 function injectGridCells(workbook: ExcelJS.Workbook, state: ExportableState): void {
   for (const g of ALL_GRID_MAPPINGS) {

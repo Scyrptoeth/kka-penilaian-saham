@@ -9,6 +9,7 @@ import {
   extendBsSectionSubtotals,
   sanitizeDanglingFormulas,
   stripDecorativeTables,
+  injectBsCrossRefValues,
 } from '@/lib/export/export-xlsx'
 import {
   ALL_SCALAR_MAPPINGS,
@@ -50,6 +51,8 @@ async function simulateExport(state: ExportableState): Promise<ExcelJS.Workbook>
   extendBsSectionSubtotals(wb, state)
   // Apply website-nav 1:1 visibility (Session 024)
   applySheetVisibility(wb)
+  // Inject BS rows 20 & 21 from FA store cross-refs (Session 026 follow-up)
+  injectBsCrossRefValues(wb, state)
   // Strip dangling external-link + #REF! formulas inherited from the
   // template's prior Excel life (Session 026)
   sanitizeDanglingFormulas(wb)
@@ -718,6 +721,76 @@ describe('export-xlsx (template-based)', () => {
           expect((v as { error: string }).error).not.toBe('#REF!')
         }
       }
+    })
+  })
+
+  describe('injectBsCrossRefValues — BS rows 20 & 21 from FA store (Session 026 follow-up)', () => {
+    const STATE_WITH_FA: ExportableState = {
+      ...TEST_STATE,
+      fixedAsset: {
+        accounts: [],
+        yearCount: 3,
+        language: 'en' as const,
+        rows: {
+          // FA row 32 = Total Ending Acquisition Cost (positive)
+          32: { 2019: 1000, 2020: 1500, 2021: 2000 },
+          // FA row 60 = Total Ending Accum Depreciation (stored positive in FA)
+          60: { 2019: 100, 2020: 250, 2021: 400 },
+        },
+      },
+    }
+
+    it('writes FA row 32 values into BS row 20 as positive numbers', async () => {
+      const wb = await simulateExport(STATE_WITH_FA)
+      const bs = wb.getWorksheet('BALANCE SHEET')!
+      expect(bs.getCell('D20').value).toBe(1000) // 2019 → D
+      expect(bs.getCell('E20').value).toBe(1500) // 2020 → E
+      expect(bs.getCell('F20').value).toBe(2000) // 2021 → F
+    })
+
+    it('writes FA row 60 values into BS row 21 negated (BS convention)', async () => {
+      const wb = await simulateExport(STATE_WITH_FA)
+      const bs = wb.getWorksheet('BALANCE SHEET')!
+      expect(bs.getCell('D21').value).toBe(-100)
+      expect(bs.getCell('E21').value).toBe(-250)
+      expect(bs.getCell('F21').value).toBe(-400)
+    })
+
+    it('preserves BS row 22 formula so Fixed Assets Net recomputes from 20+21', async () => {
+      const wb = await simulateExport(STATE_WITH_FA)
+      const bs = wb.getWorksheet('BALANCE SHEET')!
+      const f = (bs.getCell('D22').value as { formula?: string }).formula
+      expect(f).toBe('D20+D21')
+    })
+
+    it('leaves BS rows 20 & 21 empty when FA store is null', async () => {
+      const wb = await simulateExport(TEST_STATE) // fixedAsset: null
+      const bs = wb.getWorksheet('BALANCE SHEET')!
+      // No data injected — template already cleared these cells.
+      expect(bs.getCell('D20').value).toBeFalsy()
+      expect(bs.getCell('D21').value).toBeFalsy()
+    })
+
+    it('skips years not present in FA row 32/60 series', async () => {
+      const partial: ExportableState = {
+        ...TEST_STATE,
+        fixedAsset: {
+          accounts: [],
+          yearCount: 1,
+          language: 'en' as const,
+          rows: {
+            32: { 2021: 777 },
+            60: { 2021: 50 },
+          },
+        },
+      }
+      const wb = await simulateExport(partial)
+      const bs = wb.getWorksheet('BALANCE SHEET')!
+      expect(bs.getCell('F20').value).toBe(777)
+      expect(bs.getCell('F21').value).toBe(-50)
+      // 2019/2020 untouched
+      expect(bs.getCell('D20').value).toBeFalsy()
+      expect(bs.getCell('E20').value).toBeFalsy()
     })
   })
 })
