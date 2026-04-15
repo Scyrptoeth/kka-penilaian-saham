@@ -39,7 +39,7 @@ export function ThemeToggle() {
       type="button"
       onClick={() => setTheme(next)}
       aria-label={ariaLabel}
-      className="inline-flex items-center gap-1.5 rounded-sm bg-accent-soft px-2 py-1 text-[8px] font-medium text-ink transition-colors hover:bg-accent/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1"
+      className="inline-flex items-center gap-1.5 rounded-sm bg-accent-soft px-2 py-1 text-[10px] font-medium text-ink transition-colors hover:bg-accent/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1"
     >
       <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden />
       {label}
