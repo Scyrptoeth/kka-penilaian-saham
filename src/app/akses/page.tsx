@@ -3,7 +3,7 @@ import { Suspense } from 'react'
 import { AksesForm } from './AksesForm'
 
 export const metadata: Metadata = {
-  title: 'Akses — KKA Penilaian Saham',
+  title: 'Akses — KKA Penilaian Bisnis II',
   robots: { index: false, follow: false },
 }
 
@@ -13,11 +13,11 @@ export default function AksesPage() {
       <div className="w-full max-w-md">
         <header className="mb-10 text-center">
           <p className="text-[10px] font-mono uppercase tracking-[0.3em] text-ink-muted mb-3">
-            Akses Terbatas · Fungsional Penilai DJP
+            Akses Terbatas · Hanya untuk Fungsional Penilai
           </p>
-          <h1 className="text-3xl font-semibold tracking-tight mb-2">KKA Penilaian Saham</h1>
+          <h1 className="text-3xl font-semibold tracking-tight mb-2">KKA Penilaian Bisnis II</h1>
           <p className="text-sm text-ink-soft leading-relaxed">
-            Kertas Kerja Analisis Penilaian Bisnis/Saham
+            KKA Penilaian Bisnis II
           </p>
         </header>
 
@@ -27,9 +27,9 @@ export default function AksesPage() {
 
         <footer className="mt-10 text-center">
           <p className="text-[11px] text-ink-muted leading-relaxed">
-            Seluruh kalkulasi dan data finansial disimpan 100% di browser Anda.
+            Seluruh Proses dan Data Hanya Berjalan dan Disimpan di Perangkat Anda.
             <br />
-            Tidak ada data finansial yang dikirim atau disimpan di server.
+            Tidak Ada Data Apapun yang Dikirim atau Disimpan di Server.
           </p>
         </footer>
       </div>
