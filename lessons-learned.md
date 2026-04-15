@@ -550,6 +550,18 @@ untuk 3+ sesi ke depan:
 - LESSON-062 (Shared-parameter calc modules MUST share sign convention — contract mismatch = silent bug)
 - LESSON-063 (Grep all consumers before removing a field from a pure-calc result)
 
+### Session 023 (B&W Redesign — Creddo-Inspired)
+- LESSON-064 (`useSyncExternalStore` SSR-safe mounted gate replaces React Compiler-incompatible `useState+useEffect`)
+- LESSON-065 (Tailwind v4 CSS-var single-file design overhaul — `globals.css` is the only switching point)
+
+### Session 024 (Export Visibility Audit + Cleanup)
+- LESSON-066 (Audit-first methodology for opaque export formats — generate static analyzer before coding fixes)
+
+### Session 025 (Extended BS Catalog Native Injection)
+- LESSON-067 (Synthetic-row write + subtotal append > row insertion + auto-shift for Excel modifications with cross-sheet refs)
+- LESSON-068 (Catalog design with pre-allocated synthetic excelRow ranges per section enables append-only export modifications)
+- LESSON-069 (When superseded, DELETE the old code path entirely — don't leave dead exports/tests "for compat")
+
 LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054 **TIDAK** di-promote — workflow/session-specific
 insights yang general ke project lain tapi terlalu luas atau terlalu
 session-specific untuk section 8 (yang fokus KKA-specific gotchas).
@@ -1728,5 +1740,177 @@ Same math, different representation. Using widths matches Excel formula pattern 
 5. Add a test guard: `expect('removedField' in result).toBe(false)` — prevents regression from future merge reintroducing the field.
 
 **Proven at**: session-022 (2026-04-15). `finalValue` removed from `AamResult`, `paidUpCapitalDeduction` removed from `AamInput`. All 4 consumer sites updated (2 source files + 1 test file + 1 UI file). Added `'finalValue' in result).toBe(false)` guard test.
+
+---
+
+## Session 023 — 2026-04-15
+
+### LESSON-064: `useSyncExternalStore` SSR-safe mounted gate replaces React Compiler-incompatible `useState+useEffect`
+
+**Kategori**: Framework | Anti-pattern
+
+**Sesi**: session-023
+**Tanggal**: 2026-04-15
+
+**Konteks**: Client-only widgets that need to defer rendering until after hydration to avoid SSR/CSR mismatch (theme toggles, browser-API features, localStorage-derived UI). The canonical `next-themes`-style `mounted` flag pattern.
+
+**Apa yang terjadi**: Built `<ThemeToggle>` with the documented `next-themes` pattern: `const [mounted, setMounted] = useState(false); useEffect(() => setMounted(true), [])`. Lint failed with `react-hooks/set-state-in-effect` rule (React Compiler discipline — same family as LESSON-016). The rule has no per-instance escape; effect bodies that just call setState are forbidden architecturally.
+
+**Root cause / insight**: React Compiler's `set-state-in-effect` rule treats effect-driven `setState` as a smell because it usually indicates state that should be derived during render or state that depends on props/key. The "mounted" use case is the exception, but the rule has no carve-out. The idiomatic React 18+ alternative is `useSyncExternalStore` with a no-op subscribe and split server/client snapshots.
+
+**Cara menerapkan di masa depan**: For ANY "am I mounted on the client?" gate, use this pattern instead of `useState+useEffect`:
+```ts
+const subscribe = () => () => {}                  // never re-subscribes, never emits
+const getClientSnapshot = () => true              // client always sees true
+const getServerSnapshot = () => false             // SSR always sees false
+
+function useMounted(): boolean {
+  return useSyncExternalStore(subscribe, getClientSnapshot, getServerSnapshot)
+}
+```
+- Module-level `subscribe` / `getClientSnapshot` / `getServerSnapshot` (NOT inline in the hook) — React requires stable references for `useSyncExternalStore` correctness
+- Returns `false` on server, `true` on client after first render — exactly the same semantics as the `useState+useEffect` pattern
+- Zero setState-in-effect → React Compiler clean
+- Use the returned bool to gate any UI that would otherwise hydration-mismatch (icon shape, label text, theme-derived class)
+
+**Proven at**: session-023 (2026-04-15). `src/components/layout/ThemeToggle.tsx` — `useMounted()` wraps the entire toggle's mount-aware rendering. Lint clean, hydration safe.
+
+---
+
+### LESSON-065: Tailwind v4 CSS-var single-file design overhaul — `globals.css` is the only switching point
+
+**Kategori**: Tailwind | Design | Workflow
+
+**Sesi**: session-023
+**Tanggal**: 2026-04-15
+
+**Konteks**: When the project needs a complete visual identity change (palette, typography, dark mode) without touching individual components.
+
+**Apa yang terjadi**: Switched the KKA project from a navy-and-muted-gold light-only palette to a pure B&W palette with light + dark variants. Total components touched outside `globals.css`: **3** (layout.tsx for fonts/provider, Sidebar.tsx + MobileShell.tsx for theme toggle slot). The other ~50+ component files using `text-ink`, `bg-canvas`, `border-grid`, `text-accent`, etc. **automatically adapted** with zero edits.
+
+**Root cause / insight**: Tailwind v4's `@theme inline` block binds utility classes to CSS custom properties via a single layer of indirection:
+```css
+:root { --canvas: #fafdff; --ink: #0a0a0c; ... }
+.dark { --canvas: #000004; --ink: #fafdff; ... }
+@theme inline {
+  --color-canvas: var(--canvas);    /* Tailwind utility bg-canvas reads this */
+  --color-ink: var(--ink);          /* text-ink reads this */
+  ...
+}
+```
+When a component uses `class="bg-canvas text-ink"`, Tailwind generates CSS that resolves through `var(--color-canvas)` → `var(--canvas)` → `#fafdff` (light) or `#000004` (dark). Changing `:root` and `.dark` rewrites resolves at runtime via CSS cascade — no rebuild, no per-component change.
+
+**Cara menerapkan di masa depan**:
+1. **Discipline**: every color, font, radius, spacing token in the project should be declared as CSS var in `globals.css`. Components reference utility classes that resolve to tokens — never hardcode `#hex` colors in component files.
+2. **Dark mode pattern**: declare `:root` (light) + `.dark` (dark) blocks with the **same variable names** but different values. Wrap app with `next-themes` `ThemeProvider attribute="class"` so the `.dark` class flips on `<html>`.
+3. **Redesign workflow**: when changing visual identity, edit `globals.css` ONLY. Run dev server, click through pages — every component should adapt. If a component looks unchanged, that means it has hardcoded colors → grep + fix.
+4. **Audit before redesign**: `grep -r "text-blue\|text-red\|bg-#" src/components/` to find any leaked hardcoded colors that won't adapt to the var swap.
+
+**Proven at**: session-023 (2026-04-15). Total `globals.css` rewrite + 3 component touches → entire 34-page app re-themed end-to-end. Live deploy verified with both light and dark modes serving correctly via `color-scheme: light | dark` per `<html>` class state.
+
+---
+
+## Session 024 — 2026-04-15
+
+### LESSON-066: Audit-first methodology for opaque export formats — generate static analyzer before coding fixes
+
+**Kategori**: Workflow | Excel | Anti-pattern
+
+**Sesi**: session-024
+**Tanggal**: 2026-04-15
+
+**Konteks**: When asked to "fix" or "improve" an export format whose current state is opaque (binary file, large template, multi-sheet workbook). Common failure mode: jumping to implementation without understanding the actual gap.
+
+**Apa yang terjadi**: User requested comprehensive review/improvement of the .xlsx export to ensure all website pages correspond to Excel sheets with formulas. Initial impulse was to start coding new sheet generation. Instead, scoped Phase 0 = AUDIT: wrote `scripts/audit-export.py` that enumerates template sheets, cross-references with `nav-tree.ts`, counts formulas/values per sheet, and produces a markdown punch list.
+
+**Root cause / insight**: The audit revealed: (a) all 29 website nav pages were ALREADY mapped to existing template sheets, (b) 3,084 formulas were ALREADY preserved, (c) only 5 visibility mismatches needed fixing (Phase A, low-risk, ~10 lines), (d) extended-catalog overflow was the real complex gap (Phase B, deferred to Session 025). Without the audit, we would have rewritten the export from scratch — wasted 6+ hours on already-working code.
+
+**Cara menerapkan di masa depan**:
+1. **For ANY export-format work**: write a static analyzer FIRST as a separate script (`scripts/audit-*.py` or `.ts`). Output should be a markdown report enumerable by section.
+2. **Audit dimensions for export work**: (a) target item count vs source item count, (b) per-target visibility/state, (c) per-target value/formula coverage, (d) cross-reference integrity, (e) "junk" items not in source.
+3. **Commit the audit script** — re-runnable when source changes (new website page, new template version). Prevents regression to "blind implementation" anti-pattern.
+4. **Score the audit**: convert findings into 4 phases by complexity (Phase A = quick fix, Phase B = design needed, Phase C = manual verification, Phase D = future work). Implement Phase A in the same session (proves audit value), defer B/C/D with concrete next-session plans.
+5. **Counter-indicator**: if the audit finds ZERO gaps, you've validated the current state is correct — that itself is valuable. The audit is never wasted.
+
+**Proven at**: session-024 (2026-04-15). `scripts/audit-export.py` ran in 2 seconds, produced complete punch list. Phase A (5 visibility fixes) shipped same session. Phase B (extended catalog) properly scoped for Session 025 with informed approach decision (E3 over A based on audit's "244 cross-sheet refs across 23 sheets" finding).
+
+---
+
+## Session 025 — 2026-04-15
+
+### LESSON-067: Synthetic-row write + subtotal append > row insertion + auto-shift for Excel modifications with cross-sheet refs
+
+**Kategori**: Excel | Anti-pattern | Design
+
+**Sesi**: session-025
+**Tanggal**: 2026-04-15
+
+**Konteks**: When an Excel template needs to grow (more leaf rows in a section) and downstream cross-sheet formulas reference cells in the original template by absolute coordinate.
+
+**Apa yang terjadi**: User asked for extended catalog accounts (BS rows beyond template baseline) to flow into all subtotals + downstream formulas. Initial instinct: insert rows + auto-shift dependent formulas (Approach A). Audit revealed: 244 cross-sheet formulas across 23 sheets reference BS cells, mixing `SUM(D8:D14)` (auto-extends in Excel native) with `+D38+D39` and `'BS'!D27` (do NOT auto-extend; some don't shift even within ExcelJS row insertion). Approach A would silently break ~30-50 formulas.
+
+**Root cause / insight**: ExcelJS `worksheet.spliceRows(at, 0, [...])` does row insertion but its formula-shift behavior is incomplete:
+- WITHIN-sheet formulas: usually shifted correctly for SUM ranges, NOT shifted for explicit `+D38+D39` style
+- CROSS-sheet formulas: NOT shifted (the formula text in OTHER sheets pointing to this sheet retains old row numbers)
+- Result: dozens of silently-broken formulas after a single row insert. Validation requires manual inspection of every dependent formula × every insertion point.
+
+The safer approach (E3): use synthetic row numbers ALREADY pre-allocated in the catalog (e.g., excelRow 100-139 for section X). Write extended account values directly to those rows in the main sheet (no row shift, no formula breakage). For each section with extended accounts, APPEND `+SUM(<col>{start}:<col>{end})` to the section's subtotal cell formula — only modification is one APPEND per section per year column.
+
+**Cara menerapkan di masa depan**:
+1. **Default to Approach E3** for any Excel template modification where downstream cross-sheet refs exist. Insert-and-shift only when (a) there are <5 cross-sheet refs, (b) all use SUM(range) style, (c) you can validate every reference manually post-insert.
+2. **Pre-allocate synthetic row ranges in the catalog** — design pattern that enables E3. Each section gets a dedicated extended-row range (100-139, 140-159, 200-219, etc.) declared at catalog-design time.
+3. **Subtotal append handling**: read existing cell value, detect shape (formula object `{formula}`, raw string `=...`, hardcoded number, empty), append `+SUM(...)` per shape. Always write back as `{ formula: '...' }` ExcelJS object.
+4. **Defensive for shared subtotal rows**: when 2+ sections feed the same subtotal cell (e.g., BS row 25 = Total Non-Current Assets sums fixed_assets + intangible + other_non_current), append once per section that has extended accounts. Each appends its own SUM term.
+5. **Idempotency**: if section has no extended accounts, do nothing — `SUM(empty_range)` = 0 = benign no-op even if accidentally appended.
+
+**Proven at**: session-025 (2026-04-15). `src/lib/export/export-xlsx.ts` `injectExtendedBsAccounts` + `extendBsSectionSubtotals`. 7 tests cover happy + edge cases. 846/846 total tests pass; 244 cross-sheet refs across 23 sheets all preserved untouched.
+
+---
+
+### LESSON-068: Catalog design with pre-allocated synthetic excelRow ranges per section enables append-only export modifications
+
+**Kategori**: Design | Excel | Workflow
+
+**Sesi**: session-025
+**Tanggal**: 2026-04-15
+
+**Konteks**: When designing a dynamic catalog system that maps user-added accounts to Excel cells, with the constraint that the underlying Excel template has formula dependencies that cannot easily be restructured.
+
+**Apa yang terjadi**: BS catalog (Session 019) pre-allocated `excelRow` ranges per section: original accounts get template row numbers (8-14, 31-34, 38-39, 43-47), extended accounts get synthetic numbers (100-139 for current_assets, 140-159 for intangible, 160-199 for other_non_current, 200-219 for current_liabilities, 220-239 for non_current_liabilities, 300-319 for equity). Session 025 leveraged this design to inject extended accounts directly to those synthetic rows in the main BS sheet — the synthetic range is empty in the template (no collision) and far enough from original rows (8-49) to avoid any accidental overlap.
+
+**Root cause / insight**: Pre-allocation of row ranges turns a "we need to create new rows" problem (insertion + shift) into a "we have empty space waiting for values" problem (write + extend subtotal). The catalog acts as a contract: "section X gets rows {start}-{end}, never more". Even if the catalog grows in future, as long as new entries stay within the allocated range, the export logic never changes.
+
+**Cara menerapkan di masa depan**:
+1. **For any catalog-driven export**: at catalog design time, allocate per-section `excelRow` ranges with generous slack (40-100 slot ranges).
+2. **Document the allocation**: in catalog source file, leave comment `// Section X: rows {start}-{end} reserved for extended accounts (max N additional)`.
+3. **Validate at catalog level**: lint or runtime assertion that every catalog entry's `excelRow` falls within either its section's original-row set or extended-row range.
+4. **Match in template**: ensure the underlying Excel template has no formulas/values in the synthetic range — leave it as a dedicated "extended zone".
+5. **Consequence**: future catalog growth (adding more accounts within range) requires ZERO export-code changes. Only adding NEW sections or exceeding range capacity needs export updates.
+
+**Proven at**: session-025 (2026-04-15). 6 BS sections each with 20-40 reserved synthetic rows; current catalog uses 7-13 per section, leaving 50-90% headroom. Same pattern observed in IS catalog (rows 100-539) and FA catalog (rows 100-113), enabling Session 026 to follow same E3 approach without surprises.
+
+---
+
+### LESSON-069: When superseded, DELETE the old code path entirely — don't leave dead exports/tests "for compat"
+
+**Kategori**: Workflow | Anti-pattern
+
+**Sesi**: session-025
+**Tanggal**: 2026-04-15
+
+**Konteks**: When introducing a better implementation of an existing feature, with tests covering the old behavior.
+
+**Apa yang terjadi**: Initially considered keeping `addBsDetailSheet()` exported "in case external consumers need it" while removing it from the main export pipeline. Reflexively cautious. After confirming zero callers in production code, deleted: function (110+ lines), 3 obsolete tests, RINCIAN visibility entry, 2 unused imports. Net effect: cleaner codebase, no dead code, easier mental model for next maintainer.
+
+**Root cause / insight**: "Keep for compat" without actual compat consumers is dead code that compounds. Each session that touches the file requires re-reading the dead code to confirm it's still safe. Tests for dead code add CI time + false alarm potential. Imports for dead code create unnecessary module dependencies. Branch protection (commit history) IS the compat layer — if anyone genuinely needs the old behavior, recover from git.
+
+**Cara menerapkan di masa depan**:
+1. **Hard deletion when superseded**: when a new implementation replaces an old one entirely (new feature covers all old use cases), DELETE old code in the same commit/PR.
+2. **Citable recovery point**: in the deletion commit message, name the SHA before deletion (e.g., "addBsDetailSheet deleted; recover from git history at 97863cd or earlier"). Audit trail without keeping live code.
+3. **Remove ALL traces**: function, exports, tests, imports, references in comments. Run grep before commit: `grep -r "deletedFunctionName" src/ __tests__/` should return zero.
+4. **Counter-indicator**: keep old code only if (a) public API used by external consumers (npm package, plugin system), or (b) intentionally side-by-side for A/B comparison with planned removal date.
+5. **Test deletion is mandatory**: if old behavior tests stay green against new implementation, that's not "compat tested" — that's the new implementation accidentally supporting old API surface, masking design clarity.
+
+**Proven at**: session-025 (2026-04-15). `addBsDetailSheet` + 3 RINCIAN tests + visibility set entry + 2 imports all deleted. Net file diff: +289 / −221 lines (+68 net for new feature even after −110 deletion). Clean code base, no dead branches.
 
 ---
