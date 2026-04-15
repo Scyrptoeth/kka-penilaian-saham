@@ -3,7 +3,7 @@ import ExcelJS from 'exceljs'
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
 import type { ExportableState } from '@/lib/export/export-xlsx'
-import { addBsDetailSheet } from '@/lib/export/export-xlsx'
+import { addBsDetailSheet, applySheetVisibility } from '@/lib/export/export-xlsx'
 import {
   ALL_SCALAR_MAPPINGS,
   ALL_GRID_MAPPINGS,
@@ -42,6 +42,8 @@ async function simulateExport(state: ExportableState): Promise<ExcelJS.Workbook>
   if (state.balanceSheet && state.home) {
     addBsDetailSheet(wb, state.balanceSheet, state.home.tahunTransaksi)
   }
+  // Apply website-nav 1:1 visibility (Session 024)
+  applySheetVisibility(wb)
 
   // Round-trip through buffer to verify formula preservation
   const buf = await wb.xlsx.writeBuffer()
@@ -495,5 +497,42 @@ describe('export-xlsx (template-based)', () => {
       }
     })
     expect(cashValue2019).toBe(200) // 2019 value from TEST_STATE
+  })
+
+  // ─── Session 024: website-nav 1:1 visibility ───
+  describe('sheet visibility — website nav 1:1', () => {
+    it('unhides KEY DRIVERS and ACC PAYABLES (now visible in website nav)', async () => {
+      const wb = await simulateExport(TEST_STATE)
+      expect(wb.getWorksheet('KEY DRIVERS')!.state).toBe('visible')
+      expect(wb.getWorksheet('ACC PAYABLES')!.state).toBe('visible')
+    })
+
+    it('hides TL, RESUME, DIVIDEND DISCOUNT MODEL (not in website nav)', async () => {
+      const wb = await simulateExport(TEST_STATE)
+      expect(wb.getWorksheet('TL')!.state).toBe('hidden')
+      expect(wb.getWorksheet('RESUME')!.state).toBe('hidden')
+      expect(wb.getWorksheet('DIVIDEND DISCOUNT MODEL')!.state).toBe('hidden')
+    })
+
+    it('keeps RINCIAN NERACA visible (export-added detail sheet)', async () => {
+      const wb = await simulateExport(TEST_STATE)
+      expect(wb.getWorksheet('RINCIAN NERACA')!.state).toBe('visible')
+    })
+
+    it('keeps all 29 website-nav sheets visible', async () => {
+      const wb = await simulateExport(TEST_STATE)
+      const navSheets = [
+        'HOME', 'FIXED ASSET', 'BALANCE SHEET', 'INCOME STATEMENT',
+        'KEY DRIVERS', 'ACC PAYABLES', 'FINANCIAL RATIO', 'FCF', 'NOPLAT',
+        'GROWTH REVENUE', 'ROIC', 'GROWTH RATE', 'CASH FLOW STATEMENT',
+        'PROY LR', 'PROY FIXED ASSETS', 'PROY BALANCE SHEET', 'PROY NOPLAT',
+        'PROY CASH FLOW STATEMENT', 'DLOM', 'DLOC(PFC)', 'WACC',
+        'DISCOUNT RATE', 'BORROWING CAP', 'DCF', 'AAM', 'EEM', 'CFI',
+        'SIMULASI POTENSI (AAM)', 'DASHBOARD',
+      ]
+      for (const name of navSheets) {
+        expect(wb.getWorksheet(name)!.state, name).toBe('visible')
+      }
+    })
   })
 })

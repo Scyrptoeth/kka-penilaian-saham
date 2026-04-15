@@ -91,7 +91,10 @@ export async function exportToXlsx(state: ExportableState): Promise<Blob> {
     addBsDetailSheet(workbook, state.balanceSheet, state.home.tahunTransaksi)
   }
 
-  // 6. Generate output
+  // 6. Apply website-nav 1:1 sheet visibility (Session 024 audit decision)
+  applySheetVisibility(workbook)
+
+  // 7. Generate output
   const outBuffer = await workbook.xlsx.writeBuffer()
   return new Blob([outBuffer], {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.xlsx',
@@ -122,6 +125,66 @@ export function buildExportFilename(namaPerusahaan: string): string {
   const date = new Date().toISOString().slice(0, 10) // YYYY-MM-DD
   const sanitized = namaPerusahaan.replace(/[^a-zA-Z0-9\s-]/g, '').trim().replace(/\s+/g, '-')
   return `KKA-${sanitized}-${date}.xlsx`
+}
+
+// ---------------------------------------------------------------------------
+// Internal: Sheet visibility (website nav 1:1)
+// ---------------------------------------------------------------------------
+
+/**
+ * Sheets that map to a website nav item and MUST be visible in export.
+ * Mirrors `src/components/layout/nav-tree.ts` (29 items as of Session 024).
+ */
+const WEBSITE_NAV_SHEETS: readonly string[] = [
+  // Input Master
+  'HOME',
+  // Input Data
+  'FIXED ASSET',
+  'BALANCE SHEET',
+  'INCOME STATEMENT',
+  'KEY DRIVERS',
+  'ACC PAYABLES',
+  // Analisis
+  'FINANCIAL RATIO',
+  'FCF',
+  'NOPLAT',
+  'GROWTH REVENUE',
+  'ROIC',
+  'GROWTH RATE',
+  'CASH FLOW STATEMENT',
+  // Proyeksi
+  'PROY LR',
+  'PROY FIXED ASSETS',
+  'PROY BALANCE SHEET',
+  'PROY NOPLAT',
+  'PROY CASH FLOW STATEMENT',
+  // Penilaian
+  'DLOM',
+  'DLOC(PFC)',
+  'WACC',
+  'DISCOUNT RATE',
+  'BORROWING CAP',
+  'DCF',
+  'AAM',
+  'EEM',
+  'CFI',
+  'SIMULASI POTENSI (AAM)',
+  // Ringkasan
+  'DASHBOARD',
+] as const
+
+/**
+ * Set every worksheet to `visible` if it is in WEBSITE_NAV_SHEETS, otherwise
+ * `hidden`. The "RINCIAN NERACA" detail sheet (added by addBsDetailSheet) is
+ * also kept visible. All other DJP-template helper/dataset sheets are hidden.
+ */
+export function applySheetVisibility(workbook: ExcelJS.Workbook): void {
+  const visibleSet = new Set<string>(WEBSITE_NAV_SHEETS)
+  visibleSet.add('RINCIAN NERACA')
+
+  for (const ws of workbook.worksheets) {
+    ws.state = visibleSet.has(ws.name) ? 'visible' : 'hidden'
+  }
 }
 
 // ---------------------------------------------------------------------------
