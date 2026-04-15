@@ -546,6 +546,10 @@ untuk 3+ sesi ke depan:
 - LESSON-060 (sr-only inputs need positioned parent to prevent scroll jump)
 - LESSON-061 (Replace scalar adjustments with per-row Record for extensibility)
 
+### Session 022 (AAM finalValue Removal + Simulasi Sign Fix)
+- LESSON-062 (Shared-parameter calc modules MUST share sign convention — contract mismatch = silent bug)
+- LESSON-063 (Grep all consumers before removing a field from a pure-calc result)
+
 LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054 **TIDAK** di-promote — workflow/session-specific
 insights yang general ke project lain tapi terlalu luas atau terlalu
 session-specific untuk section 8 (yang fokus KKA-specific gotchas).
@@ -1672,3 +1676,57 @@ Same math, different representation. Using widths matches Excel formula pattern 
 **Cara menerapkan di masa depan**: When building adjustment/override features, default to `Record<key, value>` from the start. Caller pre-adjusts values (C+D) before passing to pure computation function. Computation receives E-column values directly — cleaner interface, no adjustment logic in the pure function.
 
 **Proven at**: session-021 (2026-04-14). `aamAdjustments: Record<number, number>` replaces `faAdjustment: number`. Store v13→v14.
+
+---
+
+## Session 022 — 2026-04-15
+
+### LESSON-062: Shared-parameter calc modules MUST share sign convention
+
+**Kategori**: Anti-pattern | Design | Testing
+
+**Sesi**: session-022
+**Tanggal**: 2026-04-15
+
+**Konteks**: When two or more pure calculation modules accept the same parameter name (e.g. `dlomPercent`, `dlocPercent`, `taxRate`) and are called from the same UI layer / store.
+
+**Apa yang terjadi**: `computeAam` takes `dlomPercent` as POSITIVE (e.g. 0.30) and negates internally (`equityValue * -dlomPercent`). `computeSimulasiPotensi` originally took `dlomPercent` as NEGATIVE (e.g. -0.30) and added directly. Both received `home.dlomPercent` from the same store (positive). Result: AAM subtracted correctly, Simulasi Potensi **added** DLOM to equity instead of subtracting — producing Market Value of Equity 52.9B instead of correct 8.5B. JSDoc on the interface said "negative", but no lint/type check enforces that, and tests passed negatives consistently, so the bug was silent for months.
+
+**Root cause / insight**: JSDoc conventions are documentation, not enforcement. When two modules share a parameter name, the type system cannot distinguish `positive dlomPercent` from `negative dlomPercent` — both are `number`. The only safe invariant is **uniform sign convention across the module family**. Whichever convention wins, all modules in the family must follow it. Mixing conventions guarantees a caller-side sign mismatch will eventually slip through.
+
+**Cara menerapkan di masa depan**:
+1. Before adding a new calc module that shares parameters with an existing one, **audit the existing module's sign convention** and match it. Don't rely on JSDoc to remember later.
+2. **Preferred convention**: caller passes positive decimal, calc function negates internally. Reasons: (a) store holds positive values (user-friendly), (b) JSX/UI displays positive values naturally, (c) negation is trivially one `-` character, (d) the JSDoc/code location of the negation is where sign correctness is audited.
+3. Write a **cross-module integration test** when two modules share a store-sourced parameter: pass the same store value to both, assert that both modules produce the same sign on the corresponding output field (e.g. `dlomAmount` in both AAM and Simulasi Potensi should be negative).
+4. When an assertion like "the function expects a negative input" lives only in JSDoc, treat it as a code smell. Either add a runtime guard (`if (input < 0) throw`), or change the function to normalize internally.
+
+**Proven at**: session-022 (2026-04-15). `simulasi-potensi.ts` refactored to match `aam-valuation.ts` convention. 21 tests flipped to positive inputs. Downstream page `simulasi-potensi/page.tsx` needed zero changes since it was already (buggily) passing positive store values.
+
+---
+
+### LESSON-063: Audit grep all consumers before removing a field from a pure-calc result
+
+**Kategori**: Workflow | Anti-pattern
+
+**Sesi**: session-022
+**Tanggal**: 2026-04-15
+
+**Konteks**: When a user asks to remove a computed value from the UI ("hilangkan baris X") but the underlying field is defined in a pure calc result interface.
+
+**Apa yang terjadi**: User asked to remove the "Nilai Akhir (AAM)" row from AAM page. The row displayed `AamResult.finalValue`. The naïve scope was a single JSX edit. But `aamResult.finalValue` was also consumed in `dashboard/page.tsx:111` for AAM `perShare` computation. Removing the field from `AamResult` without updating dashboard would have produced a TypeScript error, or worse, if we left the field in the result, it would have dangling usage with misleading semantics ("final value" that no longer exists in UI).
+
+**Root cause / insight**: Pure-calc result fields are **API surface** — any module that imports the module can destructure any field. User-facing UI decisions should propagate to the pure calc only after auditing all consumers. Conversely, leaving a field in the result that's not rendered anywhere is a smell ("dangling public API").
+
+**Cara menerapkan di masa depan**: Before removing a field from a pure-calc `*Result` interface:
+1. Grep the entire `src/` tree for `\.fieldName` and `fieldName:`. Typical command:
+   ```bash
+   grep -rn "\.finalValue\|finalValue:" src/ __tests__/
+   ```
+2. For each hit, decide: (a) the consumer becomes broken → update it; (b) the consumer is test-only → update to new contract; (c) the consumer is needed → keep the field and only remove the UI row.
+3. "System development bukan patching" (user's phrase) = option (a) or (b). Option (c) is patching. User explicitly asked for deep removal → chose (a)/(b).
+4. A semantic removal needs a **behavior replacement** at each consumer site, not just field deletion. In this session: dashboard's AAM per-share was repointed from `finalValue / shares` to `marketValuePortion / (shares × proporsiSaham)` — semantically the new best equivalent for "AAM per-share value".
+5. Add a test guard: `expect('removedField' in result).toBe(false)` — prevents regression from future merge reintroducing the field.
+
+**Proven at**: session-022 (2026-04-15). `finalValue` removed from `AamResult`, `paidUpCapitalDeduction` removed from `AamInput`. All 4 consumer sites updated (2 source files + 1 test file + 1 UI file). Added `'finalValue' in result).toBe(false)` guard test.
+
+---
