@@ -99,7 +99,17 @@ export async function exportToXlsx(state: ExportableState): Promise<Blob> {
   //    dialog on open. Replace with the cached last-known value.
   sanitizeDanglingFormulas(workbook)
 
-  // 8. Generate output
+  // 8. Remove decorative tables. The template's FINANCIAL RATIO sheet
+  //    defines four styled Tables (Table7/8/9/11) purely for visual
+  //    grouping. ExcelJS round-trip mis-serialises their metadata
+  //    (`headerRowCount="0"` with column names that have no header row),
+  //    which Excel detects on open and flags as
+  //    "Removed Records: AutoFilter from table*.xml". Since the tables
+  //    provide no functional filtering/sorting, dropping them entirely
+  //    eliminates the repair prompt without affecting the workbook.
+  stripDecorativeTables(workbook)
+
+  // 9. Generate output
   const outBuffer = await workbook.xlsx.writeBuffer()
   return new Blob([outBuffer], {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.xlsx',
@@ -272,6 +282,38 @@ export function sanitizeDanglingFormulas(workbook: ExcelJS.Workbook): void {
       ;(ws as unknown as { conditionalFormattings: Cf[] }).conditionalFormattings = cfs.filter(
         (cf) => Array.isArray(cf.rules) && cf.rules.length > 0,
       )
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Internal: Strip decorative tables
+// ---------------------------------------------------------------------------
+
+/**
+ * Remove every Table definition from every worksheet. The source template
+ * defines four Tables on FINANCIAL RATIO that are decorative only (styled
+ * section headers). ExcelJS cannot faithfully round-trip their metadata:
+ * it produces `<table headerRowCount="0">` with column names that have no
+ * header cells, which Excel then flags on open as
+ * "Removed Records: AutoFilter from /xl/tables/tableN.xml".
+ *
+ * Removing the Table wrapper preserves every cell value and style —
+ * only the invisible structured-table metadata goes away.
+ */
+export function stripDecorativeTables(workbook: ExcelJS.Workbook): void {
+  for (const ws of workbook.worksheets) {
+    const tables = (ws as unknown as { tables?: Record<string, unknown> }).tables
+    if (!tables) continue
+    for (const name of Object.keys(tables)) {
+      try {
+        ws.removeTable(name)
+      } catch {
+        // Fallback: delete directly if removeTable throws on malformed
+        // table model (ExcelJS's own round-trip leaves some tables in a
+        // state where removeTable rejects them).
+        delete (tables as Record<string, unknown>)[name]
+      }
     }
   }
 }

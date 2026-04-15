@@ -8,6 +8,7 @@ import {
   injectExtendedBsAccounts,
   extendBsSectionSubtotals,
   sanitizeDanglingFormulas,
+  stripDecorativeTables,
 } from '@/lib/export/export-xlsx'
 import {
   ALL_SCALAR_MAPPINGS,
@@ -52,6 +53,8 @@ async function simulateExport(state: ExportableState): Promise<ExcelJS.Workbook>
   // Strip dangling external-link + #REF! formulas inherited from the
   // template's prior Excel life (Session 026)
   sanitizeDanglingFormulas(wb)
+  // Drop decorative Tables that ExcelJS mis-serialises (Session 026)
+  stripDecorativeTables(wb)
 
   // Round-trip through buffer to verify formula preservation
   const buf = await wb.xlsx.writeBuffer()
@@ -682,6 +685,25 @@ describe('export-xlsx (template-based)', () => {
           }
         }
       }
+    })
+
+    it('strips decorative Tables so Excel has no table metadata to flag', async () => {
+      const wb = await simulateExport(TEST_STATE)
+      // FINANCIAL RATIO sheet had Table7/8/9/11 in the template; after
+      // stripDecorativeTables there should be zero tables anywhere.
+      for (const ws of wb.worksheets) {
+        const tables = (ws as unknown as { tables?: Record<string, unknown> }).tables
+        if (!tables) continue
+        expect(Object.keys(tables)).toEqual([])
+      }
+    })
+
+    it('preserves FINANCIAL RATIO cell values even though Tables are removed', async () => {
+      const wb = await simulateExport(TEST_STATE)
+      // Row 5 first column (B5) had the Profitability header label in the
+      // template. Removing the Table wrapper must not remove the cell.
+      const fr = wb.getWorksheet('FINANCIAL RATIO')!
+      expect(fr.getCell('B5').value).toBeTruthy()
     })
 
     it('clears cells that store a raw #REF! error value with no formula', async () => {
