@@ -92,7 +92,14 @@ export async function exportToXlsx(state: ExportableState): Promise<Blob> {
   // 6. Apply website-nav 1:1 sheet visibility (Session 024 audit decision)
   applySheetVisibility(workbook)
 
-  // 7. Generate output
+  // 7. Strip dangling formulas the template inherited from its prior Excel
+  //    life (external-workbook refs like `'[3]BALANCE SHEET'!A3` and stale
+  //    `#REF!`). ExcelJS drops the externalLinks/ parts on round-trip but
+  //    leaves the formula strings behind — Excel then shows the repair
+  //    dialog on open. Replace with the cached last-known value.
+  sanitizeDanglingFormulas(workbook)
+
+  // 8. Generate output
   const outBuffer = await workbook.xlsx.writeBuffer()
   return new Blob([outBuffer], {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.xlsx',
@@ -180,6 +187,48 @@ export function applySheetVisibility(workbook: ExcelJS.Workbook): void {
 
   for (const ws of workbook.worksheets) {
     ws.state = visibleSet.has(ws.name) ? 'visible' : 'hidden'
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Internal: Dangling-formula sanitizer
+// ---------------------------------------------------------------------------
+
+/** Formulas referencing stripped external workbooks (`[N]...`) or `#REF!`. */
+const DANGLING_FORMULA_RE = /\[\d+\]|#REF!/
+
+/**
+ * Replace every formula that references a dropped external workbook
+ * (`'[3]BALANCE SHEET'!A3` style) or contains a stale `#REF!` with the
+ * cell's cached value. Leaves live formulas untouched.
+ *
+ * Why: the source template (kka-template.xlsx) was historically linked to
+ * other workbooks via Excel's external-link feature. ExcelJS does not
+ * round-trip `xl/externalLinks/` — on save it drops those parts, but the
+ * formula strings referencing `[1]..[4]` stay in the worksheet XML. Excel
+ * then detects the broken links on open and surfaces the repair dialog.
+ * The cached `<v>` is already present, so swapping the formula for its
+ * static value is a lossless-to-the-eye transform.
+ */
+export function sanitizeDanglingFormulas(workbook: ExcelJS.Workbook): void {
+  for (const ws of workbook.worksheets) {
+    ws.eachRow({ includeEmpty: false }, (row) => {
+      row.eachCell({ includeEmpty: false }, (cell) => {
+        const v = cell.value as unknown
+        if (!v || typeof v !== 'object') return
+        const formula =
+          'formula' in v ? (v as { formula?: unknown }).formula :
+          'sharedFormula' in v ? (v as { sharedFormula?: unknown }).sharedFormula :
+          undefined
+        if (typeof formula !== 'string') return
+        if (!DANGLING_FORMULA_RE.test(formula)) return
+
+        // Strip the formula, keep the cached value. `result` holds the last
+        // computed value for formula cells; fall back to null when absent.
+        const cached = (v as { result?: unknown }).result
+        cell.value = (cached ?? null) as ExcelJS.CellValue
+      })
+    })
   }
 }
 

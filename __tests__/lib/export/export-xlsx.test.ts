@@ -7,6 +7,7 @@ import {
   applySheetVisibility,
   injectExtendedBsAccounts,
   extendBsSectionSubtotals,
+  sanitizeDanglingFormulas,
 } from '@/lib/export/export-xlsx'
 import {
   ALL_SCALAR_MAPPINGS,
@@ -48,6 +49,9 @@ async function simulateExport(state: ExportableState): Promise<ExcelJS.Workbook>
   extendBsSectionSubtotals(wb, state)
   // Apply website-nav 1:1 visibility (Session 024)
   applySheetVisibility(wb)
+  // Strip dangling external-link + #REF! formulas inherited from the
+  // template's prior Excel life (Session 026)
+  sanitizeDanglingFormulas(wb)
 
   // Round-trip through buffer to verify formula preservation
   const buf = await wb.xlsx.writeBuffer()
@@ -600,6 +604,62 @@ describe('export-xlsx (template-based)', () => {
       const bs = wb.getWorksheet('BALANCE SHEET')!
       const formula = (bs.getCell('D16').value as { formula: string }).formula
       expect(formula).toBe('SUM(D8:D14)') // unchanged
+    })
+  })
+
+  describe('sanitizeDanglingFormulas — strip external-link + #REF! formulas (Session 026)', () => {
+    it('replaces external-link formulas like [3]BALANCE SHEET!A3 with cached value', async () => {
+      const wb = await simulateExport(TEST_STATE)
+      // INCOME STATEMENT!A3 had formula `'[3]BALANCE SHEET'!A3` → cached `(IDR)`
+      const cell = wb.getWorksheet('INCOME STATEMENT')!.getCell('A3')
+      // After sanitize, value is the cached string, formula is gone
+      expect(typeof cell.value === 'object' && cell.value !== null && 'formula' in cell.value).toBe(false)
+      expect(cell.value).toBe('(IDR)')
+    })
+
+    it('strips [4]BANGUNAN external ref from FIXED ASSET!H64 and keeps cached value', async () => {
+      const wb = await simulateExport(TEST_STATE)
+      const cell = wb.getWorksheet('FIXED ASSET')!.getCell('H64')
+      expect(typeof cell.value === 'object' && cell.value !== null && 'formula' in cell.value).toBe(false)
+      // Cached value in template was ≈166_342_337_027.93
+      expect(typeof cell.value).toBe('number')
+      expect(cell.value as number).toBeGreaterThan(0)
+    })
+
+    it('strips [4]FIXTURE FURNITURE EQUIPMENT external ref from FIXED ASSET!H65', async () => {
+      const wb = await simulateExport(TEST_STATE)
+      const cell = wb.getWorksheet('FIXED ASSET')!.getCell('H65')
+      expect(typeof cell.value === 'object' && cell.value !== null && 'formula' in cell.value).toBe(false)
+      expect(typeof cell.value).toBe('number')
+    })
+
+    it('leaves live in-workbook formulas untouched', async () => {
+      const wb = await simulateExport(TEST_STATE)
+      // BALANCE SHEET!D16 is a live SUM formula from Session 025 — must stay live
+      const bs = wb.getWorksheet('BALANCE SHEET')!
+      const f = (bs.getCell('D16').value as { formula: string }).formula
+      expect(f).toContain('SUM(')
+      expect(f).not.toMatch(/\[\d+\]/)
+      expect(f).not.toContain('#REF!')
+    })
+
+    it('leaves no cell with [N] or #REF! in any formula after sanitize', async () => {
+      const wb = await simulateExport(TEST_STATE)
+      const offenders: string[] = []
+      for (const ws of wb.worksheets) {
+        ws.eachRow({ includeEmpty: false }, (row) => {
+          row.eachCell({ includeEmpty: false }, (cell) => {
+            const v = cell.value as unknown
+            if (!v || typeof v !== 'object') return
+            const f = (v as { formula?: unknown }).formula
+            if (typeof f !== 'string') return
+            if (/\[\d+\]|#REF!/.test(f)) {
+              offenders.push(`${ws.name}!${cell.address}: ${f}`)
+            }
+          })
+        })
+      }
+      expect(offenders).toEqual([])
     })
   })
 })
