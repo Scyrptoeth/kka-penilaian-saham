@@ -661,5 +661,41 @@ describe('export-xlsx (template-based)', () => {
       }
       expect(offenders).toEqual([])
     })
+
+    it('drops conditional-formatting rules whose formulae contain #REF!', async () => {
+      const wb = await simulateExport(TEST_STATE)
+      // WACC!A4:A5 had a cfRule `#REF!="Country"` inherited from a
+      // missing table source — must be filtered out.
+      for (const ws of wb.worksheets) {
+        type CfRule = { formulae?: unknown }
+        type Cf = { rules?: CfRule[] }
+        const cfs = (ws as unknown as { conditionalFormattings?: Cf[] }).conditionalFormattings
+        if (!Array.isArray(cfs)) continue
+        for (const cf of cfs) {
+          if (!Array.isArray(cf.rules)) continue
+          for (const rule of cf.rules) {
+            const fs = rule.formulae
+            if (!Array.isArray(fs)) continue
+            for (const f of fs) {
+              expect(typeof f === 'string' && /\[\d+\]|#REF!/.test(f)).toBe(false)
+            }
+          }
+        }
+      }
+    })
+
+    it('clears cells that store a raw #REF! error value with no formula', async () => {
+      const wb = await simulateExport(TEST_STATE)
+      // PASAR PEMBANDING_ C3/D3/E3 held `<v>#REF!</v>` after formula strip.
+      const ws = wb.getWorksheet('PASAR PEMBANDING_')
+      if (!ws) return // sheet may be dropped; skip if so
+      for (const addr of ['C3', 'D3', 'E3']) {
+        const cell = ws.getCell(addr)
+        const v = cell.value as unknown
+        if (v && typeof v === 'object' && 'error' in v) {
+          expect((v as { error: string }).error).not.toBe('#REF!')
+        }
+      }
+    })
   })
 })

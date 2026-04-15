@@ -212,10 +212,22 @@ const DANGLING_FORMULA_RE = /\[\d+\]|#REF!/
  */
 export function sanitizeDanglingFormulas(workbook: ExcelJS.Workbook): void {
   for (const ws of workbook.worksheets) {
+    // 1. Cell formulas — strip formula, keep cached value
     ws.eachRow({ includeEmpty: false }, (row) => {
       row.eachCell({ includeEmpty: false }, (cell) => {
         const v = cell.value as unknown
         if (!v || typeof v !== 'object') return
+
+        // Cells storing a raw error value (t="e") with no formula — clear.
+        // Excel accepts these as-is, but clearing avoids visible #REF! cells
+        // on hidden dataset sheets that nobody needs.
+        const errorVal = (v as { error?: unknown }).error
+        const hasFormula = 'formula' in v || 'sharedFormula' in v
+        if (!hasFormula && typeof errorVal === 'string' && DANGLING_FORMULA_RE.test(errorVal)) {
+          cell.value = null
+          return
+        }
+
         const formula =
           'formula' in v ? (v as { formula?: unknown }).formula :
           'sharedFormula' in v ? (v as { sharedFormula?: unknown }).sharedFormula :
@@ -225,10 +237,42 @@ export function sanitizeDanglingFormulas(workbook: ExcelJS.Workbook): void {
 
         // Strip the formula, keep the cached value. `result` holds the last
         // computed value for formula cells; fall back to null when absent.
+        // If the cached value is itself an Excel error (string '#REF!' or
+        // ExcelJS error-object `{ error: '#REF!' }`), null it — storing a
+        // bare error would reintroduce "unreadable content" on open.
         const cached = (v as { result?: unknown }).result
-        cell.value = (cached ?? null) as ExcelJS.CellValue
+        const isErrorString =
+          typeof cached === 'string' && /^#[A-Z!\/0-9?]+$/.test(cached)
+        const isErrorObject =
+          !!cached &&
+          typeof cached === 'object' &&
+          'error' in cached &&
+          typeof (cached as { error: unknown }).error === 'string'
+        const safe = isErrorString || isErrorObject ? null : cached
+        cell.value = (safe ?? null) as ExcelJS.CellValue
       })
     })
+
+    // 2. Conditional-formatting rules — drop rules whose formulae reference
+    //    dropped externals or #REF!. WACC!A4:A5 has exactly one such rule
+    //    (`#REF!="Country"`) inherited from a now-missing table source.
+    type CfRule = { formulae?: unknown }
+    type Cf = { rules?: CfRule[] }
+    const cfs = (ws as unknown as { conditionalFormattings?: Cf[] }).conditionalFormattings
+    if (Array.isArray(cfs)) {
+      for (const cf of cfs) {
+        if (!Array.isArray(cf.rules)) continue
+        cf.rules = cf.rules.filter((rule) => {
+          const fs = rule.formulae
+          if (!Array.isArray(fs)) return true
+          return !fs.some((f) => typeof f === 'string' && DANGLING_FORMULA_RE.test(f))
+        })
+      }
+      // Remove conditional-formatting entries that lost all their rules
+      ;(ws as unknown as { conditionalFormattings: Cf[] }).conditionalFormattings = cfs.filter(
+        (cf) => Array.isArray(cf.rules) && cf.rules.length > 0,
+      )
+    }
   }
 }
 
