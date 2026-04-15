@@ -19,9 +19,9 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'KKA Penilaian Saham',
+  title: 'KKA Penilaian Bisnis II',
   description:
-    'Kertas Kerja Analisis Penilaian Bisnis/Saham — tool internal penilai DJP. Privasi 100% client-side, tidak ada data yang dikirim ke server.',
+    'KKA Penilaian Bisnis II: Alat Bantu Perhitungan Penilaian Bisnis II. Seluruh Proses Berjalan di Perangkat Anda. Tidak Ada Data yang Dikirim ke Server.',
   robots: { index: false, follow: false },
 }
 
