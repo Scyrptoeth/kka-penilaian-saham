@@ -1,20 +1,62 @@
 @import "tailwindcss";
 
+/* ──────────────────────────────────────────────────────────────────
+ * B&W Design Tokens — Session 023 (Creddo-inspired)
+ *
+ * Two themes: light (default) + dark (`.dark` class on <html>, set by
+ * `next-themes`). All colour utilities downstream (text-ink, bg-canvas,
+ * border-grid, etc.) read from these CSS vars via @theme inline below.
+ * ─────────────────────────────────────────────────────────────────── */
+
 :root {
-  --canvas: #fafaf9;
+  /* Surfaces */
+  --canvas: #fafdff;
   --canvas-raised: #ffffff;
-  --ink: #0a1628;
-  --ink-soft: #1e293b;
-  --ink-muted: #64748b;
-  --accent: #b8860b;
-  --accent-soft: #fef3c7;
-  --positive: #15803d;
-  --positive-soft: #dcfce7;
-  --negative: #b91c1c;
-  --negative-soft: #fee2e2;
-  --grid: #e7e5e4;
-  --grid-strong: #d6d3d1;
-  --focus: #0a1628;
+
+  /* Text hierarchy */
+  --ink: #0a0a0c;
+  --ink-soft: rgba(10, 10, 12, 0.85);
+  --ink-muted: rgba(10, 10, 12, 0.55);
+
+  /* Accent — same hue as ink in B&W; emphasis comes from weight/scale */
+  --accent: #0a0a0c;
+  --accent-soft: rgba(10, 10, 12, 0.05);
+
+  /* Semantic colours — dark/saturated for light mode contrast */
+  --positive: #064e3b;
+  --positive-soft: rgba(6, 78, 59, 0.08);
+  --negative: #8b0000;
+  --negative-soft: rgba(139, 0, 0, 0.08);
+
+  /* Lines */
+  --grid: rgba(10, 10, 12, 0.08);
+  --grid-strong: rgba(10, 10, 12, 0.16);
+
+  /* Focus ring */
+  --focus: #0a0a0c;
+}
+
+.dark {
+  --canvas: #000004;
+  --canvas-raised: #0a0a0c;
+
+  --ink: #fafdff;
+  --ink-soft: rgba(248, 252, 255, 0.85);
+  --ink-muted: rgba(248, 252, 255, 0.55);
+
+  --accent: #fafdff;
+  --accent-soft: rgba(248, 252, 255, 0.06);
+
+  /* Semantic colours — lighter for dark mode contrast */
+  --positive: #34d399;
+  --positive-soft: rgba(52, 211, 153, 0.10);
+  --negative: #f87171;
+  --negative-soft: rgba(248, 113, 113, 0.10);
+
+  --grid: rgba(248, 252, 255, 0.08);
+  --grid-strong: rgba(248, 252, 255, 0.18);
+
+  --focus: #fafdff;
 }
 
 @theme inline {
@@ -31,6 +73,7 @@
   --color-negative-soft: var(--negative-soft);
   --color-grid: var(--grid);
   --color-grid-strong: var(--grid-strong);
+  --color-focus: var(--focus);
   --font-sans: var(--font-sans), system-ui, sans-serif;
   --font-mono: var(--font-mono), ui-monospace, monospace;
   --radius-xs: 2px;
@@ -42,12 +85,21 @@
 html {
   font-family: var(--font-sans);
   font-feature-settings: "tnum", "ss01";
-  letter-spacing: -0.04em;
+  letter-spacing: -0.01em;
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
 }
 
 body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4 {
+  letter-spacing: -0.02em;
 }
 
 /* Financial tabular numerals */
@@ -56,7 +108,6 @@ body {
   font-family: var(--font-mono);
 }
 
-/* Negative numbers in parentheses (applied in formatters) */
 .negative {
   color: var(--negative);
 }
@@ -65,14 +116,13 @@ body {
   color: var(--positive);
 }
 
-/* Focus ring — always visible, never outlined: none without replacement */
+/* Always-visible focus ring — never strip outline without replacement */
 *:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
   border-radius: var(--radius-xs);
 }
 
-/* Respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

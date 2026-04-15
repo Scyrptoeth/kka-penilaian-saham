@@ -1,15 +1,17 @@
 import type { Metadata } from 'next'
-import { Inter, IBM_Plex_Mono } from 'next/font/google'
+import { Montserrat, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import { Shell } from '@/components/layout/Shell'
+import { ThemeProvider } from '@/components/layout/ThemeProvider'
 
-const inter = Inter({
+const montserrat = Montserrat({
   variable: '--font-sans',
   subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
   display: 'swap',
 })
 
-const plexMono = IBM_Plex_Mono({
+const jetbrainsMono = JetBrains_Mono({
   variable: '--font-mono',
   subsets: ['latin'],
   weight: ['400', '500', '600'],
@@ -29,9 +31,15 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="id" className={`${inter.variable} ${plexMono.variable}`}>
+    <html
+      lang="id"
+      className={`${montserrat.variable} ${jetbrainsMono.variable}`}
+      suppressHydrationWarning
+    >
       <body className="min-h-dvh bg-canvas text-ink antialiased">
-        <Shell>{children}</Shell>
+        <ThemeProvider>
+          <Shell>{children}</Shell>
+        </ThemeProvider>
       </body>
     </html>
   )

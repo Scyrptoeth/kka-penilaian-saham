@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { SidebarHeader } from './SidebarHeader'
 import { SidebarNav } from './SidebarNav'
 import { ExportButton } from './ExportButton'
+import { ThemeToggle } from './ThemeToggle'
 import { cn } from '@/lib/utils/cn'
 
 /**
@@ -103,6 +104,9 @@ export function MobileShell() {
         </div>
         <div className="flex-1 overflow-y-auto">
           <SidebarNav onNavigate={close} />
+        </div>
+        <div className="border-t border-grid">
+          <ThemeToggle />
         </div>
         <div className="border-t border-grid">
           <ExportButton />
