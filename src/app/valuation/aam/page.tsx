@@ -272,14 +272,10 @@ export default function AamPage() {
               <td className="px-3 py-2 text-ink">Market Value of Equity (100%)</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(r.marketValue100)}</td>
             </tr>
-            <tr className="border-b border-grid">
-              <td className="px-3 py-2 text-ink">Market Value ({formatPercent(computeProporsiSaham(home!))} Equity)</td>
-              <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(r.marketValuePortion)}</td>
-            </tr>
             <tr className="border-t-2 border-grid-strong bg-canvas-raised">
-              <td className="px-3 py-3 font-semibold text-ink">Nilai Akhir (AAM)</td>
+              <td className="px-3 py-3 font-semibold text-ink">Market Value ({formatPercent(computeProporsiSaham(home!))} Equity)</td>
               <td className="px-3 py-3 text-right font-mono text-lg font-semibold tabular-nums text-accent">
-                {formatIdr(r.finalValue)}
+                {formatIdr(r.marketValuePortion)}
               </td>
             </tr>
           </tbody>

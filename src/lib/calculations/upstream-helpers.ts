@@ -116,7 +116,6 @@ export function buildAamInput(params: BuildAamParams): AamInput {
     dlomPercent: home.dlomPercent,
     dlocPercent: home.dlocPercent,
     proporsiSaham: computeProporsiSaham(home),
-    paidUpCapitalDeduction: home.jumlahSahamBeredar * home.nilaiNominalPerSaham,
   }
 }
 

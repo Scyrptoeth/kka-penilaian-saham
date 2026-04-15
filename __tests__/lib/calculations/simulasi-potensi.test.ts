@@ -7,9 +7,9 @@ import { computeSimulasiPotensi, computeResistensiWp, TARIF_PPH_BADAN } from '@/
  * Row 1: NAV = AAM!E51 = 27,435,841,103
  * Row 2: IBD = AAM!E52 = 1,000,000,000
  * Row 3: Equity = AAM!E53 = 26,435,841,103
- * Row 4: DLOM = -30% → discount = -7,930,752,330.9
+ * Row 4: DLOM = 30% (positive input; function negates internally) → discount = -7,930,752,330.9
  * Row 5: Equity less DLOM = 18,505,088,772.1
- * Row 6: DLOC/PFC = -50% → discount = -9,252,544,386.05
+ * Row 6: DLOC/PFC = 50% (positive input; function negates internally) → discount = -9,252,544,386.05
  * Row 8: MV Equity 100% = 9,252,544,386.05
  * Row 9: Proportion = 30%
  * Row 10: MV 30% = 2,775,763,315.815
@@ -30,8 +30,8 @@ const PRECISION = 2
 describe('computeSimulasiPotensi — Orang Pribadi (progressive PPh Pasal 17)', () => {
   const result = computeSimulasiPotensi({
     equityValue100: 26_435_841_103,
-    dlomPercent: -0.30,
-    dlocPercent: -0.50,
+    dlomPercent: 0.30,
+    dlocPercent: 0.50,
     proporsiKepemilikan: 0.30,
     nilaiPengalihanDilaporkan: 600_000_000,
     jenisSubjekPajak: 'orang_pribadi',
@@ -100,8 +100,8 @@ describe('computeSimulasiPotensi — Badan (flat 22%)', () => {
   it('applies flat 22% rate on positive potensi', () => {
     const result = computeSimulasiPotensi({
       equityValue100: 26_435_841_103,
-      dlomPercent: -0.30,
-      dlocPercent: -0.50,
+      dlomPercent: 0.30,
+      dlocPercent: 0.50,
       proporsiKepemilikan: 0.30,
       nilaiPengalihanDilaporkan: 600_000_000,
       jenisSubjekPajak: 'badan',
@@ -122,8 +122,8 @@ describe('computeSimulasiPotensi — Badan (flat 22%)', () => {
   it('returns zero tax when potensi is negative', () => {
     const result = computeSimulasiPotensi({
       equityValue100: 100_000_000,
-      dlomPercent: -0.50,
-      dlocPercent: -0.50,
+      dlomPercent: 0.50,
+      dlocPercent: 0.50,
       proporsiKepemilikan: 1,
       nilaiPengalihanDilaporkan: 999_999_999,
       jenisSubjekPajak: 'badan',
@@ -151,8 +151,8 @@ describe('computeSimulasiPotensi — Orang Pribadi edge cases', () => {
   it('handles potensi = 0 (reported >= market)', () => {
     const result = computeSimulasiPotensi({
       equityValue100: 1_000_000_000,
-      dlomPercent: -0.30,
-      dlocPercent: -0.50,
+      dlomPercent: 0.30,
+      dlocPercent: 0.50,
       proporsiKepemilikan: 1,
       nilaiPengalihanDilaporkan: 999_999_999_999,
       jenisSubjekPajak: 'orang_pribadi',

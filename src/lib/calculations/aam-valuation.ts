@@ -8,7 +8,11 @@
  * from NAV and counted separately as Interest Bearing Debt.
  *
  * AAM does NOT have ROUNDUP or perShare steps (unlike DCF/EEM).
- * Final value (row 60) = Market Value Portion - paidUpCapitalDeduction.
+ * AAM ends at Market Value Portion (row 59 = row 57 × proporsiSaham).
+ *
+ * Row 60 ("Nilai Akhir AAM = E59 − paid-up capital deduction") is NOT modeled:
+ * per user decision (revisi-kedua-PENILAIAN-AAM.png), AAM's final output is
+ * Market Value Portion. Dashboard perShare divides that portion directly.
  */
 
 export interface AamInput {
@@ -43,8 +47,6 @@ export interface AamInput {
   dlomPercent: number
   dlocPercent: number
   proporsiSaham: number
-  /** Row 60 deduction — fixture uses 600M (nominal par value). Caller determines value. */
-  paidUpCapitalDeduction: number
 }
 
 export interface AamResult {
@@ -66,8 +68,7 @@ export interface AamResult {
   equityLessDlom: number // E55
   dlocDiscount: number // E56
   marketValue100: number // E57
-  marketValuePortion: number // E59
-  finalValue: number // E60 = E59 - paidUpCapitalDeduction
+  marketValuePortion: number // E59 — AAM final output
 }
 
 export function computeAam(input: AamInput): AamResult {
@@ -95,7 +96,6 @@ export function computeAam(input: AamInput): AamResult {
     dlomPercent,
     dlocPercent,
     proporsiSaham,
-    paidUpCapitalDeduction,
   } = input
 
   // --- Adjusted Balance Sheet ---
@@ -148,13 +148,8 @@ export function computeAam(input: AamInput): AamResult {
   const dlocDiscount = equityLessDlom * -dlocPercent
   const marketValue100 = equityLessDlom + dlocDiscount // E57
 
-  // E59: Market Value portion
+  // E59: Market Value portion — AAM final output.
   const marketValuePortion = marketValue100 * proporsiSaham
-
-  // E60: Final value = portion - paid-up capital deduction
-  // In fixture: =E59-600000000. The 600M is a nominal value (not BS!F43=2B).
-  // Company-agnostic: caller passes the appropriate deduction amount.
-  const finalValue = marketValuePortion - paidUpCapitalDeduction
 
   return {
     totalCurrentAssets,
@@ -174,6 +169,5 @@ export function computeAam(input: AamInput): AamResult {
     dlocDiscount,
     marketValue100,
     marketValuePortion,
-    finalValue,
   }
 }

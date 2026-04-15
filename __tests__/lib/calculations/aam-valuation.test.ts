@@ -28,8 +28,11 @@ import { computeAam, type AamInput } from '@/lib/calculations/aam-valuation'
  *   E55=18505088772.1 (equity less DLOM)
  *   D56=-0.54 (DLOC), E56=-9992747936.934
  *   E57=8512340835.166 (market value 100%)
- *   D58=0.3 (proporsi), E59=2553702250.5498
- *   E60=1953702250.5498 (E59 - 600000000 = E59 - modalDisetor)
+ *   D58=0.3 (proporsi), E59=2553702250.5498 (FINAL — AAM ends here)
+ *
+ * Note: Row 60 ("Nilai Akhir") removed from UI & pure calc per user feedback
+ * (revisi-kedua-PENILAIAN-AAM.png) — AAM finishes at Market Value Portion (E59).
+ * Dashboard perShare now uses marketValuePortion directly.
  */
 
 const PRECISION = 6
@@ -66,8 +69,6 @@ const FIXTURE_INPUT: AamInput = {
   dlomPercent: 0.3,
   dlocPercent: 0.54,
   proporsiSaham: 0.3,
-  // Row 60 deduction: fixture uses 600M (nominal par value, not BS!F43=2B)
-  paidUpCapitalDeduction: 600_000_000,
 }
 
 describe('computeAam matches Excel fixture', () => {
@@ -128,16 +129,11 @@ describe('computeAam matches Excel fixture', () => {
     expect(result.marketValue100).toBeCloseTo(8512340835.166, 2)
   })
 
-  it('computes market value portion (E59)', () => {
+  it('computes market value portion — AAM final output (E59)', () => {
     expect(result.marketValuePortion).toBeCloseTo(2553702250.5498, 2)
   })
 
-  it('computes final deduction with modalDisetor (E60 = E59 - modalDisetor)', () => {
-    // E60 = E59 - 600000000, but company-agnostic uses modalDisetor from BS
-    // In fixture: modalDisetor = 2000000000 (BS!F43), but E60=E59-600000000
-    // 600M = HOME!B7 (jumlahSahamBeredar as nominal value?)
-    // NOTE: For this test we use the fixture semantics: E60 = E59 - 600M
-    // The pure calc takes paidUpCapitalDeduction as parameter
-    expect(result.finalValue).toBeCloseTo(1953702250.5498, 2)
+  it('does not expose finalValue (removed — AAM ends at Market Value Portion)', () => {
+    expect('finalValue' in result).toBe(false)
   })
 })

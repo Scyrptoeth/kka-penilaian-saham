@@ -33,9 +33,9 @@ export const TARIF_PPH_BADAN = 0.22
 export interface SimulasiPotensiInput {
   /** Equity value (100%) from DCF/AAM/EEM — before DLOM/DLOC. */
   equityValue100: number
-  /** DLOM percentage (negative, e.g. -0.30). */
+  /** DLOM percentage as positive decimal (e.g. 0.30 for 30%). Function negates internally — mirrors `computeAam` contract. */
   dlomPercent: number
-  /** DLOC/PFC percentage (negative, e.g. -0.50). */
+  /** DLOC/PFC percentage as positive decimal (e.g. 0.50 for 50%). Function negates internally. */
   dlocPercent: number
   /** Proportion of shares being valued (0-1). */
   proporsiKepemilikan: number
@@ -65,11 +65,12 @@ export function computeSimulasiPotensi(input: SimulasiPotensiInput): SimulasiPot
     nilaiPengalihanDilaporkan,
   } = input
 
-  // DLOM → DLOC chain (same as AAM/share-value but returning intermediates)
-  const dlomAmount = equityValue100 * dlomPercent
+  // DLOM → DLOC chain. Mirrors `computeAam`: caller passes positive percentages,
+  // function negates internally so `dlomAmount` / `dlocAmount` are negative reductions.
+  const dlomAmount = equityValue100 * -dlomPercent
   const equityLessDlom = equityValue100 + dlomAmount
 
-  const dlocAmount = equityLessDlom * dlocPercent
+  const dlocAmount = equityLessDlom * -dlocPercent
   const marketValueEquity100 = equityLessDlom + dlocAmount
 
   const marketValuePortion = marketValueEquity100 * proporsiKepemilikan

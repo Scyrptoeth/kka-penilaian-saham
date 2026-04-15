@@ -39,7 +39,7 @@ export interface HomeInputs {
   // Data kuantitatif — field names generic (saham OR modal disetor)
   jumlahSahamBeredar: number
   jumlahSahamYangDinilai: number
-  /** Par value per share (Rp). Default 1. Used in AAM paidUpCapitalDeduction. */
+  /** Par value per share (Rp). Default 1. Reference metadata — not used in calculations (session 022). */
   nilaiNominalPerSaham: number
   tahunTransaksi: number
   /** Auto-computed summary from DLOM sheet */
