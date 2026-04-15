@@ -17,7 +17,7 @@ export default function AksesPage() {
           </p>
           <h1 className="text-3xl font-semibold tracking-tight mb-2">KKA Penilaian Bisnis II</h1>
           <p className="text-sm text-ink-soft leading-relaxed">
-            Aplikasi ini Dibuat dengan Prototipe dari "KKP Saham Irwan Djaja"
+            Dibuat dengan Prototipe dari "KKP Saham Irwan Djaja"
           </p>
         </header>
 
@@ -26,7 +26,7 @@ export default function AksesPage() {
         </Suspense>
 
         <footer className="mt-10 text-center">
-          <p className="text-[10px] text-ink-muted leading-relaxed">
+          <p className="text-[11px] text-ink-muted leading-relaxed">
             Seluruh Proses dan Data Hanya Berjalan dan Disimpan di Perangkat Anda.
             <br />
             Tidak Ada Data Apapun yang Dikirim atau Disimpan di Server.
