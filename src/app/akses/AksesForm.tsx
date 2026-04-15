@@ -15,7 +15,7 @@ export function AksesForm() {
     setError(null)
     const trimmed = nip.trim()
     if (!trimmed) {
-      setError('NIP Pendek wajib diisi.')
+      setError('NIP Pendek Wajib Diisi')
       return
     }
     startTransition(async () => {
@@ -33,9 +33,9 @@ export function AksesForm() {
           router.refresh()
           return
         }
-        setError(data.error ?? 'Gagal memverifikasi NIP. Coba lagi.')
+        setError(data.error ?? 'Gagal Memverifikasi NIP Pendek. Coba Lagi')
       } catch {
-        setError('Terjadi kesalahan jaringan. Coba lagi.')
+        setError('Terjadi Kesalahan Jaringan. Coba Lagi')
       }
     })
   }
