@@ -26,7 +26,7 @@ export default function AksesPage() {
         </Suspense>
 
         <footer className="mt-10 text-center">
-          <p className="text-[11px] text-ink-muted leading-relaxed">
+          <p className="text-[10px] text-ink-muted leading-relaxed">
             Seluruh Proses dan Data Hanya Berjalan dan Disimpan di Perangkat Anda.
             <br />
             Tidak Ada Data Apapun yang Dikirim atau Disimpan di Server.
