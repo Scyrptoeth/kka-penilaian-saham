@@ -42,3 +42,6 @@ next-env.d.ts
 
 # claude code internals (session locks, scratch state)
 /.claude/
+
+# generated at build-time from id-user.xlsx (server-only whitelist)
+/data/nip-whitelist.json

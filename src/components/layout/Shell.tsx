@@ -1,12 +1,22 @@
+'use client'
+
 import type { ReactNode } from 'react'
+import { usePathname } from 'next/navigation'
 import { Sidebar } from './Sidebar'
 import { MobileShell } from './MobileShell'
 
+const UNSHELLED_PATHS = new Set<string>(['/akses'])
+
 /**
  * App shell — composes the desktop static sidebar and the mobile drawer
- * shell with the main content area. Main stays on the server.
+ * shell with the main content area. Some routes (e.g. /akses) render
+ * full-bleed without sidebar chrome.
  */
 export function Shell({ children }: { children: ReactNode }) {
+  const pathname = usePathname()
+  if (UNSHELLED_PATHS.has(pathname)) {
+    return <>{children}</>
+  }
   return (
     <div className="flex h-dvh overflow-hidden">
       <Sidebar />

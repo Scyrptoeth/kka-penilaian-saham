@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { SidebarHeader } from './SidebarHeader'
 import { SidebarNav } from './SidebarNav'
 import { ExportButton } from './ExportButton'
+import { LogoutButton } from './LogoutButton'
 import { cn } from '@/lib/utils/cn'
 
 /**
@@ -106,6 +107,9 @@ export function MobileShell() {
         </div>
         <div className="border-t border-grid">
           <ExportButton />
+        </div>
+        <div className="border-t border-grid">
+          <LogoutButton />
         </div>
       </aside>
     </>

@@ -1,6 +1,7 @@
 import { SidebarNav } from './SidebarNav'
 import { SidebarHeader } from './SidebarHeader'
 import { ExportButton } from './ExportButton'
+import { LogoutButton } from './LogoutButton'
 
 /**
  * Desktop static sidebar — used on `lg+` only. The mobile drawer
@@ -22,6 +23,9 @@ export function Sidebar() {
       </div>
       <div className="border-t border-grid">
         <ExportButton />
+      </div>
+      <div className="border-t border-grid">
+        <LogoutButton />
       </div>
     </aside>
   )
