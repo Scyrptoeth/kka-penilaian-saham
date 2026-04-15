@@ -562,6 +562,11 @@ untuk 3+ sesi ke depan:
 - LESSON-068 (Catalog design with pre-allocated synthetic excelRow ranges per section enables append-only export modifications)
 - LESSON-069 (When superseded, DELETE the old code path entirely — don't leave dead exports/tests "for compat")
 
+### Session 026 (Footer + Export Excel Repair Dialog Fix)
+- LESSON-070 (Template-based ExcelJS export must sanitize three corruption vectors before writeBuffer — external-link refs, #REF! formulas/cells, cfRules with dangling refs)
+- LESSON-071 (Excel repair log is ground truth — minta screenshot tombol "View" sebelum menebak)
+- LESSON-072 (ExcelJS Table round-trip is unsafe — strip decorative Tables before export)
+
 LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054 **TIDAK** di-promote — workflow/session-specific
 insights yang general ke project lain tapi terlalu luas atau terlalu
 session-specific untuk section 8 (yang fokus KKA-specific gotchas).
@@ -1912,5 +1917,96 @@ The safer approach (E3): use synthetic row numbers ALREADY pre-allocated in the 
 5. **Test deletion is mandatory**: if old behavior tests stay green against new implementation, that's not "compat tested" — that's the new implementation accidentally supporting old API surface, masking design clarity.
 
 **Proven at**: session-025 (2026-04-15). `addBsDetailSheet` + 3 RINCIAN tests + visibility set entry + 2 imports all deleted. Net file diff: +289 / −221 lines (+68 net for new feature even after −110 deletion). Clean code base, no dead branches.
+
+---
+
+### LESSON-070: Template-based ExcelJS export must sanitize three corruption vectors before writeBuffer
+
+**Kategori**: Excel | Anti-pattern
+
+**Sesi**: session-026
+**Tanggal**: 2026-04-15
+
+**Konteks**: Menggunakan ExcelJS untuk round-trip sebuah template `.xlsx` (load → modify → save) yang dibuat oleh Excel dan pernah punya fitur yang ExcelJS tidak sepenuhnya support (external workbook links, charts, slicers, printer settings, revision history).
+
+**Apa yang terjadi**: Setelah ship template-based export pipeline (Session 018+), user melaporkan Excel menampilkan dua dialog saat membuka file yang di-export: (1) "We found a problem with some content... Do you want us to try to recover as much as we can?" dan (2) "Excel was able to open the file by repairing or removing the unreadable content." openpyxl load file tanpa warning. File "terlihat" baik-baik saja lewat Python, tapi Excel sendiri strict-validate dan reject.
+
+**Root cause / insight**: ExcelJS tidak round-trip beberapa part dari OPC package (external links, slicers, charts, revision) — pada save, dia DROP part-part tersebut tapi **biarkan referensinya tetap di file lain** (worksheet XML, cfRules, Table metadata). Excel lalu detect ketidaksesuaian sebagai "unreadable content". Tiga vektor konkret yang ketemu di satu workbook:
+
+1. **Cell formulas dengan external-workbook reference** → `'[3]BALANCE SHEET'!A3`, `[4]BANGUNAN!$U$5` — template punya `xl/externalLinks/externalLink1-4.xml`, ExcelJS drop folder itu tapi string formula tetap di cell → dangling.
+2. **Cells dengan cached `#REF!` error value** (with or without formula) — stored sebagai `{ error: '#REF!' }` atau string `'#REF!'`.
+3. **Conditional-formatting rules** dengan formulae berisi `#REF!` atau `[N]` — separate dari cell formulas, di `worksheet.conditionalFormattings[].rules[].formulae`.
+4. **Table metadata mis-serialised** (LESSON-072) — `headerRowCount="0"` dengan `tableColumns` tanpa header row anchor.
+
+**Cara menerapkan di masa depan**:
+1. **Selalu tambah sanitizer step di akhir export pipeline** (post-injection, post-visibility, pre-writeBuffer) untuk template-based export yang pakai workbook Excel sebagai template. Tidak optional.
+2. **Vektor yang harus di-cover** di `sanitizeDanglingFormulas`:
+   - Iterate `ws.eachRow → row.eachCell`. Untuk setiap cell dengan `value.formula` atau `value.sharedFormula` yang match `/\[\d+\]|#REF!/` → replace cell value dengan `value.result`, tapi kalau result juga error (string `'#REF!'` atau object `{ error: '#REF!' }`) → set ke `null`.
+   - Untuk cells tanpa formula yang store raw error value matching regex → `cell.value = null`.
+   - Untuk `ws.conditionalFormattings` array → filter out rules yang `formulae` array-nya berisi dangling ref. Remove empty entries.
+3. **Verifikasi pasca-fix** dengan XML-level grep, bukan hanya ExcelJS round-trip test:
+   ```bash
+   unzip -q output.xlsx -d /tmp/out && cd /tmp/out
+   grep -rhE '\[[0-9]+\]|#REF!' xl/worksheets/*.xml  # should be 0 for [N], only stale cached <v>#REF!</v> acceptable
+   ```
+4. **Anti-pattern**: "openpyxl load OK → file clean" — openpyxl lebih permissive dari Excel. Validation WAJIB pakai tool yang strict-match Excel behavior (real Excel, LibreOffice headless, atau repair log dari Excel).
+5. **Jangan sentuh live formulas** — sanitizer MUST use regex yang narrow (`\[\d+\]|#REF!`), bukan broad pattern yang bisa strip valid formulas.
+
+**Proven at**: session-026 (2026-04-15). 6 external-link formulas + 3+ `#REF!` formulas di sheet29 + 1 cfRule di WACC semua dibersihkan. Tests: 5 new test cases di `sanitizeDanglingFormulas` block memverifikasi each vector.
+
+---
+
+### LESSON-071: Excel repair log is ground truth — minta screenshot tombol "View" sebelum menebak
+
+**Kategori**: Workflow | Anti-pattern | Excel
+
+**Sesi**: session-026
+**Tanggal**: 2026-04-15
+
+**Konteks**: User melaporkan file `.xlsx` yang di-export memunculkan dialog repair di Excel. Dialog kedua punya tombol "View" yang menampilkan log terstruktur tentang apa yang Excel modify/remove.
+
+**Apa yang terjadi**: Pass pertama fix (sanitize external-link + `#REF!` formulas) sudah ship dan tests hijau, tapi user test export ulang dan 2 dialog masih muncul. Tanpa repair log, saya harus menebak root cause tambahan — candidates-nya banyak (slicers, charts, named ranges, printer settings, merged cells, drawings). Setelah minta user klik "View" dan kirim screenshot, log langsung menunjukkan: `"Removed Records: AutoFilter from /xl/tables/table1.xml part (Table)"` × 4. Root cause ter-identifikasi 1 menit, fix target tepat.
+
+**Root cause / insight**: Excel's repair dialog tampil karena banyak reason (20+ jenis corruption vector) tapi tombol "View" selalu membuka window XML-based log yang **literal** menamai part dan record yang Excel repair. Log ini adalah ground truth — bukan tebakan, bukan probabilistik. Tanpa log, debugging Excel file corruption berarti trial-error pada 20+ candidates. Dengan log, debugging jadi single-target.
+
+**Cara menerapkan di masa depan**:
+1. **First response saat ada Excel repair dialog**: JANGAN langsung menebak root cause. Minta user:
+   - Screenshot dialog pertama (corruption confirmation)
+   - **Klik "View" di dialog kedua**, screenshot window log-nya
+   - Kirim file `.xlsx` itu sendiri ke folder project untuk bisa di-unzip & di-inspect
+2. **Log format yang biasanya muncul**: `"Removed Records: <feature> from <part-path> part (<component>)"` atau `"Renamed Part: <old> -> <new>"`. Parse ini untuk direct pointer ke masalah.
+3. **Kalau user tidak bisa screenshot log**, gunakan LibreOffice headless atau Excel command-line sebagai proxy:
+   ```bash
+   libreoffice --headless --convert-to xlsx broken.xlsx 2>&1 | grep -i warn  # shows similar complaints
+   ```
+   Output-nya tidak persis sama dengan Excel log, tapi lebih informatif dari openpyxl yang silent.
+4. **Anti-pattern**: "Mari saya tebak dan fix dulu, kalau masih error kita iterate". Iterasi pada guess di tempat yang butuh 3-5 menit roundtrip (user export → open → screenshot → kirim) = waste of context. One-shot diagnostic dengan repair log lebih murah.
+
+**Proven at**: session-026 (2026-04-15). Pass pertama saya fix 3 vektor (external-links, #REF! cells, cfRules) tapi user export masih error. Dengan repair log, vektor ke-4 (decorative Tables) ter-identifikasi instan dan fix shipped 5 menit kemudian.
+
+---
+
+### LESSON-072: ExcelJS Table round-trip is unsafe — strip decorative Tables before export
+
+**Kategori**: Excel | Anti-pattern
+
+**Sesi**: session-026
+**Tanggal**: 2026-04-15
+
+**Konteks**: Template punya Excel Structured Tables (styled ranges dengan column headers, biasanya `Table1`, `Table7`, dst.) yang mungkin decorative (hanya untuk styling) atau functional (untuk filter/sort). Template-based export load template pakai ExcelJS lalu save ulang.
+
+**Apa yang terjadi**: Template's FINANCIAL RATIO sheet punya 4 Tables (`Table7/8/9/11`) sebagai styled section headers untuk 4 grup ratio. Template valid: `<table ref="B5:G11" totalsRowShown="0" headerRowDxfId="27">` (no explicit `headerRowCount` → default 1, header row ada di row 5). Setelah ExcelJS round-trip: metadata berubah jadi `<table ref="B5:G11" totalsRowShown="1" headerRowCount="0">` dengan 6 `<tableColumn>` entries (nama kolom: "Profitability Indicator Ratio", "Formula", "Column3"-"Column6"). `headerRowCount=0` artinya tidak ada header row — tapi column names tetap declared tanpa anchor cell. Excel detect struktur inkonsisten → silently remove table's autoFilter metadata → surface repair dialog "Removed Records: AutoFilter from /xl/tables/tableN.xml".
+
+**Root cause / insight**: ExcelJS parser-nya tidak handle semua kombinasi Excel's Table metadata dengan benar. Specifically, template yang pakai implicit `headerRowCount=1` (default) plus `dxfId`-based styling tidak round-trip bersih — serialized output punya explicit `headerRowCount="0"` yang salah. Ini ExcelJS bug/quirk, bukan salah template. Tapi fix di ExcelJS itu sendiri bukan opsi (library maintenance bukan scope kita) — jadi fix di consumer (strip Tables before write).
+
+**Cara menerapkan di masa depan**:
+1. **Decision rule untuk Tables di template-based export**:
+   - **Functional Table** (user butuh filter/sort dropdown) → tidak bisa pakai ExcelJS round-trip; butuh rebuild Table secara eksplisit via `ws.addTable()` dengan metadata yang benar pasca-load.
+   - **Decorative Table** (hanya styling, no functional filter) → **strip sepenuhnya** lewat `ws.removeTable(name)` untuk setiap table. Cell values + styles tetap utuh (Table wrapper hilang, cell content tidak disentuh).
+2. **Implementasi**: post-processing step `stripDecorativeTables(workbook)` yang iterate `workbook.worksheets`, akses `ws.tables` (Record), dan call `ws.removeTable(name)` untuk setiap entry. Fallback ke `delete ws.tables[name]` kalau removeTable throw (ExcelJS sometimes rejects malformed table models).
+3. **Verifikasi**: unzip output, check (a) `xl/tables/` folder tidak exist, (b) `grep -l 'type.*table' xl/worksheets/_rels/*.rels` tidak return apapun, (c) `[Content_Types].xml` tidak mention `/xl/tables/`.
+4. **Anti-pattern**: Assume "round-trip aman karena file buka di Excel". ExcelJS mis-serialization bisa silent — file buka di Excel (karena Excel tolerant di beberapa area) tapi dengan repair dialog. Strict verification pakai XML-level inspection, bukan hanya "file opens".
+
+**Proven at**: session-026 (2026-04-15). 4 Tables di FINANCIAL RATIO dibersihkan via `stripDecorativeTables` step 8 di `exportToXlsx`. Post-fix sample: zero `xl/tables/` folder, zero table refs, cell values preserved (test `preserves FINANCIAL RATIO cell values` verifies B5 still truthy).
 
 ---
