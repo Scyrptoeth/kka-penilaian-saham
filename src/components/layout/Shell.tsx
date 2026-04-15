@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import { usePathname } from 'next/navigation'
 import { Sidebar } from './Sidebar'
 import { MobileShell } from './MobileShell'
+import { Footer } from './Footer'
 
 const UNSHELLED_PATHS = new Set<string>(['/akses'])
 
@@ -22,8 +23,9 @@ export function Shell({ children }: { children: ReactNode }) {
       <Sidebar />
       <div className="flex h-full flex-1 flex-col min-w-0">
         <MobileShell />
-        <main className="flex-1 overflow-y-auto overflow-x-auto px-4 py-6 md:px-8 md:py-8">
-          {children}
+        <main className="flex-1 overflow-y-auto overflow-x-auto">
+          <div className="px-4 py-6 md:px-8 md:py-8">{children}</div>
+          <Footer />
         </main>
       </div>
     </div>
