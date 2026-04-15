@@ -1,12 +1,14 @@
 import { SidebarNav } from './SidebarNav'
 import { SidebarHeader } from './SidebarHeader'
 import { ExportButton } from './ExportButton'
-import { ThemeToggle } from './ThemeToggle'
 
 /**
  * Desktop static sidebar — used on `lg+` only. The mobile drawer
  * (<MobileShell>) reuses the same <SidebarNav> and <SidebarHeader>
  * pieces inside its sliding panel.
+ *
+ * Theme toggle lives inside <SidebarHeader> (Session 026 redesign) —
+ * sejajar dengan privacy badge sebagai pill stack.
  */
 export function Sidebar() {
   return (
@@ -17,9 +19,6 @@ export function Sidebar() {
       <SidebarHeader />
       <div className="flex-1 overflow-y-auto">
         <SidebarNav />
-      </div>
-      <div className="border-t border-grid">
-        <ThemeToggle />
       </div>
       <div className="border-t border-grid">
         <ExportButton />
