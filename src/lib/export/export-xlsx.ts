@@ -34,10 +34,8 @@ import {
 } from './cell-mapping'
 import {
   BS_CATALOG_ALL,
-  type BsAccountEntry,
   type BsSection,
 } from '@/data/catalogs/balance-sheet-catalog'
-import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -86,10 +84,10 @@ export async function exportToXlsx(state: ExportableState): Promise<Blob> {
   injectDlomJenisPerusahaan(workbook, state)
   injectAamAdjustments(workbook, state)
 
-  // 5. Add "RINCIAN NERACA" detail sheet with ALL BS accounts
-  if (state.balanceSheet && state.home) {
-    addBsDetailSheet(workbook, state.balanceSheet, state.home.tahunTransaksi)
-  }
+  // 5. Inject extended BS catalog accounts as native rows + extend section
+  //    subtotals. Replaces the RINCIAN NERACA detail sheet pattern (Session 025).
+  injectExtendedBsAccounts(workbook, state)
+  extendBsSectionSubtotals(workbook, state)
 
   // 6. Apply website-nav 1:1 sheet visibility (Session 024 audit decision)
   applySheetVisibility(workbook)
@@ -175,12 +173,10 @@ const WEBSITE_NAV_SHEETS: readonly string[] = [
 
 /**
  * Set every worksheet to `visible` if it is in WEBSITE_NAV_SHEETS, otherwise
- * `hidden`. The "RINCIAN NERACA" detail sheet (added by addBsDetailSheet) is
- * also kept visible. All other DJP-template helper/dataset sheets are hidden.
+ * `hidden`. All non-nav DJP-template helper/dataset sheets are hidden.
  */
 export function applySheetVisibility(workbook: ExcelJS.Workbook): void {
   const visibleSet = new Set<string>(WEBSITE_NAV_SHEETS)
-  visibleSet.add('RINCIAN NERACA')
 
   for (const ws of workbook.worksheets) {
     ws.state = visibleSet.has(ws.name) ? 'visible' : 'hidden'
@@ -460,130 +456,133 @@ function injectAamAdjustments(workbook: ExcelJS.Workbook, state: ExportableState
 }
 
 // ---------------------------------------------------------------------------
-// Internal: "RINCIAN NERACA" detail sheet — ALL BS accounts with values
+// Internal: Extended BS catalog injection (Session 025, Approach E3)
+//
+// User-added accounts beyond template baseline use synthetic excelRow ≥ 100
+// per BS_CATALOG_ALL. We write their values+labels at those synthetic rows
+// directly in the BALANCE SHEET sheet (no row insertion, no cross-sheet ref
+// shifting). Then we APPEND `+SUM(<col>{start}:<col>{end})` to each section's
+// subtotal formula so extended accounts contribute to all downstream
+// computations.
 // ---------------------------------------------------------------------------
 
-const SECTION_ORDER: readonly BsSection[] = [
-  'current_assets',
-  // fixed_assets removed — now cross-referenced from FA store, not user accounts
-  'other_non_current_assets',
-  'intangible_assets',
-  'current_liabilities',
-  'non_current_liabilities',
-  'equity',
-]
+interface BsSectionInjectMap {
+  section: BsSection
+  extendedRowStart: number
+  extendedRowEnd: number
+  /** Cell row whose formula gets `+SUM(extendedRange)` appended per year col. */
+  subtotalRow: number
+}
 
-const SECTION_HEADER_LABELS: Record<BsSection, string> = {
-  current_assets: 'CURRENT ASSETS (Aset Lancar)',
-  fixed_assets: 'FIXED ASSETS (Aset Tetap)',
-  other_non_current_assets: 'OTHER NON-CURRENT ASSETS (Aset Tidak Lancar Lainnya)',
-  intangible_assets: 'INTANGIBLE ASSETS (Aset Tak Berwujud)',
-  current_liabilities: 'CURRENT LIABILITIES (Liabilitas Jangka Pendek)',
-  non_current_liabilities: 'NON-CURRENT LIABILITIES (Liabilitas Jangka Panjang)',
-  equity: 'EQUITY (Ekuitas)',
+/** Section → (extended row range, subtotal row). Order matches BS template. */
+const BS_SECTION_INJECT: readonly BsSectionInjectMap[] = [
+  { section: 'current_assets',           extendedRowStart: 100, extendedRowEnd: 139, subtotalRow: 16 },
+  { section: 'intangible_assets',        extendedRowStart: 140, extendedRowEnd: 159, subtotalRow: 25 },
+  { section: 'other_non_current_assets', extendedRowStart: 160, extendedRowEnd: 199, subtotalRow: 25 },
+  { section: 'current_liabilities',      extendedRowStart: 200, extendedRowEnd: 219, subtotalRow: 35 },
+  { section: 'non_current_liabilities',  extendedRowStart: 220, extendedRowEnd: 239, subtotalRow: 40 },
+  { section: 'equity',                   extendedRowStart: 300, extendedRowEnd: 319, subtotalRow: 49 },
+  // fixed_assets section: not injected here — values come from FA store via
+  // cross-sheet ref `'FIXED ASSET'!C32` in the BS template formulas.
+] as const
+
+/**
+ * Write extended BS accounts (excelRow ≥ 100) to their synthetic rows in the
+ * BALANCE SHEET sheet. Each row gets: label in column B, numeric values in
+ * year columns. Original template cells (rows 8-49) untouched.
+ */
+export function injectExtendedBsAccounts(
+  workbook: ExcelJS.Workbook,
+  state: ExportableState,
+): void {
+  if (!state.balanceSheet) return
+  const ws = workbook.getWorksheet('BALANCE SHEET')
+  if (!ws) return
+
+  const grid = ALL_GRID_MAPPINGS.find((g) => g.excelSheet === 'BALANCE SHEET')
+  if (!grid) return
+
+  for (const acc of state.balanceSheet.accounts) {
+    if (acc.excelRow < 100) continue // original rows handled by injectGridCells
+
+    // Label (column B): customLabel > catalog labelEn > catalogId fallback
+    const catalog = BS_CATALOG_ALL.find((c) => c.id === acc.catalogId)
+    const label = acc.customLabel ?? (catalog ? catalog.labelEn : acc.catalogId)
+    ws.getCell(`B${acc.excelRow}`).value = label
+
+    // Values per year column
+    const yearValues = state.balanceSheet.rows[acc.excelRow]
+    if (!yearValues) continue
+    for (const [yearStr, col] of Object.entries(grid.yearColumns)) {
+      const val = yearValues[Number(yearStr)]
+      if (val !== undefined && val !== null) {
+        ws.getCell(`${col}${acc.excelRow}`).value = val
+      }
+    }
+  }
 }
 
 /**
- * Add a "RINCIAN NERACA" worksheet to the workbook containing ALL user BS
- * accounts with their individual values, grouped by section. Each section
- * ends with a SUM formula subtotal. Fully editable by the user.
+ * For each BS section with ≥1 extended account, append `+SUM(<col>{start}:
+ * <col>{end})` to that section's subtotal formula across all year columns.
+ *
+ * Two sections (intangible_assets, other_non_current_assets) share subtotal
+ * row 25 — each appends its own SUM term, so the row may receive 1 or 2
+ * appended terms depending on which sections have extended accounts.
  */
-export function addBsDetailSheet(
+export function extendBsSectionSubtotals(
   workbook: ExcelJS.Workbook,
-  bs: BalanceSheetInputState,
-  tahunTransaksi: number,
+  state: ExportableState,
 ): void {
-  if (!bs.accounts || bs.accounts.length === 0) return
+  if (!state.balanceSheet) return
+  const ws = workbook.getWorksheet('BALANCE SHEET')
+  if (!ws) return
 
-  const years = computeHistoricalYears(tahunTransaksi, bs.yearCount ?? 1)
-  const ws = workbook.addWorksheet('RINCIAN NERACA')
+  const grid = ALL_GRID_MAPPINGS.find((g) => g.excelSheet === 'BALANCE SHEET')
+  if (!grid) return
 
-  // Formatting constants
-  const headerFont: Partial<ExcelJS.Font> = { bold: true, size: 11 }
-  const sectionFont: Partial<ExcelJS.Font> = { bold: true, size: 10, color: { argb: 'FF1E293B' } }
-  const subtotalFont: Partial<ExcelJS.Font> = { bold: true, size: 10 }
-  const idrFormat = '#,##0'
-
-  // Column widths: A = label (40), B+ = years (18 each)
-  ws.getColumn(1).width = 45
-  for (let i = 0; i < years.length; i++) {
-    ws.getColumn(i + 2).width = 20
+  // Identify which sections actually have extended accounts in the user's data.
+  const sectionsWithExtended = new Set<BsSection>()
+  for (const acc of state.balanceSheet.accounts) {
+    if (acc.excelRow >= 100) sectionsWithExtended.add(acc.section)
   }
+  if (sectionsWithExtended.size === 0) return
 
-  let r = 1
+  for (const map of BS_SECTION_INJECT) {
+    if (!sectionsWithExtended.has(map.section)) continue
 
-  // Title
-  ws.getCell(`A${r}`).value = 'RINCIAN NERACA (Balance Sheet Detail)'
-  ws.getCell(`A${r}`).font = { bold: true, size: 13 }
-  r += 2
+    for (const col of Object.values(grid.yearColumns)) {
+      const cell = ws.getCell(`${col}${map.subtotalRow}`)
+      const existing = cell.value
+      const sumTerm = `SUM(${col}${map.extendedRowStart}:${col}${map.extendedRowEnd})`
 
-  // Year headers
-  ws.getCell(`A${r}`).value = 'Nama Akun'
-  ws.getCell(`A${r}`).font = headerFont
-  for (let i = 0; i < years.length; i++) {
-    const col = String.fromCharCode(66 + i) // B, C, D, ...
-    ws.getCell(`${col}${r}`).value = years[i]
-    ws.getCell(`${col}${r}`).font = headerFont
-    ws.getCell(`${col}${r}`).alignment = { horizontal: 'right' }
-  }
-  r++
-
-  // Group accounts by section
-  const bySection = new Map<BsSection, BsAccountEntry[]>()
-  for (const acc of bs.accounts) {
-    const existing = bySection.get(acc.section) ?? []
-    existing.push(acc)
-    bySection.set(acc.section, existing)
-  }
-
-  for (const section of SECTION_ORDER) {
-    const sectionAccounts = bySection.get(section)
-    if (!sectionAccounts || sectionAccounts.length === 0) continue
-
-    // Section header
-    r++
-    ws.getCell(`A${r}`).value = SECTION_HEADER_LABELS[section]
-    ws.getCell(`A${r}`).font = sectionFont
-    ws.getCell(`A${r}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } }
-    for (let i = 0; i < years.length; i++) {
-      ws.getCell(`${String.fromCharCode(66 + i)}${r}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } }
-    }
-    r++
-
-    const firstDataRow = r
-
-    // Account rows
-    for (const acc of sectionAccounts) {
-      const catalog = BS_CATALOG_ALL.find((c) => c.id === acc.catalogId)
-      const label = acc.customLabel ?? (catalog ? `${catalog.labelEn} / ${catalog.labelId}` : acc.catalogId)
-      ws.getCell(`A${r}`).value = `  ${label}`
-
-      const yearValues = bs.rows[acc.excelRow]
-      for (let i = 0; i < years.length; i++) {
-        const col = String.fromCharCode(66 + i)
-        const val = yearValues?.[years[i]]
-        if (val !== undefined && val !== null) {
-          ws.getCell(`${col}${r}`).value = val
-          ws.getCell(`${col}${r}`).numFmt = idrFormat
-          ws.getCell(`${col}${r}`).alignment = { horizontal: 'right' }
-        }
+      // Build new formula: append the SUM term to existing formula or value.
+      let newFormula: string
+      if (existing && typeof existing === 'object' && 'formula' in existing) {
+        // ExcelJS stores formulas as { formula: '...' } objects
+        newFormula = `${(existing as { formula: string }).formula}+${sumTerm}`
+      } else if (typeof existing === 'string' && existing.startsWith('=')) {
+        newFormula = `${existing.slice(1)}+${sumTerm}`
+      } else if (typeof existing === 'number') {
+        // Subtotal cell has a hard-coded number (template missing formula?).
+        // Wrap into a formula that preserves the original value as a constant.
+        newFormula = `${existing}+${sumTerm}`
+      } else {
+        // Empty cell — start fresh
+        newFormula = sumTerm
       }
-      r++
-    }
 
-    const lastDataRow = r - 1
-
-    // Subtotal with SUM formula
-    ws.getCell(`A${r}`).value = `  Subtotal ${SECTION_HEADER_LABELS[section].split(' (')[0]}`
-    ws.getCell(`A${r}`).font = subtotalFont
-    for (let i = 0; i < years.length; i++) {
-      const col = String.fromCharCode(66 + i)
-      ws.getCell(`${col}${r}`).value = { formula: `SUM(${col}${firstDataRow}:${col}${lastDataRow})` }
-      ws.getCell(`${col}${r}`).numFmt = idrFormat
-      ws.getCell(`${col}${r}`).font = subtotalFont
-      ws.getCell(`${col}${r}`).alignment = { horizontal: 'right' }
-      ws.getCell(`${col}${r}`).border = { top: { style: 'thin' } }
+      cell.value = { formula: newFormula }
     }
-    r++
   }
 }
+
+// ---------------------------------------------------------------------------
+// "RINCIAN NERACA" — DELETED in Session 025
+//
+// Extended BS accounts now write directly to BALANCE SHEET as native rows
+// (see injectExtendedBsAccounts + extendBsSectionSubtotals above). The
+// separate RINCIAN detail sheet is no longer needed; the
+// `addBsDetailSheet` function was removed. If any external consumer needs
+// it, recover from git history (commit 97863cd or earlier).
+// ---------------------------------------------------------------------------

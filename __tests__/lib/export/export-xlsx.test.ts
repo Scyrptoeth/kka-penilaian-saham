@@ -3,7 +3,11 @@ import ExcelJS from 'exceljs'
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
 import type { ExportableState } from '@/lib/export/export-xlsx'
-import { addBsDetailSheet, applySheetVisibility } from '@/lib/export/export-xlsx'
+import {
+  applySheetVisibility,
+  injectExtendedBsAccounts,
+  extendBsSectionSubtotals,
+} from '@/lib/export/export-xlsx'
 import {
   ALL_SCALAR_MAPPINGS,
   ALL_GRID_MAPPINGS,
@@ -38,10 +42,10 @@ async function simulateExport(state: ExportableState): Promise<ExcelJS.Workbook>
   clearAllInputCells(wb)
   // Inject user data
   injectAll(wb, state)
-  // Add RINCIAN NERACA detail sheet
-  if (state.balanceSheet && state.home) {
-    addBsDetailSheet(wb, state.balanceSheet, state.home.tahunTransaksi)
-  }
+  // Inject extended BS accounts as native rows + extend subtotals (Session 025).
+  // Replaces the RINCIAN NERACA detail sheet pattern.
+  injectExtendedBsAccounts(wb, state)
+  extendBsSectionSubtotals(wb, state)
   // Apply website-nav 1:1 visibility (Session 024)
   applySheetVisibility(wb)
 
@@ -471,33 +475,9 @@ describe('export-xlsx (template-based)', () => {
     expect(wb.worksheets.length).toBe(45) // no RINCIAN NERACA when bs=null
   })
 
-  it('adds RINCIAN NERACA sheet when BS has accounts with values', async () => {
-    const wb = await simulateExport(TEST_STATE)
-    const detail = wb.getWorksheet('RINCIAN NERACA')
-    expect(detail).toBeDefined()
-    // Should contain account labels
-    let foundCash = false
-    detail!.eachRow((row) => {
-      const cellA = row.getCell(1).value
-      if (typeof cellA === 'string' && cellA.includes('Cash on Hands')) foundCash = true
-    })
-    expect(foundCash).toBe(true)
-  })
-
-  it('RINCIAN NERACA includes correct values for year columns', async () => {
-    const wb = await simulateExport(TEST_STATE)
-    const detail = wb.getWorksheet('RINCIAN NERACA')!
-    // tahunTransaksi=2023, yearCount=4 → years [2019,2020,2021,2022] → cols B,C,D,E
-    // BS data has 2019:200 for row 8 (Cash on Hands)
-    let cashValue2019: unknown = null
-    detail.eachRow((row) => {
-      const cellA = row.getCell(1).value
-      if (typeof cellA === 'string' && cellA.includes('Cash on Hands')) {
-        cashValue2019 = row.getCell(2).value // col B = first year (2019)
-      }
-    })
-    expect(cashValue2019).toBe(200) // 2019 value from TEST_STATE
-  })
+  // RINCIAN NERACA detail sheet was DELETED in Session 025 — extended accounts
+  // now write directly to BALANCE SHEET as native rows. See "extended BS catalog
+  // native injection" describe block below for replacement coverage.
 
   // ─── Session 024: website-nav 1:1 visibility ───
   describe('sheet visibility — website nav 1:1', () => {
@@ -514,11 +494,6 @@ describe('export-xlsx (template-based)', () => {
       expect(wb.getWorksheet('DIVIDEND DISCOUNT MODEL')!.state).toBe('hidden')
     })
 
-    it('keeps RINCIAN NERACA visible (export-added detail sheet)', async () => {
-      const wb = await simulateExport(TEST_STATE)
-      expect(wb.getWorksheet('RINCIAN NERACA')!.state).toBe('visible')
-    })
-
     it('keeps all 29 website-nav sheets visible', async () => {
       const wb = await simulateExport(TEST_STATE)
       const navSheets = [
@@ -533,6 +508,98 @@ describe('export-xlsx (template-based)', () => {
       for (const name of navSheets) {
         expect(wb.getWorksheet(name)!.state, name).toBe('visible')
       }
+    })
+  })
+
+  // ─── Session 025: extended catalog native injection ───
+  describe('extended BS catalog native injection (Session 025)', () => {
+    const STATE_WITH_EXTENDED: ExportableState = {
+      ...TEST_STATE,
+      balanceSheet: {
+        accounts: [
+          // Original-row accounts
+          { catalogId: 'cash', excelRow: 8, section: 'current_assets' as const },
+          // Extended-row account in current_assets (excelRow ≥ 100)
+          { catalogId: 'short_term_invest', excelRow: 100, section: 'current_assets' as const },
+          { catalogId: 'restricted_cash', excelRow: 108, section: 'current_assets' as const },
+          // Extended in equity section
+          { catalogId: 'treasury_stock', excelRow: 300, section: 'equity' as const },
+        ],
+        yearCount: 4,
+        language: 'en' as const,
+        rows: {
+          8: { 2018: 100, 2019: 200, 2020: 300, 2021: 400 },
+          100: { 2018: 1000, 2019: 1100, 2020: 1200, 2021: 1300 },
+          108: { 2018: 50, 2019: 60, 2020: 70, 2021: 80 },
+          300: { 2018: -500, 2019: -600, 2020: -700, 2021: -800 },
+        },
+      },
+    }
+
+    it('writes extended-account label into column B at synthetic row', async () => {
+      const wb = await simulateExport(STATE_WITH_EXTENDED)
+      const bs = wb.getWorksheet('BALANCE SHEET')!
+      // catalog "short_term_invest" → labelEn "Short-term Investments"
+      expect(bs.getCell('B100').value).toBe('Short-term Investments')
+      expect(bs.getCell('B108').value).toBe('Restricted Cash')
+      expect(bs.getCell('B300').value).toBe('Treasury Stock')
+    })
+
+    it('writes extended-account values into year columns at synthetic row', async () => {
+      const wb = await simulateExport(STATE_WITH_EXTENDED)
+      const bs = wb.getWorksheet('BALANCE SHEET')!
+      // yearColumns C/D/E/F = 2018/2019/2020/2021
+      expect(bs.getCell('C100').value).toBe(1000)
+      expect(bs.getCell('D100').value).toBe(1100)
+      expect(bs.getCell('E100').value).toBe(1200)
+      expect(bs.getCell('F100').value).toBe(1300)
+      // negative for treasury_stock
+      expect(bs.getCell('F300').value).toBe(-800)
+    })
+
+    it('appends +SUM(extendedRange) to current_assets subtotal at row 16', async () => {
+      const wb = await simulateExport(STATE_WITH_EXTENDED)
+      const bs = wb.getWorksheet('BALANCE SHEET')!
+      const cell = bs.getCell('D16')
+      const formula = (cell.value as { formula: string }).formula
+      // Original: SUM(D8:D14) → appended: ...+SUM(D100:D139)
+      expect(formula).toContain('SUM(D8:D14)')
+      expect(formula).toContain('SUM(D100:D139)')
+    })
+
+    it('appends +SUM(extendedRange) to equity subtotal at row 49 for all year columns', async () => {
+      const wb = await simulateExport(STATE_WITH_EXTENDED)
+      const bs = wb.getWorksheet('BALANCE SHEET')!
+      // Original D49 = +D43+D48+D44 → +D43+D48+D44+SUM(D300:D319)
+      for (const col of ['C', 'D', 'E', 'F']) {
+        const formula = (bs.getCell(`${col}49`).value as { formula: string }).formula
+        expect(formula, `${col}49`).toContain(`SUM(${col}300:${col}319)`)
+      }
+    })
+
+    it('does NOT modify subtotals for sections without extended accounts', async () => {
+      const wb = await simulateExport(STATE_WITH_EXTENDED)
+      const bs = wb.getWorksheet('BALANCE SHEET')!
+      // current_liabilities row 35: STATE_WITH_EXTENDED has no extended for this section
+      const formula = (bs.getCell('D35').value as { formula: string }).formula
+      expect(formula).not.toContain('SUM(D200:D219)')
+      // Should still contain original
+      expect(formula).toContain('SUM(D31:D34)')
+    })
+
+    it('preserves original-row accounts (excelRow < 100) unchanged in formula injection', async () => {
+      const wb = await simulateExport(STATE_WITH_EXTENDED)
+      const bs = wb.getWorksheet('BALANCE SHEET')!
+      // Original cash account at D8 = 200 (year 2019)
+      expect(bs.getCell('D8').value).toBe(200)
+    })
+
+    it('handles state with no extended accounts → no formula changes', async () => {
+      // Reuse base TEST_STATE which has only original-row accounts
+      const wb = await simulateExport(TEST_STATE)
+      const bs = wb.getWorksheet('BALANCE SHEET')!
+      const formula = (bs.getCell('D16').value as { formula: string }).formula
+      expect(formula).toBe('SUM(D8:D14)') // unchanged
     })
   })
 })
