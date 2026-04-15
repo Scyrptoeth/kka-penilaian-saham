@@ -15,9 +15,9 @@ export default function AksesPage() {
           <p className="text-[10px] font-mono uppercase tracking-[0.3em] text-ink-muted mb-3">
             Akses Terbatas · Hanya untuk Fungsional Penilai
           </p>
-          <h1 className="text-3xl font-semibold tracking-tight mb-2">KKA Penilaian Bisnis II</h1>
+          <h1 className="text-3xl font-semibold tracking-tight mb-2">Kertas Kerja Analisis (KKA)</h1>
           <p className="text-sm text-ink-soft leading-relaxed">
-            KKA Penilaian Bisnis II
+            Penilaian Bisnis II
           </p>
         </header>
 
