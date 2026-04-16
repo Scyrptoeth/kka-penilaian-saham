@@ -200,6 +200,35 @@ export function isOriginalExcelRow(excelRow: number): boolean {
 }
 
 /**
+ * Interest-Bearing Debt catalog IDs — bank loans excluded from NAV
+ * in AAM calculation and counted separately as IBD.
+ * Custom accounts default to non-IBD (conservative).
+ */
+export const IBD_CATALOG_IDS: ReadonlySet<string> = new Set([
+  'short_term_debt', // Bank Loan - Short Term (excelRow 31)
+  'long_term_debt',  // Bank Loan - Long Term (excelRow 38)
+])
+
+/** Whether an account is classified as Interest-Bearing Debt */
+export function isIbdAccount(account: BsAccountEntry): boolean {
+  return IBD_CATALOG_IDS.has(account.catalogId)
+}
+
+/**
+ * Resolve display label for a BS account.
+ * Custom entries use customLabel; catalog entries use language-specific label.
+ */
+export function resolveAccountLabel(
+  account: BsAccountEntry,
+  language: 'en' | 'id',
+): string {
+  if (account.customLabel) return account.customLabel
+  const catalog = getCatalogAccount(account.catalogId)
+  if (!catalog) return account.catalogId
+  return language === 'en' ? catalog.labelEn : catalog.labelId
+}
+
+/**
  * BS sentinel rows — subtotals/totals that downstream consumers need.
  * Pre-computed at persist time to include extended catalog accounts that
  * the static BALANCE_SHEET_MANIFEST's computedFrom arrays don't reference.

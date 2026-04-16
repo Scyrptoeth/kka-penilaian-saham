@@ -9,6 +9,8 @@
  */
 
 import type { HomeInputs, YearKeyedSeries } from '@/types'
+import type { BsAccountEntry } from '@/data/catalogs/balance-sheet-catalog'
+import { isIbdAccount } from '@/data/catalogs/balance-sheet-catalog'
 import type { AamInput } from '@/lib/calculations/aam-valuation'
 import type { DcfInput } from '@/lib/calculations/dcf'
 import type { BorrowingCapInput } from '@/lib/calculations/borrowing-cap'
@@ -88,31 +90,92 @@ export function computeHistoricalUpstream(input: HistoricalUpstreamInput): Histo
 // ── AAM Input Builder ──
 
 export interface BuildAamParams {
+  accounts: readonly BsAccountEntry[]
   allBs: Record<number, YearKeyedSeries>
   lastYear: number
   home: HomeInputs
   aamAdjustments: Record<number, number>
 }
 
-/** Build AamInput from BS rows + per-row adjustments. Each value = C + D. */
+/**
+ * Build AamInput from dynamic BS accounts + per-row adjustments.
+ *
+ * Session 027 redesign: iterates `accounts` array (all user-selected BS
+ * accounts including catalog + custom), classifies each liability as IBD
+ * or non-IBD, and aggregates per section. Fixed Asset Net (row 22) is
+ * always included as special non-current asset from BS sentinel.
+ */
 export function buildAamInput(params: BuildAamParams): AamInput {
-  const { allBs, lastYear: ly, home, aamAdjustments: adj } = params
+  const { accounts, allBs, lastYear: ly, home, aamAdjustments: adj } = params
   const bs = (row: number) => allBs[row]?.[ly] ?? 0
   const a = (row: number) => adj[row] ?? 0
+  const adjusted = (row: number) => bs(row) + a(row)
   const totalAdjustments = Object.values(adj).reduce((sum, v) => sum + v, 0)
 
+  // Aggregate per section from dynamic accounts
+  let totalCurrentAssets = 0
+  let otherNonCurrentAssets = 0
+  let intangibleAssets = 0
+  let nonIbdCL = 0
+  let ibdCL = 0
+  let nonIbdNCL = 0
+  let ibdNCL = 0
+  let totalEquity = 0
+
+  for (const acct of accounts) {
+    const val = adjusted(acct.excelRow)
+    switch (acct.section) {
+      case 'current_assets':
+        totalCurrentAssets += val
+        break
+      case 'other_non_current_assets':
+        otherNonCurrentAssets += val
+        break
+      case 'intangible_assets':
+        intangibleAssets += val
+        break
+      case 'current_liabilities':
+        if (isIbdAccount(acct)) ibdCL += val
+        else nonIbdCL += val
+        break
+      case 'non_current_liabilities':
+        if (isIbdAccount(acct)) ibdNCL += val
+        else nonIbdNCL += val
+        break
+      case 'equity':
+        totalEquity += val
+        break
+      // fixed_assets section is excluded — handled by row 22 sentinel below
+    }
+  }
+
+  // Fixed Asset Net (row 22) — cross-ref from FA store, always in BS sentinel
+  const faNet = adjusted(22)
+  const totalNonCurrentAssets = faNet + otherNonCurrentAssets
+  const totalAssets = totalCurrentAssets + totalNonCurrentAssets + intangibleAssets
+
+  const totalCurrentLiabilities = nonIbdCL + ibdCL
+  const totalNonCurrentLiabilities = nonIbdNCL + ibdNCL
+
+  // IBD uses HISTORICAL values (not adjusted) per Excel convention
+  const ibdHistorical = accounts
+    .filter(isIbdAccount)
+    .reduce((sum, acct) => sum + bs(acct.excelRow), 0)
+
   return {
-    cashOnHands: bs(8) + a(8), cashOnBank: bs(9) + a(9),
-    accountReceivable: bs(10) + a(10), otherReceivable: bs(11) + a(11),
-    inventory: bs(12) + a(12), otherCurrentAssets: bs(14) + a(14),
-    fixedAssetNet: bs(22) + a(22), otherNonCurrentAssets: bs(23) + a(23),
-    intangibleAssets: bs(24) + a(24), totalNonCurrentAssets: bs(25) + a(25),
+    totalCurrentAssets,
+    totalNonCurrentAssets,
+    intangibleAssets,
+    totalAssets,
+    nonIbdCurrentLiabilities: nonIbdCL,
+    ibdCurrentLiabilities: ibdCL,
+    totalCurrentLiabilities,
+    nonIbdNonCurrentLiabilities: nonIbdNCL,
+    ibdNonCurrentLiabilities: ibdNCL,
+    totalNonCurrentLiabilities,
+    interestBearingDebtHistorical: ibdHistorical,
+    totalEquity,
     totalAdjustments,
-    bankLoanST: bs(31) + a(31), accountPayable: bs(32) + a(32),
-    taxPayable: bs(33) + a(33), otherCurrentLiabilities: bs(34) + a(34),
-    bankLoanLT: bs(38) + a(38), relatedPartyNCL: bs(39) + a(39),
-    modalDisetor: bs(43) + a(43), agioDisagio: bs(44) + a(44),
-    retainedCurrentYear: bs(46) + a(46), retainedPriorYears: bs(47) + a(47),
     dlomPercent: home.dlomPercent,
     dlocPercent: home.dlocPercent,
     proporsiSaham: computeProporsiSaham(home),
