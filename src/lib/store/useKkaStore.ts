@@ -157,6 +157,8 @@ interface KkaState {
   resetKeyDrivers: () => void
   resetBorrowingCapInput: () => void
   setAamAdjustments: (adj: Record<number, number>) => void
+  /** Toggle global language (EN/ID) — updates balanceSheet, incomeStatement, fixedAsset language. */
+  setGlobalLanguage: (lang: 'en' | 'id') => void
   setNilaiPengalihanDilaporkan: (v: number) => void
   /** Reset ALL store slices to initial state (destructive — clears all user data). */
   resetAll: () => void
@@ -522,6 +524,12 @@ export const useKkaStore = create<KkaState>()(
       resetKeyDrivers: () => set({ keyDrivers: null }),
       resetBorrowingCapInput: () => set({ borrowingCapInput: null }),
       setAamAdjustments: (adj) => set({ aamAdjustments: adj }),
+      setGlobalLanguage: (lang) =>
+        set((state) => ({
+          balanceSheet: state.balanceSheet ? { ...state.balanceSheet, language: lang } : state.balanceSheet,
+          incomeStatement: state.incomeStatement ? { ...state.incomeStatement, language: lang } : state.incomeStatement,
+          fixedAsset: state.fixedAsset ? { ...state.fixedAsset, language: lang } : state.fixedAsset,
+        })),
       setNilaiPengalihanDilaporkan: (v) => set({ nilaiPengalihanDilaporkan: v }),
       resetAll: () => set({
         home: null,

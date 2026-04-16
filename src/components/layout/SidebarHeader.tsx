@@ -1,4 +1,5 @@
 import { ThemeToggle } from './ThemeToggle'
+import { LanguageToggle } from './LanguageToggle'
 
 /**
  * Top-of-sidebar brand + privacy badge + theme toggle. Reused by both
@@ -22,8 +23,9 @@ export function SidebarHeader() {
         <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden />
         Seluruh Proses Berjalan di Perangkat Anda
       </div>
-      <div className="mt-2">
+      <div className="mt-2 flex flex-col gap-1">
         <ThemeToggle />
+        <LanguageToggle />
       </div>
     </div>
   )
