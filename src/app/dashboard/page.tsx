@@ -105,7 +105,7 @@ export default function DashboardPage() {
 
     // ── Chart 3: Valuation Comparison ──
     const valuationData: Array<{ method: string; perShare: number }> = []
-    const aamResult = computeAam(buildAamInput({ allBs, lastYear: ly, home, aamAdjustments }))
+    const aamResult = computeAam(buildAamInput({ accounts: balanceSheet!.accounts, allBs, lastYear: ly, home, aamAdjustments }))
     // AAM ends at Market Value Portion (session 022). Per-share divides that
     // portion by the proportional share count (jumlahSahamBeredar × proporsiSaham).
     valuationData.push({

@@ -75,7 +75,7 @@ export default function EemPage() {
 
     // ── AAM (for adjusted values) ──
     const proporsiSaham = computeProporsiSaham(home)
-    const aam = computeAam(buildAamInput({ allBs, lastYear: lastHistYear, home, aamAdjustments }))
+    const aam = computeAam(buildAamInput({ accounts: balanceSheet!.accounts, allBs, lastYear: lastHistYear, home, aamAdjustments }))
 
     // ── EEM ──
     const eemResult = computeEem({

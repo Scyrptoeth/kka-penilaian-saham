@@ -10,53 +10,74 @@ import { buildAamInput } from '@/lib/calculations/upstream-helpers'
 import { formatIdr, formatPercent } from '@/components/financial/format'
 import { parseFinancialInput } from '@/components/forms/parse-financial-input'
 import { PageEmptyState } from '@/components/shared/PageEmptyState'
+import {
+  type BsAccountEntry,
+  type BsSection,
+  resolveAccountLabel,
+} from '@/data/catalogs/balance-sheet-catalog'
 
-/** Row definitions for the 3-column adjusted balance sheet display. */
-type AamRowDef = {
-  label?: string
-  /** Row key for BS store (F column = last year). */
-  bsRow?: number
-  /** Whether this is a computed total row (render bold). */
-  bold?: boolean
-  /** Section header text (render as divider). */
-  section?: string
-  /** Key in AAM result to show in adjusted (E) column. */
-  resultKey?: string
-  /** BS rows whose adjustments sum into this total row's D column. */
-  adjSumRows?: number[]
+// ---------------------------------------------------------------------------
+// AAM section definitions — maps BS sections to display groups
+// ---------------------------------------------------------------------------
+
+interface AamSection {
+  /** Display header */
+  title: string
+  /** BS sections to include */
+  bsSections: readonly BsSection[]
+  /** Type: 'asset' | 'liability' | 'equity' for subtotal labeling */
+  type: 'asset' | 'liability' | 'equity'
+  /** Subtotal label */
+  subtotalLabel: string
+  /** Key in AamResult for subtotal E column value */
+  subtotalResultKey?: string
 }
 
-const ASSET_ROWS: AamRowDef[] = [
-  { section: 'Aktiva Lancar' },
-  { label: 'Cash on Hands', bsRow: 8 },
-  { label: 'Cash on Bank (Deposit)', bsRow: 9 },
-  { label: 'Account Receivable', bsRow: 10 },
-  { label: 'Other Receivable', bsRow: 11 },
-  { label: 'Inventory', bsRow: 12 },
-  { label: 'Others', bsRow: 14 },
-  { label: 'Total Current Assets', bold: true, resultKey: 'totalCurrentAssets', adjSumRows: [8, 9, 10, 11, 12, 14] },
-  { section: 'Aktiva Tidak Lancar' },
-  { label: 'Fixed Asset Net', bsRow: 22, resultKey: 'adjustedFixedAssetNet' },
-  { label: 'Other Non-Current Assets', bsRow: 23 },
-  { label: 'Total Non-Current Assets', bold: true, resultKey: 'totalNonCurrentAssets', adjSumRows: [22, 23] },
-  { label: 'Intangible Assets', bsRow: 24 },
-  { label: 'TOTAL ASSETS', bold: true, resultKey: 'totalAssets', adjSumRows: [8, 9, 10, 11, 12, 14, 22, 23, 24] },
+const AAM_SECTIONS: readonly AamSection[] = [
+  {
+    title: 'AKTIVA LANCAR',
+    bsSections: ['current_assets'],
+    type: 'asset',
+    subtotalLabel: 'Total Current Assets',
+    subtotalResultKey: 'totalCurrentAssets',
+  },
+  {
+    title: 'AKTIVA TIDAK LANCAR',
+    bsSections: ['other_non_current_assets', 'intangible_assets'],
+    type: 'asset',
+    subtotalLabel: 'Total Non-Current Assets',
+    subtotalResultKey: 'totalNonCurrentAssets',
+  },
+  {
+    title: 'KEWAJIBAN LANCAR',
+    bsSections: ['current_liabilities'],
+    type: 'liability',
+    subtotalLabel: 'Total Current Liabilities',
+    subtotalResultKey: 'totalCurrentLiabilities',
+  },
+  {
+    title: 'KEWAJIBAN JANGKA PANJANG',
+    bsSections: ['non_current_liabilities'],
+    type: 'liability',
+    subtotalLabel: 'Total Non-Current Liabilities',
+    subtotalResultKey: 'totalNonCurrentLiabilities',
+  },
+  {
+    title: 'EKUITAS PEMEGANG SAHAM',
+    bsSections: ['equity'],
+    type: 'equity',
+    subtotalLabel: 'Ekuitas Pemegang Saham',
+    subtotalResultKey: 'totalEquity',
+  },
 ]
 
-const LIABILITY_ROWS: AamRowDef[] = [
-  { section: 'Kewajiban Lancar' },
-  { label: 'Bank Loan (Short Term)', bsRow: 31 },
-  { label: 'Account Payable', bsRow: 32 },
-  { label: 'Tax Payable', bsRow: 33 },
-  { label: 'Others Current Liabilities', bsRow: 34 },
-  { label: 'Total Current Liabilities', bold: true, resultKey: 'totalCurrentLiabilities', adjSumRows: [31, 32, 33, 34] },
-  { section: 'Kewajiban Jangka Panjang' },
-  { label: 'Bank Loan (Long Term)', bsRow: 38 },
-  { label: 'Related Party', bsRow: 39 },
-  { label: 'Total Non-Current Liabilities', bold: true, resultKey: 'totalNonCurrentLiabilities', adjSumRows: [38, 39] },
-]
+// Fixed Asset Net — special row not in BS accounts, always included in NCA
+const FIXED_ASSET_NET_ROW = 22
 
-/** Inline editable cell for the D (Penyesuaian) column. */
+// ---------------------------------------------------------------------------
+// AdjustmentCell — inline editable cell for D column
+// ---------------------------------------------------------------------------
+
 function AdjustmentCell({
   value,
   onCommit,
@@ -108,6 +129,10 @@ function AdjustmentCell({
   )
 }
 
+// ---------------------------------------------------------------------------
+// Main AAM Page
+// ---------------------------------------------------------------------------
+
 export default function AamPage() {
   const home = useKkaStore(s => s.home)
   const balanceSheet = useKkaStore(s => s.balanceSheet)
@@ -131,11 +156,17 @@ export default function AamPage() {
     const histYears = computeHistoricalYears(home.tahunTransaksi, 4)
     const bsComp = deriveComputedRows(BALANCE_SHEET_MANIFEST.rows, balanceSheet.rows, histYears)
     const allBs = { ...bsComp, ...balanceSheet.rows }
-    const ly = histYears[histYears.length - 1]! // last year
+    const ly = histYears[histYears.length - 1]!
 
-    const result = computeAam(buildAamInput({ allBs, lastYear: ly, home, aamAdjustments }))
+    const result = computeAam(buildAamInput({
+      accounts: balanceSheet.accounts,
+      allBs,
+      lastYear: ly,
+      home,
+      aamAdjustments,
+    }))
 
-    return { result, allBs, ly }
+    return { result, allBs, ly, accounts: balanceSheet.accounts, language: balanceSheet.language }
   }, [hasHydrated, home, balanceSheet, aamAdjustments])
 
   if (!hasHydrated) {
@@ -155,59 +186,26 @@ export default function AamPage() {
     )
   }
 
-  const { result: r, allBs, ly } = data
+  const { result: r, allBs, ly, accounts, language } = data
   const bs = (row: number) => allBs[row]?.[ly] ?? 0
 
-  /** Sum adjustments for a set of BS rows (used for bold/total rows). */
+  /** Get accounts belonging to given BS sections, in store order */
+  const getAccountsForSections = (sections: readonly BsSection[]): BsAccountEntry[] => {
+    const sectionSet = new Set(sections)
+    return accounts.filter(a => sectionSet.has(a.section))
+  }
+
+  /** Sum adjustments for a set of excelRows */
   const sumAdj = (rows: number[]) => rows.reduce((s, row) => s + (aamAdjustments[row] ?? 0), 0)
 
-  const renderRow = (def: AamRowDef) => {
-    if (def.section) {
-      return (
-        <tr key={def.section} className="border-t-2 border-grid-strong">
-          <td colSpan={4} className="px-3 pt-3 pb-1 text-xs font-semibold tracking-wide text-ink-muted uppercase">{def.section}</td>
-        </tr>
-      )
+  // Build list of all excelRows per section for subtotal D-column sum
+  const sectionExcelRows = (section: AamSection): number[] => {
+    const rows = getAccountsForSections(section.bsSections).map(a => a.excelRow)
+    // NCA sections include Fixed Asset Net row
+    if (section.bsSections.includes('other_non_current_assets') || section.bsSections.includes('intangible_assets')) {
+      if (section === AAM_SECTIONS[1]) rows.push(FIXED_ASSET_NET_ROW)
     }
-
-    const bsVal = def.bsRow !== undefined ? bs(def.bsRow) : undefined
-    const cls = def.bold ? 'border-t border-grid-strong bg-canvas-raised font-semibold' : 'border-b border-grid'
-
-    // Bold/total rows: D shows sum of constituent adjustments, E from result
-    if (def.bold) {
-      const adjTotal = def.adjSumRows ? sumAdj(def.adjSumRows) : 0
-      const eVal = def.resultKey ? (r as unknown as Record<string, number>)[def.resultKey] : bsVal
-      return (
-        <tr key={def.label} className={cls}>
-          <td className="px-3 py-2 text-ink">{def.label}</td>
-          <td className="px-3 py-2 text-right font-mono tabular-nums">{bsVal !== undefined ? formatIdr(bsVal) : ''}</td>
-          <td className="px-3 py-2 text-right font-mono tabular-nums text-ink-muted">{formatIdr(adjTotal)}</td>
-          <td className="px-3 py-2 text-right font-mono tabular-nums">{eVal !== undefined ? formatIdr(eVal) : ''}</td>
-        </tr>
-      )
-    }
-
-    // Non-bold data rows: editable D column
-    const adjVal = def.bsRow !== undefined ? (aamAdjustments[def.bsRow] ?? 0) : 0
-    const eVal = def.resultKey
-      ? (r as unknown as Record<string, number>)[def.resultKey]
-      : bsVal !== undefined ? bsVal + adjVal : undefined
-
-    return (
-      <tr key={def.label} className={cls}>
-        <td className="px-3 py-2 text-ink">{def.label}</td>
-        <td className="px-3 py-2 text-right font-mono tabular-nums">{bsVal !== undefined ? formatIdr(bsVal) : ''}</td>
-        {def.bsRow !== undefined ? (
-          <AdjustmentCell
-            value={adjVal}
-            onCommit={(v) => handleAdjustmentCommit(def.bsRow!, v)}
-          />
-        ) : (
-          <td className="px-3 py-2 text-right font-mono tabular-nums text-ink-muted">{formatIdr(0)}</td>
-        )}
-        <td className="px-3 py-2 text-right font-mono tabular-nums">{eVal !== undefined ? formatIdr(eVal) : ''}</td>
-      </tr>
-    )
+    return rows
   }
 
   return (
@@ -215,8 +213,8 @@ export default function AamPage() {
       <h1 className="mb-1 text-2xl font-semibold tracking-tight text-ink">Adjusted Asset Method (AAM)</h1>
       <p className="mb-6 text-sm text-ink-muted">Metode Penyesuaian Aset Bersih — klik angka di kolom Penyesuaian (D) untuk mengedit.</p>
 
-      {/* 3-column Balance Sheet */}
-      <div className="mb-8 overflow-x-auto">
+      {/* Dynamic Balance Sheet Table */}
+      <div className="mb-4 overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b-2 border-grid-strong">
@@ -227,8 +225,74 @@ export default function AamPage() {
             </tr>
           </thead>
           <tbody>
-            {ASSET_ROWS.map(def => renderRow(def))}
-            {LIABILITY_ROWS.map(def => renderRow(def))}
+            {AAM_SECTIONS.map((section, sIdx) => {
+              const sectionAccounts = getAccountsForSections(section.bsSections)
+              const allRows = sectionExcelRows(section)
+              const adjTotal = sumAdj(allRows)
+
+              // Get subtotal E value from result
+              const subtotalE = section.subtotalResultKey
+                ? (r as unknown as Record<string, number>)[section.subtotalResultKey]
+                : undefined
+
+              return (
+                <SectionGroup key={sIdx}>
+                  {/* Section header */}
+                  <tr className="border-t-2 border-grid-strong">
+                    <td colSpan={4} className="px-3 pt-3 pb-1 text-xs font-semibold tracking-wide text-ink-muted uppercase">
+                      {section.title}
+                    </td>
+                  </tr>
+
+                  {/* Special: Fixed Asset Net for NCA section */}
+                  {section === AAM_SECTIONS[1] && (
+                    <AccountRow
+                      label={language === 'en' ? 'Fixed Asset Net' : 'Aset Tetap, Neto'}
+                      bsRow={FIXED_ASSET_NET_ROW}
+                      bsVal={bs(FIXED_ASSET_NET_ROW)}
+                      adjVal={aamAdjustments[FIXED_ASSET_NET_ROW] ?? 0}
+                      onAdjCommit={handleAdjustmentCommit}
+                    />
+                  )}
+
+                  {/* Dynamic account rows */}
+                  {sectionAccounts.map((acct) => (
+                    <AccountRow
+                      key={acct.excelRow}
+                      label={resolveAccountLabel(acct, language)}
+                      bsRow={acct.excelRow}
+                      bsVal={bs(acct.excelRow)}
+                      adjVal={aamAdjustments[acct.excelRow] ?? 0}
+                      onAdjCommit={handleAdjustmentCommit}
+                    />
+                  ))}
+
+                  {/* Section subtotal */}
+                  <tr className="border-t border-grid-strong bg-canvas-raised font-semibold">
+                    <td className="px-3 py-2 text-ink">{section.subtotalLabel}</td>
+                    <td className="px-3 py-2 text-right font-mono tabular-nums" />
+                    <td className="px-3 py-2 text-right font-mono tabular-nums text-ink-muted">{formatIdr(adjTotal)}</td>
+                    <td className="px-3 py-2 text-right font-mono tabular-nums">{subtotalE !== undefined ? formatIdr(subtotalE) : ''}</td>
+                  </tr>
+                </SectionGroup>
+              )
+            })}
+
+            {/* TOTAL ASSETS row */}
+            <tr className="border-t-2 border-grid-strong bg-canvas-raised font-bold">
+              <td className="px-3 py-2 text-ink">TOTAL ASSETS</td>
+              <td className="px-3 py-2 text-right font-mono tabular-nums" />
+              <td className="px-3 py-2 text-right font-mono tabular-nums text-ink-muted" />
+              <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(r.totalAssets)}</td>
+            </tr>
+
+            {/* TOTAL LIABILITIES & EQUITY row */}
+            <tr className="border-t border-grid-strong bg-canvas-raised font-bold">
+              <td className="px-3 py-2 text-ink">TOTAL LIABILITIES & EQUITY</td>
+              <td className="px-3 py-2 text-right font-mono tabular-nums" />
+              <td className="px-3 py-2 text-right font-mono tabular-nums text-ink-muted" />
+              <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(r.totalLiabilitiesAndEquity)}</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -282,5 +346,41 @@ export default function AamPage() {
         </table>
       </div>
     </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Helper components
+// ---------------------------------------------------------------------------
+
+/** Fragment wrapper for section groups */
+function SectionGroup({ children }: { children: React.ReactNode }) {
+  return <>{children}</>
+}
+
+/** Single account row with editable D column */
+function AccountRow({
+  label,
+  bsRow,
+  bsVal,
+  adjVal,
+  onAdjCommit,
+}: {
+  label: string
+  bsRow: number
+  bsVal: number
+  adjVal: number
+  onAdjCommit: (bsRow: number, value: number) => void
+}) {
+  return (
+    <tr className="border-b border-grid">
+      <td className="px-3 py-2 text-ink">{label}</td>
+      <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(bsVal)}</td>
+      <AdjustmentCell
+        value={adjVal}
+        onCommit={(v) => onAdjCommit(bsRow, v)}
+      />
+      <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(bsVal + adjVal)}</td>
+    </tr>
   )
 }

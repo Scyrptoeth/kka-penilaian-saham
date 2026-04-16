@@ -52,7 +52,7 @@ export default function SimulasiPotensiPage() {
     const ly = histYears4[histYears4.length - 1]!
 
     // ── AAM (always available with BS) ──
-    const aamResult = computeAam(buildAamInput({ allBs, lastYear: ly, home, aamAdjustments }))
+    const aamResult = computeAam(buildAamInput({ accounts: balanceSheet!.accounts, allBs, lastYear: ly, home, aamAdjustments }))
 
     const result: Record<ValuationMethod, number | null> = {
       AAM: aamResult.equityValue,
