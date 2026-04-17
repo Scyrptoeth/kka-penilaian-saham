@@ -101,12 +101,12 @@ export default function DcfPage() {
             {/* FCF */}
             <tr className="border-t-2 border-grid-strong"><td colSpan={2} className="px-3 pt-3 pb-1 text-xs font-semibold tracking-wide text-ink-muted uppercase">{t('dcf.section.fcf')}</td></tr>
             <tr className="border-b border-grid">
-              <td className="px-3 py-2 text-ink">FCF ({data.lastHistYear})</td>
+              <td className="px-3 py-2 text-ink">{t('dcf.fcfYearRow', { year: data.lastHistYear })}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(r.historicalFcf)}</td>
             </tr>
             {r.projectedFcf.map((v, i) => (
               <tr key={projYears[i]} className="border-b border-grid">
-                <td className="px-3 py-2 text-ink">FCF ({projYears[i]})</td>
+                <td className="px-3 py-2 text-ink">{t('dcf.fcfYearRow', { year: projYears[i] })}</td>
                 <td className={`px-3 py-2 text-right font-mono tabular-nums ${v < 0 ? 'text-negative' : ''}`}>{formatIdr(v)}</td>
               </tr>
             ))}
@@ -119,7 +119,7 @@ export default function DcfPage() {
             </tr>
             {r.discountFactors.map((df, i) => (
               <tr key={`df-${i}`} className="border-b border-grid">
-                <td className="px-3 py-2 pl-6 text-ink">Discount Factor ({projYears[i]})</td>
+                <td className="px-3 py-2 pl-6 text-ink">{t('dcf.discountFactorYearRow', { year: projYears[i] })}</td>
                 <td className="px-3 py-2 text-right font-mono tabular-nums">{df.toFixed(6)}</td>
               </tr>
             ))}
@@ -154,7 +154,7 @@ export default function DcfPage() {
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(r.equityValue100)}</td>
             </tr>
             <tr className="border-b border-grid">
-              <td className="px-3 py-2 text-ink">DLOM ({formatPercent(data.home.dlomPercent)})</td>
+              <td className="px-3 py-2 text-ink">{t('dcf.dlomWithPercentRow', { pct: formatPercent(data.home.dlomPercent) })}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums text-negative">{formatIdr(sv.dlomDiscount)}</td>
             </tr>
             <tr className="border-b border-grid">
@@ -162,7 +162,7 @@ export default function DcfPage() {
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(sv.marketValue100)}</td>
             </tr>
             <tr className="border-b border-grid">
-              <td className="px-3 py-2 text-ink">Market Value ({formatPercent(data.proporsiSaham)} Equity)</td>
+              <td className="px-3 py-2 text-ink">{t('dcf.marketValuePortionRow', { pct: formatPercent(data.proporsiSaham) })}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(sv.marketValuePortion)}</td>
             </tr>
             <tr className="border-b border-grid">

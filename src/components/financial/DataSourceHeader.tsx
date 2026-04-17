@@ -43,7 +43,7 @@ export function DataSourceHeader({ mode }: DataSourceHeaderProps) {
     return (
       <div
         role="status"
-        aria-label="Mode demo — data prototipe"
+        aria-label={t('dataSource.seedBannerAriaLabel')}
         className="mb-4 border-l-4 border-accent bg-canvas-raised px-4 py-3"
       >
         <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-accent">
@@ -87,7 +87,7 @@ function LiveCompanyHeader() {
       <span
         className="font-mono text-ink"
         aria-live="polite"
-        aria-label="Nama perusahaan yang sedang dinilai"
+        aria-label={t('dataSource.companyNameAriaLabel')}
       >
         — {display}
       </span>

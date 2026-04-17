@@ -203,7 +203,7 @@ export function WaccForm({ initial, onSave }: WaccFormProps) {
                       className="w-full rounded border border-grid bg-canvas px-2 py-1 text-sm focus-visible:ring-2 focus-visible:ring-accent"
                       value={c.name}
                       onChange={e => updateCompany(i, 'name', e.target.value)}
-                      placeholder="PT Contoh, Tbk"
+                      placeholder={t('wacc.companyPlaceholder')}
                     />
                   </td>
                   <td className="px-2 py-1.5">
@@ -245,7 +245,7 @@ export function WaccForm({ initial, onSave }: WaccFormProps) {
                         type="button"
                         onClick={() => removeCompany(i)}
                         className="text-negative hover:underline focus-visible:ring-2 focus-visible:ring-accent"
-                        aria-label={`Hapus perusahaan ${i + 1}`}
+                        aria-label={t('wacc.removeCompanyAria', { n: i + 1 })}
                       >
                         ×
                       </button>
@@ -279,11 +279,11 @@ export function WaccForm({ initial, onSave }: WaccFormProps) {
           onClick={addCompany}
           className="mt-3 rounded border border-grid bg-canvas px-3 py-1.5 text-sm text-ink-soft hover:bg-canvas-raised focus-visible:ring-2 focus-visible:ring-accent"
         >
-          + Tambah Perusahaan
+          {t('wacc.addCompany')}
         </button>
 
         <div className="mt-4 rounded border border-grid bg-canvas-raised px-4 py-3">
-          <span className="text-sm text-ink-muted">Relevered Beta: </span>
+          <span className="text-sm text-ink-muted">{t('wacc.relleveredBeta')}</span>
           <span className="font-mono text-sm font-semibold tabular-nums">
             {result.relleveredBeta.toFixed(4)}
           </span>
@@ -292,7 +292,7 @@ export function WaccForm({ initial, onSave }: WaccFormProps) {
 
       {/* Section C — Bank Reference Rates */}
       <section>
-        <h2 className="mb-4 text-lg font-semibold text-ink">Bunga Pinjaman Investasi</h2>
+        <h2 className="mb-4 text-lg font-semibold text-ink">{t('wacc.investmentLoanRate')}</h2>
         <div className="space-y-2">
           {bankRates.map((b, i) => (
             <div key={i} className="flex items-center gap-3">
@@ -320,7 +320,7 @@ export function WaccForm({ initial, onSave }: WaccFormProps) {
                   type="button"
                   onClick={() => removeBankRate(i)}
                   className="text-negative hover:underline focus-visible:ring-2 focus-visible:ring-accent"
-                  aria-label={`Hapus bank ${i + 1}`}
+                  aria-label={t('wacc.removeBankAria', { n: i + 1 })}
                 >
                   ×
                 </button>
@@ -333,10 +333,10 @@ export function WaccForm({ initial, onSave }: WaccFormProps) {
           onClick={addBankRate}
           className="mt-3 rounded border border-grid bg-canvas px-3 py-1.5 text-sm text-ink-soft hover:bg-canvas-raised focus-visible:ring-2 focus-visible:ring-accent"
         >
-          + Tambah Bank
+          {t('wacc.addBank')}
         </button>
         <div className="mt-3 rounded border border-grid bg-canvas-raised px-4 py-3">
-          <span className="text-sm text-ink-muted">Rata-rata Bunga: </span>
+          <span className="text-sm text-ink-muted">{t('wacc.avgRate')}</span>
           <span className="font-mono text-sm font-semibold tabular-nums">
             {fmtPct(avgBankRate)}
           </span>
@@ -345,25 +345,25 @@ export function WaccForm({ initial, onSave }: WaccFormProps) {
 
       {/* Section D — Capital Structure + WACC Result */}
       <section>
-        <h2 className="mb-4 text-lg font-semibold text-ink">Struktur Kapital & WACC</h2>
+        <h2 className="mb-4 text-lg font-semibold text-ink">{t('wacc.capitalStructure')}</h2>
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b-2 border-grid-strong text-left">
-              <th className="px-2 py-2 font-medium text-ink-muted">Komponen</th>
-              <th className="px-2 py-2 text-right font-medium text-ink-muted">Bobot (%)</th>
-              <th className="px-2 py-2 text-right font-medium text-ink-muted">Biaya Modal (%)</th>
-              <th className="px-2 py-2 text-right font-medium text-ink-muted">WACC (%)</th>
+              <th className="px-2 py-2 font-medium text-ink-muted">{t('wacc.table.component')}</th>
+              <th className="px-2 py-2 text-right font-medium text-ink-muted">{t('wacc.table.weight')}</th>
+              <th className="px-2 py-2 text-right font-medium text-ink-muted">{t('wacc.table.costOfCapital')}</th>
+              <th className="px-2 py-2 text-right font-medium text-ink-muted">{t('wacc.table.waccPercent')}</th>
             </tr>
           </thead>
           <tbody>
             <tr className="border-b border-grid">
-              <td className="px-2 py-2 text-ink">Hutang</td>
+              <td className="px-2 py-2 text-ink">{t('common.debt')}</td>
               <td className="px-2 py-2 text-right font-mono tabular-nums">{fmtPct(result.weightDebt)}</td>
               <td className="px-2 py-2 text-right font-mono tabular-nums">{fmtPct(result.costOfDebt)}</td>
               <td className="px-2 py-2 text-right font-mono tabular-nums">{fmtPct(result.waccDebtComponent)}</td>
             </tr>
             <tr className="border-b border-grid">
-              <td className="px-2 py-2 text-ink">Ekuitas</td>
+              <td className="px-2 py-2 text-ink">{t('common.equity')}</td>
               <td className="px-2 py-2 text-right font-mono tabular-nums">{fmtPct(result.weightEquity)}</td>
               <td className="px-2 py-2 text-right font-mono tabular-nums">{fmtPct(result.costOfEquity)}</td>
               <td className="px-2 py-2 text-right font-mono tabular-nums">{fmtPct(result.waccEquityComponent)}</td>
@@ -373,7 +373,7 @@ export function WaccForm({ initial, onSave }: WaccFormProps) {
 
         <div className="mt-4 space-y-3">
           <div className="rounded border border-grid bg-canvas-raised px-4 py-3">
-            <span className="text-sm text-ink-muted">WACC (Computed): </span>
+            <span className="text-sm text-ink-muted">{t('wacc.computedLabel')}</span>
             <span className="font-mono font-semibold tabular-nums">{fmtPct(result.computedWacc)}</span>
           </div>
 
@@ -388,7 +388,7 @@ export function WaccForm({ initial, onSave }: WaccFormProps) {
                   }
                   className="accent-accent"
                 />
-                Override WACC (Menurut Wajib Pajak)
+                {t('wacc.overrideLabel')}
               </label>
             </div>
             {waccOverride !== null && (
@@ -404,7 +404,7 @@ export function WaccForm({ initial, onSave }: WaccFormProps) {
               />
             )}
             <div className="mt-2 text-lg font-semibold">
-              <span className="text-ink-muted">WACC Final: </span>
+              <span className="text-ink-muted">{t('wacc.finalLabel')}</span>
               <span className={cn('font-mono tabular-nums', waccOverride !== null ? 'text-accent' : 'text-ink')}>
                 {fmtPct(finalWacc)}
               </span>
@@ -414,7 +414,7 @@ export function WaccForm({ initial, onSave }: WaccFormProps) {
       </section>
 
       {/* Auto-save indicator */}
-      <p className="text-xs text-ink-muted">Otomatis tersimpan</p>
+      <p className="text-xs text-ink-muted">{t('common.autoSaved')}</p>
     </div>
   )
 }

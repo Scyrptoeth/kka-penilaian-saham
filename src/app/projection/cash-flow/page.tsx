@@ -57,8 +57,8 @@ export default function ProyCashFlowPage() {
   if (!data) {
     return (
       <PageEmptyState
-        section="PROYEKSI"
-        title="Proy. Cash Flow"
+        section={t('nav.group.projection')}
+        title={t('nav.item.proyCashFlow')}
         inputs={[
           { label: 'HOME', href: '/', filled: !!home },
           { label: 'Balance Sheet', href: '/input/balance-sheet', filled: !!balanceSheet },

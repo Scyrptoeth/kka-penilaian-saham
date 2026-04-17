@@ -80,8 +80,8 @@ export default function GrowthRatePage() {
   if (!hasHydrated) return null
   if (!home || !balanceSheet || !incomeStatement) {
     return (
-      <PageEmptyState section="ANALISIS"
-        title="Growth Rate"
+      <PageEmptyState section={t('nav.group.analysis')}
+        title={t('nav.item.growthRate')}
         inputs={[
           { label: 'HOME', href: '/', filled: !!home },
           { label: 'Balance Sheet', href: '/input/balance-sheet', filled: !!balanceSheet },

@@ -197,7 +197,7 @@ export default function EemPage() {
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(r.equityValue100)}</td>
             </tr>
             <tr className="border-b border-grid">
-              <td className="px-3 py-2 text-ink">DLOM ({formatPercent(data.home.dlomPercent)})</td>
+              <td className="px-3 py-2 text-ink">{t('dcf.dlomWithPercentRow', { pct: formatPercent(data.home.dlomPercent) })}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums text-negative">{formatIdr(sv.dlomDiscount)}</td>
             </tr>
             <tr className="border-b border-grid">
@@ -209,7 +209,7 @@ export default function EemPage() {
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(sv.marketValue100)}</td>
             </tr>
             <tr className="border-b border-grid">
-              <td className="px-3 py-2 text-ink">Market Value ({formatPercent(data.proporsiSaham)} Equity)</td>
+              <td className="px-3 py-2 text-ink">{t('dcf.marketValuePortionRow', { pct: formatPercent(data.proporsiSaham) })}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(sv.marketValuePortion)}</td>
             </tr>
             <tr className="border-b border-grid">

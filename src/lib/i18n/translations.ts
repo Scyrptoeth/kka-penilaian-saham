@@ -83,6 +83,7 @@ const dict = {
   'sidebar.brand.line2': { en: 'Business II', id: 'Bisnis II' },
   'sidebar.privacyBadge': { en: 'All Processing Runs on Your Device', id: 'Seluruh Proses Berjalan di Perangkat Anda' },
   'sidebar.navAriaLabel': { en: 'Sheet navigation', id: 'Navigasi sheet' },
+  'sidebar.navAriaLabelDesktop': { en: 'Sheet navigation (desktop)', id: 'Navigasi sheet (desktop)' },
   'sidebar.wipBadge': { en: 'WIP', id: 'WIP' },
 
   'footer.githubAriaLabel': { en: 'KKA Penilaian Saham GitHub Repository', id: 'Repository GitHub KKA Penilaian Saham' },
@@ -136,6 +137,8 @@ const dict = {
   'dataSource.loading': { en: 'loading…', id: 'memuat…' },
   'dataSource.notFilled': { en: 'not filled (complete HOME form)', id: 'belum diisi (lengkapi HOME form)' },
   'dataSource.liveTitle': { en: 'Share Valuation', id: 'Penilaian Saham' },
+  'dataSource.seedBannerAriaLabel': { en: 'Demo Mode — prototype data', id: 'Mode demo — data prototipe' },
+  'dataSource.companyNameAriaLabel': { en: 'Name of the company being valued', id: 'Nama perusahaan yang sedang dinilai' },
 
   // ═══════════════════════════════════════════════════════════════════
   // DROPDOWN / CATALOG UI
@@ -336,6 +339,9 @@ const dict = {
   'wacc.taxRateHamada': { en: 'Tax Rate (Hamada)', id: 'Tarif Pajak (Hamada)' },
   'wacc.comparableCompanies': { en: 'Comparable Companies', id: 'Perusahaan Pembanding' },
   'wacc.table.companyName': { en: 'Company Name', id: 'Nama Perusahaan' },
+  'wacc.companyPlaceholder': { en: 'PT Example, Tbk', id: 'PT Contoh, Tbk' },
+  'wacc.removeCompanyAria': { en: 'Remove company {n}', id: 'Hapus perusahaan {n}' },
+  'wacc.removeBankAria': { en: 'Remove bank {n}', id: 'Hapus bank {n}' },
   'wacc.table.betaLevered': { en: 'Beta Levered', id: 'Beta Levered' },
   'wacc.table.marketCap': { en: 'Market Cap', id: 'Market Cap' },
   'wacc.table.debt': { en: 'Debt', id: 'Hutang' },
@@ -383,6 +389,7 @@ const dict = {
   'discountRate.table.costOfCapital': { en: 'Cost of Capital (%)', id: 'Biaya Modal (%)' },
   'discountRate.table.waccPercent': { en: 'WACC (%)', id: 'WACC (%)' },
   'discountRate.waccLabel': { en: 'Weighted Average Cost of Capital (WACC): ', id: 'Weighted Average Cost of Capital (WACC): ' },
+  'discountRate.summary.debtRate': { en: 'Debt Rate', id: 'Debt Rate' },
 
   // ═══════════════════════════════════════════════════════════════════
   // BORROWING CAP PAGE
@@ -427,6 +434,8 @@ const dict = {
   'simulasi.table.equityValue': { en: 'Equity Value (100%)', id: 'Equity Value (100%)' },
   'simulasi.active': { en: '● active', id: '● aktif' },
   'simulasi.equityLessDlom': { en: 'Equity Less DLOM', id: 'Ekuitas Setelah DLOM' },
+  'simulasi.dlocWithPercentRow': { en: 'DLOC/PFC ({pct})', id: 'DLOC/PFC ({pct})' },
+  'simulasi.proporsiSahamRow': { en: 'Share Proportion ({pct})', id: 'Proporsi Saham ({pct})' },
   'simulasi.resistensiWp': { en: 'Taxpayer Resistance', id: 'Resistensi WP' },
   'simulasi.mvEquity100': { en: 'Market Value of Equity (100%)', id: 'Nilai Pasar Ekuitas (100%)' },
   'simulasi.nilaiPengalihanDilaporkan': { en: 'Reported Transfer Value', id: 'Nilai Pengalihan Dilaporkan' },

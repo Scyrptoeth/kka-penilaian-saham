@@ -7,6 +7,7 @@ import { useKkaStore } from '@/lib/store/useKkaStore'
 import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
 import { computeCashFlowLiveRows } from '@/data/live/compute-cash-flow-live'
 import { PageEmptyState } from '@/components/shared/PageEmptyState'
+import { useT } from '@/lib/i18n/useT'
 
 /**
  * Live-only view for Cash Flow Statement — derives CFS rows from
@@ -16,6 +17,7 @@ import { PageEmptyState } from '@/components/shared/PageEmptyState'
  * AP optional (financing defaults to 0 if null)
  */
 export function CashFlowLiveView() {
+  const { t } = useT()
   const home = useKkaStore((s) => s.home)
   const balanceSheet = useKkaStore((s) => s.balanceSheet)
   const incomeStatement = useKkaStore((s) => s.incomeStatement)
@@ -47,8 +49,8 @@ export function CashFlowLiveView() {
   if (!liveRows) {
     return (
       <PageEmptyState
-        section="ANALISIS"
-        title="Cash Flow Statement"
+        section={t('nav.group.analysis')}
+        title={t('nav.item.cashFlowStatement')}
         inputs={[
           { label: 'HOME', href: '/', filled: !!home },
           { label: 'Balance Sheet', href: '/input/balance-sheet', filled: !!balanceSheet },

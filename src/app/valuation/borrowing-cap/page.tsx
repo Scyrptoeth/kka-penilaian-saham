@@ -68,8 +68,8 @@ function BorrowingCapEditor() {
   if (!data) {
     return (
       <PageEmptyState
-        section="PENILAIAN"
-        title="Borrowing Cap"
+        section={t('nav.group.valuation')}
+        title={t('nav.item.borrowingCap')}
         inputs={[
           { label: 'HOME', href: '/', filled: !!home },
           { label: 'Balance Sheet', href: '/input/balance-sheet', filled: !!balanceSheet },

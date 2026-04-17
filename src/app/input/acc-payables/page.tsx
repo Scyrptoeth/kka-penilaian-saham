@@ -220,8 +220,8 @@ export default function InputAccPayablesPage() {
   if (!home) {
     return (
       <PageEmptyState
-        section="INPUT DATA"
-        title="Acc Payables"
+        section={t('nav.group.inputData')}
+        title={t('nav.item.accPayables')}
         inputs={[{ label: 'HOME', href: '/', filled: false }]}
       />
     )

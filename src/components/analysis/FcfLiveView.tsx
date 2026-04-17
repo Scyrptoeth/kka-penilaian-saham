@@ -13,6 +13,7 @@ import { computeNoplatLiveRows } from '@/data/live/compute-noplat-live'
 import { computeCashFlowLiveRows } from '@/data/live/compute-cash-flow-live'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { PageEmptyState } from '@/components/shared/PageEmptyState'
+import { useT } from '@/lib/i18n/useT'
 
 /**
  * FCF live-mode wrapper. Builds the full upstream computation chain:
@@ -22,6 +23,7 @@ import { PageEmptyState } from '@/components/shared/PageEmptyState'
  *   BS + IS both present → live mode. FA optional (CapEx/Dep = 0 if null).
  */
 export function FcfLiveView() {
+  const { t } = useT()
   const home = useKkaStore((s) => s.home)
   const balanceSheet = useKkaStore((s) => s.balanceSheet)
   const incomeStatement = useKkaStore((s) => s.incomeStatement)
@@ -65,8 +67,8 @@ export function FcfLiveView() {
   if (!hasHydrated) return null
   if (!home || !balanceSheet || !incomeStatement) {
     return (
-      <PageEmptyState section="ANALISIS"
-        title="Free Cash Flow"
+      <PageEmptyState section={t('nav.group.analysis')}
+        title={t('dcf.section.fcf')}
         inputs={[
           { label: 'HOME', href: '/', filled: !!home },
           { label: 'Balance Sheet', href: '/input/balance-sheet', filled: !!balanceSheet },

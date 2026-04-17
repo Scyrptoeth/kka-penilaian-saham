@@ -233,7 +233,7 @@ export function DiscountRateForm({ initial, onSave }: DiscountRateFormProps) {
           <SummaryBox label="CoE" value={fmtPct(result.ke)} />
           <SummaryBox label="CoD" value={fmtPct(result.kd)} />
           <SummaryBox label="WACC" value={fmtPct(result.wacc)} />
-          <SummaryBox label="Debt Rate" value={fmtPct(debtRate)} />
+          <SummaryBox label={t('discountRate.summary.debtRate')} value={fmtPct(debtRate)} />
         </div>
       </section>
 

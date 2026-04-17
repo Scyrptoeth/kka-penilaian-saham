@@ -130,8 +130,8 @@ export default function SimulasiPotensiPage() {
   if (!equityValues || !home) {
     return (
       <PageEmptyState
-        section="PENILAIAN"
-        title="Simulasi Potensi"
+        section={t('nav.group.valuation')}
+        title={t('nav.item.simulasiPotensi')}
         inputs={[
           { label: 'HOME', href: '/', filled: !!home },
           { label: 'Balance Sheet', href: '/input/balance-sheet', filled: !!balanceSheet },
@@ -229,7 +229,7 @@ export default function SimulasiPotensiPage() {
                 <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(equityValues[method]!)}</td>
               </tr>
               <tr className="border-b border-grid">
-                <td className="px-3 py-2 text-ink">DLOM ({formatPercent(home.dlomPercent)})</td>
+                <td className="px-3 py-2 text-ink">{t('dcf.dlomWithPercentRow', { pct: formatPercent(home.dlomPercent) })}</td>
                 <td className="px-3 py-2 text-right font-mono tabular-nums text-negative">{formatIdr(simulasi.dlomAmount)}</td>
               </tr>
               <tr className="border-b border-grid font-semibold">
@@ -237,7 +237,7 @@ export default function SimulasiPotensiPage() {
                 <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(simulasi.equityLessDlom)}</td>
               </tr>
               <tr className="border-b border-grid">
-                <td className="px-3 py-2 text-ink">DLOC/PFC ({formatPercent(home.dlocPercent)})</td>
+                <td className="px-3 py-2 text-ink">{t('simulasi.dlocWithPercentRow', { pct: formatPercent(home.dlocPercent) })}</td>
                 <td className="px-3 py-2 text-right font-mono tabular-nums text-negative">{formatIdr(simulasi.dlocAmount)}</td>
               </tr>
               <tr className="border-b border-grid">
@@ -249,7 +249,7 @@ export default function SimulasiPotensiPage() {
                 <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(simulasi.marketValueEquity100)}</td>
               </tr>
               <tr className="border-b border-grid">
-                <td className="px-3 py-2 text-ink">Proporsi Saham ({formatPercent(computeProporsiSaham(home))})</td>
+                <td className="px-3 py-2 text-ink">{t('simulasi.proporsiSahamRow', { pct: formatPercent(computeProporsiSaham(home)) })}</td>
                 <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(simulasi.marketValuePortion)}</td>
               </tr>
               <tr className="border-b border-grid">

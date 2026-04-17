@@ -15,12 +15,14 @@ import { computeNoplatLiveRows } from '@/data/live/compute-noplat-live'
 import { computeFcfLiveRows } from '@/data/live/compute-fcf-live'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { PageEmptyState } from '@/components/shared/PageEmptyState'
+import { useT } from '@/lib/i18n/useT'
 
 /**
  * Financial Ratio live-mode wrapper. Computes all 18 ratios when BS + IS
  * are present. Builds CFS + FCF upstream chain for CF indicator ratios.
  */
 export function FinancialRatioLiveView() {
+  const { t } = useT()
   const home = useKkaStore((s) => s.home)
   const balanceSheet = useKkaStore((s) => s.balanceSheet)
   const incomeStatement = useKkaStore((s) => s.incomeStatement)
@@ -89,8 +91,8 @@ export function FinancialRatioLiveView() {
   if (!hasHydrated) return null
   if (!home || !balanceSheet || !incomeStatement) {
     return (
-      <PageEmptyState section="ANALISIS"
-        title="Financial Ratio"
+      <PageEmptyState section={t('nav.group.analysis')}
+        title={t('nav.item.financialRatio')}
         inputs={[
           { label: 'HOME', href: '/', filled: !!home },
           { label: 'Balance Sheet', href: '/input/balance-sheet', filled: !!balanceSheet },

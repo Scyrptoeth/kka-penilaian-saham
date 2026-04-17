@@ -7,6 +7,7 @@ import { useKkaStore } from '@/lib/store/useKkaStore'
 import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
 import { computeGrowthRevenueLiveRows } from '@/data/live/compute-growth-revenue-live'
 import { PageEmptyState } from '@/components/shared/PageEmptyState'
+import { useT } from '@/lib/i18n/useT'
 
 /**
  * Growth Revenue live-mode wrapper — projects IS Revenue (row 6) and
@@ -15,6 +16,7 @@ import { PageEmptyState } from '@/components/shared/PageEmptyState'
  * declared on the GR manifest fills the growth columns automatically.
  */
 export function GrowthRevenueLiveView() {
+  const { t } = useT()
   const home = useKkaStore((s) => s.home)
   const incomeStatement = useKkaStore((s) => s.incomeStatement)
   const hasHydrated = useKkaStore((s) => s._hasHydrated)
@@ -31,8 +33,8 @@ export function GrowthRevenueLiveView() {
   if (!hasHydrated) return null
   if (!home || !incomeStatement) {
     return (
-      <PageEmptyState section="ANALISIS"
-        title="Growth Revenue"
+      <PageEmptyState section={t('nav.group.analysis')}
+        title={t('nav.item.growthRevenue')}
         inputs={[
           { label: 'HOME', href: '/', filled: !!home },
           { label: 'Income Statement', href: '/input/income-statement', filled: !!incomeStatement },

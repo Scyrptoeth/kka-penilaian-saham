@@ -48,8 +48,8 @@ export default function KeyDriversPage() {
   if (!home) {
     return (
       <PageEmptyState
-        section="INPUT DATA"
-        title="Key Drivers"
+        section={t('nav.group.inputData')}
+        title={t('nav.item.keyDrivers')}
         inputs={[
           { label: 'HOME', href: '/', filled: !!home },
         ]}
