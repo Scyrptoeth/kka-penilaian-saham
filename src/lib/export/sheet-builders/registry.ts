@@ -15,6 +15,7 @@ import { WaccBuilder } from './wacc'
 import { DiscountRateBuilder } from './discount-rate'
 import { BorrowingCapBuilder } from './borrowing-cap'
 import { NoplatBuilder } from './noplat'
+import { CashFlowStatementBuilder } from './cash-flow-statement'
 import { AamBuilder } from './aam'
 import { SimulasiPotensiBuilder } from './simulasi-potensi'
 
@@ -63,6 +64,7 @@ export function getSheetBuilders(): readonly SheetBuilder[] {
     BorrowingCapBuilder,
     // Computed analysis (Session 033) — derived from upstream inputs
     NoplatBuilder,
+    CashFlowStatementBuilder,
     // AAM chain (Session 031) — runs after inputs complete
     AamBuilder,
     SimulasiPotensiBuilder,
