@@ -18,7 +18,7 @@
     "extract:fixtures": "python3 scripts/extract-fixtures.py",
     "seed:sync": "node scripts/copy-fixtures.cjs",
     "audit:i18n": "node scripts/audit-i18n.mjs --write-report",
-    "verify:phase-c": "node scripts/verify-phase-c.mjs"
+    "verify:phase-c": "vitest run __tests__/integration/phase-c-verification.test.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

@@ -182,8 +182,9 @@ export function buildExportFilename(namaPerusahaan: string): string {
 /**
  * Sheets that map to a website nav item and MUST be visible in export.
  * Mirrors `src/components/layout/nav-tree.ts` (29 items as of Session 024).
+ * Exported so Phase C verification and external audits share the same list.
  */
-const WEBSITE_NAV_SHEETS: readonly string[] = [
+export const WEBSITE_NAV_SHEETS: readonly string[] = [
   // Input Master
   'HOME',
   // Input Data
