@@ -1,4 +1,7 @@
+'use client'
+
 import Link from 'next/link'
+import { useT } from '@/lib/i18n/useT'
 
 interface RequiredInput {
   label: string
@@ -24,6 +27,7 @@ interface PageEmptyStateProps {
  * INPUT DATA, ANALISIS, PROYEKSI, PENILAIAN, and RINGKASAN sections.
  */
 export function PageEmptyState({ section, title, inputs }: PageEmptyStateProps) {
+  const { t } = useT()
   const missing = inputs.filter((i) => !i.filled)
 
   return (
@@ -36,8 +40,7 @@ export function PageEmptyState({ section, title, inputs }: PageEmptyStateProps) 
       </h1>
       <div className="mt-6 rounded-sm border border-grid bg-canvas-raised p-6">
         <p className="text-sm text-ink-soft">
-          Halaman ini membutuhkan data dari halaman lain.
-          Lengkapi input berikut terlebih dahulu:
+          {t('emptyState.description')}
         </p>
         <ul className="mt-4 space-y-2">
           {inputs.map((input) => (
@@ -56,7 +59,7 @@ export function PageEmptyState({ section, title, inputs }: PageEmptyStateProps) 
                 {input.label}
               </Link>
               {input.filled && (
-                <span className="text-[11px] text-positive">Terisi</span>
+                <span className="text-[11px] text-positive">{t('emptyState.filled')}</span>
               )}
             </li>
           ))}
@@ -67,7 +70,7 @@ export function PageEmptyState({ section, title, inputs }: PageEmptyStateProps) 
               href={missing[0].href}
               className="inline-flex items-center gap-2 rounded-sm bg-accent px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-accent/90"
             >
-              Lengkapi {missing[0].label}
+              {t('emptyState.ctaPrefix')} {missing[0].label}
               <span aria-hidden="true">&rarr;</span>
             </Link>
           </div>

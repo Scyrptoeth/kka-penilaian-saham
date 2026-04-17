@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { NAV_TREE, type NavItem } from './nav-tree'
 import { cn } from '@/lib/utils/cn'
+import { useT } from '@/lib/i18n/useT'
+import type { TranslationKey } from '@/lib/i18n/translations'
 
 interface SidebarNavProps {
   /** Optional handler invoked after a link is activated (used to close the drawer). */
@@ -12,12 +14,13 @@ interface SidebarNavProps {
 
 export function SidebarNav({ onNavigate }: SidebarNavProps) {
   const pathname = usePathname()
+  const { t } = useT()
   return (
-    <nav className="flex flex-col px-3 py-4" aria-label="Navigasi sheet">
+    <nav className="flex flex-col px-3 py-4" aria-label={t('sidebar.navAriaLabel')}>
       {NAV_TREE.map((group) => (
         <div key={group.label} className="mb-5 last:mb-0">
           <p className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-muted">
-            {group.label}
+            {t(group.label as TranslationKey)}
           </p>
           <ul>
             {group.items.map((item) => (
@@ -26,6 +29,7 @@ export function SidebarNav({ onNavigate }: SidebarNavProps) {
                 item={item}
                 active={isActive(pathname, item.href)}
                 onNavigate={onNavigate}
+                t={t}
               />
             ))}
           </ul>
@@ -39,10 +43,12 @@ function NavLink({
   item,
   active,
   onNavigate,
+  t,
 }: {
   item: NavItem
   active: boolean
   onNavigate?: () => void
+  t: (key: TranslationKey) => string
 }) {
   return (
     <li>
@@ -65,10 +71,10 @@ function NavLink({
           />
         )}
         <span className="inline-flex items-center gap-2">
-          {item.label}
+          {t(item.label as TranslationKey)}
           {item.wip && (
             <span className="rounded-sm border border-grid-strong bg-canvas px-1 py-0 text-[9px] font-medium uppercase tracking-[0.1em] text-ink-muted">
-              WIP
+              {t('sidebar.wipBadge')}
             </span>
           )}
         </span>

@@ -1,4 +1,9 @@
+'use client'
+
+import { useT } from '@/lib/i18n/useT'
+
 export function Footer() {
+  const { t } = useT()
   const currentYear = new Date().getFullYear()
 
   return (
@@ -11,7 +16,7 @@ export function Footer() {
               href="https://persiapantubel.com/"
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="Repository GitHub KKA Penilaian Saham"
+              aria-label={t('footer.githubAriaLabel')}
               className="text-ink-muted transition-colors hover:text-ink focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
             >
               <GithubIcon />
@@ -21,15 +26,13 @@ export function Footer() {
               className="flex items-center gap-2 text-sm text-ink-muted transition-colors hover:text-ink focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
             >
               <PhoneIcon />
-              <span>Saran &amp; Kendala: 0822-9411-6001 (Dedek)</span>
+              <span>{t('footer.contactLine')}</span>
             </a>
           </div>
         </div>
         <div className="border-t border-grid pt-6">
           <p className="text-center text-sm text-ink-muted">
-            &copy; {currentYear} . Dibuat dengan{' '}
-            <HeartIcon />
-            {' '}untuk Kamu.
+            &copy; {currentYear} . {t('footer.copyright')}
           </p>
         </div>
       </div>
@@ -69,20 +72,4 @@ function PhoneIcon() {
   )
 }
 
-function HeartIcon() {
-  return (
-    <svg
-      width="15"
-      height="15"
-      viewBox="0 0 24 24"
-      fill="#ef4444"
-      stroke="#ef4444"
-      strokeWidth="1.5"
-      strokeLinejoin="round"
-      aria-label="hati"
-      className="inline-block -translate-y-0.5"
-    >
-      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z" />
-    </svg>
-  )
-}
+// HeartIcon removed — ❤ is now inline in the translation string

@@ -9,6 +9,7 @@ import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { BALANCE_SHEET_MANIFEST } from '@/data/manifests/balance-sheet'
 import { formatIdr, formatPercent } from '@/components/financial/format'
 import { PageEmptyState } from '@/components/shared/PageEmptyState'
+import { useT } from '@/lib/i18n/useT'
 
 import { BORROWING_PERCENT_DEFAULT } from '@/lib/calculations/upstream-helpers'
 
@@ -19,6 +20,7 @@ function parseNumber(raw: string): number {
 }
 
 function BorrowingCapEditor() {
+  const { t } = useT()
   const home = useKkaStore(s => s.home)
   const balanceSheet = useKkaStore(s => s.balanceSheet)
   const discountRateState = useKkaStore(s => s.discountRate)
@@ -84,28 +86,27 @@ function BorrowingCapEditor() {
   return (
     <div className="mx-auto max-w-[900px] p-6">
       <h1 className="mb-1 text-2xl font-semibold tracking-tight text-ink">
-        Rate of Return on Net Tangible Assets
+        {t('borrowingCap.title')}
       </h1>
       <p className="mb-6 text-sm text-ink-muted">
-        Borrowing Capacity — input dari CALK (Catatan Atas Laporan Keuangan).
-        Digunakan oleh Excess Earning Method.
+        {t('borrowingCap.subtitle')}
       </p>
 
       {/* Section 1 — Borrowing Capacity */}
-      <h2 className="mb-3 text-base font-semibold text-ink">Borrowing Capacity</h2>
+      <h2 className="mb-3 text-base font-semibold text-ink">{t('borrowingCap.sectionBc')}</h2>
       <div className="mb-8 overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b-2 border-grid-strong">
-              <th className="px-3 py-2 text-left font-medium text-ink-muted">Jenis Aktiva</th>
-              <th className="px-3 py-2 text-right font-medium text-ink-muted">Jumlah (CALK)</th>
-              <th className="px-3 py-2 text-right font-medium text-ink-muted">Borrowing %</th>
-              <th className="px-3 py-2 text-right font-medium text-ink-muted">Borrowing Capacity</th>
+              <th className="px-3 py-2 text-left font-medium text-ink-muted">{t('borrowingCap.table.assetType')}</th>
+              <th className="px-3 py-2 text-right font-medium text-ink-muted">{t('borrowingCap.table.amount')}</th>
+              <th className="px-3 py-2 text-right font-medium text-ink-muted">{t('borrowingCap.table.borrowingPct')}</th>
+              <th className="px-3 py-2 text-right font-medium text-ink-muted">{t('borrowingCap.table.capacity')}</th>
             </tr>
           </thead>
           <tbody>
             <tr className="border-b border-grid">
-              <td className="px-3 py-2 text-ink">Piutang</td>
+              <td className="px-3 py-2 text-ink">{t('borrowingCap.receivables')}</td>
               <td className="px-3 py-2 text-right">
                 <input
                   type="text"
@@ -120,7 +121,7 @@ function BorrowingCapEditor() {
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(data.borrowingCapReceivables)}</td>
             </tr>
             <tr className="border-b border-grid">
-              <td className="px-3 py-2 text-ink">Persediaan</td>
+              <td className="px-3 py-2 text-ink">{t('borrowingCap.inventory')}</td>
               <td className="px-3 py-2 text-right">
                 <input
                   type="text"
@@ -135,13 +136,13 @@ function BorrowingCapEditor() {
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(data.borrowingCapInventory)}</td>
             </tr>
             <tr className="border-b border-grid">
-              <td className="px-3 py-2 text-ink">Aktiva Tetap</td>
+              <td className="px-3 py-2 text-ink">{t('borrowingCap.fixedAsset')}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(data.totalAssets > 0 ? data.totalAssets - piutangCalk - persediaanCalk : 0)}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">70%</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(data.borrowingCapFixedAsset)}</td>
             </tr>
             <tr className="border-t-2 border-grid-strong bg-canvas-raised font-semibold">
-              <td className="px-3 py-2 text-ink">Jumlah</td>
+              <td className="px-3 py-2 text-ink">{t('common.total')}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(data.totalAssets)}</td>
               <td className="px-3 py-2" />
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(data.totalBorrowingCap)}</td>
@@ -151,32 +152,32 @@ function BorrowingCapEditor() {
       </div>
 
       {/* Section 2 — Weighted Average Rate */}
-      <h2 className="mb-3 text-base font-semibold text-ink">Tingkat Balikan Rata-rata Tertimbang</h2>
+      <h2 className="mb-3 text-base font-semibold text-ink">{t('borrowingCap.weightedAvgTitle')}</h2>
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b-2 border-grid-strong">
-              <th className="px-3 py-2 text-left font-medium text-ink-muted">Jenis Modal</th>
-              <th className="px-3 py-2 text-right font-medium text-ink-muted">Biaya Modal</th>
-              <th className="px-3 py-2 text-right font-medium text-ink-muted">Bobot</th>
-              <th className="px-3 py-2 text-right font-medium text-ink-muted">Biaya Modal Tertimbang</th>
+              <th className="px-3 py-2 text-left font-medium text-ink-muted">{t('borrowingCap.table2.capitalType')}</th>
+              <th className="px-3 py-2 text-right font-medium text-ink-muted">{t('borrowingCap.table2.costOfCapital')}</th>
+              <th className="px-3 py-2 text-right font-medium text-ink-muted">{t('borrowingCap.table2.weight')}</th>
+              <th className="px-3 py-2 text-right font-medium text-ink-muted">{t('borrowingCap.table2.weightedCost')}</th>
             </tr>
           </thead>
           <tbody>
             <tr className="border-b border-grid">
-              <td className="px-3 py-2 text-ink">Hutang</td>
+              <td className="px-3 py-2 text-ink">{t('common.debt')}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatPercent(data.weightDebt > 0 ? data.weightedCostDebt / data.weightDebt : 0)}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatPercent(data.weightDebt)}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatPercent(data.weightedCostDebt)}</td>
             </tr>
             <tr className="border-b border-grid">
-              <td className="px-3 py-2 text-ink">Ekuitas</td>
+              <td className="px-3 py-2 text-ink">{t('common.equity')}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatPercent(data.weightEquity > 0 ? data.weightedCostEquity / data.weightEquity : 0)}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatPercent(data.weightEquity)}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatPercent(data.weightedCostEquity)}</td>
             </tr>
             <tr className="border-t-2 border-grid-strong bg-canvas-raised font-semibold">
-              <td className="px-3 py-2 text-ink">Total</td>
+              <td className="px-3 py-2 text-ink">{t('common.total')}</td>
               <td className="px-3 py-2" />
               <td className="px-3 py-2" />
               <td className="px-3 py-2 text-right font-mono text-lg tabular-nums text-accent">
@@ -191,12 +192,13 @@ function BorrowingCapEditor() {
 }
 
 export default function BorrowingCapPage() {
+  const { t } = useT()
   const hasHydrated = useKkaStore(s => s._hasHydrated)
 
   if (!hasHydrated) {
     return (
       <div className="mx-auto max-w-[900px] p-6 text-sm text-ink-muted">
-        Memuat data…
+        {t('common.loadingData')}
       </div>
     )
   }

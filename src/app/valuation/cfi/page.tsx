@@ -10,14 +10,17 @@ import { computeCfi } from '@/lib/calculations/cfi'
 import type { YearKeyedSeries } from '@/types/financial'
 import { formatIdr } from '@/components/financial/format'
 import { PageEmptyState } from '@/components/shared/PageEmptyState'
+import { useT } from '@/lib/i18n/useT'
+import type { TranslationKey } from '@/lib/i18n/translations'
 
-const ROW_DEFS: { key: keyof ReturnType<typeof computeCfi>; label: string; bold?: boolean }[] = [
-  { key: 'fcf', label: 'Free Cash Flow' },
-  { key: 'nonOpCf', label: 'Add: Cash Flow from Non Operational' },
-  { key: 'cfi', label: 'Cash Flow Available to Investor', bold: true },
+const ROW_DEFS: { key: keyof ReturnType<typeof computeCfi>; labelKey: TranslationKey; bold?: boolean }[] = [
+  { key: 'fcf', labelKey: 'cfi.row.fcf' },
+  { key: 'nonOpCf', labelKey: 'cfi.row.addNonOp' },
+  { key: 'cfi', labelKey: 'cfi.row.cfiTotal', bold: true },
 ]
 
 export default function CfiPage() {
+  const { t } = useT()
   const home = useKkaStore(s => s.home)
   const balanceSheet = useKkaStore(s => s.balanceSheet)
   const incomeStatement = useKkaStore(s => s.incomeStatement)
@@ -74,7 +77,7 @@ export default function CfiPage() {
   }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, keyDrivers, discountRateState])
 
   if (!hasHydrated) {
-    return <div className="mx-auto max-w-[1100px] p-6 text-sm text-ink-muted">Memuat data…</div>
+    return <div className="mx-auto max-w-[1100px] p-6 text-sm text-ink-muted">{t('common.loadingData')}</div>
   }
 
   if (!data) {
@@ -98,8 +101,8 @@ export default function CfiPage() {
 
   return (
     <div className="mx-auto max-w-[1100px] p-6">
-      <h1 className="mb-1 text-2xl font-semibold tracking-tight text-ink">Cash Flow to Investor (CFI)</h1>
-      <p className="mb-6 text-sm text-ink-muted">Arus kas yang tersedia untuk investor — historis dan proyeksi.</p>
+      <h1 className="mb-1 text-2xl font-semibold tracking-tight text-ink">{t('cfi.title')}</h1>
+      <p className="mb-6 text-sm text-ink-muted">{t('cfi.subtitle')}</p>
 
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-sm">
@@ -108,15 +111,15 @@ export default function CfiPage() {
               <th className="px-3 py-1 text-left font-medium text-ink-muted" />
               {data.histYears3.length > 0 && (
                 <th colSpan={data.histYears3.length} className="px-3 py-1 text-center text-xs font-medium uppercase tracking-wider text-ink-muted">
-                  Historis
+                  {t('common.historical')}
                 </th>
               )}
               <th colSpan={projYears.length} className="px-3 py-1 text-center text-xs font-medium uppercase tracking-wider text-ink-muted">
-                Proyeksi
+                {t('common.projection')}
               </th>
             </tr>
             <tr className="border-b-2 border-grid-strong">
-              <th className="px-3 py-2 text-left font-medium text-ink-muted">Keterangan</th>
+              <th className="px-3 py-2 text-left font-medium text-ink-muted">{t('common.description')}</th>
               {allYears.map(y => (
                 <th
                   key={y}
@@ -137,7 +140,7 @@ export default function CfiPage() {
                     : 'border-b border-grid'
                 }
               >
-                <td className="px-3 py-2 text-ink">{def.label}</td>
+                <td className="px-3 py-2 text-ink">{t(def.labelKey)}</td>
                 {allYears.map(y => {
                   const v = cfiResult[def.key][y] ?? 0
                   return (

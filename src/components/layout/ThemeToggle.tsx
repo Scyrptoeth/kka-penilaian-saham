@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from 'react'
 import { useTheme } from 'next-themes'
+import { useT } from '@/lib/i18n/useT'
 
 /**
  * Theme toggle pill — matches the "Seluruh Proses Berjalan di Perangkat
@@ -24,12 +25,13 @@ function useMounted(): boolean {
 export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme()
   const mounted = useMounted()
+  const { t } = useT()
 
   const isDark = mounted && resolvedTheme === 'dark'
   const next = isDark ? 'light' : 'dark'
   // Label reflects the CURRENT active mode (parallel to the privacy badge
   // which states a current state, not an action). On click, mode flips.
-  const label = !mounted ? 'Mode Tampilan' : isDark ? 'Klik untuk Ganti ke Dark Mode' : 'Klik untuk Ganti ke Light Mode'
+  const label = !mounted ? t('theme.loading') : isDark ? t('theme.switchToDark') : t('theme.switchToLight')
   const ariaLabel = !mounted
     ? 'Tema'
     : `Tema saat ini: ${isDark ? 'gelap' : 'terang'}. Klik untuk ganti ke ${next === 'dark' ? 'gelap' : 'terang'}.`

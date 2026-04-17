@@ -19,8 +19,10 @@ import { computeEem } from '@/lib/calculations/eem-valuation'
 import { computeShareValue } from '@/lib/calculations/share-value'
 import { formatIdr, formatPercent } from '@/components/financial/format'
 import { PageEmptyState } from '@/components/shared/PageEmptyState'
+import { useT } from '@/lib/i18n/useT'
 
 export default function EemPage() {
+  const { t } = useT()
   const home = useKkaStore(s => s.home)
   const balanceSheet = useKkaStore(s => s.balanceSheet)
   const incomeStatement = useKkaStore(s => s.incomeStatement)
@@ -109,7 +111,7 @@ export default function EemPage() {
   }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, accPayables, discountRateState, bcInput, aamAdjustments])
 
   if (!hasHydrated) {
-    return <div className="mx-auto max-w-[1100px] p-6 text-sm text-ink-muted">Memuat data…</div>
+    return <div className="mx-auto max-w-[1100px] p-6 text-sm text-ink-muted">{t('common.loadingData')}</div>
   }
 
   if (!data) {
@@ -131,67 +133,67 @@ export default function EemPage() {
 
   return (
     <div className="mx-auto max-w-[1100px] p-6">
-      <h1 className="mb-1 text-2xl font-semibold tracking-tight text-ink">Excess Earnings Method (EEM)</h1>
-      <p className="mb-6 text-sm text-ink-muted">Metode Kapitalisasi Kelebihan Pendapatan — valuasi berdasarkan excess earning di atas normal return.</p>
+      <h1 className="mb-1 text-2xl font-semibold tracking-tight text-ink">{t('eem.title')}</h1>
+      <p className="mb-6 text-sm text-ink-muted">{t('eem.subtitle')}</p>
 
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b-2 border-grid-strong">
-              <th className="px-3 py-2 text-left font-medium text-ink-muted">Keterangan</th>
-              <th className="px-3 py-2 text-right font-medium text-ink-muted">Nilai</th>
+              <th className="px-3 py-2 text-left font-medium text-ink-muted">{t('common.description')}</th>
+              <th className="px-3 py-2 text-right font-medium text-ink-muted">{t('common.value')}</th>
             </tr>
           </thead>
           <tbody>
             {/* NTA + Return */}
-            <tr className="border-t-2 border-grid-strong"><td colSpan={2} className="px-3 pt-3 pb-1 text-xs font-semibold tracking-wide text-ink-muted uppercase">Net Tangible Asset</td></tr>
+            <tr className="border-t-2 border-grid-strong"><td colSpan={2} className="px-3 pt-3 pb-1 text-xs font-semibold tracking-wide text-ink-muted uppercase">{t('eem.section.nta')}</td></tr>
             <tr className="border-b border-grid">
-              <td className="px-3 py-2 text-ink">Net Tangible Asset Value</td>
+              <td className="px-3 py-2 text-ink">{t('eem.ntaValue')}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(r.netTangibleAsset)}</td>
             </tr>
             <tr className="border-b border-grid">
-              <td className="px-3 py-2 text-ink">Return Rate (Borrowing Cap)</td>
+              <td className="px-3 py-2 text-ink">{t('eem.returnRate')}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatPercent(data.bc.waccTangible)}</td>
             </tr>
             <tr className="border-b border-grid font-semibold">
-              <td className="px-3 py-2 text-ink">Earning Return on NTA</td>
+              <td className="px-3 py-2 text-ink">{t('eem.earningReturn')}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(r.earningReturn)}</td>
             </tr>
 
             {/* Historical FCF */}
-            <tr className="border-t-2 border-grid-strong"><td colSpan={2} className="px-3 pt-3 pb-1 text-xs font-semibold tracking-wide text-ink-muted uppercase">Historical Free Cash Flow</td></tr>
+            <tr className="border-t-2 border-grid-strong"><td colSpan={2} className="px-3 pt-3 pb-1 text-xs font-semibold tracking-wide text-ink-muted uppercase">{t('eem.section.histFcf')}</td></tr>
             <tr className="border-b border-grid">
-              <td className="px-3 py-2 text-ink">Gross Cash Flow</td>
+              <td className="px-3 py-2 text-ink">{t('eem.grossCashFlow')}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(r.grossCashFlow)}</td>
             </tr>
             <tr className="border-b border-grid">
-              <td className="px-3 py-2 text-ink">Gross Investment</td>
+              <td className="px-3 py-2 text-ink">{t('eem.grossInvestment')}</td>
               <td className={`px-3 py-2 text-right font-mono tabular-nums ${r.grossInvestment < 0 ? 'text-negative' : ''}`}>{formatIdr(r.grossInvestment)}</td>
             </tr>
             <tr className="border-b border-grid font-semibold">
-              <td className="px-3 py-2 text-ink">Free Cash Flow</td>
+              <td className="px-3 py-2 text-ink">{t('eem.fcf')}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(r.fcf)}</td>
             </tr>
 
             {/* Excess Earning */}
-            <tr className="border-t-2 border-grid-strong"><td colSpan={2} className="px-3 pt-3 pb-1 text-xs font-semibold tracking-wide text-ink-muted uppercase">Excess Earning</td></tr>
+            <tr className="border-t-2 border-grid-strong"><td colSpan={2} className="px-3 pt-3 pb-1 text-xs font-semibold tracking-wide text-ink-muted uppercase">{t('eem.section.excessEarning')}</td></tr>
             <tr className="border-b border-grid">
-              <td className="px-3 py-2 text-ink">Excess Earning (FCF - Normal Return)</td>
+              <td className="px-3 py-2 text-ink">{t('eem.excessEarning')}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(r.excessEarning)}</td>
             </tr>
             <tr className="border-b border-grid">
-              <td className="px-3 py-2 text-ink">Capitalized Excess Earning (/ WACC)</td>
+              <td className="px-3 py-2 text-ink">{t('eem.capitalizedExcess')}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(r.capitalizedExcess)}</td>
             </tr>
 
             {/* Enterprise → Equity */}
-            <tr className="border-t-2 border-grid-strong"><td colSpan={2} className="px-3 pt-3 pb-1 text-xs font-semibold tracking-wide text-ink-muted uppercase">Enterprise & Equity Value</td></tr>
+            <tr className="border-t-2 border-grid-strong"><td colSpan={2} className="px-3 pt-3 pb-1 text-xs font-semibold tracking-wide text-ink-muted uppercase">{t('eem.section.enterpriseEquity')}</td></tr>
             <tr className="border-b border-grid font-semibold">
-              <td className="px-3 py-2 text-ink">Enterprise Value (NTA + Capitalized Excess)</td>
+              <td className="px-3 py-2 text-ink">{t('eem.enterpriseValue')}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(r.enterpriseValue)}</td>
             </tr>
             <tr className="border-b border-grid">
-              <td className="px-3 py-2 text-ink">Equity Value (100%)</td>
+              <td className="px-3 py-2 text-ink">{t('eem.equityValue100')}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(r.equityValue100)}</td>
             </tr>
             <tr className="border-b border-grid">
@@ -199,11 +201,11 @@ export default function EemPage() {
               <td className="px-3 py-2 text-right font-mono tabular-nums text-negative">{formatIdr(sv.dlomDiscount)}</td>
             </tr>
             <tr className="border-b border-grid">
-              <td className="px-3 py-2 text-ink">Equity Less DLOM</td>
+              <td className="px-3 py-2 text-ink">{t('eem.equityLessDlom')}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(sv.equityLessDlom)}</td>
             </tr>
             <tr className="border-b border-grid">
-              <td className="px-3 py-2 text-ink">Market Value (100%)</td>
+              <td className="px-3 py-2 text-ink">{t('eem.marketValue100')}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(sv.marketValue100)}</td>
             </tr>
             <tr className="border-b border-grid">
@@ -211,13 +213,13 @@ export default function EemPage() {
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(sv.marketValuePortion)}</td>
             </tr>
             <tr className="border-b border-grid">
-              <td className="px-3 py-2 text-ink">Rounded (ROUNDUP)</td>
+              <td className="px-3 py-2 text-ink">{t('eem.rounded')}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(sv.rounded)}</td>
             </tr>
 
             {/* Per Share */}
             <tr className="border-t-2 border-grid-strong bg-canvas-raised">
-              <td className="px-3 py-3 font-semibold text-ink">Nilai Per Saham (EEM)</td>
+              <td className="px-3 py-3 font-semibold text-ink">{t('eem.perShare')}</td>
               <td className="px-3 py-3 text-right font-mono text-lg font-semibold tabular-nums text-accent">
                 {formatIdr(sv.perShare)}
               </td>

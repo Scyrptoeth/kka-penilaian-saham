@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState, useEffect, useRef } from 'react'
 import type { KeyDriversState } from '@/lib/store/useKkaStore'
 import { computeSalesVolumes, computeSalesPrices, computeTotalCapex } from '@/lib/calculations/key-drivers'
+import { useT } from '@/lib/i18n/useT'
 
 const NUM_PROJECTION_YEARS = 7
 
@@ -50,6 +51,7 @@ interface KeyDriversFormProps {
 }
 
 export function KeyDriversForm({ initial, baseYear, onSave, isAutoRatios }: KeyDriversFormProps) {
+  const { t } = useT()
   const [state, setState] = useState<KeyDriversState>(() => {
     if (initial) return initial
     const base = defaultState()
@@ -155,14 +157,14 @@ export function KeyDriversForm({ initial, baseYear, onSave, isAutoRatios }: KeyD
     <div className="space-y-8">
       {/* Section 1 — Financial Drivers */}
       <section>
-        <h2 className="mb-4 text-lg font-semibold text-ink">Financial Drivers</h2>
+        <h2 className="mb-4 text-lg font-semibold text-ink">{t('keyDrivers.financialDrivers')}</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {([
-            ['interestRateShortTerm', 'Interest Rate (Short Term Loan)'],
-            ['interestRateLongTerm', 'Interest Rate (Long Term Loan)'],
-            ['bankDepositRate', 'Bank Deposit Rate'],
-            ['corporateTaxRate', 'Corporate Tax Rate'],
-          ] as const).map(([key, label]) => (
+            ['interestRateShortTerm', t('keyDrivers.field.interestRateST')],
+            ['interestRateLongTerm', t('keyDrivers.field.interestRateLT')],
+            ['bankDepositRate', t('keyDrivers.field.depositRate')],
+            ['corporateTaxRate', t('keyDrivers.field.taxRate')],
+          ] as [keyof KeyDriversState['financialDrivers'], string][]).map(([key, label]) => (
             <div key={key}>
               <label className="mb-1 block text-sm font-medium text-ink-soft">{label}</label>
               <div className="flex items-center gap-1">
@@ -183,10 +185,10 @@ export function KeyDriversForm({ initial, baseYear, onSave, isAutoRatios }: KeyD
 
       {/* Section 2 — Operational Drivers */}
       <section>
-        <h2 className="mb-4 text-lg font-semibold text-ink">Operational Drivers</h2>
+        <h2 className="mb-4 text-lg font-semibold text-ink">{t('keyDrivers.operationalDrivers')}</h2>
 
         {/* Sales Volume */}
-        <h3 className="mb-2 text-sm font-medium text-ink-soft">Sales Volume (unit)</h3>
+        <h3 className="mb-2 text-sm font-medium text-ink-soft">{t('keyDrivers.salesVolume')}</h3>
         <div className="mb-4 overflow-x-auto">
           <table className="w-full border-collapse text-sm">
             <thead>
@@ -199,7 +201,7 @@ export function KeyDriversForm({ initial, baseYear, onSave, isAutoRatios }: KeyD
             </thead>
             <tbody>
               <tr className="border-b border-grid">
-                <td className="px-2 py-1 text-ink">Volume</td>
+                <td className="px-2 py-1 text-ink">{t('keyDrivers.volume')}</td>
                 <td className="px-2 py-1">
                   <input type="number" className="w-28 rounded border border-grid bg-canvas px-2 py-1 text-right font-mono text-sm tabular-nums focus-visible:ring-2 focus-visible:ring-accent"
                     value={state.operationalDrivers.salesVolumeBase || ''} onChange={e => updateOpScalar('salesVolumeBase', e.target.value)} placeholder="0" />
@@ -209,7 +211,7 @@ export function KeyDriversForm({ initial, baseYear, onSave, isAutoRatios }: KeyD
                 ))}
               </tr>
               <tr className="border-b border-grid">
-                <td className="px-2 py-1 text-ink">Increment</td>
+                <td className="px-2 py-1 text-ink">{t('keyDrivers.increment')}</td>
                 <td className="px-2 py-1 text-center text-ink-muted">—</td>
                 {state.operationalDrivers.salesVolumeIncrements.map((inc, i) => (
                   <td key={i} className="px-2 py-1">
@@ -226,7 +228,7 @@ export function KeyDriversForm({ initial, baseYear, onSave, isAutoRatios }: KeyD
         </div>
 
         {/* Sales Price */}
-        <h3 className="mb-2 text-sm font-medium text-ink-soft">Sales Price (IDR/unit)</h3>
+        <h3 className="mb-2 text-sm font-medium text-ink-soft">{t('keyDrivers.salesPrice')}</h3>
         <div className="mb-4 overflow-x-auto">
           <table className="w-full border-collapse text-sm">
             <thead>
@@ -239,7 +241,7 @@ export function KeyDriversForm({ initial, baseYear, onSave, isAutoRatios }: KeyD
             </thead>
             <tbody>
               <tr className="border-b border-grid">
-                <td className="px-2 py-1 text-ink">Price</td>
+                <td className="px-2 py-1 text-ink">{t('keyDrivers.price')}</td>
                 <td className="px-2 py-1">
                   <input type="number" className="w-28 rounded border border-grid bg-canvas px-2 py-1 text-right font-mono text-sm tabular-nums focus-visible:ring-2 focus-visible:ring-accent"
                     value={state.operationalDrivers.salesPriceBase || ''} onChange={e => updateOpScalar('salesPriceBase', e.target.value)} placeholder="0" />
@@ -249,7 +251,7 @@ export function KeyDriversForm({ initial, baseYear, onSave, isAutoRatios }: KeyD
                 ))}
               </tr>
               <tr className="border-b border-grid">
-                <td className="px-2 py-1 text-ink">Increment</td>
+                <td className="px-2 py-1 text-ink">{t('keyDrivers.increment')}</td>
                 <td className="px-2 py-1 text-center text-ink-muted">—</td>
                 {state.operationalDrivers.salesPriceIncrements.map((inc, i) => (
                   <td key={i} className="px-2 py-1">
@@ -266,14 +268,14 @@ export function KeyDriversForm({ initial, baseYear, onSave, isAutoRatios }: KeyD
         </div>
 
         {/* Cost/Expense Ratios */}
-        <h3 className="mb-2 text-sm font-medium text-ink-soft">Cost &amp; Expense Ratios (% of Revenue)</h3>
-        <p className="mb-3 text-xs text-ink-muted">Input sebagai angka positif. Sign convention ditangani otomatis di computation.</p>
+        <h3 className="mb-2 text-sm font-medium text-ink-soft">{t('keyDrivers.costRatios')}</h3>
+        <p className="mb-3 text-xs text-ink-muted">{t('keyDrivers.costRatiosHint')}</p>
         <div className="grid gap-4 sm:grid-cols-3">
           {([
-            ['cogsRatio', 'COGS (% of Revenue)'],
-            ['sellingExpenseRatio', 'Selling Expense (% of Revenue)'],
-            ['gaExpenseRatio', 'G&A Expense (% of Revenue)'],
-          ] as const).map(([key, label]) => (
+            ['cogsRatio', t('keyDrivers.field.cogs')],
+            ['sellingExpenseRatio', t('keyDrivers.field.sellingExp')],
+            ['gaExpenseRatio', t('keyDrivers.field.gaExp')],
+          ] as ['cogsRatio' | 'sellingExpenseRatio' | 'gaExpenseRatio', string][]).map(([key, label]) => (
             <div key={key}>
               <label className="mb-1 block text-sm font-medium text-ink-soft">{label}</label>
               <div className="flex items-center gap-1">
@@ -290,7 +292,7 @@ export function KeyDriversForm({ initial, baseYear, onSave, isAutoRatios }: KeyD
 
       {/* Section 3 — Balance Sheet Drivers */}
       <section>
-        <h2 className="mb-4 text-lg font-semibold text-ink">Balance Sheet Drivers (Working Capital Days)</h2>
+        <h2 className="mb-4 text-lg font-semibold text-ink">{t('keyDrivers.bsDrivers')}</h2>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-sm">
             <thead>
@@ -303,10 +305,10 @@ export function KeyDriversForm({ initial, baseYear, onSave, isAutoRatios }: KeyD
             </thead>
             <tbody>
               {([
-                ['accReceivableDays', 'Acc. Receivable (days)'],
-                ['inventoryDays', 'Inventory (days)'],
-                ['accPayableDays', 'Acc. Payable (days)'],
-              ] as const).map(([field, label]) => (
+                ['accReceivableDays', t('keyDrivers.field.arDays')],
+                ['inventoryDays', t('keyDrivers.field.invDays')],
+                ['accPayableDays', t('keyDrivers.field.apDays')],
+              ] as [keyof KeyDriversState['bsDrivers'], string][]).map(([field, label]) => (
                 <tr key={field} className="border-b border-grid">
                   <td className="px-2 py-1 text-ink">{label}</td>
                   {state.bsDrivers[field].map((v, i) => (
@@ -325,7 +327,7 @@ export function KeyDriversForm({ initial, baseYear, onSave, isAutoRatios }: KeyD
 
       {/* Section 4 — Additional Capex */}
       <section>
-        <h2 className="mb-4 text-lg font-semibold text-ink">Additional Capex</h2>
+        <h2 className="mb-4 text-lg font-semibold text-ink">{t('keyDrivers.additionalCapex')}</h2>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-sm">
             <thead>
@@ -338,11 +340,11 @@ export function KeyDriversForm({ initial, baseYear, onSave, isAutoRatios }: KeyD
             </thead>
             <tbody>
               {([
-                ['land', 'Land'],
-                ['building', 'Building'],
-                ['equipment', 'Equipment'],
-                ['others', 'Others'],
-              ] as const).map(([field, label]) => (
+                ['land', t('keyDrivers.capex.land')],
+                ['building', t('keyDrivers.capex.building')],
+                ['equipment', t('keyDrivers.capex.equipment')],
+                ['others', t('keyDrivers.capex.others')],
+              ] as [keyof KeyDriversState['additionalCapex'], string][]).map(([field, label]) => (
                 <tr key={field} className="border-b border-grid">
                   <td className="px-2 py-1 text-ink">{label}</td>
                   {state.additionalCapex[field].map((v, i) => (
@@ -355,7 +357,7 @@ export function KeyDriversForm({ initial, baseYear, onSave, isAutoRatios }: KeyD
                 </tr>
               ))}
               <tr className="border-t-2 border-grid-strong bg-canvas-raised font-semibold">
-                <td className="px-2 py-1 text-ink">Total</td>
+                <td className="px-2 py-1 text-ink">{t('common.total')}</td>
                 {totalCapex.map((v, i) => (
                   <td key={i} className="px-2 py-1 text-right font-mono tabular-nums">{IDR.format(v)}</td>
                 ))}

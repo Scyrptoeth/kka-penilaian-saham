@@ -6,25 +6,26 @@ import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
 import { PageEmptyState } from '@/components/shared/PageEmptyState'
 import { formatIdr } from '@/components/financial/format'
 import { parseFinancialInput } from '@/components/forms/parse-financial-input'
+import { useT } from '@/lib/i18n/useT'
 import type { YearKeyedSeries } from '@/types/financial'
 
 // -- Row definitions for Bank Loan Schedules --
 // Matches Excel ACC PAYABLES sheet structure
 
 const ST_ROWS = [
-  { row: 9, label: 'Beginning', editable: false },
-  { row: 10, label: 'Addition', editable: true },
-  { row: 11, label: 'Repayment', editable: true },
-  { row: 12, label: 'Ending', editable: false },
-  { row: 14, label: 'Interest Payable', editable: true },
+  { row: 9, labelKey: 'accPayables.row.beginning' as const, editable: false },
+  { row: 10, labelKey: 'accPayables.row.addition' as const, editable: true },
+  { row: 11, labelKey: 'accPayables.row.repayment' as const, editable: true },
+  { row: 12, labelKey: 'accPayables.row.ending' as const, editable: false },
+  { row: 14, labelKey: 'accPayables.row.interestPayable' as const, editable: true },
 ] as const
 
 const LT_ROWS = [
-  { row: 18, label: 'Beginning', editable: false },
-  { row: 19, label: 'Addition', editable: true },
-  { row: 20, label: 'Repayment', editable: true },
-  { row: 21, label: 'Ending', editable: false },
-  { row: 23, label: 'Interest Payable', editable: true },
+  { row: 18, labelKey: 'accPayables.row.beginning' as const, editable: false },
+  { row: 19, labelKey: 'accPayables.row.addition' as const, editable: true },
+  { row: 20, labelKey: 'accPayables.row.repayment' as const, editable: true },
+  { row: 21, labelKey: 'accPayables.row.ending' as const, editable: false },
+  { row: 23, labelKey: 'accPayables.row.interestPayable' as const, editable: true },
 ] as const
 
 /**
@@ -60,6 +61,7 @@ function computeApDerived(
 }
 
 function AccPayablesEditor() {
+  const { t } = useT()
   const home = useKkaStore((s) => s.home)!
   const accPayables = useKkaStore((s) => s.accPayables)
   const setAccPayables = useKkaStore((s) => s.setAccPayables)
@@ -111,7 +113,7 @@ function AccPayablesEditor() {
 
   function renderSection(
     title: string,
-    rows: readonly { row: number; label: string; editable: boolean }[],
+    rows: readonly { row: number; labelKey: string; editable: boolean }[],
   ) {
     return (
       <div className="overflow-x-auto">
@@ -139,7 +141,7 @@ function AccPayablesEditor() {
                   key={def.row}
                   className={`border-b border-grid ${isComputed ? 'bg-canvas-raised font-semibold' : ''}`}
                 >
-                  <td className="px-3 py-1.5 text-ink-soft">{def.label}</td>
+                  <td className="px-3 py-1.5 text-ink-soft">{t(def.labelKey as import('@/lib/i18n/translations').TranslationKey)}</td>
                   {years.map((y) => {
                     const val = allValues[def.row]?.[y] ?? 0
                     if (isComputed) {
@@ -178,38 +180,39 @@ function AccPayablesEditor() {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-muted">
-            Input Data
+            {t('editor.sectionLabel')}
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-ink">
-            Acc Payables
+            {t('accPayables.title')}
           </h1>
           <p className="mt-1 text-sm text-ink-muted">
-            Bank Loan Schedules — Tahun {years[0]}–{years[years.length - 1]}
+            {t('accPayables.subtitle')} — {years[0]}–{years[years.length - 1]}
           </p>
         </div>
-        <p className="text-xs text-ink-muted">Otomatis tersimpan</p>
+        <p className="text-xs text-ink-muted">{t('common.autoSaved')}</p>
       </div>
 
       <div className="mt-6 space-y-6">
-        {renderSection('Short-Term Bank Loan', ST_ROWS)}
-        {renderSection('Long-Term Bank Loan', LT_ROWS)}
+        {renderSection(t('accPayables.shortTerm'), ST_ROWS)}
+        {renderSection(t('accPayables.longTerm'), LT_ROWS)}
       </div>
 
       <p className="mt-4 text-xs text-ink-muted">
-        Data hutang bank digunakan oleh Cash Flow Statement untuk menghitung arus kas dari pendanaan (New Loan, Principal Repayment).
+        {t('accPayables.footerNote')}
       </p>
     </div>
   )
 }
 
 export default function InputAccPayablesPage() {
+  const { t } = useT()
   const home = useKkaStore((s) => s.home)
   const hasHydrated = useKkaStore((s) => s._hasHydrated)
 
   if (!hasHydrated) {
     return (
       <div className="mx-auto max-w-[1100px] p-6">
-        <p className="text-sm text-ink-muted">Memuat…</p>
+        <p className="text-sm text-ink-muted">{t('common.loading')}</p>
       </div>
     )
   }

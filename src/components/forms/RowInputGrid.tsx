@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import type { ManifestRow, CatalogAccount } from '@/data/manifests/types'
 import type { YearKeyedSeries } from '@/types/financial'
 import { cn } from '@/lib/utils/cn'
+import { useT } from '@/lib/i18n/useT'
 import { formatIdr, formatPercent, isNegative } from '@/components/financial/format'
 import { parseFinancialInput } from './parse-financial-input'
 
@@ -42,7 +43,7 @@ export function RowInputGrid({
   values,
   computedValues = {},
   onChange,
-  lineItemHeader = 'Line Item',
+  lineItemHeader,
   onAddButtonClick,
   onRemoveAccount,
   openDropdownSection,
@@ -57,6 +58,8 @@ export function RowInputGrid({
   growth,
   growthYears = [],
 }: RowInputGridProps) {
+  const { t } = useT()
+  const resolvedLineItemHeader = lineItemHeader ?? t('table.lineItemHeader')
   const colCount = 1 + years.length + commonSizeYears.length + growthYears.length
   return (
     <div className="overflow-x-auto rounded-sm border border-grid bg-canvas-raised shadow-[0_1px_0_rgba(10,22,40,0.04)]">
@@ -67,7 +70,7 @@ export function RowInputGrid({
               scope="col"
               className="sticky left-0 top-0 z-20 min-w-[280px] border-b border-grid-strong bg-canvas-raised px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted shadow-[1px_0_0_rgba(10,22,40,0.06)]"
             >
-              {lineItemHeader}
+              {resolvedLineItemHeader}
             </th>
             {years.map((year) => (
               <th
@@ -84,7 +87,7 @@ export function RowInputGrid({
                 colSpan={commonSizeYears.length}
                 className="sticky top-0 z-10 border-b border-l border-grid-strong bg-canvas-raised px-3 py-2 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-accent"
               >
-                Common Size
+                {t('table.commonSize')}
               </th>
             )}
             {growthYears.length > 0 && (
@@ -93,7 +96,7 @@ export function RowInputGrid({
                 colSpan={growthYears.length}
                 className="sticky top-0 z-10 border-b border-l border-grid-strong bg-canvas-raised px-3 py-2 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-accent"
               >
-                Growth YoY
+                {t('table.growthYoY')}
               </th>
             )}
           </tr>
@@ -195,7 +198,7 @@ export function RowInputGrid({
                         type="button"
                         onClick={() => onRemoveAccount!(row.catalogId!)}
                         className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-sm text-ink-muted/40 opacity-0 transition-all group-hover:opacity-100 hover:!text-negative"
-                        title="Remove"
+                        title={t('common.remove')}
                       >
                         <TrashIcon />
                       </button>
@@ -291,6 +294,7 @@ function InlineDropdown({
   onClose: () => void
   strings?: { manualEntry: string; allAccountsAdded: string; accountNamePlaceholder: string; cancel: string; add: string }
 }) {
+  const { t: translate } = useT()
   const [customMode, setCustomMode] = useState(false)
   const [customLabel, setCustomLabel] = useState('')
   const ref = useRef<HTMLDivElement>(null)
@@ -312,12 +316,12 @@ function InlineDropdown({
     }
   }
 
-  const t = strings ?? {
-    manualEntry: 'Isi Manual...',
-    allAccountsAdded: 'Semua akun sudah ditambahkan',
-    accountNamePlaceholder: 'Nama akun...',
-    cancel: 'Batal',
-    add: 'Tambah',
+  const s = strings ?? {
+    manualEntry: translate('dropdown.manualEntry'),
+    allAccountsAdded: translate('dropdown.allAdded'),
+    accountNamePlaceholder: translate('dropdown.namePlaceholder'),
+    cancel: translate('dropdown.cancel'),
+    add: translate('dropdown.add'),
   }
 
   return (
@@ -336,7 +340,7 @@ function InlineDropdown({
             </li>
           ))}
           {catalog.length === 0 && (
-            <li className="px-3 py-1.5 text-[12px] text-ink-muted">{t.allAccountsAdded}</li>
+            <li className="px-3 py-1.5 text-[12px] text-ink-muted">{s.allAccountsAdded}</li>
           )}
           <li className="border-t border-grid">
             <button
@@ -344,7 +348,7 @@ function InlineDropdown({
               onClick={() => setCustomMode(true)}
               className="w-full px-3 py-1.5 text-left text-[12px] font-medium text-accent transition-colors hover:bg-accent/10"
             >
-              {t.manualEntry}
+              {s.manualEntry}
             </button>
           </li>
         </ul>
@@ -355,13 +359,13 @@ function InlineDropdown({
             value={customLabel}
             onChange={(e) => setCustomLabel(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleCustomSubmit() }}
-            placeholder={t.accountNamePlaceholder}
+            placeholder={s.accountNamePlaceholder}
             className="w-full rounded-sm border border-grid bg-canvas px-2 py-1.5 text-[12px] text-ink focus:border-accent focus:outline-none"
             autoFocus
           />
           <div className="mt-1.5 flex justify-end gap-1.5">
-            <button type="button" onClick={() => { setCustomMode(false); setCustomLabel('') }} className="px-2 py-1 text-[11px] text-ink-muted hover:text-ink">{t.cancel}</button>
-            <button type="button" onClick={handleCustomSubmit} className="rounded-sm bg-accent px-2 py-1 text-[11px] text-white hover:bg-accent/90">{t.add}</button>
+            <button type="button" onClick={() => { setCustomMode(false); setCustomLabel('') }} className="px-2 py-1 text-[11px] text-ink-muted hover:text-ink">{s.cancel}</button>
+            <button type="button" onClick={handleCustomSubmit} className="rounded-sm bg-accent px-2 py-1 text-[11px] text-white hover:bg-accent/90">{s.add}</button>
           </div>
         </div>
       )}

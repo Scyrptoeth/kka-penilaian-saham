@@ -2,6 +2,7 @@
 
 import { useMemo, useCallback } from 'react'
 import { useKkaStore, type DlomState } from '@/lib/store/useKkaStore'
+import { useT } from '@/lib/i18n/useT'
 import { QuestionnaireForm } from '@/components/forms/QuestionnaireForm'
 import { DLOM_FACTORS } from '@/data/questionnaires/dlom-factors'
 import { computeDlomPercentage } from '@/lib/calculations/dlom'
@@ -20,6 +21,7 @@ const DEFAULT_DLOM: DlomState = {
 const DLOM_MAX_SCORE = DLOM_FACTORS.length
 
 export default function DlomPage() {
+  const { t } = useT()
   const home = useKkaStore((s) => s.home)
   const dlom = useKkaStore((s) => s.dlom)
   const hasHydrated = useKkaStore((s) => s._hasHydrated)
@@ -98,15 +100,15 @@ export default function DlomPage() {
     // Avoid SSR/CSR mismatch on first paint — store hasn't loaded localStorage yet.
     return (
       <div className="mx-auto max-w-[1100px] p-6 text-sm text-ink-muted">
-        Memuat data DLOM…
+        {t('dlom.loading')}
       </div>
     )
   }
 
   return (
     <QuestionnaireForm
-      title="DLOM — Discount for Lack of Marketability"
-      disclaimer="Pilih opsi terbaik untuk setiap faktor. Hasil persentase otomatis ter-sync ke HOME store dan dipakai sebagai discount factor di final valuation."
+      title={t('dlom.title')}
+      disclaimer={t('dlom.disclaimer')}
       jenisPerusahaan={jenisPerusahaan}
       factors={DLOM_FACTORS}
       answers={current.answers}
@@ -114,7 +116,7 @@ export default function DlomPage() {
       kepemilikan={current.kepemilikan}
       onKepemilikanChange={handleKepemilikanChange}
       result={result}
-      resultLabel="DLOM Objek Penilaian"
+      resultLabel={t('dlom.resultLabel')}
     />
   )
 }

@@ -17,6 +17,7 @@ import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
 import { ratioOfBase, yoyChangeSafe } from '@/lib/calculations/helpers'
 import type { YearKeyedSeries } from '@/types/financial'
 import { getBsStrings } from '@/lib/i18n/balance-sheet'
+import { useT } from '@/lib/i18n/useT'
 
 /**
  * Compute BS cross-reference values from Fixed Asset store data.
@@ -53,9 +54,13 @@ export default function DynamicBsEditor() {
   const resetBalanceSheet = useKkaStore((s) => s.resetBalanceSheet)
   const resetAll = useKkaStore((s) => s.resetAll)
 
+  // Global language from sidebar toggle
+  const { t: tGlobal, language } = useT()
+
   const tahunTransaksi = home!.tahunTransaksi
 
-  // i18n — all UI strings derived from language state
+  // Per-page i18n — catalog labels and structural rows
+  const bsStrings = getBsStrings(language)
 
   // Local state — seeded from store once at mount (LESSON-034)
   const [accounts, setAccounts] = useState<BsAccountEntry[]>(
@@ -63,9 +68,6 @@ export default function DynamicBsEditor() {
   )
   const [yearCount, setYearCount] = useState(
     () => balanceSheet?.yearCount ?? 1,
-  )
-  const [language, setLanguage] = useState<'en' | 'id'>(
-    () => balanceSheet?.language ?? 'en',
   )
   const [localRows, setLocalRows] = useState<Record<number, YearKeyedSeries>>(() => {
     // Filter OUT sentinel rows from store — editor only shows leaf data
@@ -79,7 +81,6 @@ export default function DynamicBsEditor() {
     }
     return leafOnly
   })
-  const t = getBsStrings(language)
 
   // Reset dialog state
   const [showResetBS, setShowResetBS] = useState(false)
@@ -93,12 +94,13 @@ export default function DynamicBsEditor() {
     nextAccounts: BsAccountEntry[],
     nextRows: Record<number, YearKeyedSeries>,
     nextYearCount: number,
-    nextLanguage: 'en' | 'id',
   ) {
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
+      // Read latest language from global store at persist time
+      const lang = useKkaStore.getState().language
       // Build manifest and compute sentinels for downstream compat
-      const manifest = buildDynamicBsManifest(nextAccounts, nextLanguage, nextYearCount, tahunTransaksi)
+      const manifest = buildDynamicBsManifest(nextAccounts, lang, nextYearCount, tahunTransaksi)
       const yrs = computeHistoricalYears(tahunTransaksi, nextYearCount)
       // Include latest FA cross-refs so sentinels (Total Assets etc.) are correct
       const refs = computeBsCrossRefValues(useKkaStore.getState().fixedAsset?.rows)
@@ -107,7 +109,7 @@ export default function DynamicBsEditor() {
       for (const r of BS_SENTINEL_ROWS) {
         if (computed[r]) sentinels[r] = computed[r]
       }
-      setBalanceSheet({ accounts: nextAccounts, yearCount: nextYearCount, language: nextLanguage, rows: { ...nextRows, ...sentinels } })
+      setBalanceSheet({ accounts: nextAccounts, yearCount: nextYearCount, language: lang, rows: { ...nextRows, ...sentinels } })
     }, 500)
   }
 
@@ -146,7 +148,7 @@ export default function DynamicBsEditor() {
     if (prevCrossRefRef.current === crossRefValues) return
     prevCrossRefRef.current = crossRefValues
     if (accounts.length === 0) return
-    schedulePersist(accounts, localRows, yearCount, language)
+    schedulePersist(accounts, localRows, yearCount)
   })
 
   // Derivation columns: Common Size (% of Total Assets) + Growth YoY
@@ -209,7 +211,7 @@ export default function DynamicBsEditor() {
   function handleCellChange(excelRow: number, year: number, value: number) {
     setLocalRows((prev) => {
       const next = { ...prev, [excelRow]: { ...(prev[excelRow] ?? {}), [year]: value } }
-      schedulePersist(accounts, next, yearCount, language)
+      schedulePersist(accounts, next, yearCount)
       return next
     })
   }
@@ -222,7 +224,7 @@ export default function DynamicBsEditor() {
     }
     setAccounts((prev) => {
       const next = [...prev, entry]
-      schedulePersist(next, localRows, yearCount, language)
+      schedulePersist(next, localRows, yearCount)
       return next
     })
   }
@@ -237,7 +239,7 @@ export default function DynamicBsEditor() {
     }
     setAccounts((prev) => {
       const next = [...prev, entry]
-      schedulePersist(next, localRows, yearCount, language)
+      schedulePersist(next, localRows, yearCount)
       return next
     })
   }
@@ -249,7 +251,7 @@ export default function DynamicBsEditor() {
       const nextRows = { ...localRows }
       if (account) delete nextRows[account.excelRow]
       setLocalRows(nextRows)
-      schedulePersist(next, nextRows, yearCount, language)
+      schedulePersist(next, nextRows, yearCount)
       return next
     })
   }
@@ -257,15 +259,7 @@ export default function DynamicBsEditor() {
   function handleYearCountChange(delta: number) {
     setYearCount((prev) => {
       const next = Math.min(10, Math.max(1, prev + delta))
-      schedulePersist(accounts, localRows, next, language)
-      return next
-    })
-  }
-
-  function handleLanguageToggle() {
-    setLanguage((prev) => {
-      const next = prev === 'en' ? 'id' : 'en'
-      schedulePersist(accounts, localRows, yearCount, next)
+      schedulePersist(accounts, localRows, next)
       return next
     })
   }
@@ -275,7 +269,6 @@ export default function DynamicBsEditor() {
     setAccounts([])
     setLocalRows({})
     setYearCount(1)
-    setLanguage('en')
     setShowResetBS(false)
   }
 
@@ -284,7 +277,6 @@ export default function DynamicBsEditor() {
     setAccounts([])
     setLocalRows({})
     setYearCount(1)
-    setLanguage('en')
     setShowResetAll(false)
   }
 
@@ -298,44 +290,24 @@ export default function DynamicBsEditor() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-muted">
-            Input Data
+            {tGlobal('editor.sectionLabel')}
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-ink">
-            {t.pageTitle}
+            {bsStrings.pageTitle}
           </h1>
         </div>
-        {/* Language toggle — globe + label + description */}
-        <button
-          type="button"
-          onClick={handleLanguageToggle}
-          className="flex items-center gap-2.5 rounded-md border border-grid px-4 py-2 transition-colors hover:bg-grid/50"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-ink-muted" aria-hidden="true">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M2 12h20" />
-            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-          </svg>
-          <span className="text-sm font-semibold text-ink">
-            {language === 'en' ? 'Indonesia' : 'English'}
-          </span>
-          <span className="text-xs text-ink-muted">
-            {language === 'en'
-              ? 'Tampilkan dalam Bahasa Indonesia'
-              : 'Tampilkan dalam Bahasa Inggris'}
-          </span>
-        </button>
       </div>
 
       {/* Year axis info */}
       <p className="text-[12px] text-ink-muted">
-        Tahun historis: {years.join(', ')} ({yearCount} {yearCount === 1 ? 'tahun' : 'tahun'})
+        {tGlobal('editor.yearAxisInfo')} {years.join(', ')} ({yearCount} {tGlobal('common.year')})
       </p>
 
       {/* Year control section */}
       <div className="rounded-sm border border-grid bg-canvas-raised p-3">
         <div className="flex items-center justify-between">
           <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-muted">
-            {t.addHistoricalYear}
+            {bsStrings.addHistoricalYear}
           </h3>
           <div className="flex items-center gap-1.5">
             {yearCount > 1 && (
@@ -344,7 +316,7 @@ export default function DynamicBsEditor() {
                 onClick={() => handleYearCountChange(-1)}
                 className="rounded-sm border border-dashed border-grid px-2 py-1 text-[11px] font-medium text-ink-muted transition-colors hover:border-negative hover:text-negative"
               >
-                {t.reduceYear}
+                {bsStrings.reduceYear}
               </button>
             )}
             <button
@@ -352,7 +324,7 @@ export default function DynamicBsEditor() {
               onClick={() => handleYearCountChange(1)}
               className="rounded-sm border border-dashed border-grid px-2 py-1 text-[11px] font-medium text-ink-muted transition-colors hover:border-accent hover:text-accent"
             >
-              {t.addYear}
+              {bsStrings.addYear}
             </button>
           </div>
         </div>
@@ -365,7 +337,7 @@ export default function DynamicBsEditor() {
         values={localRows}
         computedValues={{ ...crossRefValues, ...computedValues }}
         onChange={handleCellChange}
-        lineItemHeader={t.lineItemHeader}
+        lineItemHeader={bsStrings.lineItemHeader}
         onAddButtonClick={(section) => setOpenDropdownSection(section === openDropdownSection ? null : section as BsSection)}
         onRemoveAccount={handleRemoveAccount}
         openDropdownSection={openDropdownSection}
@@ -373,7 +345,7 @@ export default function DynamicBsEditor() {
         onSelectCatalogItem={(item) => { handleAddAccount(item as BsCatalogAccount); setOpenDropdownSection(null) }}
         onCustomEntry={(section, label) => { handleAddCustom(section as BsSection, label); setOpenDropdownSection(null) }}
         onCloseDropdown={() => setOpenDropdownSection(null)}
-        dropdownStrings={{ manualEntry: t.manualEntry, allAccountsAdded: t.allAccountsAdded, accountNamePlaceholder: t.accountNamePlaceholder, cancel: t.cancel, add: t.add }}
+        dropdownStrings={{ manualEntry: bsStrings.manualEntry, allAccountsAdded: bsStrings.allAccountsAdded, accountNamePlaceholder: bsStrings.accountNamePlaceholder, cancel: tGlobal('common.cancel'), add: tGlobal('common.add') }}
         language={language}
         commonSize={commonSizeData}
         commonSizeYears={years}
@@ -383,40 +355,40 @@ export default function DynamicBsEditor() {
 
       {/* Footer: RESET + auto-save indicator */}
       <footer className="flex flex-wrap items-center gap-3">
-        <p className="text-xs text-ink-muted">Otomatis tersimpan</p>
+        <p className="text-xs text-ink-muted">{tGlobal('common.autoSaved')}</p>
         <button
           type="button"
           onClick={() => setShowResetBS(true)}
           className="rounded-sm border border-grid px-3 py-2 text-[13px] font-medium text-ink-soft transition-colors hover:bg-grid hover:text-ink"
         >
-          Reset Halaman Ini
+          {tGlobal('common.resetPage')}
         </button>
         <button
           type="button"
           onClick={() => setShowResetAll(true)}
           className="rounded-sm border border-negative/40 px-3 py-2 text-[13px] font-medium text-negative transition-colors hover:bg-negative/10"
         >
-          Reset Seluruh Data
+          {tGlobal('common.resetAll')}
         </button>
       </footer>
 
       {/* Confirmation dialogs */}
       {showResetBS && (
         <ConfirmDialog
-          title={t.resetBsTitle}
-          message={t.resetBsMessage}
-          confirmLabel={t.resetBsConfirm}
-          cancelLabel={t.cancel}
+          title={bsStrings.resetBsTitle}
+          message={bsStrings.resetBsMessage}
+          confirmLabel={bsStrings.resetBsConfirm}
+          cancelLabel={tGlobal('common.cancel')}
           onConfirm={handleResetBS}
           onCancel={() => setShowResetBS(false)}
         />
       )}
       {showResetAll && (
         <ConfirmDialog
-          title={t.resetAllTitle}
-          message={t.resetAllMessage}
-          confirmLabel={t.resetAllConfirm}
-          cancelLabel={t.cancel}
+          title={tGlobal('common.resetAllTitle')}
+          message={tGlobal('common.resetAllMessage')}
+          confirmLabel={tGlobal('common.resetAllConfirm')}
+          cancelLabel={tGlobal('common.cancel')}
           destructive
           onConfirm={handleResetAll_}
           onCancel={() => setShowResetAll(false)}
@@ -427,7 +399,7 @@ export default function DynamicBsEditor() {
 }
 
 function ConfirmDialog({
-  title, message, confirmLabel, cancelLabel = 'Batal', destructive, onConfirm, onCancel,
+  title, message, confirmLabel, cancelLabel = 'Cancel', destructive, onConfirm, onCancel,
 }: {
   title: string; message: string; confirmLabel: string; cancelLabel?: string
   destructive?: boolean; onConfirm: () => void; onCancel: () => void

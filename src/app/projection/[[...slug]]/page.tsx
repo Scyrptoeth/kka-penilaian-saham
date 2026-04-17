@@ -1,11 +1,15 @@
+'use client'
+
+import { useT } from '@/lib/i18n/useT'
 import { Placeholder } from '@/components/layout/Placeholder'
 
 export default function ProjectionPlaceholder() {
+  const { t } = useT()
   return (
     <Placeholder
-      area="Proyeksi"
-      title="Proyeksi Keuangan"
-      description="Proyeksi L/R, Balance Sheet, Cash Flow, Fixed Assets, dan NOPLAT berdasarkan Key Drivers (COGS ratio, expense ratio, tax rate). Proyeksi 3 tahun ke depan."
+      area={t('placeholder.projection.area')}
+      title={t('placeholder.projection.title')}
+      description={t('placeholder.projection.description')}
     />
   )
 }

@@ -22,6 +22,7 @@ import {
   buildAamInput, buildDcfInput, buildEemInput, buildBorrowingCapInput,
 } from '@/lib/calculations/upstream-helpers'
 import { PageEmptyState } from '@/components/shared/PageEmptyState'
+import { useT } from '@/lib/i18n/useT'
 
 /** Compact IDR formatter for chart axes */
 function compactIdr(value: number): string {
@@ -52,6 +53,7 @@ const COLORS = {
 }
 
 export default function DashboardPage() {
+  const { t } = useT()
   const home = useKkaStore(s => s.home)
   const balanceSheet = useKkaStore(s => s.balanceSheet)
   const incomeStatement = useKkaStore(s => s.incomeStatement)
@@ -170,14 +172,14 @@ export default function DashboardPage() {
   }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, keyDrivers, discountRateState, bcInput, aamAdjustments])
 
   if (!hasHydrated) {
-    return <div className="mx-auto max-w-[1200px] p-6 text-sm text-ink-muted">Memuat data…</div>
+    return <div className="mx-auto max-w-[1200px] p-6 text-sm text-ink-muted">{t('common.loadingData')}</div>
   }
 
   if (!data) {
     return (
       <PageEmptyState
-        section="RINGKASAN"
-        title="Dashboard"
+        section={t('dashboard.section')}
+        title={t('dashboard.title')}
         inputs={[
           { label: 'HOME', href: '/', filled: !!home },
           { label: 'Balance Sheet', href: '/input/balance-sheet', filled: !!balanceSheet },
@@ -191,13 +193,13 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-[1200px] p-6">
-      <h1 className="mb-1 text-2xl font-semibold tracking-tight text-ink">Dashboard</h1>
-      <p className="mb-8 text-sm text-ink-muted">Ringkasan visual analisis keuangan dan hasil penilaian.</p>
+      <h1 className="mb-1 text-2xl font-semibold tracking-tight text-ink">{t('dashboard.heading')}</h1>
+      <p className="mb-8 text-sm text-ink-muted">{t('dashboard.subtitle')}</p>
 
       <div className="grid gap-8 lg:grid-cols-2">
         {/* Chart 1: Revenue & Net Income */}
         <div className="rounded border border-grid bg-canvas-raised p-4">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-ink-muted">Revenue & Net Income</h2>
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-ink-muted">{t('dashboard.chart.revenueNetIncome')}</h2>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={revenueData} barGap={2}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
@@ -205,15 +207,15 @@ export default function DashboardPage() {
               <YAxis tickFormatter={compactIdr} tick={{ fontSize: 11 }} width={70} />
               <Tooltip formatter={(v) => tooltipIdr(Number(v))} />
               <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Bar dataKey="revenue" name="Revenue" fill={COLORS.revenue} radius={[2, 2, 0, 0]} />
-              <Bar dataKey="netIncome" name="Net Income" fill={COLORS.netIncome} radius={[2, 2, 0, 0]} />
+              <Bar dataKey="revenue" name={t('dashboard.legend.revenue')} fill={COLORS.revenue} radius={[2, 2, 0, 0]} />
+              <Bar dataKey="netIncome" name={t('dashboard.legend.netIncome')} fill={COLORS.netIncome} radius={[2, 2, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
         {/* Chart 2: Balance Sheet Composition */}
         <div className="rounded border border-grid bg-canvas-raised p-4">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-ink-muted">Komposisi Neraca</h2>
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-ink-muted">{t('dashboard.chart.balanceComposition')}</h2>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={bsData} barGap={2}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e7e5e4" />
@@ -221,16 +223,16 @@ export default function DashboardPage() {
               <YAxis tickFormatter={compactIdr} tick={{ fontSize: 11 }} width={70} />
               <Tooltip formatter={(v) => tooltipIdr(Number(v))} />
               <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Bar dataKey="assets" name="Total Assets" fill={COLORS.assets} radius={[2, 2, 0, 0]} />
-              <Bar dataKey="liabilities" name="Total Liabilities" fill={COLORS.liabilities} radius={[2, 2, 0, 0]} />
-              <Bar dataKey="equity" name="Total Equity" fill={COLORS.equity} radius={[2, 2, 0, 0]} />
+              <Bar dataKey="assets" name={t('dashboard.legend.totalAssets')} fill={COLORS.assets} radius={[2, 2, 0, 0]} />
+              <Bar dataKey="liabilities" name={t('dashboard.legend.totalLiabilities')} fill={COLORS.liabilities} radius={[2, 2, 0, 0]} />
+              <Bar dataKey="equity" name={t('dashboard.legend.totalEquity')} fill={COLORS.equity} radius={[2, 2, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
         {/* Chart 3: Valuation Comparison */}
         <div className="rounded border border-grid bg-canvas-raised p-4">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-ink-muted">Perbandingan Nilai Per Saham</h2>
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-ink-muted">{t('dashboard.chart.valuationComparison')}</h2>
           {valuationData.length > 0 ? (
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={valuationData} barSize={60}>
@@ -238,7 +240,7 @@ export default function DashboardPage() {
                 <XAxis dataKey="method" tick={{ fontSize: 12 }} />
                 <YAxis tickFormatter={compactIdr} tick={{ fontSize: 11 }} width={70} />
                 <Tooltip formatter={(v) => tooltipIdr(Number(v))} />
-                <Bar dataKey="perShare" name="Per Saham (Rp)" radius={[2, 2, 0, 0]}>
+                <Bar dataKey="perShare" name={t('dashboard.chart.perShareLabel')} radius={[2, 2, 0, 0]}>
                   {valuationData.map((entry, i) => (
                     <Cell key={entry.method} fill={i === 0 ? COLORS.aam : i === 1 ? COLORS.dcf : COLORS.eem} />
                   ))}
@@ -247,14 +249,14 @@ export default function DashboardPage() {
             </ResponsiveContainer>
           ) : (
             <div className="flex h-[280px] items-center justify-center text-sm text-ink-muted">
-              Belum ada data valuasi.
+              {t('dashboard.chart.noValuation')}
             </div>
           )}
         </div>
 
         {/* Chart 4: FCF Trend */}
         <div className="rounded border border-grid bg-canvas-raised p-4">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-ink-muted">Free Cash Flow</h2>
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-ink-muted">{t('dashboard.chart.fcf')}</h2>
           {fcfData.length > 0 ? (
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={fcfData}>
@@ -267,7 +269,7 @@ export default function DashboardPage() {
             </ResponsiveContainer>
           ) : (
             <div className="flex h-[280px] items-center justify-center text-sm text-ink-muted">
-              Belum ada data FCF.
+              {t('dashboard.chart.noFcf')}
             </div>
           )}
         </div>

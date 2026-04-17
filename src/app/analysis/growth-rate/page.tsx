@@ -2,6 +2,8 @@
 
 import { useMemo } from 'react'
 import { useKkaStore } from '@/lib/store/useKkaStore'
+import { useT } from '@/lib/i18n/useT'
+import type { TranslationKey } from '@/lib/i18n/translations'
 import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
 import { computeGrowthRateLive } from '@/data/live/compute-growth-rate-live'
 import { computeRoicLiveRows } from '@/data/live/compute-roic-live'
@@ -19,17 +21,18 @@ import { PageEmptyState } from '@/components/shared/PageEmptyState'
 
 type RowKey = 'netFaEnd' | 'netCaEnd' | 'netFaBeg' | 'netCaBeg' | 'totalNetInvestment' | 'totalIcBoy' | 'growthRate'
 
-const ROWS: { label: string; key: RowKey; kind: 'idr' | 'percent'; bold?: boolean; spaceBefore?: boolean }[] = [
-  { label: 'Net Fixed Assets at End of Year', key: 'netFaEnd', kind: 'idr' },
-  { label: 'Net Current Assets at End of Year', key: 'netCaEnd', kind: 'idr' },
-  { label: 'Less: Net Fixed Assets at Beginning of Year', key: 'netFaBeg', kind: 'idr' },
-  { label: 'Less: Net Current Assets at Beginning of Year', key: 'netCaBeg', kind: 'idr' },
-  { label: 'Total Net Investment', key: 'totalNetInvestment', kind: 'idr', bold: true },
-  { label: 'Total Invested Capital at Beginning of Year', key: 'totalIcBoy', kind: 'idr', spaceBefore: true },
-  { label: 'Growth Rate', key: 'growthRate', kind: 'percent', bold: true, spaceBefore: true },
+const ROWS: { label: TranslationKey; key: RowKey; kind: 'idr' | 'percent'; bold?: boolean; spaceBefore?: boolean }[] = [
+  { label: 'growthRate.row.netFA', key: 'netFaEnd', kind: 'idr' },
+  { label: 'growthRate.row.netCA', key: 'netCaEnd', kind: 'idr' },
+  { label: 'growthRate.row.lessNetFABeg', key: 'netFaBeg', kind: 'idr' },
+  { label: 'growthRate.row.lessNetCABeg', key: 'netCaBeg', kind: 'idr' },
+  { label: 'growthRate.row.totalNetInvestment', key: 'totalNetInvestment', kind: 'idr', bold: true },
+  { label: 'growthRate.row.totalIC', key: 'totalIcBoy', kind: 'idr', spaceBefore: true },
+  { label: 'growthRate.row.growthRate', key: 'growthRate', kind: 'percent', bold: true, spaceBefore: true },
 ]
 
 export default function GrowthRatePage() {
+  const { t } = useT()
   const home = useKkaStore(s => s.home)
   const balanceSheet = useKkaStore(s => s.balanceSheet)
   const incomeStatement = useKkaStore(s => s.incomeStatement)
@@ -92,9 +95,9 @@ export default function GrowthRatePage() {
   if (!data) {
     return (
       <div className="mx-auto max-w-[900px] p-6">
-        <h1 className="mb-2 text-2xl font-semibold tracking-tight text-ink">Growth Rate</h1>
+        <h1 className="mb-2 text-2xl font-semibold tracking-tight text-ink">{t('growthRate.title')}</h1>
         <div className="rounded border border-grid bg-canvas-raised px-4 py-6 text-center text-sm text-ink-muted">
-          <p>Data belum tersedia.</p>
+          <p>{t('common.noData')}</p>
         </div>
       </div>
     )
@@ -113,16 +116,16 @@ export default function GrowthRatePage() {
 
   return (
     <div className="mx-auto max-w-[900px] p-6">
-      <h1 className="mb-1 text-2xl font-semibold tracking-tight text-ink">Growth Rate</h1>
+      <h1 className="mb-1 text-2xl font-semibold tracking-tight text-ink">{t('growthRate.title')}</h1>
       <p className="mb-6 text-sm text-ink-muted">
-        Net Investment / Invested Capital — digunakan sebagai input di Discount Rate Analysis.
+        {t('growthRate.subtitle')}
       </p>
 
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b-2 border-grid-strong">
-              <th className="px-3 py-2 text-left font-medium text-ink-muted">Keterangan</th>
+              <th className="px-3 py-2 text-left font-medium text-ink-muted">{t('common.description')}</th>
               {years.map(y => (
                 <th key={y} className="px-3 py-2 text-right font-mono font-medium text-ink-muted tabular-nums">
                   {y}
@@ -142,7 +145,7 @@ export default function GrowthRatePage() {
                       : 'border-b border-grid'
                 }
               >
-                <td className="px-3 py-2 text-ink">{row.label}</td>
+                <td className="px-3 py-2 text-ink">{t(row.label)}</td>
                 {years.map((y, i) => {
                   const val = displayArrays[row.key]?.[i]
                   const formatted =
@@ -167,7 +170,7 @@ export default function GrowthRatePage() {
             <tr className="border-t-2 border-grid-strong" />
             {/* Average row */}
             <tr className="bg-canvas-raised">
-              <td className="px-3 py-3 font-semibold text-ink">Average Growth Rate</td>
+              <td className="px-3 py-3 font-semibold text-ink">{t('growthRate.average')}</td>
               <td
                 colSpan={years.length}
                 className="px-3 py-3 text-right font-mono text-lg font-semibold tabular-nums text-accent"

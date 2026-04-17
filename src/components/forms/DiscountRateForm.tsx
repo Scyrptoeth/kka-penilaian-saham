@@ -8,6 +8,7 @@ import {
   type DiscountRateResult,
 } from '@/lib/calculations/discount-rate'
 import type { DiscountRateState } from '@/lib/store/useKkaStore'
+import { useT } from '@/lib/i18n/useT'
 
 const PERCENT_FMT = new Intl.NumberFormat('id-ID', {
   minimumFractionDigits: 2,
@@ -32,6 +33,7 @@ interface DiscountRateFormProps {
 }
 
 export function DiscountRateForm({ initial, onSave }: DiscountRateFormProps) {
+  const { t } = useT()
   const [taxRate, setTaxRate] = useState(initial?.taxRate ?? 0.22)
   const [riskFree, setRiskFree] = useState(initial?.riskFree ?? 0)
   const [beta, setBeta] = useState(initial?.beta ?? 0)
@@ -109,22 +111,22 @@ export function DiscountRateForm({ initial, onSave }: DiscountRateFormProps) {
     <div className="space-y-8">
       {/* Input Parameters */}
       <section>
-        <h2 className="mb-4 text-lg font-semibold text-ink">CAPM Parameters</h2>
+        <h2 className="mb-4 text-lg font-semibold text-ink">{t('discountRate.capmParams')}</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <PctField label="Tax Rate" value={taxRate} onChange={setTaxRate} />
-          <PctField label="Risk Free" value={riskFree} onChange={setRiskFree} />
-          <NumField label="Beta (Levered)" value={beta} onChange={setBeta} step={0.001} />
-          <PctField label="Equity Risk Premium" value={erp} onChange={setErp} />
-          <PctField label="Country Default Spread" value={countrySpread} onChange={setCountrySpread} />
-          <PctField label="DER Industry" value={der} onChange={setDer} />
+          <PctField label={t('discountRate.taxRate')} value={taxRate} onChange={setTaxRate} />
+          <PctField label={t('discountRate.riskFree')} value={riskFree} onChange={setRiskFree} />
+          <NumField label={t('discountRate.betaLevered')} value={beta} onChange={setBeta} step={0.001} />
+          <PctField label={t('discountRate.erp')} value={erp} onChange={setErp} />
+          <PctField label={t('discountRate.countrySpread')} value={countrySpread} onChange={setCountrySpread} />
+          <PctField label={t('discountRate.derIndustry')} value={der} onChange={setDer} />
         </div>
       </section>
 
       {/* Bank Reference Rates */}
       <section>
-        <h2 className="mb-4 text-lg font-semibold text-ink">Bunga Pinjaman Investasi</h2>
+        <h2 className="mb-4 text-lg font-semibold text-ink">{t('discountRate.investmentLoanRate')}</h2>
         <p className="mb-3 text-sm text-ink-muted">
-          Input rate dalam format angka (misal: 9.41 untuk 9,41%). Debt Rate dihitung: ROUND(rata-rata / 100, 3).
+          {t('discountRate.rateHint')}
         </p>
         <div className="space-y-2">
           {bankRates.map((b, i) => (
@@ -162,11 +164,11 @@ export function DiscountRateForm({ initial, onSave }: DiscountRateFormProps) {
           onClick={addBankRate}
           className="mt-3 rounded border border-grid bg-canvas px-3 py-1.5 text-sm text-ink-soft hover:bg-canvas-raised focus-visible:ring-2 focus-visible:ring-accent"
         >
-          + Tambah Bank
+          {t('discountRate.addBank')}
         </button>
         <div className="mt-3 flex gap-6 rounded border border-grid bg-canvas-raised px-4 py-3 text-sm">
           <div>
-            <span className="text-ink-muted">Rata-rata: </span>
+            <span className="text-ink-muted">{t('discountRate.avgLabel')}</span>
             <span className="font-mono tabular-nums">
               {bankRates.length > 0
                 ? (bankRates.reduce((s, b) => s + b.rate, 0) / bankRates.length).toFixed(3)
@@ -174,7 +176,7 @@ export function DiscountRateForm({ initial, onSave }: DiscountRateFormProps) {
             </span>
           </div>
           <div>
-            <span className="text-ink-muted">Debt Rate (C7): </span>
+            <span className="text-ink-muted">{t('discountRate.debtRateLabel')}</span>
             <span className="font-mono font-semibold tabular-nums">{fmtPct(debtRate)}</span>
           </div>
         </div>
@@ -182,35 +184,35 @@ export function DiscountRateForm({ initial, onSave }: DiscountRateFormProps) {
 
       {/* Computed Results */}
       <section>
-        <h2 className="mb-4 text-lg font-semibold text-ink">Hasil Analisis CAPM</h2>
+        <h2 className="mb-4 text-lg font-semibold text-ink">{t('discountRate.capmResults')}</h2>
 
         {/* Beta computations */}
         <div className="mb-4 grid gap-3 sm:grid-cols-2">
-          <ResultBox label="BU (Beta Unlevered)" formula="β / (1 + (1−t)×DER)" value={result.bu.toFixed(6)} />
-          <ResultBox label="BL (Beta Levered)" formula="BU × (1 + (1−t)×DER)" value={result.bl.toFixed(6)} />
-          <ResultBox label="Ke (Cost of Equity)" formula="Rf + (BL×ERP) − CDS" value={fmtPct(result.ke)} />
-          <ResultBox label="Kd (Cost of Debt)" formula="Debt Rate × (1−t)" value={fmtPct(result.kd)} />
+          <ResultBox label={t('discountRate.result.bu')} formula="β / (1 + (1−t)×DER)" value={result.bu.toFixed(6)} />
+          <ResultBox label={t('discountRate.result.bl')} formula="BU × (1 + (1−t)×DER)" value={result.bl.toFixed(6)} />
+          <ResultBox label={t('discountRate.result.ke')} formula="Rf + (BL×ERP) − CDS" value={fmtPct(result.ke)} />
+          <ResultBox label={t('discountRate.result.kd')} formula="Debt Rate × (1−t)" value={fmtPct(result.kd)} />
         </div>
 
         {/* WACC Table */}
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b-2 border-grid-strong text-left">
-              <th className="px-2 py-2 font-medium text-ink-muted">Struktur Kapital</th>
-              <th className="px-2 py-2 text-right font-medium text-ink-muted">Bobot (%)</th>
-              <th className="px-2 py-2 text-right font-medium text-ink-muted">Biaya Modal (%)</th>
-              <th className="px-2 py-2 text-right font-medium text-ink-muted">WACC (%)</th>
+              <th className="px-2 py-2 font-medium text-ink-muted">{t('discountRate.table.structure')}</th>
+              <th className="px-2 py-2 text-right font-medium text-ink-muted">{t('discountRate.table.weight')}</th>
+              <th className="px-2 py-2 text-right font-medium text-ink-muted">{t('discountRate.table.costOfCapital')}</th>
+              <th className="px-2 py-2 text-right font-medium text-ink-muted">{t('discountRate.table.waccPercent')}</th>
             </tr>
           </thead>
           <tbody>
             <tr className="border-b border-grid">
-              <td className="px-2 py-2 text-ink">Hutang</td>
+              <td className="px-2 py-2 text-ink">{t('common.debt')}</td>
               <td className="px-2 py-2 text-right font-mono tabular-nums">{fmtPct(result.weightDebt)}</td>
               <td className="px-2 py-2 text-right font-mono tabular-nums">{fmtPct(result.kd)}</td>
               <td className="px-2 py-2 text-right font-mono tabular-nums">{fmtPct(result.waccDebt)}</td>
             </tr>
             <tr className="border-b border-grid">
-              <td className="px-2 py-2 text-ink">Ekuitas</td>
+              <td className="px-2 py-2 text-ink">{t('common.equity')}</td>
               <td className="px-2 py-2 text-right font-mono tabular-nums">{fmtPct(result.weightEquity)}</td>
               <td className="px-2 py-2 text-right font-mono tabular-nums">{fmtPct(result.ke)}</td>
               <td className="px-2 py-2 text-right font-mono tabular-nums">{fmtPct(result.waccEquity)}</td>
@@ -220,7 +222,7 @@ export function DiscountRateForm({ initial, onSave }: DiscountRateFormProps) {
 
         {/* Final WACC */}
         <div className="mt-4 rounded border-2 border-accent bg-canvas-raised px-4 py-4">
-          <span className="text-sm text-ink-muted">Weighted Average Cost of Capital (WACC): </span>
+          <span className="text-sm text-ink-muted">{t('discountRate.waccLabel')}</span>
           <span className="text-xl font-semibold font-mono tabular-nums text-accent">
             {fmtPct(result.wacc)}
           </span>
@@ -236,7 +238,7 @@ export function DiscountRateForm({ initial, onSave }: DiscountRateFormProps) {
       </section>
 
       {/* Auto-save indicator */}
-      <p className="text-xs text-ink-muted">Otomatis tersimpan</p>
+      <p className="text-xs text-ink-muted">{t('common.autoSaved')}</p>
     </div>
   )
 }

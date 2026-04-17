@@ -9,8 +9,10 @@ import { computeFullProjectionPipeline } from '@/lib/calculations/projection-pip
 import { computeHistoricalUpstream, buildDcfInput } from '@/lib/calculations/upstream-helpers'
 import { formatIdr, formatPercent } from '@/components/financial/format'
 import { PageEmptyState } from '@/components/shared/PageEmptyState'
+import { useT } from '@/lib/i18n/useT'
 
 export default function DcfPage() {
+  const { t } = useT()
   const home = useKkaStore(s => s.home)
   const balanceSheet = useKkaStore(s => s.balanceSheet)
   const incomeStatement = useKkaStore(s => s.incomeStatement)
@@ -61,7 +63,7 @@ export default function DcfPage() {
   }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, keyDrivers, discountRateState])
 
   if (!hasHydrated) {
-    return <div className="mx-auto max-w-[1100px] p-6 text-sm text-ink-muted">Memuat data…</div>
+    return <div className="mx-auto max-w-[1100px] p-6 text-sm text-ink-muted">{t('common.loadingData')}</div>
   }
 
   if (!data) {
@@ -84,20 +86,20 @@ export default function DcfPage() {
 
   return (
     <div className="mx-auto max-w-[1100px] p-6">
-      <h1 className="mb-1 text-2xl font-semibold tracking-tight text-ink">Discounted Cash Flow (DCF)</h1>
-      <p className="mb-6 text-sm text-ink-muted">Metode arus kas terdiskonto — valuasi berdasarkan proyeksi FCF.</p>
+      <h1 className="mb-1 text-2xl font-semibold tracking-tight text-ink">{t('dcf.title')}</h1>
+      <p className="mb-6 text-sm text-ink-muted">{t('dcf.subtitle')}</p>
 
       <div className="mb-8 overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b-2 border-grid-strong">
-              <th className="px-3 py-2 text-left font-medium text-ink-muted">Keterangan</th>
-              <th className="px-3 py-2 text-right font-medium text-ink-muted">Nilai</th>
+              <th className="px-3 py-2 text-left font-medium text-ink-muted">{t('common.description')}</th>
+              <th className="px-3 py-2 text-right font-medium text-ink-muted">{t('common.value')}</th>
             </tr>
           </thead>
           <tbody>
             {/* FCF */}
-            <tr className="border-t-2 border-grid-strong"><td colSpan={2} className="px-3 pt-3 pb-1 text-xs font-semibold tracking-wide text-ink-muted uppercase">Free Cash Flow</td></tr>
+            <tr className="border-t-2 border-grid-strong"><td colSpan={2} className="px-3 pt-3 pb-1 text-xs font-semibold tracking-wide text-ink-muted uppercase">{t('dcf.section.fcf')}</td></tr>
             <tr className="border-b border-grid">
               <td className="px-3 py-2 text-ink">FCF ({data.lastHistYear})</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(r.historicalFcf)}</td>
@@ -110,7 +112,7 @@ export default function DcfPage() {
             ))}
 
             {/* Discounting */}
-            <tr className="border-t-2 border-grid-strong"><td colSpan={2} className="px-3 pt-3 pb-1 text-xs font-semibold tracking-wide text-ink-muted uppercase">Discounting</td></tr>
+            <tr className="border-t-2 border-grid-strong"><td colSpan={2} className="px-3 pt-3 pb-1 text-xs font-semibold tracking-wide text-ink-muted uppercase">{t('dcf.section.discounting')}</td></tr>
             <tr className="border-b border-grid">
               <td className="px-3 py-2 text-ink">WACC</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatPercent(data.dr.wacc)}</td>
@@ -122,33 +124,33 @@ export default function DcfPage() {
               </tr>
             ))}
             <tr className="border-t border-grid-strong bg-canvas-raised font-semibold">
-              <td className="px-3 py-2 text-ink">Total PV of FCF</td>
+              <td className="px-3 py-2 text-ink">{t('dcf.totalPvFcf')}</td>
               <td className={`px-3 py-2 text-right font-mono tabular-nums ${r.totalPvFcf < 0 ? 'text-negative' : ''}`}>{formatIdr(r.totalPvFcf)}</td>
             </tr>
 
             {/* Terminal Value */}
-            <tr className="border-t-2 border-grid-strong"><td colSpan={2} className="px-3 pt-3 pb-1 text-xs font-semibold tracking-wide text-ink-muted uppercase">Terminal Value</td></tr>
+            <tr className="border-t-2 border-grid-strong"><td colSpan={2} className="px-3 pt-3 pb-1 text-xs font-semibold tracking-wide text-ink-muted uppercase">{t('dcf.section.terminalValue')}</td></tr>
             <tr className="border-b border-grid">
-              <td className="px-3 py-2 text-ink">Growth Rate</td>
+              <td className="px-3 py-2 text-ink">{t('dcf.growthRate')}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatPercent(data.growthRate)}</td>
             </tr>
             <tr className="border-b border-grid">
-              <td className="px-3 py-2 text-ink">Terminal Value</td>
+              <td className="px-3 py-2 text-ink">{t('dcf.terminalValue')}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(r.terminalValue)}</td>
             </tr>
             <tr className="border-b border-grid">
-              <td className="px-3 py-2 text-ink">PV of Terminal Value</td>
+              <td className="px-3 py-2 text-ink">{t('dcf.pvTerminal')}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(r.pvTerminal)}</td>
             </tr>
             <tr className="border-t border-grid-strong bg-canvas-raised font-semibold">
-              <td className="px-3 py-2 text-ink">Enterprise Value</td>
+              <td className="px-3 py-2 text-ink">{t('dcf.enterpriseValue')}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(r.enterpriseValue)}</td>
             </tr>
 
             {/* Equity → Share Value */}
-            <tr className="border-t-2 border-grid-strong"><td colSpan={2} className="px-3 pt-3 pb-1 text-xs font-semibold tracking-wide text-ink-muted uppercase">Equity → Share Value</td></tr>
+            <tr className="border-t-2 border-grid-strong"><td colSpan={2} className="px-3 pt-3 pb-1 text-xs font-semibold tracking-wide text-ink-muted uppercase">{t('dcf.section.equityShare')}</td></tr>
             <tr className="border-b border-grid">
-              <td className="px-3 py-2 text-ink">Equity Value (100%)</td>
+              <td className="px-3 py-2 text-ink">{t('dcf.equityValue100')}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(r.equityValue100)}</td>
             </tr>
             <tr className="border-b border-grid">
@@ -156,7 +158,7 @@ export default function DcfPage() {
               <td className="px-3 py-2 text-right font-mono tabular-nums text-negative">{formatIdr(sv.dlomDiscount)}</td>
             </tr>
             <tr className="border-b border-grid">
-              <td className="px-3 py-2 text-ink">Market Value (100%)</td>
+              <td className="px-3 py-2 text-ink">{t('dcf.marketValue100')}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(sv.marketValue100)}</td>
             </tr>
             <tr className="border-b border-grid">
@@ -164,11 +166,11 @@ export default function DcfPage() {
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(sv.marketValuePortion)}</td>
             </tr>
             <tr className="border-b border-grid">
-              <td className="px-3 py-2 text-ink">Rounded</td>
+              <td className="px-3 py-2 text-ink">{t('dcf.rounded')}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(sv.rounded)}</td>
             </tr>
             <tr className="border-t-2 border-grid-strong bg-canvas-raised">
-              <td className="px-3 py-3 font-semibold text-ink">Nilai Per Saham (DCF)</td>
+              <td className="px-3 py-3 font-semibold text-ink">{t('dcf.perShare')}</td>
               <td className="px-3 py-3 text-right font-mono text-lg font-semibold tabular-nums text-accent">
                 {formatIdr(sv.perShare)}
               </td>

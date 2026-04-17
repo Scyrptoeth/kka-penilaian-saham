@@ -2,6 +2,8 @@
 
 import { useMemo } from 'react'
 import { useKkaStore } from '@/lib/store/useKkaStore'
+import { useT } from '@/lib/i18n/useT'
+import type { TranslationKey } from '@/lib/i18n/translations'
 import { computeHistoricalYears, computeProjectionYears } from '@/lib/calculations/year-helpers'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { FIXED_ASSET_MANIFEST } from '@/data/manifests/fixed-asset'
@@ -12,21 +14,22 @@ import { computeAvgGrowth } from '@/lib/calculations/helpers'
 import { formatIdr } from '@/components/financial/format'
 import { PageEmptyState } from '@/components/shared/PageEmptyState'
 
-const ROW_DEFS: { row: number; label: string; bold?: boolean; indent?: boolean; section?: string }[] = [
-  { row: 7, label: 'Profit Before Tax', section: 'EBIT' },
-  { row: 8, label: 'Add: Interest Expenses' },
-  { row: 9, label: 'Less: Interest Income' },
-  { row: 10, label: 'Non Operating Income' },
-  { row: 11, label: 'EBIT', bold: true },
-  { row: 13, label: 'Tax Provision', section: 'Total Taxes on EBIT' },
-  { row: 14, label: 'Tax Shield on Interest Expenses', indent: true },
-  { row: 15, label: 'Tax on Interest Income', indent: true },
-  { row: 16, label: 'Tax on Non-Operating Income', indent: true },
-  { row: 17, label: 'Total Taxes on EBIT', bold: true },
-  { row: 19, label: 'NOPLAT', bold: true },
+const ROW_DEFS: { row: number; labelKey: TranslationKey; bold?: boolean; indent?: boolean; sectionKey?: TranslationKey }[] = [
+  { row: 7, labelKey: 'proyNoplat.row.pbt', sectionKey: 'proy.ebit' },
+  { row: 8, labelKey: 'proyNoplat.row.addInterestExp' },
+  { row: 9, labelKey: 'proyNoplat.row.lessInterestInc' },
+  { row: 10, labelKey: 'proyNoplat.row.nonOpIncome' },
+  { row: 11, labelKey: 'proy.ebit', bold: true },
+  { row: 13, labelKey: 'proyNoplat.row.taxProvision', sectionKey: 'proyNoplat.row.totalTaxesEBIT' },
+  { row: 14, labelKey: 'proyNoplat.row.taxShield', indent: true },
+  { row: 15, labelKey: 'proyNoplat.row.taxOnInterest', indent: true },
+  { row: 16, labelKey: 'proyNoplat.row.taxOnNonOp', indent: true },
+  { row: 17, labelKey: 'proyNoplat.row.totalTaxesEBIT', bold: true },
+  { row: 19, labelKey: 'proyNoplat.row.noplat', bold: true },
 ]
 
 export default function ProyNoplatPage() {
+  const { t } = useT()
   const home = useKkaStore(s => s.home)
   const incomeStatement = useKkaStore(s => s.incomeStatement)
   const fixedAsset = useKkaStore(s => s.fixedAsset)
@@ -95,14 +98,14 @@ export default function ProyNoplatPage() {
   }, [hasHydrated, home, incomeStatement, fixedAsset, keyDrivers])
 
   if (!hasHydrated) {
-    return <div className="mx-auto max-w-[1100px] p-6 text-sm text-ink-muted">Memuat data…</div>
+    return <div className="mx-auto max-w-[1100px] p-6 text-sm text-ink-muted">{t('common.loadingData')}</div>
   }
 
   if (!data) {
     return (
       <PageEmptyState
-        section="PROYEKSI"
-        title="Proy. NOPLAT"
+        section={t('common.projection')}
+        title={t('proyNoplat.title')}
         inputs={[
           { label: 'HOME', href: '/', filled: !!home },
           { label: 'Income Statement', href: '/input/income-statement', filled: !!incomeStatement },
@@ -116,19 +119,19 @@ export default function ProyNoplatPage() {
 
   return (
     <div className="mx-auto max-w-[1100px] p-6">
-      <h1 className="mb-1 text-2xl font-semibold tracking-tight text-ink">Proy. NOPLAT</h1>
+      <h1 className="mb-1 text-2xl font-semibold tracking-tight text-ink">{t('proyNoplat.title')}</h1>
       <p className="mb-6 text-sm text-ink-muted">
-        Proyeksi NOPLAT (Net Operating Profit Less Adjusted Taxes) dari Proy. Laba Rugi. Kolom pertama = tahun historis terakhir.
+        {t('proyNoplat.subtitle')}
       </p>
 
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b-2 border-grid-strong">
-              <th className="px-3 py-2 text-left font-medium text-ink-muted">Keterangan</th>
+              <th className="px-3 py-2 text-left font-medium text-ink-muted">{t('common.description')}</th>
               {years.map((y, i) => (
                 <th key={y} className="px-3 py-2 text-right font-mono font-medium text-ink-muted tabular-nums">
-                  {y}{i === 0 ? ' (hist)' : ''}
+                  {y}{i === 0 ? t('common.histSuffix') : ''}
                 </th>
               ))}
             </tr>
@@ -144,12 +147,12 @@ export default function ProyNoplatPage() {
                 }
               >
                 <td className={`px-3 py-1.5 text-ink ${def.indent ? 'pl-8 text-ink-muted' : ''}`}>
-                  {def.section && (
+                  {def.sectionKey && (
                     <span className="mb-1 block pt-3 text-xs font-semibold uppercase tracking-wider text-ink-muted">
-                      {def.section}
+                      {t(def.sectionKey)}
                     </span>
                   )}
-                  {def.label}
+                  {t(def.labelKey)}
                 </td>
                 {years.map(y => {
                   const v = rows[def.row]?.[y]

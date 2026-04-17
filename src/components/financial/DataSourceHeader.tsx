@@ -1,6 +1,7 @@
 'use client'
 
 import { useKkaStore } from '@/lib/store/useKkaStore'
+import { useT } from '@/lib/i18n/useT'
 
 /**
  * Mode-aware header that sits above every financial sheet page.
@@ -36,6 +37,8 @@ interface DataSourceHeaderProps {
 }
 
 export function DataSourceHeader({ mode }: DataSourceHeaderProps) {
+  const { t } = useT()
+
   if (mode === 'seed') {
     return (
       <div
@@ -44,13 +47,12 @@ export function DataSourceHeader({ mode }: DataSourceHeaderProps) {
         className="mb-4 border-l-4 border-accent bg-canvas-raised px-4 py-3"
       >
         <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-accent">
-          Mode Demo · Workbook Prototipe
+          {t('dataSource.seedTitle')}
         </p>
         <p className="mt-1.5 text-xs leading-relaxed text-ink-muted">
-          Data pada halaman ini adalah angka contoh dari workbook prototipe,
-          dipakai untuk demonstrasi sistem.{' '}
+          {t('dataSource.seedDescription')}{' '}
           <strong className="text-ink">
-            Lengkapi Input Data untuk melihat data perusahaan Anda.
+            {t('dataSource.seedCta')}
           </strong>
         </p>
       </div>
@@ -67,19 +69,20 @@ export function DataSourceHeader({ mode }: DataSourceHeaderProps) {
  * company name above each sheet.
  */
 function LiveCompanyHeader() {
+  const { t } = useT()
   const home = useKkaStore((s) => s.home)
   const hasHydrated = useKkaStore((s) => s._hasHydrated)
 
   const display: string = !hasHydrated
-    ? 'memuat…'
+    ? t('dataSource.loading')
     : home?.namaPerusahaan && home.namaPerusahaan.trim().length > 0
       ? home.namaPerusahaan
-      : 'belum diisi (lengkapi HOME form)'
+      : t('dataSource.notFilled')
 
   return (
     <div className="mb-3 flex items-baseline gap-2 border-b border-grid pb-3 text-xs">
       <span className="font-semibold uppercase tracking-[0.16em] text-ink-muted">
-        Penilaian Saham
+        {t('dataSource.liveTitle')}
       </span>
       <span
         className="font-mono text-ink"

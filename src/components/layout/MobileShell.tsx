@@ -7,6 +7,7 @@ import { SidebarNav } from './SidebarNav'
 import { ExportButton } from './ExportButton'
 import { LogoutButton } from './LogoutButton'
 import { cn } from '@/lib/utils/cn'
+import { useT } from '@/lib/i18n/useT'
 
 /**
  * Mobile drawer + top bar with hamburger toggle. Rendered alongside the
@@ -21,6 +22,7 @@ import { cn } from '@/lib/utils/cn'
  */
 export function MobileShell() {
   const pathname = usePathname()
+  const { t } = useT()
   // Store the pathname at which the drawer was opened. Deriving `open` from
   // this means a route change automatically closes the drawer without a
   // setState-in-effect pattern (incompatible with React Compiler).
@@ -56,7 +58,7 @@ export function MobileShell() {
         <button
           type="button"
           onClick={openDrawer}
-          aria-label="Buka menu navigasi"
+          aria-label={t('mobile.openMenu')}
           aria-expanded={open}
           className="inline-flex h-9 w-9 items-center justify-center rounded-sm border border-grid text-ink transition-colors hover:bg-grid focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1"
         >
@@ -64,10 +66,10 @@ export function MobileShell() {
         </button>
         <div className="flex-1">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-muted">
-            KKA Penilaian Saham
+            {t('mobile.brand')}
           </p>
           <p className="text-[13px] font-semibold text-ink">
-            Direktorat Jenderal Pajak
+            {t('mobile.org')}
           </p>
         </div>
       </header>
@@ -84,7 +86,7 @@ export function MobileShell() {
 
       {/* Drawer */}
       <aside
-        aria-label="Navigasi sheet"
+        aria-label={t('mobile.navAriaLabel')}
         aria-hidden={!open}
         className={cn(
           'fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-grid bg-canvas-raised shadow-[8px_0_32px_-8px_rgba(10,22,40,0.18)] transition-transform lg:hidden',
@@ -96,7 +98,7 @@ export function MobileShell() {
           <button
             type="button"
             onClick={close}
-            aria-label="Tutup menu"
+            aria-label={t('mobile.closeMenu')}
             className="mr-3 mt-4 inline-flex h-8 w-8 items-center justify-center rounded-sm text-ink-muted transition-colors hover:bg-grid hover:text-ink focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1"
           >
             <CloseIcon />

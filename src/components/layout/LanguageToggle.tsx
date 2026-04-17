@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from 'react'
 import { useKkaStore } from '@/lib/store/useKkaStore'
+import { useT } from '@/lib/i18n/useT'
 
 /**
  * Language toggle pill — EN ↔ ID. Positioned below ThemeToggle in
@@ -20,16 +21,17 @@ function useMounted(): boolean {
 
 export function LanguageToggle() {
   const mounted = useMounted()
-  const language = useKkaStore(s => s.balanceSheet?.language ?? 'id')
+  const language = useKkaStore(s => s.language)
   const setGlobalLanguage = useKkaStore(s => s.setGlobalLanguage)
+  const { t } = useT()
 
   const isEn = mounted && language === 'en'
   const next = isEn ? 'id' : 'en'
   const label = !mounted
-    ? 'Bahasa'
+    ? t('lang.loading')
     : isEn
-      ? 'EN — Klik untuk Bahasa Indonesia'
-      : 'ID — Klik untuk English'
+      ? t('lang.switchToId')
+      : t('lang.switchToEn')
   const ariaLabel = !mounted
     ? 'Bahasa'
     : `Bahasa saat ini: ${isEn ? 'English' : 'Indonesia'}. Klik untuk ganti ke ${next === 'en' ? 'English' : 'Indonesia'}.`

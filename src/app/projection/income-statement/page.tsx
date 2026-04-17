@@ -2,6 +2,8 @@
 
 import { useMemo } from 'react'
 import { useKkaStore } from '@/lib/store/useKkaStore'
+import { useT } from '@/lib/i18n/useT'
+import type { TranslationKey } from '@/lib/i18n/translations'
 import { computeHistoricalYears, computeProjectionYears } from '@/lib/calculations/year-helpers'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { FIXED_ASSET_MANIFEST } from '@/data/manifests/fixed-asset'
@@ -11,30 +13,31 @@ import { computeAvgGrowth } from '@/lib/calculations/helpers'
 import { formatIdr, formatPercent } from '@/components/financial/format'
 import { PageEmptyState } from '@/components/shared/PageEmptyState'
 
-const ROW_DEFS: { row: number; label: string; kind: 'idr' | 'percent'; bold?: boolean; indent?: boolean }[] = [
-  { row: 8, label: 'Revenue', kind: 'idr', bold: true },
-  { row: 10, label: 'Cost of Goods Sold', kind: 'idr' },
-  { row: 11, label: 'Gross Profit', kind: 'idr', bold: true },
-  { row: 12, label: 'Gross Profit Margin', kind: 'percent', indent: true },
-  { row: 15, label: 'Selling/Others OpEx', kind: 'idr' },
-  { row: 16, label: 'General & Admin', kind: 'idr' },
-  { row: 17, label: 'Total Operating Expenses', kind: 'idr' },
-  { row: 19, label: 'EBITDA', kind: 'idr', bold: true },
-  { row: 20, label: 'EBITDA Margin', kind: 'percent', indent: true },
-  { row: 22, label: 'Depreciation', kind: 'idr' },
-  { row: 25, label: 'EBIT', kind: 'idr', bold: true },
-  { row: 26, label: 'EBIT Margin', kind: 'percent', indent: true },
-  { row: 29, label: 'Interest Income', kind: 'idr' },
-  { row: 31, label: 'Interest Expense', kind: 'idr' },
-  { row: 33, label: 'Other Income/(Charges)', kind: 'idr' },
-  { row: 34, label: 'Non Operating Income', kind: 'idr' },
-  { row: 36, label: 'Profit Before Tax', kind: 'idr', bold: true },
-  { row: 37, label: 'Corporate Tax', kind: 'idr' },
-  { row: 39, label: 'Net Profit After Tax', kind: 'idr', bold: true },
-  { row: 40, label: 'Net Profit Margin', kind: 'percent', indent: true },
+const ROW_DEFS: { row: number; labelKey: TranslationKey; kind: 'idr' | 'percent'; bold?: boolean; indent?: boolean }[] = [
+  { row: 8, labelKey: 'proy.revenue', kind: 'idr', bold: true },
+  { row: 10, labelKey: 'proy.cogs', kind: 'idr' },
+  { row: 11, labelKey: 'proy.grossProfit', kind: 'idr', bold: true },
+  { row: 12, labelKey: 'proy.grossMargin', kind: 'percent', indent: true },
+  { row: 15, labelKey: 'proy.sellingOpEx', kind: 'idr' },
+  { row: 16, labelKey: 'proy.gaAdmin', kind: 'idr' },
+  { row: 17, labelKey: 'proy.totalOpEx', kind: 'idr' },
+  { row: 19, labelKey: 'proy.ebitda', kind: 'idr', bold: true },
+  { row: 20, labelKey: 'proy.ebitdaMargin', kind: 'percent', indent: true },
+  { row: 22, labelKey: 'proy.depreciation', kind: 'idr' },
+  { row: 25, labelKey: 'proy.ebit', kind: 'idr', bold: true },
+  { row: 26, labelKey: 'proy.ebitMargin', kind: 'percent', indent: true },
+  { row: 29, labelKey: 'proy.interestIncome', kind: 'idr' },
+  { row: 31, labelKey: 'proy.interestExpense', kind: 'idr' },
+  { row: 33, labelKey: 'proy.otherIncome', kind: 'idr' },
+  { row: 34, labelKey: 'proy.nonOpIncome', kind: 'idr' },
+  { row: 36, labelKey: 'proy.pbt', kind: 'idr', bold: true },
+  { row: 37, labelKey: 'proy.tax', kind: 'idr' },
+  { row: 39, labelKey: 'proy.netProfit', kind: 'idr', bold: true },
+  { row: 40, labelKey: 'proy.netMargin', kind: 'percent', indent: true },
 ]
 
 export default function ProyIncomeStatementPage() {
+  const { t } = useT()
   const home = useKkaStore(s => s.home)
   const incomeStatement = useKkaStore(s => s.incomeStatement)
   const fixedAsset = useKkaStore(s => s.fixedAsset)
@@ -91,14 +94,14 @@ export default function ProyIncomeStatementPage() {
   }, [hasHydrated, home, incomeStatement, fixedAsset, keyDrivers])
 
   if (!hasHydrated) {
-    return <div className="mx-auto max-w-[1100px] p-6 text-sm text-ink-muted">Memuat data…</div>
+    return <div className="mx-auto max-w-[1100px] p-6 text-sm text-ink-muted">{t('common.loadingData')}</div>
   }
 
   if (!data) {
     return (
       <PageEmptyState
-        section="PROYEKSI"
-        title="Proy. L/R"
+        section={t('common.projection')}
+        title={t('proyLR.title')}
         inputs={[
           { label: 'HOME', href: '/', filled: !!home },
           { label: 'Income Statement', href: '/input/income-statement', filled: !!incomeStatement },
@@ -112,19 +115,19 @@ export default function ProyIncomeStatementPage() {
 
   return (
     <div className="mx-auto max-w-[1100px] p-6">
-      <h1 className="mb-1 text-2xl font-semibold tracking-tight text-ink">Proy. Laba Rugi</h1>
+      <h1 className="mb-1 text-2xl font-semibold tracking-tight text-ink">{t('proyLR.title')}</h1>
       <p className="mb-6 text-sm text-ink-muted">
-        Proyeksi laporan laba rugi berdasarkan Key Drivers. Kolom pertama = tahun historis terakhir.
+        {t('proyLR.subtitle')}
       </p>
 
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b-2 border-grid-strong">
-              <th className="px-3 py-2 text-left font-medium text-ink-muted">Keterangan</th>
+              <th className="px-3 py-2 text-left font-medium text-ink-muted">{t('common.description')}</th>
               {years.map((y, i) => (
                 <th key={y} className="px-3 py-2 text-right font-mono font-medium text-ink-muted tabular-nums">
-                  {y}{i === 0 ? ' (hist)' : ''}
+                  {y}{i === 0 ? t('common.histSuffix') : ''}
                 </th>
               ))}
             </tr>
@@ -142,7 +145,7 @@ export default function ProyIncomeStatementPage() {
                   }
                 >
                   <td className={`px-3 py-1.5 text-ink ${def.indent ? 'pl-8 text-ink-muted italic' : ''}`}>
-                    {def.label}
+                    {t(def.labelKey)}
                   </td>
                   {years.map(y => {
                     const v = rows[def.row]?.[y]

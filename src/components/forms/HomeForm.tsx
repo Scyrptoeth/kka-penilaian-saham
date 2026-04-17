@@ -13,6 +13,7 @@ import {
 import { Field } from '@/components/ui/Field'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
+import { useT } from '@/lib/i18n/useT'
 
 const DEFAULTS: HomeInputsSchema = {
   namaPerusahaan: '',
@@ -40,6 +41,7 @@ function formatDate(date: Date): string {
 }
 
 export function HomeForm() {
+  const { t } = useT()
   const home = useKkaStore((s) => s.home)
   const hasHydrated = useKkaStore((s) => s._hasHydrated)
   const setHome = useKkaStore((s) => s.setHome)
@@ -142,14 +144,14 @@ export function HomeForm() {
     <div className="space-y-8">
       <header>
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-muted">
-          Input Master
+          {t('home.section')}
         </p>
         <h1 className="mt-1 text-3xl font-semibold tracking-tight text-ink">
-          Kertas Kerja Penilaian Bisnis
+          {t('home.title')}
         </h1>
         {/* Sub-Revisi 1: privacy notice 1 baris */}
         <p className="mt-2 text-[13px] text-ink-muted">
-          Seluruh data disimpan lokal di browser Anda. Tidak ada yang dikirim ke server. Auto-save aktif setiap kali form disimpan.
+          {t('home.privacyNotice')}
         </p>
       </header>
 
@@ -157,13 +159,13 @@ export function HomeForm() {
         {/* Row 1: Objek Pajak */}
         <Field
           id="namaPerusahaan"
-          label="Nama Objek Pajak"
+          label={t('home.field.namaObjekPajak')}
           required
           error={errors.namaPerusahaan?.message}
         >
           <Input
             id="namaPerusahaan"
-            placeholder="PT Contoh Sejahtera"
+            placeholder={t('home.placeholder.namaPerusahaan')}
             invalid={!!errors.namaPerusahaan}
             {...register('namaPerusahaan')}
           />
@@ -171,13 +173,13 @@ export function HomeForm() {
 
         <Field
           id="npwp"
-          label="NPWP"
+          label={t('home.field.npwp')}
           required
           error={errors.npwp?.message}
         >
           <Input
             id="npwp"
-            placeholder="01.234.567.8-901.000"
+            placeholder={t('home.placeholder.npwp')}
             invalid={!!errors.npwp}
             mono
             {...register('npwp')}
@@ -187,13 +189,13 @@ export function HomeForm() {
         {/* Row 2: Subjek Pajak */}
         <Field
           id="namaSubjekPajak"
-          label="Nama Subjek Pajak"
+          label={t('home.field.namaSubjekPajak')}
           required
           error={errors.namaSubjekPajak?.message}
         >
           <Input
             id="namaSubjekPajak"
-            placeholder="Nama pihak yang mengalihkan"
+            placeholder={t('home.placeholder.namaSubjekPajak')}
             invalid={!!errors.namaSubjekPajak}
             {...register('namaSubjekPajak')}
           />
@@ -201,13 +203,13 @@ export function HomeForm() {
 
         <Field
           id="npwpSubjekPajak"
-          label="NPWP Subjek Pajak"
+          label={t('home.field.npwpSubjekPajak')}
           required
           error={errors.npwpSubjekPajak?.message}
         >
           <Input
             id="npwpSubjekPajak"
-            placeholder="01.234.567.8-901.000"
+            placeholder={t('home.placeholder.npwp')}
             invalid={!!errors.npwpSubjekPajak}
             mono
             {...register('npwpSubjekPajak')}
@@ -217,7 +219,7 @@ export function HomeForm() {
         {/* Row 3: Jenis Subjek Pajak + Jenis Informasi Peralihan */}
         <Field
           id="jenisSubjekPajak"
-          label="Jenis Subjek Pajak"
+          label={t('home.field.jenisSubjekPajak')}
           required
           error={errors.jenisSubjekPajak?.message}
         >
@@ -226,14 +228,14 @@ export function HomeForm() {
             invalid={!!errors.jenisSubjekPajak}
             {...register('jenisSubjekPajak')}
           >
-            <option value="orang_pribadi">Orang Pribadi</option>
-            <option value="badan">Badan</option>
+            <option value="orang_pribadi">{t('home.option.orangPribadi')}</option>
+            <option value="badan">{t('home.option.badan')}</option>
           </Select>
         </Field>
 
         <Field
           id="jenisInformasiPeralihan"
-          label="Jenis Informasi Peralihan"
+          label={t('home.field.jenisInfoPeralihan')}
           required
           error={errors.jenisInformasiPeralihan?.message}
         >
@@ -242,15 +244,15 @@ export function HomeForm() {
             invalid={!!errors.jenisInformasiPeralihan}
             {...register('jenisInformasiPeralihan')}
           >
-            <option value="lembar_saham">Lembar Saham</option>
-            <option value="modal_disetor">Modal Disetor</option>
+            <option value="lembar_saham">{t('home.option.lembarSaham')}</option>
+            <option value="modal_disetor">{t('home.option.modalDisetor')}</option>
           </Select>
         </Field>
 
         {/* Row 4: Jenis Perusahaan + Objek Penilaian */}
         <Field
           id="jenisPerusahaan"
-          label="Jenis Perusahaan"
+          label={t('home.field.jenisPerusahaan')}
           required
           error={errors.jenisPerusahaan?.message}
         >
@@ -259,14 +261,14 @@ export function HomeForm() {
             invalid={!!errors.jenisPerusahaan}
             {...register('jenisPerusahaan')}
           >
-            <option value="tertutup">Tertutup (Private)</option>
-            <option value="terbuka">Terbuka (Public)</option>
+            <option value="tertutup">{t('home.option.tertutup')}</option>
+            <option value="terbuka">{t('home.option.terbuka')}</option>
           </Select>
         </Field>
 
         <Field
           id="objekPenilaian"
-          label="Objek Penilaian"
+          label={t('home.field.objekPenilaian')}
           required
           error={errors.objekPenilaian?.message}
         >
@@ -275,15 +277,15 @@ export function HomeForm() {
             invalid={!!errors.objekPenilaian}
             {...register('objekPenilaian')}
           >
-            <option value="saham">Saham</option>
-            <option value="bisnis">Bisnis (Seluruh)</option>
+            <option value="saham">{t('home.option.saham')}</option>
+            <option value="bisnis">{t('home.option.bisnis')}</option>
           </Select>
         </Field>
 
         {/* Row 5: Jumlah — conditional labels */}
         <Field
           id="jumlahSahamBeredar"
-          label={isLembarSaham ? 'Jumlah Saham Beredar' : 'Jumlah Modal Disetor 100%'}
+          label={isLembarSaham ? t('home.field.jumlahBeredar') : t('home.field.jumlahModalDisetor')}
           required
           error={errors.jumlahSahamBeredar?.message}
         >
@@ -300,7 +302,7 @@ export function HomeForm() {
 
         <Field
           id="jumlahSahamYangDinilai"
-          label={isLembarSaham ? 'Jumlah Saham yang Dinilai' : 'Jumlah Modal Disetor yang Dinilai'}
+          label={isLembarSaham ? t('home.field.jumlahDinilai') : t('home.field.jumlahModalDinilai')}
           required
           error={errors.jumlahSahamYangDinilai?.message}
         >
@@ -318,8 +320,8 @@ export function HomeForm() {
         {/* Row 6: Nilai Nominal + Tahun Transaksi */}
         <Field
           id="nilaiNominalPerSaham"
-          label="Nilai Nominal Per Saham (Rp)"
-          hint="Diperlukan untuk metode AAM. Default Rp 1 jika tidak diketahui."
+          label={t('home.field.nilaiNominal')}
+          hint={t('home.hint.nilaiNominal')}
           error={errors.nilaiNominalPerSaham?.message}
         >
           <Input
@@ -335,7 +337,7 @@ export function HomeForm() {
 
         <Field
           id="tahunTransaksi"
-          label="Tahun Transaksi Pengalihan Saham"
+          label={t('home.field.tahunTransaksi')}
           required
           error={errors.tahunTransaksi?.message}
         >
@@ -354,18 +356,18 @@ export function HomeForm() {
 
       {/* Derived values — Sub-Revisi 6: conditional proporsi label */}
       <section
-        aria-label="Nilai Turunan"
+        aria-label={t('home.derived.header')}
         className="rounded-sm border border-grid bg-canvas-raised"
       >
         <header className="border-b border-grid px-5 py-3">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ink-muted">
-            Nilai Turunan (Otomatis)
+            {t('home.derived.header')}
           </p>
         </header>
         <dl className="grid grid-cols-1 divide-y divide-grid md:grid-cols-3 md:divide-x md:divide-y-0">
           <div className="px-5 py-4">
             <dt className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
-              {isLembarSaham ? 'Proporsi Saham yang Dinilai' : 'Proporsi Modal Disetor yang Dinilai'}
+              {isLembarSaham ? t('home.derived.proporsiSaham') : t('home.derived.proporsiModal')}
             </dt>
             <dd className="mt-1 font-mono text-lg tabular-nums text-ink">
               {formatPercent(proporsi)}
@@ -373,7 +375,7 @@ export function HomeForm() {
           </div>
           <div className="px-5 py-4">
             <dt className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
-              Cut-off Date
+              {t('home.derived.cutOffDate')}
             </dt>
             <dd className="mt-1 font-mono text-lg tabular-nums text-ink">
               {cutOff ? formatDate(cutOff) : '—'}
@@ -381,7 +383,7 @@ export function HomeForm() {
           </div>
           <div className="px-5 py-4">
             <dt className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
-              Akhir Periode Proyeksi 1
+              {t('home.derived.akhirProyeksi')}
             </dt>
             <dd className="mt-1 font-mono text-lg tabular-nums text-ink">
               {akhirProyeksi ? formatDate(akhirProyeksi) : '—'}
@@ -392,14 +394,14 @@ export function HomeForm() {
 
       {/* Footer: Reset buttons + auto-save indicator */}
       <footer className="flex flex-wrap items-center gap-3">
-        <p className="text-xs text-ink-muted">Otomatis tersimpan</p>
+        <p className="text-xs text-ink-muted">{t('common.autoSaved')}</p>
 
         <button
           type="button"
           onClick={() => setShowResetHome(true)}
           className="rounded-sm border border-grid px-3 py-2 text-[13px] font-medium text-ink-soft transition-colors hover:bg-grid hover:text-ink"
         >
-          Reset Halaman Ini
+          {t('common.resetPage')}
         </button>
 
         <button
@@ -407,16 +409,17 @@ export function HomeForm() {
           onClick={() => setShowResetAll(true)}
           className="rounded-sm border border-negative/40 px-3 py-2 text-[13px] font-medium text-negative transition-colors hover:bg-negative/10"
         >
-          Reset Seluruh Data
+          {t('common.resetAll')}
         </button>
       </footer>
 
       {/* Reset HOME confirmation dialog */}
       {showResetHome && (
         <ConfirmDialog
-          title="Reset Data HOME"
-          message="Yakin ingin mereset data HOME? Data di halaman lain tidak terpengaruh."
-          confirmLabel="Reset HOME"
+          title={t('home.resetTitle')}
+          message={t('home.resetMessage')}
+          confirmLabel={t('home.resetConfirm')}
+          cancelLabel={t('common.cancel')}
           onConfirm={handleResetHome}
           onCancel={() => setShowResetHome(false)}
         />
@@ -425,9 +428,10 @@ export function HomeForm() {
       {/* Reset ALL confirmation dialog */}
       {showResetAll && (
         <ConfirmDialog
-          title="Reset Seluruh Data"
-          message="Yakin ingin mereset SELURUH data? Semua input di semua halaman akan dihapus. Tindakan ini tidak bisa dibatalkan."
-          confirmLabel="Reset Semua"
+          title={t('common.resetAllTitle')}
+          message={t('common.resetAllMessage')}
+          confirmLabel={t('common.resetAllConfirm')}
+          cancelLabel={t('common.cancel')}
           destructive
           onConfirm={handleResetAll}
           onCancel={() => setShowResetAll(false)}
@@ -442,6 +446,7 @@ function ConfirmDialog({
   title,
   message,
   confirmLabel,
+  cancelLabel = 'Cancel',
   destructive,
   onConfirm,
   onCancel,
@@ -449,6 +454,7 @@ function ConfirmDialog({
   title: string
   message: string
   confirmLabel: string
+  cancelLabel?: string
   destructive?: boolean
   onConfirm: () => void
   onCancel: () => void
@@ -473,7 +479,7 @@ function ConfirmDialog({
             onClick={onCancel}
             className="rounded-sm border border-grid px-3 py-1.5 text-[13px] font-medium text-ink-soft transition-colors hover:bg-grid"
           >
-            Batal
+            {cancelLabel}
           </button>
           <button
             type="button"

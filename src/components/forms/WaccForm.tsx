@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { cn } from '@/lib/utils/cn'
 import { computeWacc, type WaccResult } from '@/lib/calculations/wacc'
 import type { WaccComparableCompany, WaccState } from '@/lib/store/useKkaStore'
+import { useT } from '@/lib/i18n/useT'
 
 const PERCENT_FMT = new Intl.NumberFormat('id-ID', {
   minimumFractionDigits: 2,
@@ -39,6 +40,7 @@ interface WaccFormProps {
 }
 
 export function WaccForm({ initial, onSave }: WaccFormProps) {
+  const { t } = useT()
   const [marketParams, setMarketParams] = useState(
     initial?.marketParams ?? {
       equityRiskPremium: 0,
@@ -137,24 +139,24 @@ export function WaccForm({ initial, onSave }: WaccFormProps) {
     <div className="space-y-8">
       {/* Section A — Market Parameters */}
       <section>
-        <h2 className="mb-4 text-lg font-semibold text-ink">Market Parameters</h2>
+        <h2 className="mb-4 text-lg font-semibold text-ink">{t('wacc.marketParams')}</h2>
         <div className="grid gap-4 sm:grid-cols-3">
           <Field
-            label="Equity Risk Premium"
+            label={t('wacc.erp')}
             value={marketParams.equityRiskPremium}
             onChange={v => updateMarketParam('equityRiskPremium', v)}
             suffix="%"
             isPercent
           />
           <Field
-            label="Rating Based Default Spread"
+            label={t('wacc.rbds')}
             value={marketParams.ratingBasedDefaultSpread}
             onChange={v => updateMarketParam('ratingBasedDefaultSpread', v)}
             suffix="%"
             isPercent
           />
           <Field
-            label="Risk Free (SUN)"
+            label={t('wacc.riskFree')}
             value={marketParams.riskFree}
             onChange={v => updateMarketParam('riskFree', v)}
             suffix="%"
@@ -163,7 +165,7 @@ export function WaccForm({ initial, onSave }: WaccFormProps) {
         </div>
         <div className="mt-4 max-w-xs">
           <Field
-            label="Tax Rate (Hamada)"
+            label={t('wacc.taxRateHamada')}
             value={taxRate}
             onChange={v => {
               const parsed = parseFloat(v)
@@ -177,17 +179,17 @@ export function WaccForm({ initial, onSave }: WaccFormProps) {
 
       {/* Section B — Comparable Companies */}
       <section>
-        <h2 className="mb-4 text-lg font-semibold text-ink">Perusahaan Pembanding</h2>
+        <h2 className="mb-4 text-lg font-semibold text-ink">{t('wacc.comparableCompanies')}</h2>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr className="border-b-2 border-grid-strong text-left">
                 <th className="px-2 py-2 font-medium text-ink-muted">#</th>
-                <th className="px-2 py-2 font-medium text-ink-muted">Nama Perusahaan</th>
-                <th className="px-2 py-2 text-right font-medium text-ink-muted">Beta Levered</th>
-                <th className="px-2 py-2 text-right font-medium text-ink-muted">Market Cap</th>
-                <th className="px-2 py-2 text-right font-medium text-ink-muted">Debt</th>
-                <th className="px-2 py-2 text-right font-medium text-ink-muted">Beta Unlevered</th>
+                <th className="px-2 py-2 font-medium text-ink-muted">{t('wacc.table.companyName')}</th>
+                <th className="px-2 py-2 text-right font-medium text-ink-muted">{t('wacc.table.betaLevered')}</th>
+                <th className="px-2 py-2 text-right font-medium text-ink-muted">{t('wacc.table.marketCap')}</th>
+                <th className="px-2 py-2 text-right font-medium text-ink-muted">{t('wacc.table.debt')}</th>
+                <th className="px-2 py-2 text-right font-medium text-ink-muted">{t('wacc.table.betaUnlevered')}</th>
                 <th className="px-2 py-2" />
               </tr>
             </thead>
@@ -254,7 +256,7 @@ export function WaccForm({ initial, onSave }: WaccFormProps) {
               {/* Aggregate row */}
               <tr className="border-t-2 border-grid-strong bg-canvas-raised font-semibold">
                 <td className="px-2 py-1.5" />
-                <td className="px-2 py-1.5 text-ink">Rata-rata / Total</td>
+                <td className="px-2 py-1.5 text-ink">{t('wacc.avgTotal')}</td>
                 <td className="px-2 py-1.5 text-right font-mono tabular-nums">
                   {result.avgBetaLevered.toFixed(4)}
                 </td>

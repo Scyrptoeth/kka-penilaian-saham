@@ -18,6 +18,7 @@ import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
 import type { YearKeyedSeries } from '@/types/financial'
 import { getFaStrings } from '@/lib/i18n/fixed-asset'
+import { useT } from '@/lib/i18n/useT'
 
 /**
  * Compute FA sentinel rows for downstream backward compatibility.
@@ -84,7 +85,13 @@ export default function DynamicFaEditor() {
   const resetFixedAsset = useKkaStore((s) => s.resetFixedAsset)
   const resetAll = useKkaStore((s) => s.resetAll)
 
+  // Global language from sidebar toggle
+  const { t: tGlobal, language } = useT()
+
   const tahunTransaksi = home!.tahunTransaksi
+
+  // Per-page i18n — catalog labels and structural rows
+  const faStrings = getFaStrings(language)
 
   // Local state — seeded from store once at mount (LESSON-034)
   const [accounts, setAccounts] = useState<FaAccountEntry[]>(
@@ -92,9 +99,6 @@ export default function DynamicFaEditor() {
   )
   const [yearCount, setYearCount] = useState(
     () => fixedAsset?.yearCount ?? 3,
-  )
-  const [language, setLanguage] = useState<'en' | 'id'>(
-    () => fixedAsset?.language ?? 'id',
   )
   const [localRows, setLocalRows] = useState<Record<number, YearKeyedSeries>>(() => {
     // Filter OUT sentinel/legacy-mapped rows — editor only shows offset-keyed leaf data
@@ -118,7 +122,6 @@ export default function DynamicFaEditor() {
     }
     return leafOnly
   })
-  const t = getFaStrings(language)
 
   // UI state
   const [showDropdown, setShowDropdown] = useState(false)
@@ -130,15 +133,16 @@ export default function DynamicFaEditor() {
     nextAccounts: FaAccountEntry[],
     nextRows: Record<number, YearKeyedSeries>,
     nextYearCount: number,
-    nextLanguage: 'en' | 'id',
   ) {
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
+      // Read latest language from global store at persist time
+      const lang = useKkaStore.getState().language
       // Build manifest and compute sentinels for downstream compat
-      const manifest = buildDynamicFaManifest(nextAccounts, nextLanguage, nextYearCount, tahunTransaksi)
+      const manifest = buildDynamicFaManifest(nextAccounts, lang, nextYearCount, tahunTransaksi)
       const yrs = computeHistoricalYears(tahunTransaksi, nextYearCount)
       const sentinels = computeFaSentinels(nextAccounts, nextRows, manifest, yrs)
-      setFixedAsset({ accounts: nextAccounts, yearCount: nextYearCount, language: nextLanguage, rows: { ...nextRows, ...sentinels } })
+      setFixedAsset({ accounts: nextAccounts, yearCount: nextYearCount, language: lang, rows: { ...nextRows, ...sentinels } })
     }, 500)
   }
 
@@ -181,7 +185,7 @@ export default function DynamicFaEditor() {
   function handleCellChange(excelRow: number, year: number, value: number) {
     setLocalRows((prev) => {
       const next = { ...prev, [excelRow]: { ...(prev[excelRow] ?? {}), [year]: value } }
-      schedulePersist(accounts, next, yearCount, language)
+      schedulePersist(accounts, next, yearCount)
       return next
     })
   }
@@ -200,7 +204,7 @@ export default function DynamicFaEditor() {
         for (const offset of EDITABLE_OFFSETS) {
           nextRows[entry.excelRow + offset] = {}
         }
-        schedulePersist(next, nextRows, yearCount, language)
+        schedulePersist(next, nextRows, yearCount)
         return nextRows
       })
       return next
@@ -222,7 +226,7 @@ export default function DynamicFaEditor() {
         for (const offset of EDITABLE_OFFSETS) {
           nextRows[entry.excelRow + offset] = {}
         }
-        schedulePersist(next, nextRows, yearCount, language)
+        schedulePersist(next, nextRows, yearCount)
         return nextRows
       })
       return next
@@ -243,7 +247,7 @@ export default function DynamicFaEditor() {
         }
       }
       setLocalRows(nextRows)
-      schedulePersist(next, nextRows, yearCount, language)
+      schedulePersist(next, nextRows, yearCount)
       return next
     })
   }
@@ -251,15 +255,7 @@ export default function DynamicFaEditor() {
   function handleYearCountChange(delta: number) {
     setYearCount((prev) => {
       const next = Math.min(10, Math.max(1, prev + delta))
-      schedulePersist(accounts, localRows, next, language)
-      return next
-    })
-  }
-
-  function handleLanguageToggle() {
-    setLanguage((prev) => {
-      const next = prev === 'en' ? 'id' : 'en'
-      schedulePersist(accounts, localRows, yearCount, next)
+      schedulePersist(accounts, localRows, next)
       return next
     })
   }
@@ -269,7 +265,6 @@ export default function DynamicFaEditor() {
     setAccounts([])
     setLocalRows({})
     setYearCount(3)
-    setLanguage('id')
     setShowResetFA(false)
   }
 
@@ -278,7 +273,6 @@ export default function DynamicFaEditor() {
     setAccounts([])
     setLocalRows({})
     setYearCount(3)
-    setLanguage('id')
     setShowResetAll(false)
   }
 
@@ -292,44 +286,24 @@ export default function DynamicFaEditor() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-muted">
-            Input Data
+            {tGlobal('editor.sectionLabel')}
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-ink">
-            {t.pageTitle}
+            {faStrings.pageTitle}
           </h1>
         </div>
-        {/* Language toggle */}
-        <button
-          type="button"
-          onClick={handleLanguageToggle}
-          className="flex items-center gap-2.5 rounded-md border border-grid px-4 py-2 transition-colors hover:bg-grid/50"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-ink-muted" aria-hidden="true">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M2 12h20" />
-            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-          </svg>
-          <span className="text-sm font-semibold text-ink">
-            {language === 'en' ? 'Indonesia' : 'English'}
-          </span>
-          <span className="text-xs text-ink-muted">
-            {language === 'en'
-              ? 'Tampilkan dalam Bahasa Indonesia'
-              : 'Tampilkan dalam Bahasa Inggris'}
-          </span>
-        </button>
       </div>
 
       {/* Year axis info */}
       <p className="text-[12px] text-ink-muted">
-        Tahun historis: {years.join(', ')} ({yearCount} tahun)
+        {tGlobal('editor.yearAxisInfo')} {years.join(', ')} ({yearCount} {tGlobal('common.year')})
       </p>
 
       {/* Year control section */}
       <div className="rounded-sm border border-grid bg-canvas-raised p-3">
         <div className="flex items-center justify-between">
           <h3 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-muted">
-            {t.addHistoricalYear}
+            {faStrings.addHistoricalYear}
           </h3>
           <div className="flex items-center gap-1.5">
             {yearCount > 1 && (
@@ -338,7 +312,7 @@ export default function DynamicFaEditor() {
                 onClick={() => handleYearCountChange(-1)}
                 className="rounded-sm border border-dashed border-grid px-2 py-1 text-[11px] font-medium text-ink-muted transition-colors hover:border-negative hover:text-negative"
               >
-                {t.reduceYear}
+                {faStrings.reduceYear}
               </button>
             )}
             <button
@@ -346,7 +320,7 @@ export default function DynamicFaEditor() {
               onClick={() => handleYearCountChange(1)}
               className="rounded-sm border border-dashed border-grid px-2 py-1 text-[11px] font-medium text-ink-muted transition-colors hover:border-accent hover:text-accent"
             >
-              {t.addYear}
+              {faStrings.addYear}
             </button>
           </div>
         </div>
@@ -359,7 +333,7 @@ export default function DynamicFaEditor() {
         values={localRows}
         computedValues={computedValues}
         onChange={handleCellChange}
-        lineItemHeader={t.lineItemHeader}
+        lineItemHeader={faStrings.lineItemHeader}
         onAddButtonClick={() => setShowDropdown((prev) => !prev)}
         onRemoveAccount={handleRemoveAccount}
         openDropdownSection={showDropdown ? 'fixed_asset' : null}
@@ -367,46 +341,46 @@ export default function DynamicFaEditor() {
         onSelectCatalogItem={(item) => { handleAddAccount(item as FaCatalogAccount); setShowDropdown(false) }}
         onCustomEntry={(_, label) => { handleAddCustom('fixed_asset', label); setShowDropdown(false) }}
         onCloseDropdown={() => setShowDropdown(false)}
-        dropdownStrings={{ manualEntry: t.manualEntry, allAccountsAdded: t.allAccountsAdded, accountNamePlaceholder: t.accountNamePlaceholder, cancel: t.cancel, add: t.add }}
+        dropdownStrings={{ manualEntry: faStrings.manualEntry, allAccountsAdded: faStrings.allAccountsAdded, accountNamePlaceholder: faStrings.accountNamePlaceholder, cancel: tGlobal('common.cancel'), add: tGlobal('common.add') }}
         language={language}
       />
 
       {/* Footer: RESET + auto-save indicator */}
       <footer className="flex flex-wrap items-center gap-3">
-        <p className="text-xs text-ink-muted">Otomatis tersimpan</p>
+        <p className="text-xs text-ink-muted">{tGlobal('common.autoSaved')}</p>
         <button
           type="button"
           onClick={() => setShowResetFA(true)}
           className="rounded-sm border border-grid px-3 py-2 text-[13px] font-medium text-ink-soft transition-colors hover:bg-grid hover:text-ink"
         >
-          Reset Halaman Ini
+          {tGlobal('common.resetPage')}
         </button>
         <button
           type="button"
           onClick={() => setShowResetAll(true)}
           className="rounded-sm border border-negative/40 px-3 py-2 text-[13px] font-medium text-negative transition-colors hover:bg-negative/10"
         >
-          Reset Seluruh Data
+          {tGlobal('common.resetAll')}
         </button>
       </footer>
 
       {/* Confirmation dialogs */}
       {showResetFA && (
         <ConfirmDialog
-          title={t.resetFaTitle}
-          message={t.resetFaMessage}
-          confirmLabel={t.resetFaConfirm}
-          cancelLabel={t.cancel}
+          title={faStrings.resetFaTitle}
+          message={faStrings.resetFaMessage}
+          confirmLabel={faStrings.resetFaConfirm}
+          cancelLabel={tGlobal('common.cancel')}
           onConfirm={handleResetFA}
           onCancel={() => setShowResetFA(false)}
         />
       )}
       {showResetAll && (
         <ConfirmDialog
-          title={t.resetAllTitle}
-          message={t.resetAllMessage}
-          confirmLabel={t.resetAllConfirm}
-          cancelLabel={t.cancel}
+          title={tGlobal('common.resetAllTitle')}
+          message={tGlobal('common.resetAllMessage')}
+          confirmLabel={tGlobal('common.resetAllConfirm')}
+          cancelLabel={tGlobal('common.cancel')}
           destructive
           onConfirm={handleResetAll_}
           onCancel={() => setShowResetAll(false)}
@@ -417,7 +391,7 @@ export default function DynamicFaEditor() {
 }
 
 function ConfirmDialog({
-  title, message, confirmLabel, cancelLabel = 'Batal', destructive, onConfirm, onCancel,
+  title, message, confirmLabel, cancelLabel = 'Cancel', destructive, onConfirm, onCancel,
 }: {
   title: string; message: string; confirmLabel: string; cancelLabel?: string
   destructive?: boolean; onConfirm: () => void; onCancel: () => void

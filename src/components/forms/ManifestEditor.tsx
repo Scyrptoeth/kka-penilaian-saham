@@ -2,6 +2,7 @@
 
 import { useMemo, useCallback, useState, useRef, useEffect } from 'react'
 import { useKkaStore } from '@/lib/store/useKkaStore'
+import { useT } from '@/lib/i18n/useT'
 import { RowInputGrid } from '@/components/forms/RowInputGrid'
 import type { SheetManifest } from '@/data/manifests/types'
 import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
@@ -50,6 +51,7 @@ export function ManifestEditor({
   headerTitle,
   headerDescription,
 }: ManifestEditorProps) {
+  const { t } = useT()
   const setSlice = useKkaStore(sliceSetter)
 
   // One-time non-subscribed seed from the persisted slice. Safe because
@@ -101,8 +103,11 @@ export function ManifestEditor({
 
   const defaultDescription =
     years.length > 0
-      ? `Masukkan data untuk ${years.length} tahun historis (${years[0]}–${years[years.length - 1]}). Subtotal dan total akan dihitung otomatis saat rendering. Data tersimpan otomatis ke perangkat Anda.`
-      : 'Masukkan data historis. Data tersimpan otomatis ke perangkat Anda.'
+      ? t('editor.descriptionWithYears')
+          .replace('{count}', String(years.length))
+          .replace('{first}', String(years[0]))
+          .replace('{last}', String(years[years.length - 1]))
+      : t('editor.descriptionNoYears')
 
   return (
     <div className="mx-auto max-w-[1400px] space-y-6">

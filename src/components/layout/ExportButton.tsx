@@ -5,6 +5,7 @@ import { useKkaStore } from '@/lib/store/useKkaStore'
 import { exportToXlsx, downloadBlob, buildExportFilename } from '@/lib/export'
 import type { ExportableState } from '@/lib/export'
 import { cn } from '@/lib/utils/cn'
+import { useT } from '@/lib/i18n/useT'
 
 /**
  * Export button — generates a .xlsx from the user's live data using the
@@ -17,6 +18,7 @@ export function ExportButton() {
   const home = useKkaStore((s) => s.home)
   const [exporting, setExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { t } = useT()
 
   const handleExport = useCallback(async () => {
     setExporting(true)
@@ -48,12 +50,12 @@ export function ExportButton() {
       )
       downloadBlob(blob, filename)
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'Export gagal'
+      const message = e instanceof Error ? e.message : t('export.errorFallback')
       setError(message)
     } finally {
       setExporting(false)
     }
-  }, [])
+  }, [t])
 
   const disabled = !home || exporting
 
@@ -69,17 +71,17 @@ export function ExportButton() {
             ? 'cursor-not-allowed border-grid bg-canvas text-ink-muted'
             : 'border-accent bg-accent/10 text-accent hover:bg-accent/20 active:bg-accent/30',
         )}
-        title={!home ? 'Isi data di HOME dulu sebelum export' : 'Export ke Excel (.xlsx)'}
+        title={!home ? t('export.disabledTitle') : t('export.enabledTitle')}
       >
         {exporting ? (
           <>
             <SpinnerIcon />
-            Mengekspor…
+            {t('export.exporting')}
           </>
         ) : (
           <>
             <DownloadIcon />
-            Export ke Excel
+            {t('export.buttonLabel')}
           </>
         )}
       </button>

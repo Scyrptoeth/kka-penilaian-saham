@@ -10,6 +10,8 @@ import { buildAamInput } from '@/lib/calculations/upstream-helpers'
 import { formatIdr, formatPercent } from '@/components/financial/format'
 import { parseFinancialInput } from '@/components/forms/parse-financial-input'
 import { PageEmptyState } from '@/components/shared/PageEmptyState'
+import { useT } from '@/lib/i18n/useT'
+import type { TranslationKey } from '@/lib/i18n/translations'
 import {
   type BsAccountEntry,
   type BsSection,
@@ -21,52 +23,52 @@ import {
 // ---------------------------------------------------------------------------
 
 interface AamSection {
-  /** Display header */
-  title: string
+  /** Translation key for section header */
+  title: TranslationKey
   /** BS sections to include */
   bsSections: readonly BsSection[]
   /** Type: 'asset' | 'liability' | 'equity' for subtotal labeling */
   type: 'asset' | 'liability' | 'equity'
-  /** Subtotal label */
-  subtotalLabel: string
+  /** Translation key for subtotal label */
+  subtotalLabel: TranslationKey
   /** Key in AamResult for subtotal E column value */
   subtotalResultKey?: string
 }
 
 const AAM_SECTIONS: readonly AamSection[] = [
   {
-    title: 'AKTIVA LANCAR',
+    title: 'aam.section.currentAssets',
     bsSections: ['current_assets'],
     type: 'asset',
-    subtotalLabel: 'Total Current Assets',
+    subtotalLabel: 'aam.subtotal.currentAssets',
     subtotalResultKey: 'totalCurrentAssets',
   },
   {
-    title: 'AKTIVA TIDAK LANCAR',
+    title: 'aam.section.nonCurrentAssets',
     bsSections: ['other_non_current_assets', 'intangible_assets'],
     type: 'asset',
-    subtotalLabel: 'Total Non-Current Assets',
+    subtotalLabel: 'aam.subtotal.nonCurrentAssets',
     subtotalResultKey: 'totalNonCurrentAssets',
   },
   {
-    title: 'KEWAJIBAN LANCAR',
+    title: 'aam.section.currentLiabilities',
     bsSections: ['current_liabilities'],
     type: 'liability',
-    subtotalLabel: 'Total Current Liabilities',
+    subtotalLabel: 'aam.subtotal.currentLiabilities',
     subtotalResultKey: 'totalCurrentLiabilities',
   },
   {
-    title: 'KEWAJIBAN JANGKA PANJANG',
+    title: 'aam.section.nonCurrentLiabilities',
     bsSections: ['non_current_liabilities'],
     type: 'liability',
-    subtotalLabel: 'Total Non-Current Liabilities',
+    subtotalLabel: 'aam.subtotal.nonCurrentLiabilities',
     subtotalResultKey: 'totalNonCurrentLiabilities',
   },
   {
-    title: 'EKUITAS PEMEGANG SAHAM',
+    title: 'aam.section.equity',
     bsSections: ['equity'],
     type: 'equity',
-    subtotalLabel: 'Ekuitas Pemegang Saham',
+    subtotalLabel: 'aam.subtotal.equity',
     subtotalResultKey: 'totalEquity',
   },
 ]
@@ -81,9 +83,11 @@ const FIXED_ASSET_NET_ROW = 22
 function AdjustmentCell({
   value,
   onCommit,
+  editTitle,
 }: {
   value: number
   onCommit: (v: number) => void
+  editTitle: string
 }) {
   const [draft, setDraft] = useState<string | null>(null)
   const isEditing = draft !== null
@@ -120,7 +124,7 @@ function AdjustmentCell({
           type="button"
           onClick={() => setDraft(value === 0 ? '' : String(value))}
           className="w-full rounded px-2 py-1 text-right font-mono text-sm tabular-nums text-accent hover:bg-accent/5 focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
-          title="Klik untuk edit penyesuaian"
+          title={editTitle}
         >
           {formatIdr(value)}
         </button>
@@ -139,6 +143,7 @@ export default function AamPage() {
   const aamAdjustments = useKkaStore(s => s.aamAdjustments)
   const setAamAdjustments = useKkaStore(s => s.setAamAdjustments)
   const hasHydrated = useKkaStore(s => s._hasHydrated)
+  const { t, language } = useT()
 
   const handleAdjustmentCommit = useCallback((bsRow: number, value: number) => {
     const next = { ...aamAdjustments }
@@ -166,11 +171,11 @@ export default function AamPage() {
       aamAdjustments,
     }))
 
-    return { result, allBs, ly, accounts: balanceSheet.accounts, language: balanceSheet.language }
+    return { result, allBs, ly, accounts: balanceSheet.accounts }
   }, [hasHydrated, home, balanceSheet, aamAdjustments])
 
   if (!hasHydrated) {
-    return <div className="mx-auto max-w-[1100px] p-6 text-sm text-ink-muted">Memuat data...</div>
+    return <div className="mx-auto max-w-[1100px] p-6 text-sm text-ink-muted">{t('common.loadingData')}</div>
   }
 
   if (!data) {
@@ -186,7 +191,7 @@ export default function AamPage() {
     )
   }
 
-  const { result: r, allBs, ly, accounts, language } = data
+  const { result: r, allBs, ly, accounts } = data
   const bs = (row: number) => allBs[row]?.[ly] ?? 0
 
   /** Get accounts belonging to given BS sections, in store order */
@@ -210,18 +215,18 @@ export default function AamPage() {
 
   return (
     <div className="mx-auto max-w-[1100px] p-6">
-      <h1 className="mb-1 text-2xl font-semibold tracking-tight text-ink">Adjusted Asset Method (AAM)</h1>
-      <p className="mb-6 text-sm text-ink-muted">Metode Penyesuaian Aset Bersih — klik angka di kolom Penyesuaian (D) untuk mengedit.</p>
+      <h1 className="mb-1 text-2xl font-semibold tracking-tight text-ink">{t('aam.title')}</h1>
+      <p className="mb-6 text-sm text-ink-muted">{t('aam.subtitle')}</p>
 
       {/* Dynamic Balance Sheet Table */}
       <div className="mb-4 overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b-2 border-grid-strong">
-              <th className="px-3 py-2 text-left font-medium text-ink-muted">Keterangan</th>
-              <th className="px-3 py-2 text-right font-medium text-ink-muted">Historis (C)</th>
-              <th className="px-3 py-2 text-right font-medium text-ink-muted">Penyesuaian (D)</th>
-              <th className="px-3 py-2 text-right font-medium text-ink-muted">Disesuaikan (E)</th>
+              <th className="px-3 py-2 text-left font-medium text-ink-muted">{t('aam.table.description')}</th>
+              <th className="px-3 py-2 text-right font-medium text-ink-muted">{t('aam.table.historical')}</th>
+              <th className="px-3 py-2 text-right font-medium text-ink-muted">{t('aam.table.adjustment')}</th>
+              <th className="px-3 py-2 text-right font-medium text-ink-muted">{t('aam.table.adjusted')}</th>
             </tr>
           </thead>
           <tbody>
@@ -240,18 +245,19 @@ export default function AamPage() {
                   {/* Section header */}
                   <tr className="border-t-2 border-grid-strong">
                     <td colSpan={4} className="px-3 pt-3 pb-1 text-xs font-semibold tracking-wide text-ink-muted uppercase">
-                      {section.title}
+                      {t(section.title)}
                     </td>
                   </tr>
 
                   {/* Special: Fixed Asset Net for NCA section */}
                   {section === AAM_SECTIONS[1] && (
                     <AccountRow
-                      label={language === 'en' ? 'Fixed Asset Net' : 'Aset Tetap, Neto'}
+                      label={t('aam.fixedAssetNet')}
                       bsRow={FIXED_ASSET_NET_ROW}
                       bsVal={bs(FIXED_ASSET_NET_ROW)}
                       adjVal={aamAdjustments[FIXED_ASSET_NET_ROW] ?? 0}
                       onAdjCommit={handleAdjustmentCommit}
+                      editTitle={t('aam.editAdjustment')}
                     />
                   )}
 
@@ -264,12 +270,13 @@ export default function AamPage() {
                       bsVal={bs(acct.excelRow)}
                       adjVal={aamAdjustments[acct.excelRow] ?? 0}
                       onAdjCommit={handleAdjustmentCommit}
+                      editTitle={t('aam.editAdjustment')}
                     />
                   ))}
 
                   {/* Section subtotal */}
                   <tr className="border-t border-grid-strong bg-canvas-raised font-semibold">
-                    <td className="px-3 py-2 text-ink">{section.subtotalLabel}</td>
+                    <td className="px-3 py-2 text-ink">{t(section.subtotalLabel)}</td>
                     <td className="px-3 py-2 text-right font-mono tabular-nums" />
                     <td className="px-3 py-2 text-right font-mono tabular-nums text-ink-muted">{formatIdr(adjTotal)}</td>
                     <td className="px-3 py-2 text-right font-mono tabular-nums">{subtotalE !== undefined ? formatIdr(subtotalE) : ''}</td>
@@ -280,7 +287,7 @@ export default function AamPage() {
 
             {/* TOTAL ASSETS row */}
             <tr className="border-t-2 border-grid-strong bg-canvas-raised font-bold">
-              <td className="px-3 py-2 text-ink">TOTAL ASSETS</td>
+              <td className="px-3 py-2 text-ink">{t('aam.totalAssets')}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums" />
               <td className="px-3 py-2 text-right font-mono tabular-nums text-ink-muted" />
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(r.totalAssets)}</td>
@@ -288,7 +295,7 @@ export default function AamPage() {
 
             {/* TOTAL LIABILITIES & EQUITY row */}
             <tr className="border-t border-grid-strong bg-canvas-raised font-bold">
-              <td className="px-3 py-2 text-ink">TOTAL LIABILITIES & EQUITY</td>
+              <td className="px-3 py-2 text-ink">{t('aam.totalLiabilitiesEquity')}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums" />
               <td className="px-3 py-2 text-right font-mono tabular-nums text-ink-muted" />
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(r.totalLiabilitiesAndEquity)}</td>
@@ -298,46 +305,46 @@ export default function AamPage() {
       </div>
 
       {/* Valuation Chain */}
-      <h2 className="mb-3 text-base font-semibold text-ink">Valuasi</h2>
+      <h2 className="mb-3 text-base font-semibold text-ink">{t('aam.valuation')}</h2>
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b-2 border-grid-strong">
-              <th className="px-3 py-2 text-left font-medium text-ink-muted">Keterangan</th>
-              <th className="px-3 py-2 text-right font-medium text-ink-muted">Nilai</th>
+              <th className="px-3 py-2 text-left font-medium text-ink-muted">{t('common.description')}</th>
+              <th className="px-3 py-2 text-right font-medium text-ink-muted">{t('common.value')}</th>
             </tr>
           </thead>
           <tbody>
             <tr className="border-b border-grid">
-              <td className="px-3 py-2 text-ink">Net Asset Value</td>
+              <td className="px-3 py-2 text-ink">{t('aam.netAssetValue')}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(r.netAssetValue)}</td>
             </tr>
             <tr className="border-b border-grid">
-              <td className="px-3 py-2 text-ink">Interest Bearing Debt</td>
+              <td className="px-3 py-2 text-ink">{t('aam.interestBearingDebt')}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(r.interestBearingDebt)}</td>
             </tr>
             <tr className="border-b border-grid font-semibold">
-              <td className="px-3 py-2 text-ink">Equity Value</td>
+              <td className="px-3 py-2 text-ink">{t('aam.equityValue')}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(r.equityValue)}</td>
             </tr>
             <tr className="border-b border-grid">
-              <td className="px-3 py-2 text-ink">DLOM ({formatPercent(home!.dlomPercent)})</td>
+              <td className="px-3 py-2 text-ink">{t('aam.dlomLabel')} ({formatPercent(home!.dlomPercent)})</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums text-negative">{formatIdr(r.dlomDiscount)}</td>
             </tr>
             <tr className="border-b border-grid">
-              <td className="px-3 py-2 text-ink">Equity Less DLOM</td>
+              <td className="px-3 py-2 text-ink">{t('aam.equityLessDlom')}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(r.equityLessDlom)}</td>
             </tr>
             <tr className="border-b border-grid">
-              <td className="px-3 py-2 text-ink">DLOC/PFC ({formatPercent(home!.dlocPercent)})</td>
+              <td className="px-3 py-2 text-ink">{t('aam.dlocPfcLabel')} ({formatPercent(home!.dlocPercent)})</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums text-negative">{formatIdr(r.dlocDiscount)}</td>
             </tr>
             <tr className="border-b border-grid font-semibold">
-              <td className="px-3 py-2 text-ink">Market Value of Equity (100%)</td>
+              <td className="px-3 py-2 text-ink">{t('aam.marketValue100')}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(r.marketValue100)}</td>
             </tr>
             <tr className="border-t-2 border-grid-strong bg-canvas-raised">
-              <td className="px-3 py-3 font-semibold text-ink">Market Value ({formatPercent(computeProporsiSaham(home!))} Equity)</td>
+              <td className="px-3 py-3 font-semibold text-ink">{t('aam.marketValuePortion')} ({formatPercent(computeProporsiSaham(home!))} {t('common.equity')})</td>
               <td className="px-3 py-3 text-right font-mono text-lg font-semibold tabular-nums text-accent">
                 {formatIdr(r.marketValuePortion)}
               </td>
@@ -365,12 +372,14 @@ function AccountRow({
   bsVal,
   adjVal,
   onAdjCommit,
+  editTitle,
 }: {
   label: string
   bsRow: number
   bsVal: number
   adjVal: number
   onAdjCommit: (bsRow: number, value: number) => void
+  editTitle: string
 }) {
   return (
     <tr className="border-b border-grid">
@@ -379,6 +388,7 @@ function AccountRow({
       <AdjustmentCell
         value={adjVal}
         onCommit={(v) => onAdjCommit(bsRow, v)}
+        editTitle={editTitle}
       />
       <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(bsVal + adjVal)}</td>
     </tr>

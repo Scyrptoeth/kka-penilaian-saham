@@ -4,8 +4,10 @@ import { useCallback, useMemo } from 'react'
 import { useKkaStore, type KeyDriversState } from '@/lib/store/useKkaStore'
 import { KeyDriversForm } from '@/components/forms/KeyDriversForm'
 import { PageEmptyState } from '@/components/shared/PageEmptyState'
+import { useT } from '@/lib/i18n/useT'
 
 export default function KeyDriversPage() {
+  const { t } = useT()
   const hasHydrated = useKkaStore(s => s._hasHydrated)
   const home = useKkaStore(s => s.home)
   const keyDrivers = useKkaStore(s => s.keyDrivers)
@@ -38,7 +40,7 @@ export default function KeyDriversPage() {
   if (!hasHydrated) {
     return (
       <div className="mx-auto max-w-[1200px] p-6 text-sm text-ink-muted">
-        Memuat data…
+        {t('common.loadingData')}
       </div>
     )
   }
@@ -58,10 +60,10 @@ export default function KeyDriversPage() {
   return (
     <div className="mx-auto max-w-[1200px] p-6">
       <h1 className="mb-1 text-2xl font-semibold tracking-tight text-ink">
-        Key Drivers — Asumsi Proyeksi
+        {t('keyDrivers.pageTitle')}
       </h1>
       <p className="mb-6 text-sm text-ink-muted">
-        Asumsi-asumsi yang digunakan untuk proyeksi kinerja keuangan. Perubahan otomatis tersimpan.
+        {t('keyDrivers.subtitle')}
       </p>
       <KeyDriversForm
         initial={keyDrivers}

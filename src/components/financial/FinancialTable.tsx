@@ -1,4 +1,7 @@
+'use client'
+
 import { cn } from '@/lib/utils/cn'
+import { useT } from '@/lib/i18n/useT'
 import type {
   FinancialRow,
   FinancialTableProps,
@@ -25,6 +28,7 @@ export function FinancialTable({
   currency = 'IDR',
   disclaimer,
 }: FinancialTableProps) {
+  const { t } = useT()
   const commonSizeYears = showCommonSize ? years.slice(1) : []
   const growthYears = showGrowth ? years.slice(1) : []
 
@@ -61,7 +65,7 @@ export function FinancialTable({
                 scope="col"
                 className="sticky left-0 top-0 z-20 min-w-[280px] border-b border-grid-strong bg-canvas-raised px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted shadow-[1px_0_0_rgba(10,22,40,0.06)]"
               >
-                Line Item
+                {t('table.lineItemHeader')}
               </th>
               {years.map((year) => (
                 <th
@@ -78,7 +82,7 @@ export function FinancialTable({
                   colSpan={commonSizeYears.length}
                   className="sticky top-0 z-10 border-b border-l border-grid-strong bg-canvas-raised px-3 py-2 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-accent"
                 >
-                  Common Size
+                  {t('table.commonSize')}
                 </th>
               )}
               {growthYears.length > 0 && (
@@ -87,7 +91,7 @@ export function FinancialTable({
                   colSpan={growthYears.length}
                   className="sticky top-0 z-10 border-b border-l border-grid-strong bg-canvas-raised px-3 py-2 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-accent"
                 >
-                  Growth YoY
+                  {t('table.growthYoY')}
                 </th>
               )}
             </tr>

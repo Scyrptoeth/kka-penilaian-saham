@@ -8,6 +8,7 @@ import type {
   KepemilikanType,
 } from '@/types/questionnaire'
 import type { JenisPerusahaan } from '@/types/financial'
+import { useT } from '@/lib/i18n/useT'
 
 /**
  * Universal questionnaire form used by both DLOM and DLOC pages.
@@ -66,17 +67,19 @@ function FactorCard({
   selectedLabel,
   selectedScore,
   onPick,
+  factorLabel,
 }: {
   factor: QuestionnaireFactor
   selectedLabel: string | undefined
   selectedScore: number | undefined
   onPick: (label: string) => void
+  factorLabel: string
 }): ReactNode {
   const groupName = `factor-${factor.number}`
   return (
     <fieldset className="border border-grid bg-canvas-raised p-4 sm:p-5">
       <legend className="px-2 text-xs font-semibold uppercase tracking-[0.14em] text-ink-muted">
-        Faktor {factor.number}
+        {factorLabel} {factor.number}
       </legend>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
         <div className="flex-1">
@@ -160,6 +163,7 @@ export function QuestionnaireForm({
   result,
   resultLabel,
 }: QuestionnaireFormProps) {
+  const { t } = useT()
   const showKepemilikan = kepemilikan !== undefined && onKepemilikanChange !== undefined
 
   return (
@@ -171,12 +175,12 @@ export function QuestionnaireForm({
         )}
         <dl className="mt-3 grid grid-cols-1 gap-x-8 gap-y-1 text-xs sm:grid-cols-2">
           <div className="flex justify-between sm:justify-start sm:gap-2">
-            <dt className="text-ink-muted">Jenis Perusahaan:</dt>
+            <dt className="text-ink-muted">{t('questionnaire.companyType')}</dt>
             <dd className="font-mono uppercase text-ink">{jenisPerusahaan}</dd>
           </div>
           {showKepemilikan && (
             <div className="flex justify-between sm:justify-start sm:gap-2">
-              <dt className="text-ink-muted">Kepemilikan saham yang dinilai:</dt>
+              <dt className="text-ink-muted">{t('questionnaire.ownership')}</dt>
               <dd className="font-mono uppercase text-ink">{kepemilikan}</dd>
             </div>
           )}
@@ -197,6 +201,7 @@ export function QuestionnaireForm({
               selectedLabel={selectedLabel}
               selectedScore={selectedScore}
               onPick={(label) => onAnswerChange(factor.number, label)}
+              factorLabel={t('questionnaire.factorLabel')}
             />
           )
         })}
@@ -210,7 +215,7 @@ export function QuestionnaireForm({
                 htmlFor="kepemilikan-select"
                 className="text-xs font-semibold uppercase tracking-wider text-ink-soft"
               >
-                Kepemilikan Saham yang Dinilai
+                {t('questionnaire.ownershipLabel')}
               </label>
               <select
                 id="kepemilikan-select"
@@ -220,30 +225,30 @@ export function QuestionnaireForm({
                 }
                 className="h-10 w-full border border-grid-strong bg-canvas-raised px-3 text-sm text-ink focus:border-ink focus:outline-none"
               >
-                <option value="mayoritas">Mayoritas</option>
-                <option value="minoritas">Minoritas</option>
+                <option value="mayoritas">{t('questionnaire.option.majority')}</option>
+                <option value="minoritas">{t('questionnaire.option.minority')}</option>
               </select>
               <p className="text-xs text-ink-muted">
-                Mempengaruhi range persentase. Sumber: form HOME.
+                {t('questionnaire.ownershipHint')}
               </p>
             </div>
           )}
 
           <div className="flex flex-col gap-2 text-sm">
             <div className="flex justify-between border-b border-grid pb-2">
-              <span className="text-ink-muted">Total Skor</span>
+              <span className="text-ink-muted">{t('questionnaire.totalScore')}</span>
               <span className="font-mono tabular-nums text-ink">
                 {formatScore(result.totalScore)} / {formatScore(result.maxScore)}
               </span>
             </div>
             <div className="flex justify-between border-b border-grid pb-2">
-              <span className="text-ink-muted">Range Berlaku</span>
+              <span className="text-ink-muted">{t('questionnaire.rangeLabel')}</span>
               <span className="font-mono tabular-nums text-ink">
                 {formatRange(result.range)}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-ink-muted">Faktor Terisi</span>
+              <span className="text-ink-muted">{t('questionnaire.factorsFilled')}</span>
               <span className="font-mono tabular-nums text-ink">
                 {Object.keys(answers).length} / {factors.length}
               </span>
@@ -264,7 +269,7 @@ export function QuestionnaireForm({
             {formatPercent(result.range.max - result.range.min)}
           </span>
           <span className="mt-1 text-xs text-ink-muted">
-            Tersimpan otomatis ke HOME store dan ter-sync ke perhitungan valuasi.
+            {t('questionnaire.autoSyncNotice')}
           </span>
         </div>
       </section>

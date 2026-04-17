@@ -2,8 +2,10 @@
 
 import { useState, useTransition, type FormEvent } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useT } from '@/lib/i18n/useT'
 
 export function AksesForm() {
+  const { t } = useT()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [nip, setNip] = useState('')
@@ -15,7 +17,7 @@ export function AksesForm() {
     setError(null)
     const trimmed = nip.trim()
     if (!trimmed) {
-      setError('NIP Pendek Wajib Diisi')
+      setError(t('akses.error.nipRequired'))
       return
     }
     startTransition(async () => {
@@ -33,9 +35,9 @@ export function AksesForm() {
           router.refresh()
           return
         }
-        setError(data.error ?? 'Gagal Memverifikasi NIP Pendek. Coba Lagi')
+        setError(data.error ?? t('akses.error.verifyFailed'))
       } catch {
-        setError('Terjadi Kesalahan Jaringan. Coba Lagi')
+        setError(t('akses.error.networkError'))
       }
     })
   }
@@ -48,7 +50,7 @@ export function AksesForm() {
     >
       <div>
         <label htmlFor="nip" className="block text-xs font-mono uppercase tracking-[0.18em] text-ink-soft mb-2">
-          NIP Pendek Penilai
+          {t('akses.field.nipLabel')}
         </label>
         <input
           id="nip"
@@ -65,7 +67,7 @@ export function AksesForm() {
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? 'nip-error' : undefined}
           className="w-full bg-canvas border border-grid-strong px-4 py-3 font-mono text-lg tracking-wider tabular-nums text-ink outline-none focus-visible:border-ink focus-visible:ring-2 focus-visible:ring-focus/30 disabled:opacity-50"
-          placeholder="Masukkan NIP Pendek Anda"
+          placeholder={t('akses.placeholder.nip')}
         />
         {error && (
           <p id="nip-error" role="alert" className="mt-2 text-sm text-negative">
@@ -79,7 +81,7 @@ export function AksesForm() {
         disabled={pending || nip.trim().length === 0}
         className="w-full bg-ink text-canvas font-mono uppercase tracking-[0.2em] text-xs py-3.5 border-2 border-ink hover:bg-transparent hover:text-ink transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-ink disabled:hover:text-canvas"
       >
-        {pending ? 'Memverifikasi…' : 'Masuk'}
+        {pending ? t('akses.button.verifying') : t('akses.button.login')}
       </button>
     </form>
   )

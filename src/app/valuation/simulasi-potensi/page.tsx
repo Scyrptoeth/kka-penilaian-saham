@@ -19,10 +19,12 @@ import {
 } from '@/lib/calculations/upstream-helpers'
 import { formatIdr, formatPercent } from '@/components/financial/format'
 import { PageEmptyState } from '@/components/shared/PageEmptyState'
+import { useT } from '@/lib/i18n/useT'
 
 type ValuationMethod = 'AAM' | 'DCF' | 'EEM'
 
 export default function SimulasiPotensiPage() {
+  const { t } = useT()
   const home = useKkaStore(s => s.home)
   const balanceSheet = useKkaStore(s => s.balanceSheet)
   const incomeStatement = useKkaStore(s => s.incomeStatement)
@@ -122,7 +124,7 @@ export default function SimulasiPotensiPage() {
   }, [equityValues, home, method, nilaiPengalihanDilaporkan])
 
   if (!hasHydrated) {
-    return <div className="mx-auto max-w-[1100px] p-6 text-sm text-ink-muted">Memuat data…</div>
+    return <div className="mx-auto max-w-[1100px] p-6 text-sm text-ink-muted">{t('common.loadingData')}</div>
   }
 
   if (!equityValues || !home) {
@@ -140,16 +142,14 @@ export default function SimulasiPotensiPage() {
 
   return (
     <div className="mx-auto max-w-[1100px] p-6">
-      <h1 className="mb-1 text-2xl font-semibold tracking-tight text-ink">Simulasi Potensi PPh</h1>
-      <p className="mb-6 text-sm text-ink-muted">
-        Simulasi potensi Pajak Penghasilan kurang bayar atas pengalihan saham berdasarkan valuasi.
-      </p>
+      <h1 className="mb-1 text-2xl font-semibold tracking-tight text-ink">{t('simulasi.title')}</h1>
+      <p className="mb-6 text-sm text-ink-muted">{t('simulasi.subtitle')}</p>
 
       {/* Controls */}
       <div className="mb-6 grid gap-4 sm:grid-cols-2">
         <div className="rounded border border-grid bg-canvas-raised p-4">
           <label htmlFor="method" className="mb-1 block text-sm font-medium text-ink">
-            Metode Valuasi
+            {t('simulasi.methodLabel')}
           </label>
           <select
             id="method"
@@ -157,19 +157,19 @@ export default function SimulasiPotensiPage() {
             onChange={(e) => setMethod(e.target.value as ValuationMethod)}
             className="w-full rounded border border-grid bg-canvas px-3 py-2 text-sm text-ink focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none"
           >
-            <option value="AAM">AAM (Adjusted Asset Method)</option>
+            <option value="AAM">{t('simulasi.method.aam')}</option>
             <option value="DCF" disabled={equityValues.DCF === null}>
-              DCF (Discounted Cash Flow){equityValues.DCF === null ? ' — data belum lengkap' : ''}
+              {t('simulasi.method.dcf')}{equityValues.DCF === null ? t('simulasi.dataIncomplete') : ''}
             </option>
             <option value="EEM" disabled={equityValues.EEM === null}>
-              EEM (Excess Earnings Method){equityValues.EEM === null ? ' — data belum lengkap' : ''}
+              {t('simulasi.method.eem')}{equityValues.EEM === null ? t('simulasi.dataIncomplete') : ''}
             </option>
           </select>
         </div>
 
         <div className="rounded border border-grid bg-canvas-raised p-4">
           <label htmlFor="nilaiPengalihan" className="mb-1 block text-sm font-medium text-ink">
-            Nilai Pengalihan yang Dilaporkan (Rp)
+            {t('simulasi.nilaiPengalihanLabel')}
           </label>
           <input
             id="nilaiPengalihan"
@@ -189,8 +189,8 @@ export default function SimulasiPotensiPage() {
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b-2 border-grid-strong">
-              <th className="px-3 py-2 text-left font-medium text-ink-muted">Metode</th>
-              <th className="px-3 py-2 text-right font-medium text-ink-muted">Equity Value (100%)</th>
+              <th className="px-3 py-2 text-left font-medium text-ink-muted">{t('simulasi.table.method')}</th>
+              <th className="px-3 py-2 text-right font-medium text-ink-muted">{t('simulasi.table.equityValue')}</th>
             </tr>
           </thead>
           <tbody>
@@ -201,7 +201,7 @@ export default function SimulasiPotensiPage() {
                 <tr key={m} className={`border-b border-grid ${isActive ? 'bg-canvas-raised font-semibold' : ''}`}>
                   <td className="px-3 py-2 text-ink">
                     {m}
-                    {isActive && <span className="ml-2 text-xs text-accent">● aktif</span>}
+                    {isActive && <span className="ml-2 text-xs text-accent">{t('simulasi.active')}</span>}
                   </td>
                   <td className="px-3 py-2 text-right font-mono tabular-nums">
                     {val !== null ? formatIdr(val) : <span className="text-ink-muted">—</span>}
@@ -219,13 +219,13 @@ export default function SimulasiPotensiPage() {
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr className="border-b-2 border-grid-strong">
-                <th className="px-3 py-2 text-left font-medium text-ink-muted">Keterangan</th>
-                <th className="px-3 py-2 text-right font-medium text-ink-muted">Nilai</th>
+                <th className="px-3 py-2 text-left font-medium text-ink-muted">{t('common.description')}</th>
+                <th className="px-3 py-2 text-right font-medium text-ink-muted">{t('common.value')}</th>
               </tr>
             </thead>
             <tbody>
               <tr className="border-b border-grid">
-                <td className="px-3 py-2 text-ink">Equity Value (100%) — {method}</td>
+                <td className="px-3 py-2 text-ink">{t('simulasi.table.equityValue')} — {method}</td>
                 <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(equityValues[method]!)}</td>
               </tr>
               <tr className="border-b border-grid">
@@ -233,7 +233,7 @@ export default function SimulasiPotensiPage() {
                 <td className="px-3 py-2 text-right font-mono tabular-nums text-negative">{formatIdr(simulasi.dlomAmount)}</td>
               </tr>
               <tr className="border-b border-grid font-semibold">
-                <td className="px-3 py-2 text-ink">Equity Less DLOM</td>
+                <td className="px-3 py-2 text-ink">{t('simulasi.equityLessDlom')}</td>
                 <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(simulasi.equityLessDlom)}</td>
               </tr>
               <tr className="border-b border-grid">
@@ -241,11 +241,11 @@ export default function SimulasiPotensiPage() {
                 <td className="px-3 py-2 text-right font-mono tabular-nums text-negative">{formatIdr(simulasi.dlocAmount)}</td>
               </tr>
               <tr className="border-b border-grid">
-                <td className="px-3 py-2 text-ink">Resistensi WP</td>
+                <td className="px-3 py-2 text-ink">{t('simulasi.resistensiWp')}</td>
                 <td className="px-3 py-2 text-right text-ink-muted">{resistensiWp}</td>
               </tr>
               <tr className="border-b border-grid font-semibold">
-                <td className="px-3 py-2 text-ink">Market Value of Equity (100%)</td>
+                <td className="px-3 py-2 text-ink">{t('simulasi.mvEquity100')}</td>
                 <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(simulasi.marketValueEquity100)}</td>
               </tr>
               <tr className="border-b border-grid">
@@ -253,11 +253,11 @@ export default function SimulasiPotensiPage() {
                 <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(simulasi.marketValuePortion)}</td>
               </tr>
               <tr className="border-b border-grid">
-                <td className="px-3 py-2 text-ink">Nilai Pengalihan Dilaporkan</td>
+                <td className="px-3 py-2 text-ink">{t('simulasi.nilaiPengalihanDilaporkan')}</td>
                 <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(nilaiPengalihanDilaporkan)}</td>
               </tr>
               <tr className="border-b-2 border-grid-strong bg-canvas-raised font-semibold">
-                <td className="px-3 py-2 text-ink">Potensi Pengalihan Belum Dikenakan Pajak</td>
+                <td className="px-3 py-2 text-ink">{t('simulasi.potensiPengalihan')}</td>
                 <td className={`px-3 py-2 text-right font-mono tabular-nums ${simulasi.potensiPengalihan < 0 ? 'text-negative' : ''}`}>
                   {formatIdr(simulasi.potensiPengalihan)}
                 </td>
@@ -266,7 +266,7 @@ export default function SimulasiPotensiPage() {
               {/* PPh Progressive Tax */}
               <tr className="border-t-2 border-grid-strong">
                 <td colSpan={2} className="px-3 pt-3 pb-1 text-xs font-semibold tracking-wide text-ink-muted uppercase">
-                  PPh Pasal 17 — Tarif Progresif
+                  {t('simulasi.pphProgressive')}
                 </td>
               </tr>
               {simulasi.taxBrackets.map((bracket, i) => (
@@ -281,7 +281,7 @@ export default function SimulasiPotensiPage() {
               ))}
 
               <tr className="border-t-2 border-grid-strong bg-canvas-raised">
-                <td className="px-3 py-3 font-semibold text-ink">Total Potensi PPh Kurang Bayar</td>
+                <td className="px-3 py-3 font-semibold text-ink">{t('simulasi.totalPPh')}</td>
                 <td className="px-3 py-3 text-right font-mono text-lg font-semibold tabular-nums text-accent">
                   {formatIdr(simulasi.totalPPhKurangBayar)}
                 </td>
@@ -291,7 +291,7 @@ export default function SimulasiPotensiPage() {
         </div>
       ) : (
         <div className="rounded border border-grid bg-canvas-raised px-4 py-6 text-center text-sm text-ink-muted">
-          Data metode {method} belum tersedia. Isi input yang dibutuhkan terlebih dahulu.
+          {method} {t('simulasi.methodNotAvailable')}
         </div>
       )}
     </div>

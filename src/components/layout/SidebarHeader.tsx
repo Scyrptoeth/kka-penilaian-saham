@@ -1,5 +1,8 @@
+'use client'
+
 import { ThemeToggle } from './ThemeToggle'
 import { LanguageToggle } from './LanguageToggle'
+import { useT } from '@/lib/i18n/useT'
 
 /**
  * Top-of-sidebar brand + privacy badge + theme toggle. Reused by both
@@ -11,17 +14,18 @@ import { LanguageToggle } from './LanguageToggle'
  * tegas/strong color (B&W high contrast) so users notice the toggle.
  */
 export function SidebarHeader() {
+  const { t } = useT()
   return (
     <div className="border-b border-grid bg-canvas-raised px-5 py-5">
       <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-muted">
-        KKA Penilaian
+        {t('sidebar.brand.line1')}
       </p>
       <p className="mt-1 text-sm font-semibold text-ink">
-        Bisnis II
+        {t('sidebar.brand.line2')}
       </p>
       <div className="mt-3 inline-flex items-center gap-1.5 rounded-sm bg-accent-soft px-2 py-1 text-[8px] font-medium text-ink">
         <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden />
-        Seluruh Proses Berjalan di Perangkat Anda
+        {t('sidebar.privacyBadge')}
       </div>
       <div className="mt-2 flex flex-col gap-1">
         <ThemeToggle />
