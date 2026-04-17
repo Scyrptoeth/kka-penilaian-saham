@@ -145,6 +145,26 @@ const FIXED_ASSET_GRID: GridCellMapping = {
 }
 
 // ---------------------------------------------------------------------------
+// ACC PAYABLES — Bank Loan Schedules (Session 032)
+//
+// Hidden worksheet feeding CFS financing via cross-sheet refs:
+//   `='ACC PAYABLES'!C10 + 'ACC PAYABLES'!C19` (New Loan)
+//   `='ACC PAYABLES'!C20`                      (Principal Repayment)
+//
+// Leaf rows are the editable cells (Addition / Repayment / Interest).
+// Rows 9/18 (Beginning) and 12/21 (Ending) are template formulas that
+// self-compute from the leaves, so they are NOT in `leafRows`.
+// ---------------------------------------------------------------------------
+
+const ACC_PAYABLES_GRID: GridCellMapping = {
+  kind: 'grid',
+  storeSlice: 'accPayables',
+  excelSheet: 'ACC PAYABLES',
+  leafRows: [10, 11, 14, 19, 20, 23],
+  yearColumns: { 2019: 'C', 2020: 'D', 2021: 'E' },
+}
+
+// ---------------------------------------------------------------------------
 // KEY DRIVERS
 // ---------------------------------------------------------------------------
 
@@ -315,6 +335,7 @@ export const ALL_GRID_MAPPINGS: readonly GridCellMapping[] = [
   BALANCE_SHEET_GRID,
   INCOME_STATEMENT_GRID,
   FIXED_ASSET_GRID,
+  ACC_PAYABLES_GRID,
 ]
 
 export const ALL_ARRAY_MAPPINGS: readonly ArrayCellMapping[] = [
@@ -335,6 +356,7 @@ export const MAPPED_STORE_SLICES = [
   'balanceSheet',
   'incomeStatement',
   'fixedAsset',
+  'accPayables',
   'keyDrivers',
   'wacc',
   'discountRate',

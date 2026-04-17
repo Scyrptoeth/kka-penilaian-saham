@@ -45,6 +45,7 @@ function makeState(overrides: Partial<ExportableState>): ExportableState {
     balanceSheet: null,
     incomeStatement: null,
     fixedAsset: null,
+    accPayables: null,
     wacc: null,
     discountRate: null,
     keyDrivers: null,

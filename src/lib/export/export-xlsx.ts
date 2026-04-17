@@ -9,6 +9,7 @@
 import ExcelJS from 'exceljs'
 import type { HomeInputs } from '@/types'
 import type {
+  AccPayablesInputState,
   BalanceSheetInputState,
   IncomeStatementInputState,
   FixedAssetInputState,
@@ -59,6 +60,7 @@ export interface ExportableState {
   balanceSheet: BalanceSheetInputState | null
   incomeStatement: IncomeStatementInputState | null
   fixedAsset: FixedAssetInputState | null
+  accPayables: AccPayablesInputState | null
   wacc: WaccState | null
   discountRate: DiscountRateState | null
   keyDrivers: KeyDriversState | null
@@ -97,11 +99,15 @@ export async function exportToXlsx(state: ExportableState): Promise<Blob> {
   if (!MIGRATED_SHEET_NAMES.has('BALANCE SHEET')) {
     injectBsCrossRefValues(workbook, state)
   }
-  injectArrayCells(workbook, state)
-  injectDynamicRows(workbook, state)
-  injectDlomAnswers(workbook, state)
-  injectDlocAnswers(workbook, state)
-  injectDlomJenisPerusahaan(workbook, state)
+  injectArrayCells(workbook, state, MIGRATED_SHEET_NAMES)
+  injectDynamicRows(workbook, state, MIGRATED_SHEET_NAMES)
+  if (!MIGRATED_SHEET_NAMES.has('DLOM')) {
+    injectDlomAnswers(workbook, state)
+    injectDlomJenisPerusahaan(workbook, state)
+  }
+  if (!MIGRATED_SHEET_NAMES.has('DLOC(PFC)')) {
+    injectDlocAnswers(workbook, state)
+  }
   if (!MIGRATED_SHEET_NAMES.has('AAM')) {
     injectAamAdjustments(workbook, state)
   }
@@ -468,14 +474,122 @@ function injectScalarCells(
     const ws = workbook.getWorksheet(m.excelSheet)
     if (!ws) continue
 
-    let value = resolveSlice(state, m)
-    if (value === undefined || value === null) continue
+    writeScalarMapping(ws, state, m)
+  }
+}
 
-    if (m.exportTransform === 'multiplyBy100' && typeof value === 'number') {
-      value = value * 100
+function writeScalarMapping(
+  ws: ExcelJS.Worksheet,
+  state: ExportableState,
+  m: ScalarCellMapping,
+): void {
+  let value = resolveSlice(state, m)
+  if (value === undefined || value === null) return
+  if (m.exportTransform === 'multiplyBy100' && typeof value === 'number') {
+    value = value * 100
+  }
+  ws.getCell(m.excelCell).value = value as ExcelJS.CellValue
+}
+
+/**
+ * Builder-facing helper: write all scalar mappings whose destination
+ * is `excelSheet`. Used by individual SheetBuilders (Session 031+) to
+ * reuse the resolveSlice + multiplyBy100 semantics without re-implementing
+ * them per builder file.
+ *
+ * Note: a scalar mapping's `excelSheet` is its DESTINATION. A builder
+ * whose `sheetName` matches will collect scalars that *write into* its
+ * sheet regardless of which store slice sources the value. For scalars
+ * sourced FROM a slice but targeting a DIFFERENT sheet (e.g. WACC's
+ * taxRate → IS!B33), the source-slice builder uses
+ * `writeScalarsFromSlice` instead.
+ */
+export function writeScalarsForSheet(
+  workbook: ExcelJS.Workbook,
+  state: ExportableState,
+  excelSheet: string,
+): void {
+  const ws = workbook.getWorksheet(excelSheet)
+  if (!ws) return
+  for (const m of ALL_SCALAR_MAPPINGS) {
+    if (m.excelSheet !== excelSheet) continue
+    writeScalarMapping(ws, state, m)
+  }
+}
+
+/**
+ * Builder-facing helper: write every scalar mapping whose source is
+ * `storeSlice`, regardless of destination sheet. Used by WaccBuilder
+ * to include the `wacc.taxRate → IS!B33` cross-sheet write alongside
+ * its own WACC-sheet scalars. Resolves the Session 031 regression where
+ * `injectScalarCells` filtering by destination left cross-sheet writes
+ * to already-migrated sheets orphaned.
+ */
+export function writeScalarsFromSlice(
+  workbook: ExcelJS.Workbook,
+  state: ExportableState,
+  storeSlice: string,
+): void {
+  for (const m of ALL_SCALAR_MAPPINGS) {
+    if (m.storeSlice !== storeSlice) continue
+    const ws = workbook.getWorksheet(m.excelSheet)
+    if (!ws) continue
+    writeScalarMapping(ws, state, m)
+  }
+}
+
+/** Builder-facing helper: write all array mappings targeting `excelSheet`. */
+export function writeArraysForSheet(
+  workbook: ExcelJS.Workbook,
+  state: ExportableState,
+  excelSheet: string,
+): void {
+  const ws = workbook.getWorksheet(excelSheet)
+  if (!ws) return
+  for (const a of ALL_ARRAY_MAPPINGS) {
+    if (a.excelSheet !== excelSheet) continue
+    writeArrayMapping(ws, state, a)
+  }
+}
+
+/** Builder-facing helper: write all dynamic-row mappings targeting `excelSheet`. */
+export function writeDynamicRowsForSheet(
+  workbook: ExcelJS.Workbook,
+  state: ExportableState,
+  excelSheet: string,
+): void {
+  const ws = workbook.getWorksheet(excelSheet)
+  if (!ws) return
+  for (const d of ALL_DYNAMIC_ROWS_MAPPINGS) {
+    if (d.excelSheet !== excelSheet) continue
+    writeDynamicRowsMapping(ws, state, d)
+  }
+}
+
+/** Builder-facing helper: write grid mapping for one sheet. */
+export function writeGridForSheet(
+  workbook: ExcelJS.Workbook,
+  state: ExportableState,
+  excelSheet: string,
+): void {
+  const ws = workbook.getWorksheet(excelSheet)
+  if (!ws) return
+  const grid = ALL_GRID_MAPPINGS.find((g) => g.excelSheet === excelSheet)
+  if (!grid) return
+  const slice = (state as unknown as Record<string, unknown>)[grid.storeSlice] as
+    | { rows: Record<number, Record<number, number>> }
+    | null
+  if (!slice) return
+  for (const row of grid.leafRows) {
+    const yearValues = slice.rows[row]
+    if (!yearValues) continue
+    for (const [yearStr, col] of Object.entries(grid.yearColumns)) {
+      const year = Number(yearStr)
+      const val = yearValues[year]
+      if (val !== undefined && val !== null) {
+        ws.getCell(`${col}${row}`).value = val
+      }
     }
-
-    ws.getCell(m.excelCell).value = value as ExcelJS.CellValue
   }
 }
 
@@ -562,39 +676,45 @@ function injectGridCells(
 // Internal: Inject arrays (KEY DRIVERS projection arrays)
 // ---------------------------------------------------------------------------
 
-function injectArrayCells(workbook: ExcelJS.Workbook, state: ExportableState): void {
+function injectArrayCells(
+  workbook: ExcelJS.Workbook,
+  state: ExportableState,
+  skipSheets: ReadonlySet<string> = new Set(),
+): void {
   for (const a of ALL_ARRAY_MAPPINGS) {
+    if (skipSheets.has(a.excelSheet)) continue
     const ws = workbook.getWorksheet(a.excelSheet)
     if (!ws) continue
+    writeArrayMapping(ws, state, a)
+  }
+}
 
-    const slice = (state as unknown as Record<string, unknown>)[a.storeSlice]
-    if (slice === null || slice === undefined) continue
+function writeArrayMapping(
+  ws: ExcelJS.Worksheet,
+  state: ExportableState,
+  a: import('./cell-mapping').ArrayCellMapping,
+): void {
+  const slice = (state as unknown as Record<string, unknown>)[a.storeSlice]
+  if (slice === null || slice === undefined) return
 
-    let values: number[] | undefined
+  let values: number[] | undefined
 
-    // Handle synthetic projected ratio fields (_cogsRatioProjected, etc.)
-    if (a.storeField.startsWith('_') && a.storeField.endsWith('Projected')) {
-      const baseField = a.storeField
-        .replace(/^_/, '')
-        .replace(/Projected$/, '')
-      const baseFieldPath = `operationalDrivers.${baseField}`
-      const baseValue = getNestedValue(slice as Record<string, unknown>, baseFieldPath)
-      if (typeof baseValue === 'number') {
-        values = Array(a.length).fill(baseValue) as number[]
-      }
-    } else {
-      const raw = getNestedValue(slice as Record<string, unknown>, a.storeField)
-      if (Array.isArray(raw)) {
-        values = raw as number[]
-      }
+  if (a.storeField.startsWith('_') && a.storeField.endsWith('Projected')) {
+    const baseField = a.storeField.replace(/^_/, '').replace(/Projected$/, '')
+    const baseFieldPath = `operationalDrivers.${baseField}`
+    const baseValue = getNestedValue(slice as Record<string, unknown>, baseFieldPath)
+    if (typeof baseValue === 'number') {
+      values = Array(a.length).fill(baseValue) as number[]
     }
+  } else {
+    const raw = getNestedValue(slice as Record<string, unknown>, a.storeField)
+    if (Array.isArray(raw)) values = raw as number[]
+  }
 
-    if (!values) continue
-
-    for (let i = 0; i < a.length && i < values.length; i++) {
-      const col = offsetCol(a.startColumn, i)
-      ws.getCell(`${col}${a.row}`).value = values[i]
-    }
+  if (!values) return
+  for (let i = 0; i < a.length && i < values.length; i++) {
+    const col = offsetCol(a.startColumn, i)
+    ws.getCell(`${col}${a.row}`).value = values[i]
   }
 }
 
@@ -602,29 +722,41 @@ function injectArrayCells(workbook: ExcelJS.Workbook, state: ExportableState): v
 // Internal: Inject dynamic rows (WACC companies, bank rates)
 // ---------------------------------------------------------------------------
 
-function injectDynamicRows(workbook: ExcelJS.Workbook, state: ExportableState): void {
+function injectDynamicRows(
+  workbook: ExcelJS.Workbook,
+  state: ExportableState,
+  skipSheets: ReadonlySet<string> = new Set(),
+): void {
   for (const d of ALL_DYNAMIC_ROWS_MAPPINGS) {
+    if (skipSheets.has(d.excelSheet)) continue
     const ws = workbook.getWorksheet(d.excelSheet)
     if (!ws) continue
+    writeDynamicRowsMapping(ws, state, d)
+  }
+}
 
-    const slice = (state as unknown as Record<string, unknown>)[d.storeSlice]
-    if (slice === null || slice === undefined) continue
+function writeDynamicRowsMapping(
+  ws: ExcelJS.Worksheet,
+  state: ExportableState,
+  d: import('./cell-mapping').DynamicRowsMapping,
+): void {
+  const slice = (state as unknown as Record<string, unknown>)[d.storeSlice]
+  if (slice === null || slice === undefined) return
 
-    const items = getNestedValue(slice as Record<string, unknown>, d.storeField)
-    if (!Array.isArray(items)) continue
+  const items = getNestedValue(slice as Record<string, unknown>, d.storeField)
+  if (!Array.isArray(items)) return
 
-    const count = Math.min(items.length, d.maxRows)
-    for (let i = 0; i < count; i++) {
-      const item = items[i] as Record<string, unknown>
-      const row = d.startRow + i
-      for (const [col, field] of Object.entries(d.columns)) {
-        let value = item[field]
-        if (value === undefined || value === null) continue
-        if (d.columnTransforms?.[col] === 'multiplyBy100' && typeof value === 'number') {
-          value = value * 100
-        }
-        ws.getCell(`${col}${row}`).value = value as ExcelJS.CellValue
+  const count = Math.min(items.length, d.maxRows)
+  for (let i = 0; i < count; i++) {
+    const item = items[i] as Record<string, unknown>
+    const row = d.startRow + i
+    for (const [col, field] of Object.entries(d.columns)) {
+      let value = item[field]
+      if (value === undefined || value === null) continue
+      if (d.columnTransforms?.[col] === 'multiplyBy100' && typeof value === 'number') {
+        value = value * 100
       }
+      ws.getCell(`${col}${row}`).value = value as ExcelJS.CellValue
     }
   }
 }
@@ -633,7 +765,7 @@ function injectDynamicRows(workbook: ExcelJS.Workbook, state: ExportableState): 
 // Internal: DLOM / DLOC answers
 // ---------------------------------------------------------------------------
 
-function injectDlomAnswers(workbook: ExcelJS.Workbook, state: ExportableState): void {
+export function injectDlomAnswers(workbook: ExcelJS.Workbook, state: ExportableState): void {
   if (!state.dlom) return
   const ws = workbook.getWorksheet('DLOM')
   if (!ws) return
@@ -646,7 +778,7 @@ function injectDlomAnswers(workbook: ExcelJS.Workbook, state: ExportableState): 
   }
 }
 
-function injectDlocAnswers(workbook: ExcelJS.Workbook, state: ExportableState): void {
+export function injectDlocAnswers(workbook: ExcelJS.Workbook, state: ExportableState): void {
   if (!state.dloc) return
   const ws = workbook.getWorksheet('DLOC(PFC)')
   if (!ws) return
@@ -664,7 +796,7 @@ function injectDlocAnswers(workbook: ExcelJS.Workbook, state: ExportableState): 
  * Excel formula B30 reads: IF(C30="DLOM Perusahaan tertutup ",1,2)
  * Trailing space in the string is intentional (matches Excel original).
  */
-function injectDlomJenisPerusahaan(workbook: ExcelJS.Workbook, state: ExportableState): void {
+export function injectDlomJenisPerusahaan(workbook: ExcelJS.Workbook, state: ExportableState): void {
   if (!state.home) return
   const ws = workbook.getWorksheet('DLOM')
   if (!ws) return

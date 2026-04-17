@@ -1,141 +1,189 @@
-# Session 031 Plan — Core Builders (T3 + T4 continuation of Session 030)
+# Session 032 Plan — T5: 8 Input-Driven SheetBuilders
 
 ## Branch
-`feat/session-031-core-builders` (off `main` at commit `0169ae5`)
+`feat/session-032-input-builders` (off `main` at commit `e09fd53`)
 
-## Session Goal
-Continue Session 030 state-driven export migration. Land **5 SheetBuilders**
-(BS/IS/FA/AAM/SIMULASI POTENSI AAM) + legacy-pipeline skip logic + cascade
-integration test. Primary user complaint ("prototipe labels PT Raja Voltama
-bocor di 5 sheet") fixed.
+## Scope (from Session 032 design.md)
+Migrate the 8 input-driven sheets into the state-driven `SHEET_BUILDERS`
+registry. Each builder is a thin wrapper over existing injectors filtered
+to its own sheet. Legacy pipeline auto-skips via the reactive
+`MIGRATED_SHEET_NAMES` proxy.
 
-## Scope (narrow, explicitly carved from plan.md Session 030)
-- **T3 (BS/IS/FA)** — 3 builders wrap existing injectors + add
-  `writeLabelsFromStore` col B override.
-- **T4 (AAM/SIMULASI POTENSI)** — 2 builders reuse `buildAamInput` +
-  `computeAam` + `computeSimulasiPotensi`; AAM labels from
-  `balanceSheet.accounts` via reverse BS_ROW_TO_AAM_D_ROW; Simulasi writes
-  `nilaiPengalihanDilaporkan` + relies on Excel cross-sheet formulas.
-- **Cascade integration test** — narrow: all-null state → 5 migrated
-  sheets blank.
-- **Phase C exclusion** — skip migrated sheets in existing integrity test.
-- **Merge + live verify + Mode B wrap**.
+## Tasks (10 total — per Superpowers max)
 
-## Out of Scope (deferred to Session 032+)
-- T5–T7 (remaining 24 builders)
-- T8 (legacy `exportToXlsx` full removal, cross-sheet sanitizer)
-- T9 (Phase C rewrite to website-state parity)
-- AAM extended-account (excelRow ≥ 100) native injection in AAM sheet
+### T1 — Brainstorm + design.md ✅
+- Explore codebase: registry shape, cell mappings, builder pattern
+- Identify Session 031 IS!B33 regression + plan WaccBuilder fix
+- Identify ACC PAYABLES missing-from-ExportableState gap
+- Write `design.md` Session 032
 
-## Tasks (10 total)
+### T2 — plan.md + infrastructure extension + feature branch
+Files:
+- `plan.md` (this file)
+- `src/lib/export/export-xlsx.ts`
+  - Add optional `skipSheets` param to: `injectArrayCells`,
+    `injectDynamicRows`, `injectDlomAnswers`, `injectDlocAnswers`,
+    `injectDlomJenisPerusahaan`
+  - Pass `MIGRATED_SHEET_NAMES` from `exportToXlsx` to each
+  - Add `accPayables: AccPayablesInputState | null` to
+    `ExportableState`
+- `src/lib/export/cell-mapping.ts`
+  - Add `ACC_PAYABLES_GRID: GridCellMapping`
+  - Include in `ALL_GRID_MAPPINGS`
+- `src/components/layout/ExportButton.tsx`
+  - Add `accPayables: state.accPayables` to exportState
+- Git: create `feat/session-032-input-builders` branch; commit
+  "chore(export): extend skipSheets coverage + accPayables mapping"
 
-### T1 — Shared label-writer utility
-**Files**:
-- `src/lib/export/sheet-builders/label-writer.ts` [NEW] — generic
-  `resolveLabel<C>(account, catalog, language)` + per-sheet `writeBsLabels`,
-  `writeIsLabels`, `writeFaLabels`, `writeAamLabels`.
-- `__tests__/lib/export/label-writer.test.ts` [NEW] — 8 tests across
-  cases: customLabel wins, labelEn, labelId, unknown catalogId fallback.
+**Verification**: `npm run typecheck` clean, existing tests still GREEN.
 
-**Commit**: `feat(export): shared label-writer utility for sheet builders`
+### T3 — HomeBuilder (TDD)
+Files:
+- `__tests__/lib/export/sheet-builders/home.test.ts` (NEW) — RED
+- `src/lib/export/sheet-builders/home.ts` (NEW) — GREEN
+- `src/lib/export/sheet-builders/registry.ts` — add HomeBuilder
 
-### T2 — BalanceSheetBuilder
-**Files**:
-- `src/lib/export/sheet-builders/balance-sheet.ts` [NEW]
-- `__tests__/lib/export/sheet-builders/balance-sheet.test.ts` [NEW]
+Test cases (4):
+1. Populated home → B4,B5,B6,B7,B9,B12 match state
+2. Null home → sheet cleared (via orchestrator path)
+3. Partial scalar undefined → skipped gracefully
+4. Multi-run idempotent — same state, same output
 
-**RED**: 4 tests — null bs slice → sheet blank (orchestrator path);
-populated default catalog → labelEn in col B; populated id language →
-labelId; renamed account via customLabel → custom text in col B.
+### T4 — KeyDriversBuilder (TDD)
+Files:
+- `__tests__/lib/export/sheet-builders/key-drivers.test.ts` (NEW)
+- `src/lib/export/sheet-builders/key-drivers.ts` (NEW)
+- `registry.ts` — add KeyDriversBuilder
 
-**GREEN**: build() wraps `injectSingleGrid(BS)` + `injectBsCrossRefValues`
-+ `injectExtendedBsAccounts` + `extendBsSectionSubtotals` + `writeBsLabels`.
+Test cases (4):
+1. Populated state → 9 scalars + 12 arrays written to KEY DRIVERS
+2. Null state → sheet cleared
+3. `_cogsRatioProjected` synthetic array expansion works
+4. Array write respects `length` per mapping
 
-**Commit**: `feat(export): BalanceSheetBuilder`
+### T5 — AccPayablesBuilder (TDD)
+Files:
+- `__tests__/lib/export/sheet-builders/acc-payables.test.ts` (NEW)
+- `src/lib/export/sheet-builders/acc-payables.ts` (NEW)
+- `registry.ts` — add AccPayablesBuilder
 
-### T3 — IncomeStatementBuilder
-**Files**: parallel structure to T2.
-**Commit**: `feat(export): IncomeStatementBuilder`
+Test cases (4):
+1. Populated state → rows 10/11/14/19/20/23 across C/D/E written
+2. Null state → sheet cleared
+3. Partial year data → missing years skipped, existing written
+4. Template formula at row 9 (Beginning) UNTOUCHED
 
-### T4 — FixedAssetBuilder
-**Files**: parallel structure. Handles 7-band label mirror.
-**Commit**: `feat(export): FixedAssetBuilder`
+### T6 — DlomBuilder (TDD)
+Files:
+- `__tests__/lib/export/sheet-builders/dlom.test.ts` (NEW)
+- `src/lib/export/sheet-builders/dlom.ts` (NEW)
+- `registry.ts` — add DlomBuilder
 
-### T5 — Register T3 builders + pipeline filter
-**Files**:
-- `src/lib/export/sheet-builders/registry.ts` [MODIFIED] — push BS, IS, FA.
-- `src/lib/export/export-xlsx.ts` [MODIFIED] —
-  - `injectGridCells(workbook, state, skipSheets?)` — filter
-  - `clearAllInputCells(workbook, skipSheets?)` — filter
-  - Guards on `injectBsCrossRefValues`, `injectExtendedBsAccounts`, etc.
-  - Call `runSheetBuilders(workbook, state)` at correct pipeline position.
+Test cases (5):
+1. Home populated + dlom populated → all 3 cells + 10 answers written
+2. Home populated + dlom null → only C30 (jenisPerusahaan) written
+3. Null home → sheet cleared
+4. jenisPerusahaan="terbuka" → C30 = "DLOM Perusahaan terbuka "
+5. jenisPerusahaan="tertutup" → C30 = "DLOM Perusahaan tertutup "
 
-**Commit**: `feat(export): register BS/IS/FA builders, skip legacy pipeline`
+### T7 — DlocBuilder (TDD)
+Files:
+- `__tests__/lib/export/sheet-builders/dloc.test.ts` (NEW)
+- `src/lib/export/sheet-builders/dloc.ts` (NEW)
+- `registry.ts` — add DlocBuilder
 
-### T6 — AamBuilder
-**Files**:
-- `src/lib/export/sheet-builders/aam.ts` [NEW]
-- Test file
+Test cases (3):
+1. Populated → B21 + E7,E9,E11,E13,E15 written
+2. Null → sheet cleared
+3. Partial factor answers → empty factors left unwritten
 
-**Scope**: `build()` writes col B labels via reverse BS_ROW_TO_AAM_D_ROW
-lookup + calls existing `injectAamAdjustments`. Upstream: `balanceSheet` +
-`home` + `aamAdjustments`. Null any → blank sheet.
+### T8 — WaccBuilder (TDD) 🔧 includes IS!B33 fix
+Files:
+- `__tests__/lib/export/sheet-builders/wacc.test.ts` (NEW)
+- `src/lib/export/sheet-builders/wacc.ts` (NEW)
+- `registry.ts` — add WaccBuilder (position: after FixedAssetBuilder per
+  design D4, but MUST be after IncomeStatementBuilder for IS!B33 write)
 
-**Commit**: `feat(export): AamBuilder with dynamic labels`
+Test cases (5):
+1. Populated → 4 scalars written to WACC
+2. Populated → IS!B33 = state.wacc.taxRate (cross-sheet write)
+3. Populated → comparableCompanies + bankRates dynamic rows
+4. Null state → WACC sheet cleared; IS!B33 NOT written by this builder
+5. Overrides null → waccOverride cell skipped gracefully
 
-### T7 — SimulasiPotensiBuilder
-**Files**:
-- `src/lib/export/sheet-builders/simulasi-potensi.ts` [NEW]
-- Test file
+### T9 — DiscountRateBuilder + BorrowingCapBuilder (TDD, folded)
+Files:
+- `__tests__/lib/export/sheet-builders/discount-rate.test.ts` (NEW)
+- `src/lib/export/sheet-builders/discount-rate.ts` (NEW)
+- `__tests__/lib/export/sheet-builders/borrowing-cap.test.ts` (NEW)
+- `src/lib/export/sheet-builders/borrowing-cap.ts` (NEW)
+- `registry.ts` — add both
 
-**Scope**: writes `nilaiPengalihanDilaporkan` to E11; relies on Excel
-formulas for cross-sheet reactivity to AAM/DLOM/DLOC sheets. Upstream:
-`balanceSheet` + `home` + `dlom` + `dloc` + `aamAdjustments`. Null any →
-blank sheet.
+DR test cases (3):
+1. Populated → 6 scalars + bankRates dynamic table
+2. Null → sheet cleared
+3. `multiplyBy100` column transform applied to rate column
 
-**Commit**: `feat(export): SimulasiPotensiBuilder`
+BorrowingCap test cases (2):
+1. Populated → D5 + D6 written
+2. Null → sheet cleared
 
-### T8 — Register T4 + handle STANDALONE_SCALARS for SIMULASI
-**Files**:
-- `registry.ts` [MODIFIED] — push AAM + SIMULASI POTENSI (AAM).
-- `export-xlsx.ts` [MODIFIED] — `injectScalarCells` filter skipSheets.
-  Guard on `injectAamAdjustments`.
+### T10 — Cascade integration test extension + verification + merge + Mode B
+Files:
+- `__tests__/integration/export-cascade.test.ts` — extend
+  `WANT_BLANK_SHEETS` from 5 → 13
+- `progress.md` — update to Session 032 complete state
+- `history/session-032-input-builders.md` (NEW)
+- `lessons-learned.md` — append new lessons
+- `~/.claude/skills/start-kka-penilaian-saham/SKILL.md` — promote
+  lessons worthy of "always-load" (if any)
 
-**Commit**: `feat(export): register AAM + Simulasi builders`
-
-### T9 — Cascade integration test + Phase C exclusion
-**Files**:
-- `__tests__/integration/export-cascade.test.ts` [NEW] — all-null state →
-  5 migrated sheets blank.
-- `__tests__/integration/phase-c-verification.test.ts` [MODIFIED] — add
-  `STATE_DRIVEN_SHEETS` exclusion to skip 5 migrated sheets.
-
-**Commit**: `test(export): cascade integration + phase C exclusion`
-
-### T10 — Verification gate + merge + Mode B
-**Steps**:
-1. `npm test 2>&1 | tail -20`
-2. `npm run build 2>&1 | tail -15`
-3. `npm run typecheck 2>&1 | tail -5`
-4. `npm run lint 2>&1 | tail -10`
-5. `npm run audit:i18n`
-6. `npm run verify:phase-c`
-7. All green → merge to main, push, curl `/akses`
-8. Invoke `/update-kka-penilaian-saham` Mode B
-
-**Commit**: `docs: session 031 wrap-up — core builders + N lessons`
-
-## Verification Gates (per T10)
+Verification gate (all must be GREEN):
+```bash
+npm test 2>&1 | tail -20
+npm run build 2>&1 | tail -15
+npm run typecheck 2>&1 | tail -10
+npm run lint 2>&1 | tail -10
+npm run audit:i18n 2>&1 | tail -10
+npm run verify:phase-c 2>&1 | tail -10
 ```
-Tests:     >= 970 passing (953 existing + builders + cascade)
-Build:     ✅ 34 static pages
-Typecheck: ✅ clean
-Lint:      ✅ clean
-Audit:     ✅ zero i18n violations
-Phase C:   ✅ passes with STATE_DRIVEN_SHEETS exclusion
-Live:      /akses HTTP 200 post-merge
+
+Merge:
+```bash
+git checkout main
+git merge --ff-only feat/session-032-input-builders
+git push origin main
 ```
 
-## Budget (Opus 1M)
-Estimated ~75-95 tool calls. Feasible single session. If >70% at T9,
-partial-commit checkpoint per LESSON-085.
+Live verify:
+```bash
+curl -s -o /dev/null -w "%{http_code}" https://penilaian-bisnis.vercel.app/akses
+```
+
+Mode B commit:
+```
+docs: session 032 wrap-up — 8 input builders + IS!B33 fix + N lessons
+```
+
+## Expected outcome
+
+- 13 sheets now in `SHEET_BUILDERS` registry (5 from Session 031 +
+  8 new)
+- IS!B33 cross-sheet regression fixed
+- AccPayables data finally flows from store to export
+- Legacy pipeline auto-skips migrated sheets without manual coordination
+- ~40-50 new tests added (999 → ~1040)
+- 16 remaining builders queued for Session 033+
+
+## Risk mitigation
+
+- **Risk**: WaccBuilder's IS!B33 write might interfere with
+  IncomeStatementBuilder's label write. **Mitigation**: explicit test
+  case verifying order (T8 case 2).
+- **Risk**: AccPayables cell mapping year columns wrong (template may
+  use different columns). **Mitigation**: first test case loads real
+  template and reads cell addresses to verify before asserting.
+- **Risk**: Adding `accPayables` to ExportableState breaks existing
+  tests expecting the old shape. **Mitigation**: default to `null` at
+  all test call sites; scan test helpers for `ExportableState`
+  constructions.

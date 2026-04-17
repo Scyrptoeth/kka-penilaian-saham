@@ -33,6 +33,7 @@ export function ExportButton() {
         balanceSheet: state.balanceSheet,
         incomeStatement: state.incomeStatement,
         fixedAsset: state.fixedAsset,
+        accPayables: state.accPayables,
         wacc: state.wacc,
         discountRate: state.discountRate,
         keyDrivers: state.keyDrivers,

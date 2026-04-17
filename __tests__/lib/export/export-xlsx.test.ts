@@ -294,6 +294,7 @@ const TEST_STATE: ExportableState = {
   },
   incomeStatement: null,
   fixedAsset: null,
+  accPayables: null,
   wacc: {
     marketParams: { equityRiskPremium: 0.0762, ratingBasedDefaultSpread: 0.0226, riskFree: 0.027 },
     comparableCompanies: [
@@ -481,6 +482,7 @@ describe('export-xlsx (template-based)', () => {
       balanceSheet: null,
       incomeStatement: null,
       fixedAsset: null,
+      accPayables: null,
       wacc: null,
       discountRate: null,
       keyDrivers: null,

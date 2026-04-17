@@ -12,6 +12,7 @@ export type UpstreamSlice =
   | 'balanceSheet'
   | 'incomeStatement'
   | 'fixedAsset'
+  | 'accPayables'
   | 'keyDrivers'
   | 'wacc'
   | 'discountRate'
