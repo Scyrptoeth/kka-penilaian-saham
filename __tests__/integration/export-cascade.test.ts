@@ -56,6 +56,7 @@ const MIGRATED_SHEETS = [
   'PROY CASH FLOW STATEMENT',
   'DCF',
   'EEM',
+  'CFI',
 ] as const
 
 function makeEmptyState(): ExportableState {

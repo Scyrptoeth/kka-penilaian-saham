@@ -28,6 +28,7 @@ import { ProyNoplatBuilder } from './proy-noplat'
 import { ProyCfsBuilder } from './proy-cfs'
 import { DcfBuilder } from './dcf'
 import { EemBuilder } from './eem'
+import { CfiBuilder } from './cfi'
 import { AamBuilder } from './aam'
 import { SimulasiPotensiBuilder } from './simulasi-potensi'
 
@@ -91,6 +92,7 @@ export function getSheetBuilders(): readonly SheetBuilder[] {
     // Session 034 valuation
     DcfBuilder,
     EemBuilder,
+    CfiBuilder,
     // AAM chain (Session 031) — runs after inputs complete
     AamBuilder,
     SimulasiPotensiBuilder,
