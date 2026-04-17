@@ -22,6 +22,7 @@ import { GrowthRevenueBuilder } from './growth-revenue'
 import { GrowthRateBuilder } from './growth-rate'
 import { FinancialRatioBuilder } from './financial-ratio'
 import { ProyLrBuilder } from './proy-lr'
+import { ProyFaBuilder } from './proy-fa'
 import { AamBuilder } from './aam'
 import { SimulasiPotensiBuilder } from './simulasi-potensi'
 
@@ -78,6 +79,7 @@ export function getSheetBuilders(): readonly SheetBuilder[] {
     FinancialRatioBuilder,
     // Projections (Session 034)
     ProyLrBuilder,
+    ProyFaBuilder,
     // AAM chain (Session 031) — runs after inputs complete
     AamBuilder,
     SimulasiPotensiBuilder,
