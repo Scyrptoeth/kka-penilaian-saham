@@ -677,7 +677,7 @@ export type TVars = Record<string, string | number>
 export function t(key: TranslationKey, lang: Lang, vars?: TVars): string {
   const entry = dict[key]
   if (!entry) return key
-  let result = entry[lang] ?? entry.en
+  let result: string = entry[lang] ?? entry.en
   if (vars) {
     for (const [k, v] of Object.entries(vars)) {
       result = result.split(`{${k}}`).join(String(v))
