@@ -15,6 +15,7 @@ import type { AamInput } from '@/lib/calculations/aam-valuation'
 import type { DcfInput } from '@/lib/calculations/dcf'
 import type { BorrowingCapInput } from '@/lib/calculations/borrowing-cap'
 import type { EemInput } from '@/lib/calculations/eem-valuation'
+import type { CfiInput } from '@/lib/calculations/cfi'
 import type { DiscountRateResult } from '@/lib/calculations/discount-rate'
 import type { BorrowingCapInputState } from '@/lib/store/useKkaStore'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
@@ -278,6 +279,50 @@ export function buildBorrowingCapInput(params: BuildBorrowingCapParams): Borrowi
     costDebtAfterTax: dr.kd,
     costEquity: dr.ke,
   }
+}
+
+// ── CFI Input Builder ──
+
+export interface BuildCfiParams {
+  upstream: HistoricalUpstreamResult
+  histYears3: number[]
+  projYears: number[]
+  /** Projected FCF from DCF computation — positional, aligned to projYears. */
+  dcfProjectedFcf: readonly number[]
+  proyLrRows: Record<number, YearKeyedSeries>
+  incomeStatementRows: Record<number, YearKeyedSeries>
+}
+
+/**
+ * Build CfiInput from upstream + DCF + PROY LR data. Previously inline
+ * in `src/app/valuation/cfi/page.tsx`; centralized here per LESSON-046
+ * since the CFI SheetBuilder (Session 034) consumes the same mapping.
+ *
+ * Wiring:
+ *   historicalFcf    ← upstream.allFcf[20] per histYears3
+ *   projectedFcf     ← dcfProjectedFcf[i] aligned to projYears
+ *   historicalNonOpCf ← IS row 30 per histYears3
+ *   projectedNonOpCf ← proyLrRows[34] per projYears
+ */
+export function buildCfiInput(params: BuildCfiParams): CfiInput {
+  const {
+    upstream, histYears3, projYears,
+    dcfProjectedFcf, proyLrRows, incomeStatementRows,
+  } = params
+
+  const historicalFcf: YearKeyedSeries = {}
+  for (const y of histYears3) historicalFcf[y] = upstream.allFcf[20]?.[y] ?? 0
+
+  const projectedFcf: YearKeyedSeries = {}
+  projYears.forEach((y, i) => { projectedFcf[y] = dcfProjectedFcf[i] ?? 0 })
+
+  const historicalNonOpCf: YearKeyedSeries = {}
+  for (const y of histYears3) historicalNonOpCf[y] = incomeStatementRows[30]?.[y] ?? 0
+
+  const projectedNonOpCf: YearKeyedSeries = {}
+  for (const y of projYears) projectedNonOpCf[y] = proyLrRows[34]?.[y] ?? 0
+
+  return { historicalFcf, projectedFcf, historicalNonOpCf, projectedNonOpCf }
 }
 
 // ── Risk Category Derivation ──

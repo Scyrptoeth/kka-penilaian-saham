@@ -5,9 +5,8 @@ import { useKkaStore } from '@/lib/store/useKkaStore'
 import { computeDiscountRate, buildDiscountRateInput } from '@/lib/calculations/discount-rate'
 import { computeDcf } from '@/lib/calculations/dcf'
 import { computeFullProjectionPipeline } from '@/lib/calculations/projection-pipeline'
-import { computeHistoricalUpstream, buildDcfInput } from '@/lib/calculations/upstream-helpers'
+import { computeHistoricalUpstream, buildDcfInput, buildCfiInput } from '@/lib/calculations/upstream-helpers'
 import { computeCfi } from '@/lib/calculations/cfi'
-import type { YearKeyedSeries } from '@/types/financial'
 import { formatIdr } from '@/components/financial/format'
 import { PageEmptyState } from '@/components/shared/PageEmptyState'
 import { useT } from '@/lib/i18n/useT'
@@ -46,12 +45,6 @@ export default function CfiPage() {
       allBs, histYears3, histYears4,
     })
 
-    // Historical FCF row 20
-    const historicalFcf: YearKeyedSeries = {}
-    for (const y of histYears3) {
-      historicalFcf[y] = upstream.allFcf[20]?.[y] ?? 0
-    }
-
     // ── Projected FCF (via DCF) ──
     const dr = computeDiscountRate(buildDiscountRateInput(discountRateState))
     const dcfResult = computeDcf(buildDcfInput({
@@ -60,18 +53,13 @@ export default function CfiPage() {
       wacc: dr.wacc, growthRate: upstream.growthRate,
     }))
 
-    const projectedFcf: YearKeyedSeries = {}
-    projYears.forEach((y, i) => { projectedFcf[y] = dcfResult.projectedFcf[i] ?? 0 })
-
-    // ── Non-Op CF ──
-    const isRows = incomeStatement.rows
-    const historicalNonOpCf: YearKeyedSeries = {}
-    for (const y of histYears3) { historicalNonOpCf[y] = isRows[30]?.[y] ?? 0 }
-
-    const projectedNonOpCf: YearKeyedSeries = {}
-    for (const y of projYears) { projectedNonOpCf[y] = pipeline.proyLrRows[34]?.[y] ?? 0 }
-
-    const cfiResult = computeCfi({ historicalFcf, projectedFcf, historicalNonOpCf, projectedNonOpCf })
+    // ── CFI via centralized input builder (LESSON-046) ──
+    const cfiResult = computeCfi(buildCfiInput({
+      upstream, histYears3, projYears,
+      dcfProjectedFcf: dcfResult.projectedFcf,
+      proyLrRows: pipeline.proyLrRows,
+      incomeStatementRows: incomeStatement.rows,
+    }))
     const allYears = [...histYears3, ...projYears]
     return { cfiResult, histYears3, projYears, allYears }
   }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, keyDrivers, discountRateState])
