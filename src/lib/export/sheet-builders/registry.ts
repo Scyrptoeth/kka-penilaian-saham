@@ -1,7 +1,7 @@
 import type ExcelJS from 'exceljs'
 import type { SheetBuilder } from './types'
 import type { ExportableState } from '@/lib/export/export-xlsx'
-import { clearSheetCompletely } from '@/lib/export/sheet-utils'
+import { clearSheetCompletely, flattenSharedFormulas } from '@/lib/export/sheet-utils'
 import { isPopulated } from './populated'
 import { BalanceSheetBuilder } from './balance-sheet'
 import { IncomeStatementBuilder } from './income-statement'
@@ -182,6 +182,12 @@ export function runSheetBuilders(
     if (!sheet) continue
 
     if (isPopulated(builder.upstream, state)) {
+      // Neutralize any shared-formula structures the template carries on
+      // this sheet before the builder overwrites specific cells. Without
+      // this pass, a builder writing to a shared-formula MASTER (e.g.
+      // CfiBuilder writing F9 where F9:K9 is a shared range) orphans the
+      // clones — ExcelJS then rejects the workbook at writeBuffer time.
+      flattenSharedFormulas(sheet)
       builder.build(workbook, state)
     } else {
       clearSheetCompletely(sheet)

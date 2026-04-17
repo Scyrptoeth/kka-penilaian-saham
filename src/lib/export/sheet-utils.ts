@@ -75,3 +75,64 @@ export function clearSheetCompletely(sheet: ExcelJS.Worksheet): void {
     sheet.pageSetup.printArea = undefined
   }
 }
+
+/**
+ * Flatten every shared-formula cell on a sheet into a plain-value cell.
+ * Replaces both masters (`shareType: 'shared'` + `ref: 'A1:B4'`) and their
+ * clones (`sharedFormula: '<masterAddr>'`) with their cached `result`
+ * (from `cell.value.result` or `cell.model.result`).
+ *
+ * Why this exists: many builders overwrite specific cells (e.g. CfiBuilder
+ * writes F9). When a target cell is a shared-formula MASTER spanning F9:K9,
+ * overwriting the master orphans every clone — ExcelJS then rejects the
+ * workbook at `writeBuffer` time with "Shared Formula master must exist
+ * above and or left of clone for cell <addr>".
+ *
+ * Flattening before `builder.build()` neutralizes the shared structure
+ * while preserving the last-computed values. Phase C state-parity stays
+ * intact because `snapshot.value` resolves shared masters and clones to
+ * the same cached result on both template and exported workbooks.
+ *
+ * Error-shaped cached values (`{error: '#DIV/0!'}` objects, `#REF!`
+ * strings) degrade to `null` — matches `sanitizeDanglingFormulas` safety.
+ */
+export function flattenSharedFormulas(sheet: ExcelJS.Worksheet): void {
+  interface FlattenTarget {
+    cell: ExcelJS.Cell
+    cachedValue: number | string | null
+  }
+  const targets: FlattenTarget[] = []
+
+  sheet.eachRow({ includeEmpty: false }, (row) => {
+    row.eachCell({ includeEmpty: false }, (cell) => {
+      const v = cell.value as unknown
+      if (!v || typeof v !== 'object') return
+      const hasShareType =
+        'shareType' in (v as Record<string, unknown>) &&
+        (v as { shareType?: string }).shareType === 'shared'
+      const hasSharedFormula = 'sharedFormula' in (v as Record<string, unknown>)
+      if (!hasShareType && !hasSharedFormula) return
+
+      // Prefer cell.value.result; fall back to cell.model.result for clones
+      // whose value object doesn't carry the cached evaluation.
+      const vResult = (v as { result?: unknown }).result
+      let cached: unknown = vResult
+      if (cached === undefined) {
+        const model = cell.model as unknown as { result?: unknown }
+        cached = model?.result
+      }
+      const safe: number | string | null =
+        typeof cached === 'number' || typeof cached === 'string'
+          ? cached
+          : null
+      // Reject error-string cached results (#REF! etc.)
+      const isErrorString =
+        typeof safe === 'string' && /^#[A-Z!\/0-9?]+$/.test(safe)
+      targets.push({ cell, cachedValue: isErrorString ? null : safe })
+    })
+  })
+
+  for (const { cell, cachedValue } of targets) {
+    cell.value = cachedValue
+  }
+}

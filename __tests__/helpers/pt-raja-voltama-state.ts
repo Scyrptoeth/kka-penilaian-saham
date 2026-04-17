@@ -59,18 +59,37 @@ function str(cells: CellMap, addr: string): string {
   return c.value
 }
 
+/**
+ * Build a year-keyed row grid from a fixture by scanning every cell whose
+ * column is in `yearColumns` and whose value (or cached formula result)
+ * is numeric. This mirrors the DynamicBsEditor/DynamicIsEditor/DynamicFaEditor
+ * persist-time behavior, which stores BOTH leaf inputs AND pre-computed
+ * sentinel/subtotal values so downstream builders can read them directly
+ * (e.g. `computeNoplatLiveRows` reads IS!row 32 PBT, IS!row 26 Interest
+ * Income — both sentinel computed rows). Restricting to leaf rows would
+ * leave downstream computes reading 0 for every subtotal.
+ */
 function buildGrid(
   cells: CellMap,
-  leafRows: readonly number[],
   yearColumns: Readonly<Record<number, string>>,
 ): Record<number, Record<number, number>> {
+  const colToYear: Record<string, number> = {}
+  for (const [y, c] of Object.entries(yearColumns)) colToYear[c] = Number(y)
+
   const out: Record<number, Record<number, number>> = {}
-  for (const row of leafRows) {
-    out[row] = {}
-    for (const [yearStr, col] of Object.entries(yearColumns)) {
-      const year = Number(yearStr)
-      out[row][year] = num(cells, `${col}${row}`)
+  for (const addr of Object.keys(cells)) {
+    const cell = cells[addr]
+    const col = addr.charAt(0)
+    if (!(col in colToYear)) continue
+    const year = colToYear[col]
+    const row = cell.row
+    let value: number | null = null
+    if (typeof cell.value === 'number') {
+      value = cell.value
     }
+    if (value === null) continue
+    if (!out[row]) out[row] = {}
+    out[row][year] = value
   }
   return out
 }
@@ -110,34 +129,21 @@ export function loadPtRajaVoltamaState(): ExportableState {
   const bc = loadFixture('borrowing-cap')
   const sim = loadFixture('simulasi-potensi-aam')
 
-  // --- Balance Sheet --------------------------------------------------
-  // Mirrors BALANCE_SHEET_GRID.leafRows + yearColumns in cell-mapping.ts
-  const bsLeafRows = [
-    8, 9, 10, 11, 12, 13, 14, 20, 21, 24, 31, 32, 33, 34, 38, 39, 43, 44, 46, 47,
-  ]
+  // --- Balance Sheet (all rows with numeric year-col values) ---------
   const bsYearCols = { 2018: 'C', 2019: 'D', 2020: 'E', 2021: 'F' }
-  const bsRows = buildGrid(bs, bsLeafRows, bsYearCols)
+  const bsRows = buildGrid(bs, bsYearCols)
 
-  // --- Income Statement -----------------------------------------------
-  const isLeafRows = [6, 7, 12, 13, 21, 26, 27, 30, 33]
+  // --- Income Statement (all rows: leaves + sentinel subtotals) ------
   const isYearCols = { 2018: 'C', 2019: 'D', 2020: 'E', 2021: 'F' }
-  const isRows = buildGrid(is, isLeafRows, isYearCols)
+  const isRows = buildGrid(is, isYearCols)
 
-  // --- Fixed Asset ----------------------------------------------------
-  // 4 bands: Acq Begin (8-13), Acq Add (17-22), Dep Begin (36-41), Dep Add (45-50)
-  const faLeafRows = [
-    8, 9, 10, 11, 12, 13,
-    17, 18, 19, 20, 21, 22,
-    36, 37, 38, 39, 40, 41,
-    45, 46, 47, 48, 49, 50,
-  ]
+  // --- Fixed Asset (all rows: 7 bands + subtotals) -------------------
   const faYearCols = { 2019: 'C', 2020: 'D', 2021: 'E' }
-  const faRows = buildGrid(fa, faLeafRows, faYearCols)
+  const faRows = buildGrid(fa, faYearCols)
 
-  // --- Acc Payables ---------------------------------------------------
-  const apLeafRows = [10, 11, 14, 19, 20, 23]
+  // --- Acc Payables (all rows) ---------------------------------------
   const apYearCols = { 2019: 'C', 2020: 'D', 2021: 'E' }
-  const apRows = buildGrid(ap, apLeafRows, apYearCols)
+  const apRows = buildGrid(ap, apYearCols)
 
   // --- WACC comparable companies (rows 11-13 only; 14+ are avgs/formulas)
   const comparableCompanies: { name: string; betaLevered: number; marketCap: number; debt: number }[] = []
@@ -240,9 +246,12 @@ export function loadPtRajaVoltamaState(): ExportableState {
         salesPriceBase: num(kd, 'D17'),
         salesVolumeIncrements: readArray(kd, 'E', 15, 6),
         salesPriceIncrements: readArray(kd, 'E', 18, 6),
-        cogsRatio: num(kd, 'D20'),
-        sellingExpenseRatio: num(kd, 'D23'),
-        gaExpenseRatio: num(kd, 'D24'),
+        // Store convention: ratios are POSITIVE (LESSON-011) — compute
+        // adapters apply sign internally. Fixture/template has them as
+        // negative percentages (display convention). abs() bridges the gap.
+        cogsRatio: Math.abs(num(kd, 'D20')),
+        sellingExpenseRatio: Math.abs(num(kd, 'D23')),
+        gaExpenseRatio: Math.abs(num(kd, 'D24')),
       },
       bsDrivers: {
         accReceivableDays: readArray(kd, 'D', 28, 7),
