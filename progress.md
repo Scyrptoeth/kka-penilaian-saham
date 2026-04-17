@@ -1,15 +1,15 @@
 # Progress — KKA Penilaian Saham
 
-> Latest state after Session 027 (2026-04-17)
+> Latest state after Session 028 (2026-04-17)
 
 ## Verification Results
 ```
-Tests:     878 / 878 passing (61 files)
+Tests:     913 / 913 passing (61 files)
 Build:     ✅ 34 static pages
 Typecheck: ✅ clean
 Lint:      ✅ clean (React Compiler compliant)
-Live:      Vercel production — Ready
-Store:     v15 (language lifted to root)
+Live:      https://penilaian-bisnis.vercel.app — /akses HTTP 200, / → 307 redirect
+Store:     v15 (unchanged — no schema change this session)
 ```
 
 ## Delivered (cumulative)
@@ -25,7 +25,10 @@ Store:     v15 (language lifted to root)
 - Universal auto-save: all editors debounced 500ms, no SIMPAN buttons, HomeForm onBlur + beforeunload
 - PageEmptyState universal across all sections
 - Unified DLOM/DLOC sign convention across calc family (Session 022)
-- **Export pipeline (Sessions 018-026)**: template-based .xlsx export with 3,084 formulas preserved + website-nav 1:1 visibility + extended BS catalog native injection + sanitizer pipeline (3 corruption vectors eliminated)
+- **Export pipeline (Sessions 018-028)**: template-based .xlsx export with 3,084 formulas preserved + website-nav 1:1 visibility + BS/IS/FA extended-catalog native injection + sanitizer pipeline (3 corruption vectors eliminated)
+  - BS extended (Session 025 Approach E3): synthetic-row write + subtotal `+SUM(...)` append
+  - IS extended (Session 028 Approach δ): native-row write + sentinel formula replacement (D6/D7/D15/D30 → live SUM; D26/D27 stay hardcoded for mixed-sign net_interest)
+  - FA extended (Session 028 Approach η): 7-band layout with slot-index mirroring + subtotal SUM append across 7 blocks (rows 100-379)
 - **AAM dynamic interoperability (Session 027)**: section-based `AamInput`, dynamic from `balanceSheet.accounts`, IBD classification, EKUITAS section, `resolveAccountLabel()`
 
 ### Pages (34 total)
@@ -37,6 +40,13 @@ Store:     v15 (language lifted to root)
 - **Dashboard**: 4 Recharts charts
 
 ### Recent Sessions Deliverables
+
+#### Session 028 (2026-04-17) — IS + FA Extended Catalog Native Injection
+- T0: Domain rename housekeeping (kka-penilaian-saham.vercel.app → penilaian-bisnis.vercel.app) in live docs + 2 skill files; session history preserved verbatim
+- T1: IS extended injection (Approach δ) — `injectExtendedIsAccounts` + `replaceIsSectionSentinels`. Sentinel D6/D7/D15/D30 replaced with live `=SUM(D<ext>:D<ext>)` formulas. Net interest D26/D27 stays hardcoded (mixed-sign). Derived formulas D8/D18/D22/D32/D35 unchanged. 15 new tests.
+- T2: FA extended injection (Approach η) — `injectExtendedFaAccounts` + `extendFaSectionSubtotals`. 7-band layout (rows 100-379, 40 slots each). Each extended account mirrored across 4 input bands + 3 formula bands, with 7 subtotals getting `+SUM(band)` appended. 20 new tests.
+- Full Excel reactivity: user edits extended cell → sentinel/subtotal auto-recomputes → derived cascade
+- 35 new tests (878 → 913). Zero regressions. Build + typecheck + lint clean.
 
 #### Session 027 (2026-04-16/17) — AAM Dynamic + Full i18n
 - AAM page reads ALL BS accounts dynamically (catalog + manual "Isi Manual")
@@ -51,24 +61,21 @@ Store:     v15 (language lifted to root)
 - Site footer component
 - Excel export repair dialog fix (4 corruption vectors, 7 new tests)
 
-#### Session 025 (2026-04-15) — Extended BS Catalog Native Injection
-- Approach E3: synthetic-row write + subtotal SUM append
-- Extended BS accounts (excelRow ≥ 100) write directly to BALANCE SHEET sheet
-
 ## Next Session Priorities
 
-### Session 028 — IS + FA Extended Catalog + Numerical Verification
-1. **IS extended catalog native injection** — carry-over from Session 026
-2. **FA extended catalog native injection** — 7-block mirror handling
-3. **Phase C per-page numerical verification** — verify export numbers match website
-4. **i18n coverage audit** — verify no remaining hardcoded strings missed
+### Session 029 — i18n Audit + Phase C Numerical Verification (deferred from Opsi B Session 028)
+1. **i18n coverage audit** — grep hardcoded strings across `src/` post-Session 027 rollout. Target: zero hardcoded EN/ID strings outside `translations.ts`. Deliverable: automated lint rule or script to block new hardcoded strings.
+2. **Phase C per-page numerical verification** — generate sample .xlsx export, manually cross-check 29 visible nav sheets against website-rendered values (requires user participation for Excel-side inspection). Fix any mismatches discovered. This is the last major quality gate for the export feature.
+3. **Upload parser** (.xlsx → store) — reverse of export. Reuses cell-mapping registry + extended injection patterns. Can read extended rows from sheet and reconstruct catalog accounts.
+4. **RESUME page** — final summary comparing DCF/AAM/EEM results side by side.
+5. **Dashboard polish** — projected FCF chart, more KPIs.
 
 ### Other queued
-- Upload parser (.xlsx → store)
-- RESUME page — final summary comparing DCF/AAM/EEM side by side
-- Dashboard polish — projected FCF chart, more KPIs
+- Multi-case management (multiple companies in one localStorage)
+- Cloud sync / multi-device
+- Audit trail / change history
 
 ## Latest Session
+- [Session 028](history/session-028-extended-is-fa-injection.md) (2026-04-17): IS (Approach δ sentinel formula replacement) + FA (Approach η 7-band mirror) extended catalog native injection; 35 new tests (878→913), 4 commits on main
 - [Session 027](history/session-027-aam-dynamic-i18n.md) (2026-04-17): AAM dynamic interoperability + full i18n (500+ keys, 50+ files)
 - [Session 026](history/session-026-footer-export-repair-fix.md) (2026-04-15): Footer + export repair
-- [Session 025](history/session-025-bs-extended-native-injection.md) (2026-04-15): Extended BS catalog native injection

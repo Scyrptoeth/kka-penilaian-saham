@@ -572,6 +572,11 @@ untuk 3+ sesi ke depan:
 - LESSON-075 (Flat dictionary + useT() hook — right i18n pattern for client-side-only Next.js)
 - LESSON-076 (Lift language to root store level — works before any data slice exists)
 
+### Session 028 (IS + FA Extended Catalog Native Injection)
+- LESSON-077 (Sentinel overlap invalidates BS-style +SUM append — use sentinel formula replacement for pre-aggregated sheets)
+- LESSON-078 (Band layout + mirrored SUM for multi-block sheets — one leaf × N-block mirror requires parallel bands with slot-index allocation)
+- LESSON-079 (TypeScript self-reference in typed-const + satisfies — extract explicit key union type)
+
 LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054, 074 **TIDAK** di-promote — workflow/session-specific
 insights yang general ke project lain tapi terlalu luas atau terlalu
 session-specific untuk section 8 (yang fokus KKA-specific gotchas).
@@ -2087,5 +2092,110 @@ The safer approach (E3): use synthetic row numbers ALREADY pre-allocated in the 
 **Cara menerapkan di masa depan**: Any UI preference (language, theme, display density, units) belongs at root store level, not inside data slices. Data slices may be null; preferences should never be null.
 
 **Proven at**: session-027 (2026-04-17). Store v15, `language: 'en'` as root default, migration reads from `balanceSheet.language` if exists.
+
+---
+
+## Session 028 — 2026-04-17 (IS + FA Extended Catalog Native Injection)
+
+### LESSON-077: Sentinel overlap invalidates +SUM-append pattern — use sentinel formula replacement
+
+**Kategori**: Excel | Anti-pattern | Architecture
+**Sesi**: session-028
+**Tanggal**: 2026-04-17
+
+**Konteks**: Extending an export pipeline to write user-added accounts as native rows on a template sheet, and making section subtotals include those extended accounts automatically.
+
+**Apa yang terjadi**: After Session 025 shipped BS extended injection (Approach γ: append `+SUM(extendedRange)` to subtotal formula), Session 028 attempted to apply the same pattern to IS. Reconnaissance of `src/data/catalogs/income-statement-catalog.ts` + `__tests__/fixtures/income-statement.json` revealed that IS sentinel cells D6/D7/D15/D30 are ALREADY aggregated totals pre-computed at persist time by DynamicIsEditor (sum of extended rows 100+ per section). Appending `+SUM(D100:D119)` to derived D8 `=SUM(D6:D7)` would double-count: D6 already includes the sum, plus appended SUM adds it again.
+
+**Root cause / insight**: BS and IS have different underlying architectures. BS: baseline leaves at rows 8-15 + extended leaves at 100-139 (disjoint). IS: sentinel at row 6 = aggregated total of extended rows 100-119 (overlapping by design). Subtotal-append pattern assumes disjoint leaf sets; it breaks when extended rows are already captured in sentinel.
+
+**Cara menerapkan di masa depan**:
+1. **Before transplanting a native-injection pattern to a new sheet, classify its architecture**:
+   - Disjoint leaves + baseline subtotal → use **Approach γ (append +SUM)** — BS pattern
+   - Pre-aggregated sentinel representing extended rows → use **Approach δ (sentinel formula replacement)** — IS pattern
+2. **Approach δ recipe**: overwrite sentinel cell with `=SUM(<col>{extStart}:<col>{extEnd})` live formula. Derived formulas (e.g., `=SUM(D6:D7)` for Gross Profit) resolve correctly without modification because they reference the sentinel cell, which now evaluates to the same total via the live SUM.
+3. **Check for mixed-sign subsets**: if the section uses a type flag to distinguish sign (IS `net_interest.interestType` income/expense), simple SUM range cannot express the signed total. Keep those sentinels hardcoded (DynamicIsEditor pre-computation) and document the exception in the injection map (`sentinelRow: null`).
+4. **Full Excel reactivity bonus of Approach δ**: user edits extended cell in Excel → sentinel auto-recomputes → derived formulas cascade. Approach γ (if applicable) preserves this; Approach δ grants it by default.
+
+**Proven at**: session-028 (2026-04-17). `IS_SECTION_INJECT` map with per-section `sentinelRow` (null for net_interest). `replaceIsSectionSentinels` helper. 15 tests, 893/893 passing.
+
+### LESSON-078: Band layout + mirrored SUM for multi-block sheets — one leaf × N-block mirror
+
+**Kategori**: Excel | Architecture
+**Sesi**: session-028
+**Tanggal**: 2026-04-17
+
+**Konteks**: Extending an export pipeline for sheets where a single leaf account appears multiple times across the sheet (FA's 7-block mirror: Acq Begin/Add/End + Dep Begin/Add/End + Net Value).
+
+**Apa yang terjadi**: FIXED ASSET template has 6 category leaves (Land, Building, ...) repeated across 7 blocks at row offsets +0/+9/+18/+28/+37/+46/+55. For extended accounts (base excelRow ≥ 100), we need 7 synthetic positions per account. Session 012 introduced FA store keys using multiplier offsets (base+0/+2000/+4000/+5000) — these are store-internal, NOT Excel rows. Direct 1:1 mapping impossible; need a translation layer.
+
+**Root cause / insight**: Band layout: allocate N parallel contiguous bands above the template content, one band per block. Each extended account gets a slot index (order of appearance). Its sheet row in band B = `B.start + slotIndex`. Input bands read values from store keys (`rows[base + storeOffset]`); computed bands write per-slot formulas referencing operand-band slot rows (`=+<col>${beginRow}+<col>${addRow}`). Each section subtotal gets `+SUM(<band>)` appended across year columns. Subtotals handle both input bands (native SUM) and computed bands (cascading formula resolution via Excel evaluation engine).
+
+**Cara menerapkan di masa depan**:
+1. **Pattern recognition**: sheets where "same leaf = N positions on sheet" (e.g., multi-period roll-forward, multi-currency, multi-block mirror) are candidates for band layout.
+2. **Band sizing**: 40 slots is ample for any realistic user account count; bump if needed. Band starts should leave buffer from template rows (FA used row 100+, template ends at 69 → 31 rows buffer).
+3. **Slot index policy**: preserve accounts array insertion order for stable mapping. Don't sort by label/ID — stability matters more than predictability for user's existing data.
+4. **Computed bands**: encode as data (`{op: '+' | '-', operands: [BandKeyA, BandKeyB]}`) not code. Formula generation iterates the declaration.
+5. **Labels across all bands**: match template convention. If template repeats labels, repeat them.
+6. **Subtotal append**: reuse the exact 4-value-shape handler from BS pattern (ExcelJS formula object / raw string / number / empty). Don't reinvent.
+
+**Proven at**: session-028 (2026-04-17). `FA_BAND` 7-entry `Record<FaBandKey, FaBandMap>`, `injectExtendedFaAccounts` with slot index + per-band logic, `extendFaSectionSubtotals` appending 7 bands × 3 year columns. 20 tests, 913/913 passing.
+
+### LESSON-079: TypeScript self-reference in typed-const + satisfies
+
+**Kategori**: TypeScript
+**Sesi**: session-028
+**Tanggal**: 2026-04-17
+
+**Konteks**: Defining a typed const where the type uses `keyof typeof <const>` to constrain string-literal operand references inside the same const.
+
+**Apa yang terjadi**: First implementation:
+```ts
+interface FaBandMap {
+  computed?: { operands: [keyof typeof FA_BAND, keyof typeof FA_BAND] }
+}
+const FA_BAND = {
+  ACQ_END: { computed: { operands: ['ACQ_BEGIN', 'ACQ_ADD'] } } satisfies FaBandMap,
+} as const
+```
+TypeScript error TS2502: `'operands' is referenced directly or indirectly in its own type annotation` + TS7022: `'FA_BAND' implicitly has type 'any' because it does not have a type annotation and is referenced directly or indirectly in its own initializer`. Vitest passes (looser TS), `npm run typecheck` and Next build fail.
+
+**Root cause / insight**: Self-reference cycle: `FaBandMap` uses `keyof typeof FA_BAND` → `FA_BAND` is constructed using `FaBandMap` via `satisfies`. TypeScript cannot resolve `typeof FA_BAND` until `FA_BAND` is fully typed, but `FA_BAND` needs `FaBandMap` to type its entries.
+
+**Cara menerapkan di masa depan**:
+1. Extract explicit key union type before defining the interface and the const:
+   ```ts
+   type FaBandKey = 'ACQ_BEGIN' | 'ACQ_ADD' | ...
+   interface FaBandMap {
+     computed?: { operands: [FaBandKey, FaBandKey] }
+   }
+   const FA_BAND: Record<FaBandKey, FaBandMap> = { ... }
+   ```
+2. Break the `satisfies` usage if the type already uses self-reference — use `Record<KeyUnion, ValueType>` annotation instead (no `satisfies` needed).
+3. Always run `npm run typecheck` before declaring TDD "GREEN" done. Vitest's loose TS doesn't catch all real build errors — full `tsc --noEmit` is ground truth.
+
+**Proven at**: session-028 (2026-04-17). Fix applied to `src/lib/export/export-xlsx.ts` FA_BAND definition. Typecheck + Next build green after refactor.
+
+### LESSON-080: Domain rename housekeeping — session history is immutable
+
+**Kategori**: Workflow
+**Sesi**: session-028
+**Tanggal**: 2026-04-17
+
+**Konteks**: Renaming a URL, domain, identifier, or proper noun across the project when the alias changes externally.
+
+**Apa yang terjadi**: Vercel domain alias renamed `kka-penilaian-saham.vercel.app` → `penilaian-bisnis.vercel.app`. Initial grep found 12 files with the old URL across repo + 2 skill files. Instinct was to replace all. Correct approach: update only forward-looking / live documentation; leave session history, commit messages, and old prompt artifacts VERBATIM.
+
+**Root cause / insight**: Session history files (`history/session-*.md`), past commit messages, and user prompt artifacts (`revisi-*-prompt.md`) are **records of past truth**. They describe what was real AT THE TIME they were written. Editing them would falsify history and break the "immutable record" contract that enables reliable context loading in Mode A.
+
+**Cara menerapkan di masa depan**:
+1. **Categorize files before batch-editing**:
+   - Forward-looking / live: `progress.md`, `design.md`, `plan.md`, `HANDOFF-COWORK.md`, skill `SKILL.md`, README, config files → **UPDATE**
+   - Immutable records: `history/session-*.md`, untracked prompt files, commit messages → **PRESERVE VERBATIM**
+   - Git-log traces: never amend/rewrite history to change old URLs; they're archaeological evidence
+2. **Grep sort order for rename tasks**: sort matches by file category BEFORE editing — avoids accidental history rewrite
+3. **Update skills at `~/.claude/skills/<name>/SKILL.md`** in parallel with repo docs; skills commit separately from repo commit
+
+**Proven at**: session-028 (2026-04-17). T0 commit 0cf6f21 updated only `HANDOFF-COWORK.md` in repo + 6 occurrences across 2 skill files. 7 history files (sessions 001/007/009/010/022/023/024/025/026) + 2 untracked prompt files preserved verbatim.
 
 ---
