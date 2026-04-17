@@ -11,6 +11,7 @@ import { KeyDriversBuilder } from './key-drivers'
 import { AccPayablesBuilder } from './acc-payables'
 import { DlomBuilder } from './dlom'
 import { DlocBuilder } from './dloc'
+import { WaccBuilder } from './wacc'
 import { AamBuilder } from './aam'
 import { SimulasiPotensiBuilder } from './simulasi-potensi'
 
@@ -52,6 +53,9 @@ export function getSheetBuilders(): readonly SheetBuilder[] {
     // Questionnaires (Session 032)
     DlomBuilder,
     DlocBuilder,
+    // Valuation parameters (Session 032) — Wacc MUST run after IS
+    // so its cross-sheet write to IS!B33 survives writeIsLabels
+    WaccBuilder,
     // AAM chain (Session 031) — runs after inputs complete
     AamBuilder,
     SimulasiPotensiBuilder,
