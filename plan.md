@@ -1,150 +1,226 @@
-# Session 029 Plan — i18n Audit + Phase C Headless Numerical Verification
+# Session 030 Plan — State-Driven Export Architecture
 
 ## Branch
-`feat/session-029-i18n-phase-c` from main
+`feat/session-030-state-driven-export` (off `main`)
 
-## Sequence (T1–T17)
+## Full Dependency Matrix (29 visible nav sheets)
 
-### Infrastructure Phase (P1 foundation)
-
-- [ ] **T1** — Write design.md + plan.md; commit docs-first
-  - Files: `design.md`, `plan.md`
-  - Verify: `git log -1` shows commit; branch exists
-
-- [ ] **T2** — Scaffold audit-i18n TDD (RED)
-  - New: `scripts/audit-i18n.mjs` (empty default export + CLI entry)
-  - New: `__tests__/scripts/audit-i18n.test.ts` with 5 fixture TSX strings (one hardcoded JSX text, one accept-listed, one aria-label hardcoded, one via useT, one complex mixed)
-  - Verify: test runs, all test cases FAIL (RED confirmed)
-
-- [ ] **T3** — Implement AST walker (GREEN)
-  - TypeScript compiler API walker: JSXText, JSXAttribute (specific prop names), string literal in known UI-bearing call positions
-  - Accept-list lookup from `scripts/i18n-accept-list.json`
-  - `// i18n-ignore` line pragma parsing
-  - Output JSON `{filePath, line, col, text, kind}[]`
-  - Verify: T2 tests pass (GREEN)
-
-- [ ] **T4** — Run audit, categorize, build accept-list
-  - Run `node scripts/audit-i18n.mjs` against `src/` (write to stdout for inspection)
-  - Categorize findings: (a) true violations needing migration, (b) accept-list additions, (c) pragma-worthy edge cases
-  - Update `scripts/i18n-accept-list.json` with (b)
-  - Expected: 20-30 actionable hits based on recon (6 JSX text + 16 attribute)
-  - Verify: re-run audit → only true violations remain
-
-### Migration Phase (P1 execution)
-
-- [ ] **T5** — Migrate JSX text violations (batch 1)
-  - Files: `src/components/forms/WaccForm.tsx`, `src/app/valuation/dcf/page.tsx` (6 hits)
-  - Add keys to `src/lib/i18n/translations.ts` under appropriate section
-  - Wire `useT()` in each component
-  - Verify: audit re-run shows those files resolved; existing tests still pass
-
-- [ ] **T6** — Migrate attribute violations (batch 2)
-  - Files: 15 components with hardcoded `aria-label`/`title`/`placeholder`/`alt`
-  - Pattern per file: add `const t = useT()`, replace literal with `t('key')`
-  - Verify: audit clean on those files; existing tests pass
-
-### Lint Gate Phase (P1 enforcement)
-
-- [ ] **T7** — ESLint custom rule `local/no-hardcoded-ui-strings`
-  - New: `eslint-rules/no-hardcoded-ui-strings.js` (CommonJS for ESLint plugin compat)
-  - Update: `eslint.config.mjs` to load rule as local plugin
-  - Rule mirrors audit-i18n logic but uses ESLint's built-in AST visitor
-  - Verify: inject a test hardcoded string → `npm run lint` catches it → remove → clean
-
-- [ ] **T8** — npm script wiring
-  - Add to `package.json` scripts: `"audit:i18n": "node scripts/audit-i18n.mjs"`, `"verify:phase-c": "node scripts/verify-phase-c.mjs"`
-  - Chain: `pretest` runs `audit:i18n` alongside existing whitelist builder
-  - Verify: `npm run audit:i18n` exit code 0; `npm test` invokes pretest chain
-
-### Phase C Infrastructure (P2 foundation)
-
-- [ ] **T9** — verify-phase-c.mjs skeleton + fixture seed
-  - New: `scripts/verify-phase-c.mjs`
-  - New: `__tests__/integration/phase-c-verification.test.ts` (wrapping comparator lib)
-  - Import seed fixtures via `src/data/seed/loader.ts`
-  - Build `seedStore()` helper that synthesizes Zustand-compatible state shape from seed
-  - Verify: seed invocation succeeds; HOME-like metadata present in synthesized state
-
-- [ ] **T10** — Website snapshot via calc pipeline
-  - Function `takeWebsiteSnapshot(state): Snapshot`
-  - Invoke `computeHistoricalUpstream`, `computeFcfFromState`, `computeNoplatFromState`, `deriveComputedRows`, projection helpers for all 29 nav sheets
-  - Extract values keyed by `{sheet, excelRow, yearColumn}` — match export addressing
-  - Verify: snapshot JSON has entries for each WEBSITE_NAV_SHEETS entry; sample values non-zero
-
-- [ ] **T11** — Excel snapshot via export + ExcelJS read-back
-  - Function `takeExcelSnapshot(state): Snapshot`
-  - Invoke existing `exportToXlsx(state)` → buffer
-  - `new ExcelJS.Workbook().xlsx.load(buffer)` → iterate `WEBSITE_NAV_SHEETS` sheets
-  - For each cell: read `cell.value`; if formula object, read `cell.result`; unwrap richText
-  - Verify: snapshot JSON populated; keys match website-snapshot key shape
-
-- [ ] **T12** — Diff engine + report writer
-  - Function `compareSnapshots(a, b, tolerance): DiffResult`
-  - Join keys (union, report asymmetric keys as critical)
-  - For each shared key: `abs(a.val - b.val) > tolerance` → mismatch
-  - Write `phase-c-verification-report.md` (generated artifact, gitignored — keep raw snapshots gitignored too)
-  - CLI exit code non-zero on any mismatch
-  - Verify: run end-to-end; report generated; exit code check
-
-- [ ] **T13** — Integration test phase-c-verification
-  - Test calls `runPhaseCComparison()` as library export
-  - Asserts `result.mismatches.length === 0`
-  - Verify: test RED first (likely some mismatch surfaces — real bug or snapshot shape mismatch); diagnose
-
-### Remediation Phase (P2 execution)
-
-- [ ] **T14** — Root-cause-fix mismatches
-  - Triage each mismatch: website bug, export bug, snapshot shape bug
-  - Fix at source; add regression unit test
-  - Re-run comparator
-  - Iterate until zero mismatches
-  - Verify: verify:phase-c exit 0; new unit tests green
-
-### Verification Gate (all)
-
-- [ ] **T15** — Full verification gate
-  - Run: `npm run audit:i18n && npm run lint && npm test && npm run typecheck && npm run build && npm run verify:phase-c`
-  - All must pass
-  - Verify: zero warnings/errors everywhere; build 34+ pages; tests all pass
-
-### Documentation (Mode B equivalents)
-
-- [ ] **T16** — Session 029 documentation
-  - Update: `progress.md` (snapshot new state)
-  - New: `history/session-029-i18n-audit-phase-c.md`
-  - Append: `lessons-learned.md` (LESSON-081, 082, ... as discovered)
-  - Update: `~/.claude/skills/start-kka-penilaian-saham/SKILL.md` section 2 + 8 (promote lessons)
-  - Update: `~/.claude/skills/update-kka-penilaian-saham/SKILL.md` if relevant
-  - Commit: `docs: session 029 wrap-up — i18n audit + Phase C headless verification + N lessons`
-
-- [ ] **T17** — Merge + deploy
-  - `git checkout main && git pull`
-  - `git checkout feat/session-029-i18n-phase-c && git rebase main`
-  - `git checkout main && git merge feat/session-029-i18n-phase-c`
-  - `git push origin main`
-  - `curl -s -o /dev/null -w "%{http_code}" https://penilaian-bisnis.vercel.app/akses` → 200
+| # | Sheet Name | Upstream slices | Populated logic | Empty sentinel |
+|---|---|---|---|---|
+| 1 | HOME | `home` | write namaPerusahaan, NPWP, years, jumlahSaham, proporsi | home===null |
+| 2 | BALANCE SHEET | `balanceSheet`, `home`, `fixedAsset` | existing `injectGridCells`+`injectBsCrossRefValues`+`injectExtendedBsAccounts`+`extendBsSectionSubtotals`, override col B labels from `accounts[].labelXx` | bs slice null |
+| 3 | INCOME STATEMENT | `incomeStatement`, `home` | existing `injectGridCells`+`injectExtendedIsAccounts`+`replaceIsSectionSentinels`, override labels | is slice null |
+| 4 | FIXED ASSET | `fixedAsset`, `home` | existing `injectGridCells`+`injectExtendedFaAccounts`+`extendFaSectionSubtotals`, override labels | fa slice null |
+| 5 | KEY DRIVERS | `keyDrivers`, `home` | existing `injectArrayCells`+`injectScalarCells` (KD-scoped) | kd slice null |
+| 6 | ACC PAYABLES | `accPayables`, `home` | existing `injectArrayCells` (AP-scoped) | ap slice null |
+| 7 | CASH FLOW STATEMENT | `balanceSheet`, `incomeStatement`, `home` | `computeCashFlowStatement(buildCashFlowInput(state))` → write rows | any null |
+| 8 | FCF | `balanceSheet`, `incomeStatement`, `fixedAsset`, `home` | `computeFcf(buildFcfInput(state))` → write | any null |
+| 9 | NOPLAT | `incomeStatement`, `fixedAsset`, `home` | `computeNoplat(buildNoplatInput(state))` → write | any null |
+| 10 | FINANCIAL RATIO | `balanceSheet`, `incomeStatement`, `fixedAsset`, `home` | `computeFinancialRatios(buildRatiosInput(state))` → write | any null |
+| 11 | ROIC | same as #10 | `computeHistoricalUpstream` + ROIC per-year write | any null |
+| 12 | GROWTH REVENUE | `incomeStatement`, `home` | `computeGrowthRevenue(...)` → write | any null |
+| 13 | GROWTH RATE | `balanceSheet`, `incomeStatement`, `fixedAsset`, `home` | `computeGrowthRate(...)` → write | any null |
+| 14 | PROY LR | `keyDrivers`, `incomeStatement`, `fixedAsset`, `home` | `computeFullProjectionPipeline(...)` → write PROY LR rows | any null |
+| 15 | PROY FIXED ASSETS | `keyDrivers`, `fixedAsset`, `home` | projection pipeline → PROY FA rows | any null |
+| 16 | PROY BALANCE SHEET | `keyDrivers`, `balanceSheet`, `incomeStatement`, `fixedAsset`, `home` | pipeline → PROY BS rows | any null |
+| 17 | PROY NOPLAT | same as #16 | pipeline → PROY NOPLAT rows | any null |
+| 18 | PROY CASH FLOW STATEMENT | same as #16 | pipeline → PROY CFS rows | any null |
+| 19 | DLOM | `dlom` | existing `injectDlomAnswers`+`injectDlomJenisPerusahaan` | dlom null |
+| 20 | DLOC(PFC) | `dloc` | existing `injectDlocAnswers` | dloc null |
+| 21 | WACC | `wacc`, `home` | existing `injectScalarCells`+`injectArrayCells` (WACC-scoped) | wacc null |
+| 22 | DISCOUNT RATE | `discountRate`, `home` | existing scalar/array (DR-scoped) | dr null |
+| 23 | BORROWING CAP | `borrowingCapInput`, `home` | scalar cells | bcap null |
+| 24 | DCF | `discountRate`, `wacc`, `keyDrivers`, `balanceSheet`, `incomeStatement`, `fixedAsset`, `home` | `computeDcf(buildDcfInput(state))` | any null |
+| 25 | AAM | `balanceSheet`, `aamAdjustments`, `home` | `computeAam(buildAamInput(state))` + existing `injectAamAdjustments` + write labels from `accounts[].labelXx` | bs null or aamAdjustments empty |
+| 26 | EEM | AAM set + `discountRate` + `wacc` | `computeEem(buildEemInput(state))` | any null |
+| 27 | CFI | AAM set + `dlom` + `dloc` + `home` | `computeCfi(buildCfiInput(state))` | any null |
+| 28 | SIMULASI POTENSI (AAM) | #25 set + `dlom` + `dloc` | `computeSimulasiPotensi(buildSimulasiPotensiInput(state))` — mirror `/valuation/simulasi-potensi` | any null |
+| 29 | DASHBOARD | #24 + #25 + #26 + #27 + #28 + #10 | read all computed results, write KPI cells | any upstream null |
 
 ---
 
-## Success Criteria (repeated for visibility)
+## Tasks (10 total)
 
-1. `npm run audit:i18n` → 0 violations
-2. `npm run lint` → 0 errors (new rule active)
-3. `npm test` → 913+ passing
-4. `npm run verify:phase-c` → 0 mismatches
-5. `npm run typecheck` → clean
-6. `npm run build` → clean, 34+ pages
-7. Live `curl` → HTTP 200
-8. All docs committed; lessons promoted to skills
-9. PR merged to main, deployed
+### T1 — Foundation: types + registry + `clearSheetCompletely` utility
+**Files**:
+- `src/lib/export/sheet-builders/types.ts` [NEW] — `SheetBuilder` interface, `UpstreamSlice` type, `BuilderContext`
+- `src/lib/export/sheet-builders/populated.ts` [NEW] — `isPopulated(upstream, state): boolean`
+- `src/lib/export/sheet-utils.ts` [NEW] — `clearSheetCompletely(sheet): void`
+- `__tests__/lib/export/sheet-utils.test.ts` [NEW] — TDD for clearSheetCompletely + isPopulated
 
-## Estimates
+**RED**: 6 tests: clearSheetCompletely drops (a) cell values, (b) formulas, (c) merges, (d) images, (e) conditional formatting, (f) tables. isPopulated: truth-table across upstream combinations.
 
-- T1–T4 (audit infrastructure): ~60 min
-- T5–T6 (migration): ~45 min
-- T7–T8 (lint rule + wiring): ~30 min
-- T9–T13 (Phase C infrastructure): ~90 min
-- T14 (root-cause fixes): unknown, budget 60 min, auto-split if balloons
-- T15–T17 (gate + docs + merge): ~45 min
+**GREEN**: implement both utilities.
 
-Total estimated: ~5 hours of work-equivalent.
+**REFACTOR**: ensure zero ExcelJS private-API reliance.
+
+**Commit**: `feat(export): SheetBuilder types + clearSheetCompletely utility`
+
+---
+
+### T2 — Formula reactivity probe + orchestrator skeleton
+**Files**:
+- `src/lib/export/export-xlsx.ts` [MODIFIED] — extract new `exportToXlsxV2` orchestrator that iterates `SHEET_BUILDERS` registry (empty array for now — fallback to old pipeline if registry empty). Keep old pipeline as `exportToXlsxLegacy`.
+- `src/lib/export/sheet-builders/registry.ts` [NEW] — export `SHEET_BUILDERS: readonly SheetBuilder[] = []` for now
+- `__tests__/lib/export/formula-reactivity.test.ts` [NEW] — probe: given a sheet with a formula `='OTHER'!D8`, can ExcelJS preserve across clear+repopulate of OTHER? Document exact behavior.
+
+**RED**: 3 orchestrator tests — empty registry falls through to legacy; populated builder called when upstream satisfied; clearSheetCompletely called when upstream null.
+
+**GREEN**: wire the orchestrator around registry iteration.
+
+**Commit**: `feat(export): orchestrator v2 scaffold + formula reactivity probe`
+
+---
+
+### T3 — Input-driven builders: BS + IS + FA (primary user complaint)
+**Files**:
+- `src/lib/export/sheet-builders/balance-sheet.ts` [NEW] — `BalanceSheetBuilder` wraps existing `injectGridCells`+`injectBsCrossRefValues`+`injectExtendedBsAccounts`+`extendBsSectionSubtotals`, adds `writeBsLabelsFromStore(ws, state)` override for col B labels (rows 8–49 default catalog + 100+ synthetic)
+- `src/lib/export/sheet-builders/income-statement.ts` [NEW] — `IncomeStatementBuilder` with parallel structure
+- `src/lib/export/sheet-builders/fixed-asset.ts` [NEW] — `FixedAssetBuilder`, handles 7-block label mirror
+- 3 corresponding test files
+
+**RED per sheet**: (a) null slice → sheet blank (all cells, merges, images gone); (b) populated with catalog defaults → col B labels match `BS_CATALOG_ALL[i].labelEn`; (c) populated with renamed account → col B reflects user rename; (d) extended synthetic accounts still write correctly via existing helpers.
+
+**GREEN**: implement builders. Add `SHEET_BUILDERS` entries.
+
+**REFACTOR**: extract `writeLabelsFromStore` as shared utility if 3 implementations overlap.
+
+**Commit**: `feat(export): BS + IS + FA builders with store-sourced labels`
+
+---
+
+### T4 — AAM + SIMULASI POTENSI (AAM) builders (second core complaint)
+**Files**:
+- `src/lib/export/sheet-builders/aam.ts` [NEW] — `AamBuilder` uses `buildAamInput(state)` + `computeAam`. Writes section structure from `balanceSheet.accounts` iteration (mirror of website `/valuation/aam`). Handles EKUITAS section + per-row adjustments via existing `injectAamAdjustments`.
+- `src/lib/export/sheet-builders/simulasi-potensi.ts` [NEW] — `SimulasiPotensiBuilder` uses `buildSimulasiPotensiInput(state)` + `computeSimulasiPotensi`.
+- 2 test files
+
+**RED**: null upstream → blank; populated → section-based rows from user `accounts[]`, zero prototipe label leakage.
+
+**Commit**: `feat(export): AAM + SIMULASI POTENSI builders with dynamic sections`
+
+---
+
+### T5 — Remaining input-driven builders
+**Files**:
+- `sheet-builders/home.ts` — HomeBuilder
+- `sheet-builders/key-drivers.ts` — KeyDriversBuilder
+- `sheet-builders/acc-payables.ts` — AccPayablesBuilder
+- `sheet-builders/dlom.ts` — DlomBuilder
+- `sheet-builders/dloc.ts` — DlocBuilder (sheet name `DLOC(PFC)`)
+- `sheet-builders/wacc.ts` — WaccBuilder
+- `sheet-builders/discount-rate.ts` — DiscountRateBuilder
+- `sheet-builders/borrowing-cap.ts` — BorrowingCapBuilder
+- 8 test files (null + populated × 8)
+
+**RED/GREEN**: each wraps existing cell-mapping-based inject logic. Small delta per sheet.
+
+**Commit**: `feat(export): 8 input-driven builders wired to registry`
+
+---
+
+### T6 — Computed analysis builders
+**Files**:
+- `sheet-builders/cash-flow-statement.ts` — calls `computeCashFlowStatement` via existing `buildCashFlowInput` helper in upstream-helpers
+- `sheet-builders/fcf.ts` — `computeFcf`
+- `sheet-builders/noplat.ts` — `computeNoplat`
+- `sheet-builders/financial-ratio.ts` — `computeFinancialRatios`
+- `sheet-builders/roic.ts` — `computeHistoricalUpstream`
+- `sheet-builders/growth-revenue.ts` — `computeGrowthRevenue`
+- `sheet-builders/growth-rate.ts` — `computeGrowthRate`
+- 7 test files
+
+**Strategy**: each builder computes values from upstream slices, writes to leaf-value cells, preserves formula cells where formula result = computed value (cross-sheet refs into populated sheets). Where upstream is null → clearSheetCompletely.
+
+**Commit**: `feat(export): 7 computed analysis builders`
+
+---
+
+### T7 — Projection + Valuation + Dashboard builders
+**Files**:
+- `sheet-builders/proy-lr.ts`
+- `sheet-builders/proy-fixed-assets.ts`
+- `sheet-builders/proy-balance-sheet.ts`
+- `sheet-builders/proy-noplat.ts`
+- `sheet-builders/proy-cash-flow-statement.ts`
+- `sheet-builders/dcf.ts` — `computeDcf`
+- `sheet-builders/eem.ts` — `computeEem`
+- `sheet-builders/cfi.ts` — `computeCfi`
+- `sheet-builders/dashboard.ts` — consolidate all upstream computed results into KPI cells
+- 9 test files
+
+**Strategy**: projection uses `computeFullProjectionPipeline`, valuation uses existing `buildXxxInput` + `computeXxx` helpers.
+
+**Commit**: `feat(export): 9 projection/valuation/dashboard builders — cascade complete`
+
+---
+
+### T8 — Cross-sheet formula preservation cleanup + legacy removal
+**Files**:
+- `src/lib/export/export-xlsx.ts` [MODIFIED] — delete old `exportToXlsx` body, promote `exportToXlsxV2` to `exportToXlsx`. Remove `clearAllInputCells` helper (superseded by per-builder clear). Remove old orchestration.
+- `src/lib/export/cross-sheet-cleanup.ts` [NEW] — `stripCrossSheetRefsToBlankSheets(workbook, state)`: for each populated sheet with formulas referencing a blank sheet, replace formula with cached value or empty.
+- `__tests__/lib/export/cross-sheet-cleanup.test.ts` [NEW]
+
+**RED**: construct a workbook with `'OTHER'!D8` formula where OTHER is blank → cell becomes empty, not `#REF!`.
+
+**GREEN**: implement + wire into pipeline between `builder.build` loop and `applySheetVisibility`.
+
+**Commit**: `refactor(export): remove legacy pipeline + cross-sheet cleanup`
+
+---
+
+### T9 — Phase C rewrite + cascade integration test
+**Files**:
+- `__tests__/integration/phase-c-verification.test.ts` [REWRITTEN] — pivot from template formula-preservation to website-state parity. Reconstruct `ExportableState` from PT Raja Voltama fixtures in `__tests__/fixtures/`. Export → load → for every visible nav sheet, read every numeric cell, compute website live-mode equivalent, assert match @ 1e-6.
+- `__tests__/integration/export-cascade.test.ts` [NEW] — cascade matrix:
+  1. All-null state → all 29 sheets blank
+  2. Only `home` populated → HOME populated, 28 blank
+  3. home + BS + IS + FA → inputs + CFS/FR/FCF/NOPLAT/ROIC populated; PROY/valuation/dashboard blank
+  4. + keyDrivers → PROY\* populated
+  5. + dlom + dloc + wacc + dr + bcap + aamAdjustments → DCF/EEM/CFI/AAM/SIMULASI/DASHBOARD populated
+  6. Full state → cross-sheet formulas preserved and evaluate
+
+**RED/GREEN**: tests before pipeline final tweaks. Fix root causes, don't patch tests.
+
+**Commit**: `feat(verify): Phase C rewrite — website-state parity + cascade matrix`
+
+---
+
+### T10 — Full verification + docs + merge
+**Steps**:
+1. `npm run test 2>&1 | tail -25`
+2. `npm run build 2>&1 | tail -15`
+3. `npm run typecheck 2>&1 | tail -10`
+4. `npm run lint 2>&1 | tail -15`
+5. `npm run audit:i18n`
+6. `npm run verify:phase-c`
+7. All-green? Write `history/session-030-state-driven-export.md` via `/update-kka-penilaian-saham` Mode B
+8. Manual export probe: trigger export from empty store → open in Excel → assert no prototipe labels; trigger with full fixture → assert Excel opens cleanly, no repair dialog
+9. Merge to `main` + push + verify live at https://penilaian-bisnis.vercel.app
+
+**Commit**: `docs: session 030 wrap-up — state-driven export + N lessons`
+
+---
+
+## Verification Gates (per T10)
+
+```
+Tests:     >= 935 passing (expected 970+ after new suites)
+Build:     ✅ 34 static pages
+Typecheck: ✅ clean
+Lint:      ✅ clean
+Audit:     ✅ zero i18n violations
+Phase C:   ✅ new parity assertions pass
+Live:      /akses HTTP 200 post-merge
+Store:     v15 (unchanged — no schema change)
+```
+
+## Risk Escape Valve
+
+If at end of any task the gates regress and root cause is non-trivial:
+- STOP. Record issue in `progress.md`.
+- Revert the breaking commit on feature branch (not main).
+- Open discussion with user on scope reduction before proceeding.
+
+3-strike rule per superpowers Phase 5: after 3 failed fix attempts on the
+same root cause, stop and re-examine design.
