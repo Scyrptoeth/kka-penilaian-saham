@@ -6,6 +6,7 @@ import { isPopulated } from './populated'
 import { BalanceSheetBuilder } from './balance-sheet'
 import { IncomeStatementBuilder } from './income-statement'
 import { FixedAssetBuilder } from './fixed-asset'
+import { HomeBuilder } from './home'
 import { AamBuilder } from './aam'
 import { SimulasiPotensiBuilder } from './simulasi-potensi'
 
@@ -36,9 +37,13 @@ let _testOverride: readonly SheetBuilder[] | null = null
 export function getSheetBuilders(): readonly SheetBuilder[] {
   if (_testOverride !== null) return _testOverride
   return [
+    // Financial statements (Session 031)
     BalanceSheetBuilder,
     IncomeStatementBuilder,
     FixedAssetBuilder,
+    // Input master (Session 032)
+    HomeBuilder,
+    // AAM chain (Session 031) — runs after inputs complete
     AamBuilder,
     SimulasiPotensiBuilder,
   ]
