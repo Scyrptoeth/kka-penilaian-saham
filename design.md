@@ -1,164 +1,136 @@
-# Design — Session 028: IS + FA Extended Catalog Native Injection
+# Session 029 — Design
 
-## Problem
+**Date**: 2026-04-17
+**Scope**: (P1) i18n coverage audit + full remediation with automated lint rule + runnable audit script. (P2) Phase C headless numerical verification: seed PT Raja Voltama Elektrik → snapshot website calc pipeline → snapshot Excel export readback → diff at 1e-6 tolerance → integration test gate.
 
-Session 025 shipped BS extended catalog native injection (Approach E3). IS and
-FA extended catalogs were deferred because of different underlying
-architectures. Task 1 (IS) has sentinel-overlap (sentinels pre-aggregate
-extended rows). Task 2 (FA) has 7-block mirror (single leaf account appears
-across 7 sub-blocks on sheet). Same BS pattern does not transplant directly.
+---
 
-Domain alias renamed from `kka-penilaian-saham.vercel.app` to
-`penilaian-bisnis.vercel.app`. Docs + 2 skill files have stale references.
+## Problem Statement
 
-## Approach
+**P1** — After Session 027 migrated 50+ files to `useT()`, we lack automation to prevent regression. Any new hardcoded string can slip in silently. Target: zero hardcoded user-facing strings outside `translations.ts`, enforced by CI.
 
-### T0 — Domain rename housekeeping
+**P2** — Export pipeline (Sessions 018–028) touches 3,084 formulas across 29 visible nav sheets with BS/IS/FA extended-catalog native injection. We have unit tests for individual cell mappings and individual injection functions, but **no end-to-end verification** that the full compose produces numerical equivalence between website-rendered values and Excel readback. One undetected formula drift or cell mapping divergence breaks user trust in the artifact they hand to DJP. Target: automated headless comparator that catches drift at 6-decimal precision.
 
-Global search-and-replace. Preserve historical session files verbatim — they
-are immutable records. Update only live, forward-looking documentation:
-`progress.md`, two skill `SKILL.md` files, and `HANDOFF-COWORK.md` if
-relevant. Historical session-*.md files: leave as-is (record of past truth).
+---
 
-### T1 — IS Extended Catalog Native Injection (Approach δ)
+## Chosen Approach
 
-**Core insight**: IS sentinel rows 6/7/15/30 are already-aggregated totals.
-The export pipeline writes pre-computed sentinel numbers to these cells.
-Appending `+SUM(...)` to derived rows (the BS pattern) would double-count.
+### P1 — Triple-layer i18n enforcement
 
-**Approach δ — Sentinel Formula Replacement**
+Three complementary gates, progressing from dev-feedback to CI-hard-gate:
 
-Per-section rule:
-- sections with uniform sign (revenue / cost / operating_expense /
-  non_operating): REPLACE sentinel cell hardcoded number with
-  `=SUM(col{start}:col{end})` live formula.
-- section net_interest (mixed sign via `interestType`): KEEP sentinels D26/D27
-  as hardcoded — simple SUM range cannot express mixed-sign aggregation. Still
-  write extended rows 500-519 for breakdown visibility.
+1. **Editor feedback (IDE)** — ESLint custom rule `local/no-hardcoded-ui-strings` reports red squiggles while editing `.tsx` files.
+2. **Pre-test gate (npm)** — `audit:i18n` script runs before `npm test` via `pretest` chain (alongside existing `build-nip-whitelist.cjs`). Produces markdown report.
+3. **CI gate** — `npm run lint` and `npm test` both enforce — cannot merge to main with violations.
 
-Derived formulas (D8 Gross Profit, D18 EBITDA, D22 EBIT, D32 PBT, D35 Net
-Profit) stay UNCHANGED — they resolve correctly regardless of whether D6 is a
-number or a SUM formula.
+**Accept-list strategy**: `scripts/i18n-accept-list.json` holds explicit exemptions (symbols, technical tokens, CSS class names, data-testids, URLs). `// i18n-ignore` line pragma for rare edge cases.
 
-Section injection map:
+**Remediation strategy**: full migration sesi ini. Reconnaissance shows ~22 hardcoded strings across ~17 files — manageable with TDD-disciplined batched migration.
 
-```
-IS_SECTION_INJECT = [
-  { section: 'revenue',           extendedRowStart: 100, extendedRowEnd: 119, sentinelRow: 6,  replaceWithSum: true  },
-  { section: 'cost',              extendedRowStart: 200, extendedRowEnd: 219, sentinelRow: 7,  replaceWithSum: true  },
-  { section: 'operating_expense', extendedRowStart: 300, extendedRowEnd: 319, sentinelRow: 15, replaceWithSum: true  },
-  { section: 'non_operating',     extendedRowStart: 400, extendedRowEnd: 419, sentinelRow: 30, replaceWithSum: true  },
-  { section: 'net_interest',      extendedRowStart: 500, extendedRowEnd: 519, sentinelRow: null, replaceWithSum: false },
-]
-```
+**AST walker approach**: use TypeScript compiler API (`typescript` is already a devDep for `tsc`) rather than regex. AST gives accurate JSX text / JSXAttribute values / string literals in specific prop positions. No regex false positives on CSS class strings or import paths.
 
-Two helpers mirror the BS pattern:
-- `injectExtendedIsAccounts(workbook, state)` — writes label + year values for
-  accounts with excelRow ≥ 100 to synthetic rows on INCOME STATEMENT sheet.
-- `replaceIsSectionSentinels(workbook, state)` — for sections with
-  `replaceWithSum=true` AND user has ≥1 extended account in that section,
-  overwrites D<sentinelRow> cell value with `{ formula: 'SUM(col{s}:col{e})' }`
-  per year column.
+### P2 — Headless snapshot comparator
 
-Both functions safe to call unconditionally (no-op when no extended accounts).
+**Key insight**: We don't need DOM rendering. Website numerical values ARE the output of pure calc modules + deriveComputedRows + sentinel pre-computation. We can invoke those programmatically, seed with fixture data, extract values keyed by `{sheet, row, year}`.
 
-**Why Approach δ over γ (append)**: prevents double-count by construction.
-Also gives full Excel reactivity — user edits D105 in Excel, D6 recomputes,
-D8 recomputes, cascade continues across downstream sheets that reference D6.
+**Two snapshots**:
+- **Website snapshot** — seed store → run calc pipeline (same helpers that pages use) → output `phase-c-website-snapshot.json` keyed by `{sheet, row, yearOrCol}`.
+- **Excel snapshot** — same seed → run `exportToXlsx` → write buffer to temp .xlsx → ExcelJS `readFile` → iterate `worksheet.eachRow` → extract `cell.value` or `cell.result` for formula cells → output `phase-c-excel-snapshot.json` same key shape.
 
-**Why not Approach ε (write extended + keep sentinels)**: user editing in
-Excel would create stale totals (extended cells don't propagate to sentinel).
-Violates "automasi integrasi" constraint.
+**Diff engine**: join by key, compute `abs(websiteVal - excelVal)`. Report structure:
+- PASS: diff ≤ 1e-6 for every key
+- MISMATCH: list of `{sheet, row, year, websiteVal, excelVal, diff}` sorted by diff magnitude descending
 
-### T2 — FA Extended Catalog Native Injection (Approach η)
+**Integration**: `__tests__/integration/phase-c-verification.test.ts` imports the comparator as a library function, asserts zero mismatches. CI gate.
 
-**Core insight**: one FA leaf account appears 7 times on sheet (once per
-block). Extended accounts need synthetic positions across all 7 blocks. Of
-the 7 blocks: 4 hold user-input values (Acq Beginning, Acq Additions, Dep
-Beginning, Dep Additions) and 3 hold computed values (Acq Ending = Begin +
-Add, Dep Ending = Begin + Add, Net Value = AcqEnd − DepEnd).
+**29 sheets** defined in `WEBSITE_NAV_SHEETS` const (Session 024) — scope matches export visibility decision.
 
-**Approach η — Band Layout + Mirrored SUM**
+---
 
-Allocate 7 contiguous bands on FIXED ASSET sheet:
+## Key Technical Decisions
 
-```
-FA_BAND = {
-  ACQ_BEGIN:  { start: 100, end: 139, storeOffset: 0    },   // Block 1, user input
-  ACQ_ADD:    { start: 140, end: 179, storeOffset: 2000 },   // Block 2, user input
-  ACQ_END:    { start: 180, end: 219, computedFrom: ['ACQ_BEGIN','ACQ_ADD'], op: '+' },  // Block 3
-  DEP_BEGIN:  { start: 220, end: 259, storeOffset: 4000 },   // Block 4, user input
-  DEP_ADD:    { start: 260, end: 299, storeOffset: 5000 },   // Block 5, user input
-  DEP_END:    { start: 300, end: 339, computedFrom: ['DEP_BEGIN','DEP_ADD'], op: '+' },  // Block 6
-  NET_VALUE:  { start: 340, end: 379, computedFrom: ['ACQ_END','DEP_END'],   op: '-' },  // Block 7
-}
-```
+### P1
 
-Slot assignment: for extended account at index `i` within the filtered
-array (`accounts.filter(a => a.excelRow >= 100)`), sheet row in band B is
-`FA_BAND[B].start + i`. 40 slots per band accommodates well beyond any
-realistic user account count.
+1. **Node ESM (`.mjs`) not Python** — align with existing `copy-fixtures.cjs` and `build-nip-whitelist.cjs` (Node-native), and ESLint rule must be JS (same language). Avoid two-language script suite. `audit-export.py` was Python-heavy because openpyxl is Python; no such dependency here.
+2. **TypeScript Compiler API for AST** — `createProgram` + visitor pattern. Handles JSX, TSX, type annotations. Already installed as devDep.
+3. **Rule violation scope**: JSXText nodes + JSXAttribute values for `{aria-label, title, placeholder, alt, label, 'aria-labelledby', 'aria-describedby'}`. Plus string literal argument to `toast.error()`/`toast.success()` if we add toasts later. Explicitly **skip**: `className`, `id`, `data-*`, `style`, URLs, file paths.
+4. **Threshold**: strings ≥ 2 chars containing at least one alphabetic character. Skip pure-numeric, pure-punctuation, single chars.
+5. **Accept-list entries**: seed with known-safe tokens (`"NPWP"`, `"CIF"`, `"NIP"`, `"IDR"`, `"USD"`, `"EN"`, `"ID"`, `"&"`, `"→"`, `"—"`, `"•"`, `"✓"`, `"✗"`, `"2026"`, etc.) and expand as audit surfaces legitimate exemptions.
 
-Per-account writes (for slot `i`, year column `col`):
-- Block 1 value = `state.fixedAsset.rows[acc.excelRow][year]`
-- Block 2 value = `state.fixedAsset.rows[acc.excelRow + 2000][year]`
-- Block 3 formula = `=+${col}${100+i}+${col}${140+i}`
-- Block 4 value = `state.fixedAsset.rows[acc.excelRow + 4000][year]`
-- Block 5 value = `state.fixedAsset.rows[acc.excelRow + 5000][year]`
-- Block 6 formula = `=+${col}${220+i}+${col}${260+i}`
-- Block 7 formula = `=+${col}${180+i}-${col}${300+i}`
+### P2
 
-Labels: write `acc.customLabel ?? catalog.labelEn ?? acc.catalogId` to col B
-for ALL 7 bands (matches template which repeats labels across blocks).
+1. **Seed source** — use `src/data/seed/loader.ts` fixtures + synthesize HOME + store slices from fixture metadata (namaPerusahaan="PT Raja Voltama Elektrik", years, etc.). Deterministic — same fixture → same output every run.
+2. **Website compute entry points** — reuse existing calc helpers (`upstream-helpers.ts`, `deriveComputedRows`, `computeFcf`, `computeNoplat`, etc.) directly. Do NOT mock — comparator validates the actual production code path.
+3. **Excel readback** — formula cells: read `cell.result` (cached value). Value cells: read `cell.value`. For `value.richText` and `value.formula` wrapper shapes, extract primitive. Match the same 4-shape handler from export-xlsx.ts LESSON-070 sanitizer.
+4. **Tolerance 1e-6** — aligns with 6-decimal fixture precision (matches existing tests). Tighter would flag floating-point noise; looser misses real bugs.
+5. **Sheet coverage** — only 29 `WEBSITE_NAV_SHEETS`. Hidden helper sheets (RINCIAN, KEY DRIVERS, ACC PAYABLES, etc. that are website-visible but have dedicated pages) covered; hidden template-helper sheets (DAFTAR EMITEN 2023, PANGSA PASAR, etc.) out of scope.
+6. **Mismatch remediation** — if diff surfaces, fix root cause in calc / cell mapping / export pipeline. Never relax tolerance. Add regression test for each root-cause fix.
 
-Subtotal extension (mirror of BS `extendBsSectionSubtotals`):
-- C14 (Acq Begin total)  → append `+SUM(C100:C139)`
-- C23 (Acq Add total)    → append `+SUM(C140:C179)`
-- C32 (Acq End total)    → append `+SUM(C180:C219)`
-- C42 (Dep Begin total)  → append `+SUM(C220:C259)`
-- C51 (Dep Add total)    → append `+SUM(C260:C299)`
-- C60 (Dep End total)    → append `+SUM(C300:C339)`
-- C69 (Net Value total)  → append `+SUM(C340:C379)`
-
-Same append semantics as BS (handles 4 cell-value shapes: ExcelJS formula
-object, raw string, hardcoded number, empty cell).
-
-Two helpers:
-- `injectExtendedFaAccounts(workbook, state)` — iterates filtered accounts,
-  assigns slot index by order, writes label + value/formula per block per
-  year column.
-- `extendFaSectionSubtotals(workbook, state)` — appends `+SUM(band)` to each
-  of 7 subtotals across all year columns. No-op if no extended accounts.
+---
 
 ## Out of Scope
 
-Deferred to Session 029+:
-- i18n coverage audit (hardcoded strings scan)
-- Phase C per-page numerical verification across 29 visible nav sheets
-- Upload parser (.xlsx → store)
-- RESUME page (DCF/AAM/EEM side-by-side)
-- Dashboard polish
+### P1
+- Migration strategy for lib/*.ts (non-UI) error messages or console.log strings. These are NOT user-facing.
+- Full bilingual rollout to ANALISIS pages (deferred — separate priority).
+- Spanish or other additional languages — only EN/ID.
+- Pluralization / ICU message format — existing flat dictionary works for current needs; over-engineering for hypothetical future.
 
-## Technical Decisions
+### P2
+- Manual Excel inspection checklist (not needed — headless comparator replaces it).
+- Visual formatting / styling parity (colors, borders, fonts in Excel) — comparator is numerical only.
+- Performance of export pipeline (unchanged).
+- Upload parser (.xlsx → store) — separate priority, deferred.
 
-1. **No row insertion** — preserves LESSON-067 invariant. Extended content
-   lives in rows ≥ 100 on each sheet. 244 cross-sheet refs untouched.
-2. **Idempotent by construction** — T1 sentinel replacement writes the same
-   formula every export. T2 SUM append runs once per fresh-template export;
-   since each export starts from a pristine template read, double-append is
-   not a concern in the current pipeline.
-3. **Label-in-every-band for FA** — matches template convention which
-   repeats 6 category labels in each block (rows 8-13 "Land/Building/...",
-   rows 17-22 "Land/Building/...", etc.). Extended accounts follow suit.
-4. **Export pipeline position** — insert T1 helpers after existing BS
-   injection, before sanitize pipeline steps. T2 helpers in same band.
+---
 
-## Success Criteria
+## Verification Strategy
 
-- All existing 878 tests pass
-- T1 adds ~12 tests, T2 adds ~13 tests → target suite size ≥ 903
-- Build 34 static pages, typecheck clean, lint clean
-- Live deploy `penilaian-bisnis.vercel.app/akses` HTTP 200
-- Sample export opens in Excel with zero repair dialogs
-- `BS_SECTION_INJECT` / `injectExtendedBsAccounts` / `extendBsSectionSubtotals`
-  unchanged (regression guard)
+**P1 gate**:
+```
+npm run audit:i18n   → 0 findings outside accept-list
+npm run lint         → 0 errors (rule active)
+npm test             → 913 + new audit tests pass
+```
+
+**P2 gate**:
+```
+npm run verify:phase-c → 0 mismatches across 29 sheets
+npm test               → phase-c-verification.test.ts passes
+```
+
+**Final gate** (Session 029 done-done):
+```
+npm run audit:i18n    ✅
+npm run lint          ✅
+npm test              ✅
+npm run typecheck     ✅
+npm run build         ✅
+npm run verify:phase-c ✅
+curl HTTP 200         ✅
+```
+
+---
+
+## Risk Analysis
+
+| Risk | Probability | Mitigation |
+|------|-------------|------------|
+| Hardcoded count >>22 | Low (recon done) | Auto-split session if >100 surface |
+| Phase C reveals real export bug | Medium | This is the feature, not a risk — fix + regression test |
+| ESLint rule false-positives on technical strings | Medium | Accept-list + `// i18n-ignore` pragma |
+| verify:phase-c slow (minutes) | Low | Seed once, snapshot in-memory, diff streaming. Target < 10s. |
+| Custom ESLint rule compatibility (flat config v9) | Low | ESLint 9 flat config supports inline rule definitions; test locally |
+| Multiple-key collision in website-snapshot | Medium | Use `{sheet, excelRow, yearColumn}` compound key — matches export writeCellValue addressing |
+
+---
+
+## References
+
+- LESSON-066: Audit-first methodology for opaque formats (scripts/audit-export.py pattern)
+- LESSON-070: Template-based ExcelJS export corruption vectors
+- LESSON-072: ExcelJS Table round-trip unsafe — strip before export (affects readback too)
+- LESSON-075: Flat dictionary + useT() hook i18n pattern
+- LESSON-076: Root-level language field (Session 027)
+- Session 024 history: WEBSITE_NAV_SHEETS const (29 entries) — scope definition
+- Session 025–028 history: extended-catalog native injection (comparator must handle synthetic rows)

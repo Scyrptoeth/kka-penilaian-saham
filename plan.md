@@ -1,107 +1,150 @@
-# Session 028 Plan — IS + FA Extended Catalog Native Injection
+# Session 029 Plan — i18n Audit + Phase C Headless Numerical Verification
 
 ## Branch
+`feat/session-029-i18n-phase-c` from main
 
-`feat/session-028-extended-is-fa` from main
+## Sequence (T1–T17)
 
-## Task Breakdown
+### Infrastructure Phase (P1 foundation)
 
-### T0 — Domain rename housekeeping (1 commit)
+- [ ] **T1** — Write design.md + plan.md; commit docs-first
+  - Files: `design.md`, `plan.md`
+  - Verify: `git log -1` shows commit; branch exists
 
-- [ ] T0.1: Grep `kka-penilaian-saham.vercel.app` across repo + 2 skills
-- [ ] T0.2: Replace with `penilaian-bisnis.vercel.app` in LIVE docs only
-  (progress.md, skill SKILL.md files, HANDOFF-COWORK.md). Preserve session
-  history files verbatim (immutable records).
-- [ ] T0.3: Commit `chore(docs): rename live URL to penilaian-bisnis.vercel.app`
+- [ ] **T2** — Scaffold audit-i18n TDD (RED)
+  - New: `scripts/audit-i18n.mjs` (empty default export + CLI entry)
+  - New: `__tests__/scripts/audit-i18n.test.ts` with 5 fixture TSX strings (one hardcoded JSX text, one accept-listed, one aria-label hardcoded, one via useT, one complex mixed)
+  - Verify: test runs, all test cases FAIL (RED confirmed)
 
-### T1 — IS Extended Catalog Native Injection (2 commits)
+- [ ] **T3** — Implement AST walker (GREEN)
+  - TypeScript compiler API walker: JSXText, JSXAttribute (specific prop names), string literal in known UI-bearing call positions
+  - Accept-list lookup from `scripts/i18n-accept-list.json`
+  - `// i18n-ignore` line pragma parsing
+  - Output JSON `{filePath, line, col, text, kind}[]`
+  - Verify: T2 tests pass (GREEN)
 
-#### T1.1 — RED: injectExtendedIsAccounts tests
+- [ ] **T4** — Run audit, categorize, build accept-list
+  - Run `node scripts/audit-i18n.mjs` against `src/` (write to stdout for inspection)
+  - Categorize findings: (a) true violations needing migration, (b) accept-list additions, (c) pragma-worthy edge cases
+  - Update `scripts/i18n-accept-list.json` with (b)
+  - Expected: 20-30 actionable hits based on recon (6 JSX text + 16 attribute)
+  - Verify: re-run audit → only true violations remain
 
-- [ ] Test: writes extended-account label into col B at synthetic row
-- [ ] Test: writes extended-account values into year columns at synthetic row
-- [ ] Test: skips accounts with excelRow < 100 (original positions)
-- [ ] Test: handles state with no IS accounts → no modification
-- [ ] Test: fallback label priority (customLabel > catalog.labelEn > catalogId)
+### Migration Phase (P1 execution)
 
-#### T1.2 — GREEN: implement injectExtendedIsAccounts
+- [ ] **T5** — Migrate JSX text violations (batch 1)
+  - Files: `src/components/forms/WaccForm.tsx`, `src/app/valuation/dcf/page.tsx` (6 hits)
+  - Add keys to `src/lib/i18n/translations.ts` under appropriate section
+  - Wire `useT()` in each component
+  - Verify: audit re-run shows those files resolved; existing tests still pass
 
-- [ ] Add `IS_SECTION_INJECT` const + `IsSectionInjectMap` interface
-- [ ] Implement `injectExtendedIsAccounts` mirroring BS pattern
-- [ ] Run T1.1 tests → green
-- [ ] Wire into export pipeline after `injectExtendedBsAccounts`
+- [ ] **T6** — Migrate attribute violations (batch 2)
+  - Files: 15 components with hardcoded `aria-label`/`title`/`placeholder`/`alt`
+  - Pattern per file: add `const t = useT()`, replace literal with `t('key')`
+  - Verify: audit clean on those files; existing tests pass
 
-#### T1.3 — RED: replaceIsSectionSentinels tests
+### Lint Gate Phase (P1 enforcement)
 
-- [ ] Test: replaces D6 with `=SUM(D100:D119)` when revenue has extended
-- [ ] Test: replaces D7 with `=SUM(D200:D219)` when cost has extended
-- [ ] Test: replaces D15 with `=SUM(D300:D319)` when opex has extended
-- [ ] Test: replaces D30 with `=SUM(D400:D419)` when non_operating has extended
-- [ ] Test: skips net_interest section (sentinelRow null)
-- [ ] Test: leaves sentinel untouched when no extended in that section
-- [ ] Test: applies to all year columns
+- [ ] **T7** — ESLint custom rule `local/no-hardcoded-ui-strings`
+  - New: `eslint-rules/no-hardcoded-ui-strings.js` (CommonJS for ESLint plugin compat)
+  - Update: `eslint.config.mjs` to load rule as local plugin
+  - Rule mirrors audit-i18n logic but uses ESLint's built-in AST visitor
+  - Verify: inject a test hardcoded string → `npm run lint` catches it → remove → clean
 
-#### T1.4 — GREEN: implement replaceIsSectionSentinels
+- [ ] **T8** — npm script wiring
+  - Add to `package.json` scripts: `"audit:i18n": "node scripts/audit-i18n.mjs"`, `"verify:phase-c": "node scripts/verify-phase-c.mjs"`
+  - Chain: `pretest` runs `audit:i18n` alongside existing whitelist builder
+  - Verify: `npm run audit:i18n` exit code 0; `npm test` invokes pretest chain
 
-- [ ] Implement function reading `IS_SECTION_INJECT`
-- [ ] Wire into pipeline after `injectExtendedIsAccounts`
-- [ ] Full test suite green
-- [ ] Commit `feat(export): inject extended IS accounts + replace sentinels with SUM formulas`
+### Phase C Infrastructure (P2 foundation)
 
-### T2 — FA Extended Catalog Native Injection (2 commits)
+- [ ] **T9** — verify-phase-c.mjs skeleton + fixture seed
+  - New: `scripts/verify-phase-c.mjs`
+  - New: `__tests__/integration/phase-c-verification.test.ts` (wrapping comparator lib)
+  - Import seed fixtures via `src/data/seed/loader.ts`
+  - Build `seedStore()` helper that synthesizes Zustand-compatible state shape from seed
+  - Verify: seed invocation succeeds; HOME-like metadata present in synthesized state
 
-#### T2.1 — Infrastructure + RED tests for injectExtendedFaAccounts
+- [ ] **T10** — Website snapshot via calc pipeline
+  - Function `takeWebsiteSnapshot(state): Snapshot`
+  - Invoke `computeHistoricalUpstream`, `computeFcfFromState`, `computeNoplatFromState`, `deriveComputedRows`, projection helpers for all 29 nav sheets
+  - Extract values keyed by `{sheet, excelRow, yearColumn}` — match export addressing
+  - Verify: snapshot JSON has entries for each WEBSITE_NAV_SHEETS entry; sample values non-zero
 
-- [ ] Add `FA_BAND` const + `FaBandKey` type in export-xlsx.ts
-- [ ] Test: Block 1 Acq Begin writes label + value at correct synthetic row
-- [ ] Test: Block 2 Acq Add reads `rows[base+2000]`
-- [ ] Test: Block 3 Acq End writes formula `=+${col}${100+i}+${col}${140+i}`
-- [ ] Test: Block 4 Dep Begin reads `rows[base+4000]`
-- [ ] Test: Block 5 Dep Add reads `rows[base+5000]`
-- [ ] Test: Block 6 Dep End writes formula `=+${col}${220+i}+${col}${260+i}`
-- [ ] Test: Block 7 Net Value writes formula `=+${col}${180+i}-${col}${300+i}`
-- [ ] Test: slot index preserves accounts array insertion order
-- [ ] Test: multiple extended accounts assigned sequential slots
-- [ ] Test: empty state → no modifications
-- [ ] Test: labels written to col B in all 7 bands
-- [ ] Test: accounts with excelRow < 100 skipped (original positions)
+- [ ] **T11** — Excel snapshot via export + ExcelJS read-back
+  - Function `takeExcelSnapshot(state): Snapshot`
+  - Invoke existing `exportToXlsx(state)` → buffer
+  - `new ExcelJS.Workbook().xlsx.load(buffer)` → iterate `WEBSITE_NAV_SHEETS` sheets
+  - For each cell: read `cell.value`; if formula object, read `cell.result`; unwrap richText
+  - Verify: snapshot JSON populated; keys match website-snapshot key shape
 
-#### T2.2 — GREEN: implement injectExtendedFaAccounts
+- [ ] **T12** — Diff engine + report writer
+  - Function `compareSnapshots(a, b, tolerance): DiffResult`
+  - Join keys (union, report asymmetric keys as critical)
+  - For each shared key: `abs(a.val - b.val) > tolerance` → mismatch
+  - Write `phase-c-verification-report.md` (generated artifact, gitignored — keep raw snapshots gitignored too)
+  - CLI exit code non-zero on any mismatch
+  - Verify: run end-to-end; report generated; exit code check
 
-- [ ] Implement per design.md: iterate filtered accounts, assign slot, write 7 bands
-- [ ] Run T2.1 tests → green
-- [ ] Wire into pipeline
+- [ ] **T13** — Integration test phase-c-verification
+  - Test calls `runPhaseCComparison()` as library export
+  - Asserts `result.mismatches.length === 0`
+  - Verify: test RED first (likely some mismatch surfaces — real bug or snapshot shape mismatch); diagnose
 
-#### T2.3 — RED: extendFaSectionSubtotals tests
+### Remediation Phase (P2 execution)
 
-- [ ] Test: appends `+SUM(C100:C139)` to C14 formula
-- [ ] Test: appends `+SUM(C140:C179)` to C23 formula
-- [ ] Test: appends `+SUM(C180:C219)` to C32 formula
-- [ ] Test: appends `+SUM(C220:C259)` to C42 formula
-- [ ] Test: appends `+SUM(C260:C299)` to C51 formula
-- [ ] Test: appends `+SUM(C300:C339)` to C60 formula
-- [ ] Test: appends `+SUM(C340:C379)` to C69 formula
-- [ ] Test: applies to all year columns
-- [ ] Test: empty state → no modifications
+- [ ] **T14** — Root-cause-fix mismatches
+  - Triage each mismatch: website bug, export bug, snapshot shape bug
+  - Fix at source; add regression unit test
+  - Re-run comparator
+  - Iterate until zero mismatches
+  - Verify: verify:phase-c exit 0; new unit tests green
 
-#### T2.4 — GREEN: implement extendFaSectionSubtotals
+### Verification Gate (all)
 
-- [ ] Implement mirror of BS subtotal-append pattern for 7 FA bands
-- [ ] Wire into pipeline after `injectExtendedFaAccounts`
-- [ ] Full test suite green
-- [ ] Commit `feat(export): inject extended FA accounts across 7 blocks with subtotal SUM append`
+- [ ] **T15** — Full verification gate
+  - Run: `npm run audit:i18n && npm run lint && npm test && npm run typecheck && npm run build && npm run verify:phase-c`
+  - All must pass
+  - Verify: zero warnings/errors everywhere; build 34+ pages; tests all pass
 
-### Verification Gate
+### Documentation (Mode B equivalents)
 
-- [ ] `npm run build 2>&1 | tail -20`
-- [ ] `npm test 2>&1 | tail -20` → 878+ passing
-- [ ] `npm run typecheck 2>&1 | tail -10`
-- [ ] `npm run lint 2>&1 | tail -15`
+- [ ] **T16** — Session 029 documentation
+  - Update: `progress.md` (snapshot new state)
+  - New: `history/session-029-i18n-audit-phase-c.md`
+  - Append: `lessons-learned.md` (LESSON-081, 082, ... as discovered)
+  - Update: `~/.claude/skills/start-kka-penilaian-saham/SKILL.md` section 2 + 8 (promote lessons)
+  - Update: `~/.claude/skills/update-kka-penilaian-saham/SKILL.md` if relevant
+  - Commit: `docs: session 029 wrap-up — i18n audit + Phase C headless verification + N lessons`
 
-### Ship
+- [ ] **T17** — Merge + deploy
+  - `git checkout main && git pull`
+  - `git checkout feat/session-029-i18n-phase-c && git rebase main`
+  - `git checkout main && git merge feat/session-029-i18n-phase-c`
+  - `git push origin main`
+  - `curl -s -o /dev/null -w "%{http_code}" https://penilaian-bisnis.vercel.app/akses` → 200
 
-- [ ] Push `feat/session-028-extended-is-fa`
-- [ ] Verify Vercel preview deploy
-- [ ] Fast-forward to main, push
-- [ ] Verify `penilaian-bisnis.vercel.app/akses` HTTP 200
-- [ ] Invoke `/update-kka-penilaian-saham` Mode B for session wrap-up
+---
+
+## Success Criteria (repeated for visibility)
+
+1. `npm run audit:i18n` → 0 violations
+2. `npm run lint` → 0 errors (new rule active)
+3. `npm test` → 913+ passing
+4. `npm run verify:phase-c` → 0 mismatches
+5. `npm run typecheck` → clean
+6. `npm run build` → clean, 34+ pages
+7. Live `curl` → HTTP 200
+8. All docs committed; lessons promoted to skills
+9. PR merged to main, deployed
+
+## Estimates
+
+- T1–T4 (audit infrastructure): ~60 min
+- T5–T6 (migration): ~45 min
+- T7–T8 (lint rule + wiring): ~30 min
+- T9–T13 (Phase C infrastructure): ~90 min
+- T14 (root-cause fixes): unknown, budget 60 min, auto-split if balloons
+- T15–T17 (gate + docs + merge): ~45 min
+
+Total estimated: ~5 hours of work-equivalent.
