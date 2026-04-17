@@ -110,6 +110,8 @@ export interface BorrowingCapInputState {
 }
 
 interface KkaState {
+  /** Global language preference — EN (default) or ID. Lifted to root level in v15. */
+  language: 'en' | 'id'
   home: HomeInputs | null
   dlom: DlomState | null
   dloc: DlocState | null
@@ -157,7 +159,7 @@ interface KkaState {
   resetKeyDrivers: () => void
   resetBorrowingCapInput: () => void
   setAamAdjustments: (adj: Record<number, number>) => void
-  /** Toggle global language (EN/ID) — updates balanceSheet, incomeStatement, fixedAsset language. */
+  /** Toggle global language (EN/ID) — updates root + balanceSheet, incomeStatement, fixedAsset language. */
   setGlobalLanguage: (lang: 'en' | 'id') => void
   setNilaiPengalihanDilaporkan: (v: number) => void
   /** Reset ALL store slices to initial state (destructive — clears all user data). */
@@ -167,7 +169,7 @@ interface KkaState {
 }
 
 const STORE_KEY = 'kka-penilaian-saham'
-const STORE_VERSION = 14
+const STORE_VERSION = 15
 
 /**
  * Migrate persisted state from older versions to the current schema.
@@ -476,12 +478,22 @@ export function migratePersistedState(
     delete (state as Record<string, unknown>).faAdjustment
   }
 
+  // v14→v15: Lift language to root level for global i18n toggle
+  if (fromVersion < 15) {
+    const bs = state.balanceSheet as Record<string, unknown> | null
+    state = {
+      ...state,
+      language: (bs?.language as string) ?? 'en',
+    }
+  }
+
   return state
 }
 
 export const useKkaStore = create<KkaState>()(
   persist(
     (set) => ({
+      language: 'en' as const,
       home: null,
       dlom: null,
       dloc: null,
@@ -526,12 +538,14 @@ export const useKkaStore = create<KkaState>()(
       setAamAdjustments: (adj) => set({ aamAdjustments: adj }),
       setGlobalLanguage: (lang) =>
         set((state) => ({
+          language: lang,
           balanceSheet: state.balanceSheet ? { ...state.balanceSheet, language: lang } : state.balanceSheet,
           incomeStatement: state.incomeStatement ? { ...state.incomeStatement, language: lang } : state.incomeStatement,
           fixedAsset: state.fixedAsset ? { ...state.fixedAsset, language: lang } : state.fixedAsset,
         })),
       setNilaiPengalihanDilaporkan: (v) => set({ nilaiPengalihanDilaporkan: v }),
       resetAll: () => set({
+        language: 'en',
         home: null,
         dlom: null,
         dloc: null,
@@ -554,6 +568,7 @@ export const useKkaStore = create<KkaState>()(
       version: STORE_VERSION,
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
+        language: state.language,
         home: state.home,
         dlom: state.dlom,
         dloc: state.dloc,

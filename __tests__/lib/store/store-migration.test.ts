@@ -404,10 +404,22 @@ describe('migratePersistedState — v13 → v14 (faAdjustment → aamAdjustments
     expect(migrated.faAdjustment).toBeUndefined()
   })
 
+  it('v14 → v15 adds root language from balanceSheet', () => {
+    const v14State = { home: null, balanceSheet: { language: 'id' } }
+    const migrated = migratePersistedState(v14State, 14) as Record<string, unknown>
+    expect(migrated.language).toBe('id')
+  })
+
+  it('v14 → v15 defaults language to en when balanceSheet is null', () => {
+    const v14State = { home: null, balanceSheet: null }
+    const migrated = migratePersistedState(v14State, 14) as Record<string, unknown>
+    expect(migrated.language).toBe('en')
+  })
+
   it('passes future versions through unchanged', () => {
-    const v14State = { home: null, futureSlice: {} }
-    const migrated = migratePersistedState(v14State, 14)
-    expect(migrated).toBe(v14State)
+    const v15State = { home: null, language: 'en', futureSlice: {} }
+    const migrated = migratePersistedState(v15State, 15)
+    expect(migrated).toBe(v15State)
   })
 
   it('passes non-object payloads through unchanged', () => {
