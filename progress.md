@@ -1,39 +1,53 @@
 # Progress — KKA Penilaian Saham
 
-> Latest state after Session 030 Phase 1 (2026-04-17)
+> Latest state after Session 031 — Core Builders (2026-04-17)
 
 ## Verification Results
 ```
-Tests:     953 / 953 passing (66 files; was 935 at Session 029, +18)
-Build:     ✅ 34 static pages, compiled in ~4s
+Tests:     999 / 999 passing (73 files; was 953 at Session 030 Phase 1, +46)
+Build:     ✅ 34 static pages, compiled cleanly
 Typecheck: ✅ clean
 Lint:      ✅ clean (React Compiler compliant; local/no-hardcoded-ui-strings active)
 Audit:     ✅ 0 i18n violations (`npm run audit:i18n`)
 Phase C:   ✅ 4/4 integrity gates green (`npm run verify:phase-c`)
-Live:      https://penilaian-bisnis.vercel.app — /akses HTTP 200, / → 307 redirect
+Live:      https://penilaian-bisnis.vercel.app — /akses HTTP 200
 Store:     v15 (unchanged — no schema change)
 ```
 
-## Session 030 Status — Phase 1 Complete, Phase 2 Queued
+## Session 031 Status — Core Builders Shipped, Cascade Continues
 
-**Scope of full Session 030 refactor** (as committed in design.md + plan.md):
-Pivot export pipeline from template-based injection to state-driven
-`SheetBuilder` registry with dependency-graph cascade. 29 visible nav
-sheets + cross-sheet formula preservation + Phase C rewrite.
+**Scope delivered this session** (T3 + T4 continuation of Session 030):
+- 5 SheetBuilders migrated into `SHEET_BUILDERS` registry:
+  - `BalanceSheetBuilder` + `IncomeStatementBuilder` + `FixedAssetBuilder`
+    (T3 — primary user complaint: prototipe labels no longer leak)
+  - `AamBuilder` + `SimulasiPotensiBuilder` (T4 — AAM chain state-driven)
+- Shared `label-writer.ts` utility with `resolveLabel<C>` generic resolver
+  plus per-sheet writers (`writeBsLabels`, `writeIsLabels`, `writeFaLabels`,
+  `writeAamLabels`)
+- Legacy `exportToXlsx` pipeline now skip-guards migrated sheets:
+  `clearAllInputCells`, `injectScalarCells`, `injectGridCells` all take
+  `skipSheets` param; per-sheet extended injectors wrapped with
+  `if (!MIGRATED_SHEET_NAMES.has(...))` guards
+- `runSheetBuilders(workbook, state)` orchestrator call inserted at
+  correct pipeline position (after legacy extended injection, before
+  `applySheetVisibility`)
+- Cascade integration test — all-null state → 5 migrated sheets become
+  blank shells; non-migrated sheets untouched
+- Circular-import hazard resolved via lazy `getSheetBuilders()` function
+  + `_testOverride` slot + `__setTestBuildersOverride` seam (LESSON-088/089)
 
-**Delivered this session (T1+T2 only)**:
-- Foundation layer: `SheetBuilder` interface, `UpstreamSlice` union, `isPopulated()` resolver, `clearSheetCompletely()` utility, `SHEET_BUILDERS` registry, `runSheetBuilders()` orchestrator, formula reactivity probe
-- Runtime-inert: empty registry means zero user-facing behavior change. Safe to merge mid-refactor.
-
-**Deferred to Session 031+**:
-- T3: BS + IS + FA builders with store-sourced labels (primary user complaint fix)
-- T4: AAM + SIMULASI POTENSI (AAM) builders with dynamic sections
-- T5: 8 remaining input builders (HOME, KD, AP, DLOM, DLOC, WACC, DR, Borrowing Cap)
-- T6: 7 computed analysis builders (CFS, FR, FCF, NOPLAT, ROIC, Growth Revenue, Growth Rate)
-- T7: 9 projection/valuation/dashboard builders
-- T8: Legacy pipeline cleanup + cross-sheet formula sanitizer
-- T9: Phase C rewrite — website-state parity pivot
-- T10: Full gate + merge
+**Deferred to Session 032+** (original Session 030 T5-T10):
+- T5: 8 remaining input builders (HOME, KeyDrivers, AccPayables, DLOM,
+  DLOC, WACC, DiscountRate, BorrowingCap)
+- T6: 7 computed analysis builders (CashFlowStatement, FCF, NOPLAT,
+  FinancialRatio, ROIC, GrowthRevenue, GrowthRate)
+- T7: 9 projection/valuation/dashboard builders (PROY×5, DCF, EEM, CFI,
+  Dashboard)
+- T8: Legacy `exportToXlsx` body cleanup + cross-sheet formula sanitizer
+  (`stripCrossSheetRefsToBlankSheets`)
+- T9: Phase C rewrite to website-state parity (Session 029 Phase C stays
+  intact as-is — verified untouched by Session 031)
+- AAM extended-account (excelRow ≥ 100) native injection
 
 ## Delivered (cumulative)
 
@@ -52,7 +66,8 @@ sheets + cross-sheet formula preservation + Phase C rewrite.
 - Unified DLOM/DLOC sign convention across calc family (Session 022)
 - Export pipeline (Sessions 018-028): template-based .xlsx export with 3,084 formulas preserved + website-nav 1:1 visibility + BS/IS/FA extended-catalog native injection + sanitizer pipeline
 - AAM dynamic interoperability (Session 027): section-based `AamInput`, dynamic from `balanceSheet.accounts`, IBD classification, EKUITAS section
-- **State-driven export foundation (Session 030 T1+T2)**: `SheetBuilder` + `runSheetBuilders` + `clearSheetCompletely` infrastructure ready for Session 031 migration
+- State-driven export foundation (Session 030 Phase 1): `SheetBuilder` + `runSheetBuilders` + `clearSheetCompletely` + formula-reactivity probe — runtime-inert empty registry
+- **State-driven export core (Session 031)**: 5 builders populated in registry (BS/IS/FA/AAM/SIMULASI POTENSI AAM), legacy pipeline skip-guards per-sheet, label override pattern (LESSON-090), circular-import-safe lazy registry (LESSON-088)
 
 ### Pages (34 total)
 - **Input**: HOME · Balance Sheet (dynamic 84) · Income Statement (dynamic 41) · Fixed Asset (dynamic 20) · Key Drivers · Acc Payables
@@ -64,46 +79,65 @@ sheets + cross-sheet formula preservation + Phase C rewrite.
 
 ### Recent Sessions Deliverables
 
+#### Session 031 (2026-04-17) — Core Builders (T3 + T4)
+- T1: Shared label-writer utility (`resolveLabel<C>` + `writeBs/Is/Fa/Aam` writers, 14 tests)
+- T2: BalanceSheetBuilder (6 tests)
+- T3: IncomeStatementBuilder (6 tests)
+- T4: FixedAssetBuilder with 4-band label mirror (5 tests)
+- T5: Register BS/IS/FA + legacy pipeline skip guards; circular-import fix via `getSheetBuilders()` lazy resolver (registry.test.ts updated)
+- T6: AamBuilder with reverse BS_ROW_TO_AAM_D_ROW label lookup (7 tests)
+- T7+T8: SimulasiPotensiBuilder + register AAM + Simulasi; `injectScalarCells` takes `skipSheets` (5 tests)
+- T9: Cascade integration test — all-null state → 5 migrated sheets blank (3 tests)
+- T10: Full verification gate + merge to main (416c803) + live verify + Mode B wrap
+- 8 commits on feature branch, fast-forwarded to main
+- 3 lessons extracted (all promoted to skill section 8/Tech Stack Gotchas)
+
 #### Session 030 Phase 1 (2026-04-17) — State-Driven Export Foundation
 - T1: `SheetBuilder` types + `isPopulated` resolver + `clearSheetCompletely` utility (12 tests)
 - T2: `SHEET_BUILDERS` registry + `runSheetBuilders` orchestrator + formula reactivity probe (6 tests)
-- 3 commits on feature branch, fast-forwarded to main
-- User-approved wrap at T1+T2 milestone; T3-T10 deferred to Session 031+
-- 3 lessons extracted (LESSON-085/086 promoted; LESSON-087 session-specific)
+- Runtime-inert empty registry = safe to merge mid-refactor (LESSON-085)
 
 #### Session 029 (2026-04-17) — i18n Audit + Phase C Verification
-- T1-T4: audit-i18n.mjs TypeScript-AST walker + accept-list + CLI
-- T5-T6: 55 hardcoded strings migrated to `useT()` across 22 files + 12 compound keys with `{placeholder}` interpolation
-- T7: ESLint `local/no-hardcoded-ui-strings` rule
-- T8: `audit:i18n` + `verify:phase-c` npm scripts; `pretest` chain
-- T9-T13: Phase C integration test — 4 assertions for full pipeline formula preservation
-- T14-T15: All gates green on first run
-- T17: Merged + deployed + live verified
-
-#### Session 028 (2026-04-17) — IS + FA Extended Catalog Native Injection
-- T0: Domain rename housekeeping
-- T1: IS extended injection (Approach δ — sentinel formula replacement)
-- T2: FA extended injection (Approach η — 7-band mirror + mirrored SUM)
-- 35 new tests (878 → 913)
+- audit-i18n.mjs TypeScript-AST walker + accept-list + CLI
+- 55 hardcoded strings migrated to `useT()` across 22 files + 12 compound keys with `{placeholder}` interpolation
+- ESLint `local/no-hardcoded-ui-strings` rule + pretest chain
+- Phase C integration test — 4 assertions for full pipeline formula preservation
 
 ## Next Session Priorities
 
-### Session 031 — Core Builders (T3 + T4)
-1. **T3: BS/IS/FA builders** — wrap existing `injectGridCells` + extended injectors + add `writeLabelsFromStore(sheet, state)` override for col B. Register in `SHEET_BUILDERS`. Adjust legacy pipeline to skip migrated sheets. Direct fix for user's primary complaint.
-2. **T4: AAM + SIMULASI POTENSI (AAM) builders** — dynamic section layout from `balanceSheet.accounts`. Second-priority user complaint.
-3. **Cascade test** for all-null state → migrated sheets blank.
-4. Merge to main.
+### Session 032 — Input-driven Builders (T5 original)
 
-### Session 032+ — Cascade Completion (T5-T10)
-5. T5: 8 remaining input builders
-6. T6: 7 computed analysis builders (CFS, FR, FCF, NOPLAT, ROIC, Growth Revenue, Growth Rate)
-7. T7: 9 projection/valuation/dashboard builders
-8. T8: Legacy pipeline cleanup + cross-sheet sanitizer
-9. T9: Phase C rewrite — website-state parity
-10. T10: Full gate + merge + live verify
+1. **HomeBuilder** — reads state.home, writes HOME sheet cells for
+   namaPerusahaan, NPWP, tahunTransaksi, jumlahSaham, jenisPerusahaan.
+2. **KeyDriversBuilder** — composes existing `injectScalarCells` +
+   `injectArrayCells` filtered to KEY DRIVERS sheet.
+3. **AccPayablesBuilder** — hidden sheet; reuses cell mapping.
+4. **DlomBuilder** / **DlocBuilder** — wrap existing `injectDlomAnswers`
+   / `injectDlocAnswers` + `injectDlomJenisPerusahaan`.
+5. **WaccBuilder** / **DiscountRateBuilder** — wrap existing scalar +
+   dynamic-rows injectors.
+6. **BorrowingCapBuilder** — wrap scalar injector.
+7. Register all 8 in `SHEET_BUILDERS`. Legacy pipeline auto-skips them
+   because `MIGRATED_SHEET_NAMES` is reactive.
 
-### Deferred beyond Session 030 refactor
+### Session 033 — Computed Analysis Builders (T6 original)
+
+8. **CashFlowStatementBuilder** / **FcfBuilder** / **NoplatBuilder** /
+   **FinancialRatioBuilder** / **RoicBuilder** / **GrowthRevenueBuilder** /
+   **GrowthRateBuilder** — each composes `computeXxx(buildXxxInput(state))`
+   from `src/lib/calculations/` and writes leaf-value cells. Template
+   formulas that reference populated cells continue to evaluate.
+
+### Session 034+ — Projection/Valuation/Dashboard + Legacy Cleanup
+
+9. 9 projection/valuation/dashboard builders (PROY×5 + DCF + EEM + CFI + Dashboard)
+10. T8: Legacy `exportToXlsx` body cleanup + `stripCrossSheetRefsToBlankSheets`
+11. T9: Phase C rewrite to website-state parity
+12. T10: Full gate + merge + live verify
+
+### Deferred beyond state-driven export migration
 - Upload parser (.xlsx → store) — reverse of export
+- AAM extended-account (excelRow ≥ 100) native injection
 - ESLint rule enhancement — `uiPropNames` array config
 - RESUME page — side-by-side DCF/AAM/EEM summary
 - Dashboard polish — projected FCF chart, more KPIs
@@ -111,7 +145,7 @@ sheets + cross-sheet formula preservation + Phase C rewrite.
 - Cloud sync / multi-device
 - Audit trail / change history
 
-## Latest Session
+## Latest Sessions
+- [Session 031](history/session-031-core-builders.md) (2026-04-17): Core Builders T3+T4 — 5 SheetBuilders shipped (BS/IS/FA/AAM/SIMULASI POTENSI), label override pattern, circular-import-safe lazy registry, 46 new tests
 - [Session 030 Phase 1](history/session-030-foundation-sheet-builders.md) (2026-04-17): State-driven export foundation T1+T2, 18 new tests, 3 lessons, wrapped at milestone with T3-T10 deferred
 - [Session 029](history/session-029-i18n-audit-phase-c.md) (2026-04-17): i18n audit + 55-string migration + ESLint rule + Phase C integration test
-- [Session 028](history/session-028-extended-is-fa-injection.md) (2026-04-17): IS + FA extended catalog native injection

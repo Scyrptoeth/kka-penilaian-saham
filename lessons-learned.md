@@ -587,6 +587,11 @@ untuk 3+ sesi ke depan:
 - LESSON-085 (Multi-session refactor checkpoint — foundation with empty registry is safely mergeable mid-refactor)
 - LESSON-086 (ExcelJS runtime API surpasses `.d.ts` — cast through internal shape for CF/images/tables)
 
+### Session 031 (Core Builders T3+T4 — State-Driven Export Migration)
+- LESSON-088 (Circular import between orchestrator + registry — resolve via lazy `getRegistry()` function)
+- LESSON-089 (Test-only override seam beats mutating a const array — `__setTestXxxOverride` pattern)
+- LESSON-090 (State-driven label override — write accounts[].labelXx at excelRow, mirror via offsets)
+
 LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054, 074, 087 **TIDAK** di-promote — workflow/session-specific
 insights yang general ke project lain tapi terlalu luas atau terlalu
 session-specific untuk section 8 (yang fokus KKA-specific gotchas).
@@ -2384,5 +2389,158 @@ Pivoted to a simpler but still powerful test: **template round-trip**. Load temp
 6. **Complement with LESSON-085**: if foundation-first + empty-registry pattern is designed in, then mid-refactor wraps are low-risk. Plan architecture to enable graceful wrap points.
 
 **Proven at**: session-030 (2026-04-17). Honest estimate at T1+T2 showed T3-T10 infeasible. Offered wrap options, user picked A (wrap foundation). Merge clean, live green, Session 031 ready to resume. Zero mid-task crash, zero rollback needed.
+
+---
+
+## Session 031 — Core Builders (State-Driven Export Migration T3+T4)
+
+### LESSON-088: Circular import between orchestrator + registry — resolve via lazy `getRegistry()` function
+
+**Kategori**: Framework | TypeScript | Anti-pattern
+**Sesi**: session-031
+**Tanggal**: 2026-04-17
+
+**Konteks**: A state-driven export pipeline where the main orchestrator module (`export-xlsx.ts`) imports a registry (`sheet-builders/registry.ts`), and the registry imports individual builder files, and builder files import helper functions back from the orchestrator module.
+
+**Apa yang terjadi**: Registering 3 SheetBuilders (BS/IS/FA) as a module-level const array in `registry.ts` broke 3 tests and the entire export pipeline at module init with `TypeError: Cannot read properties of undefined (reading 'sheetName')`. Each builder in the array was evaluating to `undefined` even though the imports looked correct.
+
+**Root cause / insight**: Module load order under ES-module semantics:
+1. `export-xlsx.ts` begins loading
+2. Imports `registry.ts` → registry starts loading
+3. Registry imports `BalanceSheetBuilder` from `./balance-sheet` → balance-sheet starts loading
+4. `balance-sheet.ts` imports helpers (`injectBsCrossRefValues`, `injectExtendedBsAccounts`, etc.) from `@/lib/export/export-xlsx` — CIRCULAR
+5. Node returns the partial `export-xlsx` module (exports not yet populated because we're still at step 1)
+6. `balance-sheet.ts` reads imports as live bindings — they'll resolve later when helpers are defined
+7. `balance-sheet.ts` creates `BalanceSheetBuilder = { sheetName: 'BALANCE SHEET', ... }` — object looks fine at this moment
+8. `balance-sheet.ts` finishes loading, returns to registry
+9. **BUT**: in some bundler configurations (Vite test env), the circular reference resolution happens differently — the imported `BalanceSheetBuilder` may appear as `undefined` on registry's import line even though the module successfully evaluated its body.
+
+The fix is NOT to eliminate the circular import (which would require splitting helpers out of export-xlsx.ts — larger refactor). Instead, **make the registry resolution lazy**:
+
+```ts
+// ❌ Eager — evaluated at module-init
+export const SHEET_BUILDERS = [BalanceSheetBuilder, IncomeStatementBuilder, FixedAssetBuilder]
+export const MIGRATED_SHEET_NAMES = new Set(SHEET_BUILDERS.map(b => b.sheetName))
+
+// ✅ Lazy — evaluated at call time, after all modules finish loading
+export function getSheetBuilders(): readonly SheetBuilder[] {
+  return [BalanceSheetBuilder, IncomeStatementBuilder, FixedAssetBuilder]
+}
+export function getMigratedSheetNames(): ReadonlySet<string> {
+  return new Set(getSheetBuilders().map(b => b.sheetName))
+}
+```
+
+By the time `getSheetBuilders()` is called (from `runSheetBuilders` during export), all modules have finished their top-level evaluation, and all import bindings are fully resolved.
+
+**Cara menerapkan di masa depan**:
+1. When designing a registry module that sits between an orchestrator and a set of consumer/producer modules with circular import potential, **default to function-based resolution** (`getRegistry()`) instead of const arrays.
+2. If you MUST expose a const for ergonomics, back it with a `Proxy` that forwards reads to the lazy function. Proxy traps are called on every property access, so the underlying resolution happens at call time not init time.
+3. **Detect circular import reliably**: symptoms are usually `undefined` at import site or `TypeError: Cannot read properties of undefined` at access time. Module-level evaluation errors sometimes surface in unexpected call sites (e.g., the first downstream consumer that reads the registry).
+4. **Explicit API > structural workaround**: a `getSheetBuilders()` function is clearer than a Proxy hack. Reserve Proxy for backward-compat with tests that still read an array.
+5. Keep a backward-compat alias (Proxy or deprecated getter) so existing test code that reads the array directly continues to work during migration.
+
+**Proven at**: session-031 (2026-04-17). Circular export-xlsx.ts ↔ registry.ts broke module init. Switched to `getSheetBuilders()` + Proxy-backed `SHEET_BUILDERS` alias. All 999 tests green, circular imports continue to function, future builders register with no init hazard.
+
+---
+
+### LESSON-089: Test-only override seam beats mutating a const array
+
+**Kategori**: Testing | Workflow
+**Sesi**: session-031
+**Tanggal**: 2026-04-17
+
+**Konteks**: A module exports a const array (or any stable object) that tests need to temporarily swap for isolation. Classic approach: `target.length = 0; target.push(...testValue)` then restore in `finally`.
+
+**Apa yang terjadi**: When Session 031 moved `SHEET_BUILDERS` from a const array to a function-resolved getter (to dodge circular import — LESSON-088), the existing test helper `runWithRegistry` stopped working. Array mutations no longer affected what `runSheetBuilders` saw because the function resolved fresh on every call.
+
+**Root cause / insight**: Test code that mutates production data structures is coupled to the DATA STRUCTURE, not to the ABSTRACTION. Any refactor of the data structure shape breaks tests. Better: expose an explicit **test seam** — a named API that both production code reads and test code writes.
+
+```ts
+// Production resolver
+let _testOverride: readonly SheetBuilder[] | null = null
+
+export function getSheetBuilders(): readonly SheetBuilder[] {
+  if (_testOverride !== null) return _testOverride
+  return [/* real builders */]
+}
+
+// Test-only API (underscored to signal non-production use)
+export function __setTestBuildersOverride(v: readonly SheetBuilder[] | null): void {
+  _testOverride = v
+}
+
+// Test helper
+function runWithRegistry(builders, fn) {
+  __setTestBuildersOverride(builders)
+  try { fn() } finally { __setTestBuildersOverride(null) }
+}
+```
+
+This is **explicit, typed, and resilient**: refactoring `getSheetBuilders()` implementation (e.g., to a class, to a config-file-driven resolver, to a DI container) leaves the seam intact.
+
+**Cara menerapkan di masa depan**:
+1. When production code needs a module-level registry or singleton, expose **read API** (`getXxx()`) and **test-only write API** (`__setTestXxxOverride(value | null)`) up front.
+2. Name test APIs with `__` prefix or other clear convention so grep identifies them.
+3. `__setXxxOverride(null)` restores the real resolver — always restore in `finally`.
+4. Do NOT skip this pattern "because it's only one test" — the next test always wants the same capability. Fixing test-level mutation ad hoc across files is more expensive than the 3-line override pattern up front.
+5. If the production API is already shipped without a seam, add it retroactively when the first test-breakage refactor occurs (don't fight back with mutation gymnastics).
+
+**Proven at**: session-031 (2026-04-17). `__setTestBuildersOverride` added to registry.ts. `registry.test.ts` `runWithRegistry` helper now uses it. Zero test failures, zero production-path impact.
+
+---
+
+### LESSON-090: State-driven label override — write accounts[].labelXx at excelRow, mirror across multi-band sheets via offsets
+
+**Kategori**: Excel | Design | Workflow
+**Sesi**: session-031
+**Tanggal**: 2026-04-17
+
+**Konteks**: A template Excel workbook ships with fixed labels in col B (e.g., 'Kas dan setara kas', 'Piutang Usaha'). Users rename or customize accounts on the website. Exported .xlsx must reflect the user's labels, not the template's prototipe.
+
+**Apa yang terjadi**: Before Session 031, the export pipeline injected user VALUES at mapped cells but left col B LABELS untouched. When user renamed "Cash" → "Petty Cash Only", Excel export still showed "Kas dan setara kas". Primary user complaint.
+
+**Root cause / insight**: The label-override pattern is **mechanically simple but semantically careful**:
+
+```ts
+export function writeBsLabels(
+  ws: ExcelJS.Worksheet,
+  accounts: readonly BsAccountEntry[],
+  language: 'en' | 'id',
+): void {
+  for (const acc of accounts) {
+    ws.getCell(`B${acc.excelRow}`).value = resolveLabel(acc, BS_CATALOG_ALL, language)
+  }
+}
+```
+
+With generic `resolveLabel<C>` honoring `customLabel > labelEn/Id per language > catalogId fallback`. Language comes from `state.language` (root-level store v15, LESSON-076).
+
+For **multi-band sheets** (FA 7-band: Acq Beginning / Acq Additions / Acq Ending / Dep Beginning / Dep Additions / Dep Ending / Net Value), labels must MIRROR across all bands. The template defines `FA_LEGACY_OFFSET` constants (9, 28, 37) — use them to iterate:
+
+```ts
+const offsets = [0, ...Object.values(FA_LEGACY_OFFSET)] // [0, 9, 28, 37]
+for (const acc of accounts) {
+  if (!isOriginalFaRow(acc.excelRow)) continue // extended accounts handled elsewhere
+  const label = resolveLabel(acc, FA_CATALOG, language)
+  for (const offset of offsets) {
+    ws.getCell(`B${acc.excelRow + offset}`).value = label
+  }
+}
+```
+
+The result: user renames "Building" → "Gedung HQ Jakarta", and B9 + B18 + B37 + B46 all update (Acq Begin + Acq Add + Dep Begin + Dep Add rows for row 9 account).
+
+For **AAM sheet**, labels require an **indirection map** (BS_ROW_TO_AAM_D_ROW) because BS row 8 (cash) doesn't live at AAM row 8 — it's at AAM row 9. `writeAamLabels` does the translation.
+
+**Cara menerapkan di masa depan**:
+1. Every sheet that displays account-level labels should have a dedicated label writer per builder.
+2. **Template analysis first**: check if labels repeat across bands (FA 4-band) or require row translation (AAM). Encode the offset/translation as constants, not inline math.
+3. **Extended accounts (excelRow ≥ 100)** often have different handling: BS and IS extended injectors already write labels via their `injectExtendedXxxAccounts` helpers. Don't double-write. The `writeXxxLabels` call runs AFTER the extended injector so user `customLabel` still wins for extended rows.
+4. **Language must be root-level**: LESSON-076 makes this trivial — grab `state.language` once, pass down. Do not per-slice it.
+5. **Prototipe labels bleed through every cell** the builder doesn't write. If there's a cell that must be blank in empty state but labelled in populated state, the builder must handle both: the `clearSheetCompletely` path clears labels; the `build()` path re-writes them.
+6. **Testing pattern**: for each builder, test (a) labelEn when language=en, (b) labelId when language=id, (c) customLabel overrides both, (d) for multi-band sheets, labels mirror across all bands, (e) for indirection sheets (AAM), correct row translation.
+
+**Proven at**: session-031 (2026-04-17). `writeBsLabels`, `writeIsLabels`, `writeFaLabels`, `writeAamLabels` ship with 14 label-writer tests + 34 per-builder tests. Primary user complaint fixed — rename propagates end-to-end from website → Excel export.
 
 ---
