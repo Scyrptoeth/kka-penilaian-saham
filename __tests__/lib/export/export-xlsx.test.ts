@@ -7,6 +7,8 @@ import {
   applySheetVisibility,
   injectExtendedBsAccounts,
   extendBsSectionSubtotals,
+  injectExtendedIsAccounts,
+  replaceIsSectionSentinels,
   sanitizeDanglingFormulas,
   stripDecorativeTables,
   injectBsCrossRefValues,
@@ -49,6 +51,9 @@ async function simulateExport(state: ExportableState): Promise<ExcelJS.Workbook>
   // Replaces the RINCIAN NERACA detail sheet pattern.
   injectExtendedBsAccounts(wb, state)
   extendBsSectionSubtotals(wb, state)
+  // Session 028 — IS extended injection (Approach δ: sentinel formula replacement).
+  injectExtendedIsAccounts(wb, state)
+  replaceIsSectionSentinels(wb, state)
   // Apply website-nav 1:1 visibility (Session 024)
   applySheetVisibility(wb)
   // Inject BS rows 20 & 21 from FA store cross-refs (Session 026 follow-up)
@@ -610,6 +615,208 @@ describe('export-xlsx (template-based)', () => {
       const bs = wb.getWorksheet('BALANCE SHEET')!
       const formula = (bs.getCell('D16').value as { formula: string }).formula
       expect(formula).toBe('SUM(D8:D14)') // unchanged
+    })
+  })
+
+  // ─── Session 028: IS extended catalog native injection (Approach δ) ───
+  describe('extended IS catalog native injection (Session 028 — Approach δ)', () => {
+    const STATE_WITH_EXTENDED_IS: ExportableState = {
+      ...TEST_STATE,
+      incomeStatement: {
+        accounts: [
+          { catalogId: 'revenue', excelRow: 100, section: 'revenue' as const },
+          { catalogId: 'service_revenue', excelRow: 102, section: 'revenue' as const },
+          { catalogId: 'cogs', excelRow: 200, section: 'cost' as const },
+          { catalogId: 'raw_materials', excelRow: 201, section: 'cost' as const },
+          { catalogId: 'other_opex', excelRow: 300, section: 'operating_expense' as const },
+          { catalogId: 'other_non_operating', excelRow: 400, section: 'non_operating' as const },
+          { catalogId: 'interest_income', excelRow: 500, section: 'net_interest' as const, interestType: 'income' as const },
+          { catalogId: 'interest_expense', excelRow: 501, section: 'net_interest' as const, interestType: 'expense' as const },
+        ],
+        yearCount: 4,
+        language: 'en' as const,
+        rows: {
+          100: { 2018: 1000000, 2019: 1100000, 2020: 1200000, 2021: 1300000 },
+          102: { 2018: 500000, 2019: 550000, 2020: 600000, 2021: 650000 },
+          200: { 2018: -400000, 2019: -440000, 2020: -480000, 2021: -520000 },
+          201: { 2018: -100000, 2019: -110000, 2020: -120000, 2021: -130000 },
+          300: { 2018: -50000, 2019: -55000, 2020: -60000, 2021: -65000 },
+          400: { 2018: 0, 2019: 10000, 2020: 20000, 2021: 30000 },
+          500: { 2018: 5000, 2019: 6000, 2020: 7000, 2021: 8000 },
+          501: { 2018: -3000, 2019: -3500, 2020: -4000, 2021: -4500 },
+          // Pre-computed sentinels (from DynamicIsEditor schedulePersist)
+          6: { 2018: 1500000, 2019: 1650000, 2020: 1800000, 2021: 1950000 },
+          7: { 2018: -500000, 2019: -550000, 2020: -600000, 2021: -650000 },
+          26: { 2018: 5000, 2019: 6000, 2020: 7000, 2021: 8000 },
+          27: { 2018: -3000, 2019: -3500, 2020: -4000, 2021: -4500 },
+          30: { 2018: 0, 2019: 10000, 2020: 20000, 2021: 30000 },
+        },
+      },
+    }
+
+    describe('injectExtendedIsAccounts', () => {
+      it('writes extended-account label into column B at synthetic row', async () => {
+        const wb = await simulateExport(STATE_WITH_EXTENDED_IS)
+        const is = wb.getWorksheet('INCOME STATEMENT')!
+        expect(is.getCell('B102').value).toBe('Service Revenue')
+        expect(is.getCell('B201').value).toBe('Raw Materials')
+        expect(is.getCell('B400').value).toBe('Other Non-Operating Income / (Charges)')
+      })
+
+      it('writes extended-account values into year columns at synthetic row', async () => {
+        const wb = await simulateExport(STATE_WITH_EXTENDED_IS)
+        const is = wb.getWorksheet('INCOME STATEMENT')!
+        expect(is.getCell('C102').value).toBe(500000)
+        expect(is.getCell('D102').value).toBe(550000)
+        expect(is.getCell('E102').value).toBe(600000)
+        expect(is.getCell('F102').value).toBe(650000)
+        expect(is.getCell('F201').value).toBe(-130000)
+      })
+
+      it('writes label + values for net_interest extended rows (section skipped in sentinel replacement only)', async () => {
+        const wb = await simulateExport(STATE_WITH_EXTENDED_IS)
+        const is = wb.getWorksheet('INCOME STATEMENT')!
+        expect(is.getCell('B500').value).toBe('Interest Income')
+        expect(is.getCell('B501').value).toBe('Interest Expense')
+        expect(is.getCell('F500').value).toBe(8000)
+        expect(is.getCell('F501').value).toBe(-4500)
+      })
+
+      it('fallback label priority: customLabel > catalog.labelEn > catalogId', async () => {
+        const stateWithCustom: ExportableState = {
+          ...STATE_WITH_EXTENDED_IS,
+          incomeStatement: {
+            ...STATE_WITH_EXTENDED_IS.incomeStatement!,
+            accounts: [
+              ...STATE_WITH_EXTENDED_IS.incomeStatement!.accounts,
+              { catalogId: 'subscription_revenue', excelRow: 107, section: 'revenue' as const, customLabel: 'MyCustom Recurring' },
+            ],
+            rows: {
+              ...STATE_WITH_EXTENDED_IS.incomeStatement!.rows,
+              107: { 2018: 100, 2019: 200, 2020: 300, 2021: 400 },
+            },
+          },
+        }
+        const wb = await simulateExport(stateWithCustom)
+        const is = wb.getWorksheet('INCOME STATEMENT')!
+        expect(is.getCell('B107').value).toBe('MyCustom Recurring')
+      })
+
+      it('handles state with null incomeStatement → no extended-row writes', async () => {
+        const wb = await simulateExport(TEST_STATE)
+        const is = wb.getWorksheet('INCOME STATEMENT')!
+        expect(is.getCell('B100').value).toBeFalsy()
+        expect(is.getCell('C100').value).toBeFalsy()
+      })
+
+      it('skips accounts with excelRow < 100 (defensive guard)', async () => {
+        const stateWithOriginalPos: ExportableState = {
+          ...TEST_STATE,
+          incomeStatement: {
+            accounts: [
+              // Synthetic legacy position — should be skipped
+              { catalogId: 'revenue', excelRow: 6, section: 'revenue' as const },
+            ],
+            yearCount: 4,
+            language: 'en' as const,
+            rows: {
+              6: { 2018: 1, 2019: 2, 2020: 3, 2021: 4 },
+            },
+          },
+        }
+        const wb = await simulateExport(stateWithOriginalPos)
+        const is = wb.getWorksheet('INCOME STATEMENT')!
+        // No label written at B6 by injectExtendedIsAccounts (template's B6 label preserved)
+        expect(is.getCell('B100').value).toBeFalsy()
+      })
+    })
+
+    describe('replaceIsSectionSentinels', () => {
+      it('replaces D6 sentinel with =SUM(D100:D119) when revenue has extended', async () => {
+        const wb = await simulateExport(STATE_WITH_EXTENDED_IS)
+        const is = wb.getWorksheet('INCOME STATEMENT')!
+        const formula = (is.getCell('D6').value as { formula: string }).formula
+        expect(formula).toBe('SUM(D100:D119)')
+      })
+
+      it('replaces D7 sentinel with =SUM(D200:D219) when cost has extended', async () => {
+        const wb = await simulateExport(STATE_WITH_EXTENDED_IS)
+        const is = wb.getWorksheet('INCOME STATEMENT')!
+        const formula = (is.getCell('D7').value as { formula: string }).formula
+        expect(formula).toBe('SUM(D200:D219)')
+      })
+
+      it('replaces D15 sentinel with =SUM(D300:D319) when operating_expense has extended', async () => {
+        const wb = await simulateExport(STATE_WITH_EXTENDED_IS)
+        const is = wb.getWorksheet('INCOME STATEMENT')!
+        const formula = (is.getCell('D15').value as { formula: string }).formula
+        expect(formula).toBe('SUM(D300:D319)')
+      })
+
+      it('replaces D30 sentinel with =SUM(D400:D419) when non_operating has extended', async () => {
+        const wb = await simulateExport(STATE_WITH_EXTENDED_IS)
+        const is = wb.getWorksheet('INCOME STATEMENT')!
+        const formula = (is.getCell('D30').value as { formula: string }).formula
+        expect(formula).toBe('SUM(D400:D419)')
+      })
+
+      it('keeps D26/D27 (net_interest) as hardcoded numbers — mixed-sign section cannot simple-SUM', async () => {
+        const wb = await simulateExport(STATE_WITH_EXTENDED_IS)
+        const is = wb.getWorksheet('INCOME STATEMENT')!
+        expect(typeof is.getCell('D26').value).toBe('number')
+        expect(typeof is.getCell('D27').value).toBe('number')
+        expect(is.getCell('D26').value).toBe(6000)
+        expect(is.getCell('D27').value).toBe(-3500)
+      })
+
+      it('applies sentinel replacement across all 4 year columns C/D/E/F', async () => {
+        const wb = await simulateExport(STATE_WITH_EXTENDED_IS)
+        const is = wb.getWorksheet('INCOME STATEMENT')!
+        for (const col of ['C', 'D', 'E', 'F']) {
+          const f = (is.getCell(`${col}6`).value as { formula: string }).formula
+          expect(f, `${col}6`).toBe(`SUM(${col}100:${col}119)`)
+        }
+      })
+
+      it('does NOT modify sentinel when that section has no extended accounts', async () => {
+        const onlyRevenueState: ExportableState = {
+          ...STATE_WITH_EXTENDED_IS,
+          incomeStatement: {
+            ...STATE_WITH_EXTENDED_IS.incomeStatement!,
+            accounts: [
+              { catalogId: 'revenue', excelRow: 100, section: 'revenue' as const },
+            ],
+            rows: {
+              100: { 2018: 1000000, 2019: 1100000, 2020: 1200000, 2021: 1300000 },
+              7: { 2018: -500000, 2019: -550000, 2020: -600000, 2021: -650000 },
+            },
+          },
+        }
+        const wb = await simulateExport(onlyRevenueState)
+        const is = wb.getWorksheet('INCOME STATEMENT')!
+        expect((is.getCell('D6').value as { formula: string }).formula).toBe('SUM(D100:D119)')
+        expect(typeof is.getCell('D7').value).toBe('number')
+        expect(is.getCell('D7').value).toBe(-550000)
+      })
+
+      it('preserves derived row formula D8 Gross Profit (unchanged SUM(D6:D7))', async () => {
+        const wb = await simulateExport(STATE_WITH_EXTENDED_IS)
+        const is = wb.getWorksheet('INCOME STATEMENT')!
+        const f = (is.getCell('D8').value as { formula: string }).formula
+        expect(f).toBe('SUM(D6:D7)')
+      })
+
+      it('handles state with null incomeStatement → no sentinel replacements', async () => {
+        const wb = await simulateExport(TEST_STATE)
+        const is = wb.getWorksheet('INCOME STATEMENT')!
+        // D6 should remain as template value (null or empty), NOT a SUM formula
+        const v = is.getCell('D6').value
+        const isFormula = typeof v === 'object' && v !== null && 'formula' in v
+        if (isFormula) {
+          // If template had a formula at D6, must NOT be the SUM(D100:D119) form
+          expect((v as { formula: string }).formula).not.toContain('SUM(D100:D119)')
+        }
+      })
     })
   })
 

@@ -36,6 +36,10 @@ import {
   BS_CATALOG_ALL,
   type BsSection,
 } from '@/data/catalogs/balance-sheet-catalog'
+import {
+  IS_CATALOG,
+  type IsSection,
+} from '@/data/catalogs/income-statement-catalog'
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -89,6 +93,19 @@ export async function exportToXlsx(state: ExportableState): Promise<Blob> {
   //    subtotals. Replaces the RINCIAN NERACA detail sheet pattern (Session 025).
   injectExtendedBsAccounts(workbook, state)
   extendBsSectionSubtotals(workbook, state)
+
+  // 5b. Session 028 — IS extended catalog (Approach δ):
+  //     Write extended accounts as native rows, then REPLACE the sentinel
+  //     hardcoded numbers at rows 6/7/15/30 with live SUM(extendedRange)
+  //     formulas. Net-interest sentinels (D26/D27) stay hardcoded because
+  //     rows 500-519 mix income and expense via the `interestType` flag and
+  //     cannot be expressed with a simple contiguous SUM range. Derived
+  //     formulas (D8/D18/D22/D32/D35) stay untouched and resolve correctly
+  //     because they reference the sentinel cells — which now contain live
+  //     SUM formulas that evaluate to the same totals. User edits to D105
+  //     in Excel cascade up through D6 → D8 → downstream sheets.
+  injectExtendedIsAccounts(workbook, state)
+  replaceIsSectionSentinels(workbook, state)
 
   // 6. Apply website-nav 1:1 sheet visibility (Session 024 audit decision)
   applySheetVisibility(workbook)
@@ -768,3 +785,124 @@ export function extendBsSectionSubtotals(
 // `addBsDetailSheet` function was removed. If any external consumer needs
 // it, recover from git history (commit 97863cd or earlier).
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Session 028 — IS extended catalog native injection (Approach δ)
+//
+// Unlike BS (where extended rows 100-139 hold leaf values distinct from
+// baseline leaves at rows 8-15), IS sentinel cells D6/D7/D15/D30 are
+// ALREADY the aggregated totals of all extended rows (pre-computed at
+// persist time by DynamicIsEditor). Appending `+SUM(extendedRange)` to
+// derived rows (the BS pattern) would double-count.
+//
+// Instead, we REPLACE the sentinel cell value with a live
+// `=SUM(D<start>:D<end>)` formula whenever the user has ≥1 extended
+// account in that section. The formula references the native rows we
+// just wrote via `injectExtendedIsAccounts`. Three benefits:
+//   1. No double-count — sentinel is the ONLY source of section total.
+//   2. Full Excel reactivity — user edits D105 in Excel, D6 auto-recomputes.
+//   3. Derived formulas (D8 = SUM(D6:D7), etc.) untouched and correct.
+//
+// Net-interest section (rows 500-519) is special: accounts mix `income`
+// and `expense` via `interestType` flag, so a simple contiguous SUM range
+// cannot express the signed total. We keep D26/D27 as hardcoded sentinels
+// (from DynamicIsEditor pre-computation) and still write extended rows
+// 500-519 for breakdown visibility.
+// ---------------------------------------------------------------------------
+
+interface IsSectionInjectMap {
+  section: IsSection
+  extendedRowStart: number
+  extendedRowEnd: number
+  /** Sentinel cell row to overwrite with SUM formula. `null` = skip (mixed-sign). */
+  sentinelRow: number | null
+}
+
+/** Section → (extended row range, sentinel row). Order matches IS template. */
+const IS_SECTION_INJECT: readonly IsSectionInjectMap[] = [
+  { section: 'revenue',           extendedRowStart: 100, extendedRowEnd: 119, sentinelRow: 6  },
+  { section: 'cost',              extendedRowStart: 200, extendedRowEnd: 219, sentinelRow: 7  },
+  { section: 'operating_expense', extendedRowStart: 300, extendedRowEnd: 319, sentinelRow: 15 },
+  { section: 'non_operating',     extendedRowStart: 400, extendedRowEnd: 419, sentinelRow: 30 },
+  { section: 'net_interest',      extendedRowStart: 500, extendedRowEnd: 519, sentinelRow: null },
+] as const
+
+/**
+ * Write extended IS accounts (excelRow ≥ 100) to their synthetic rows in
+ * the INCOME STATEMENT sheet. Each row gets: label in column B, numeric
+ * values in year columns (C/D/E/F = 2018/2019/2020/2021). Original
+ * template cells (rows 6-35) untouched — sentinel numbers written there
+ * by `injectGridCells` will be overwritten by `replaceIsSectionSentinels`
+ * for non-net-interest sections.
+ */
+export function injectExtendedIsAccounts(
+  workbook: ExcelJS.Workbook,
+  state: ExportableState,
+): void {
+  if (!state.incomeStatement) return
+  const ws = workbook.getWorksheet('INCOME STATEMENT')
+  if (!ws) return
+
+  const grid = ALL_GRID_MAPPINGS.find((g) => g.excelSheet === 'INCOME STATEMENT')
+  if (!grid) return
+
+  for (const acc of state.incomeStatement.accounts) {
+    if (acc.excelRow < 100) continue // defensive guard — legacy positions handled by injectGridCells
+
+    // Label (column B): customLabel > catalog labelEn > catalogId fallback
+    const catalog = IS_CATALOG.find((c) => c.id === acc.catalogId)
+    const label = acc.customLabel ?? (catalog ? catalog.labelEn : acc.catalogId)
+    ws.getCell(`B${acc.excelRow}`).value = label
+
+    // Values per year column
+    const yearValues = state.incomeStatement.rows[acc.excelRow]
+    if (!yearValues) continue
+    for (const [yearStr, col] of Object.entries(grid.yearColumns)) {
+      const val = yearValues[Number(yearStr)]
+      if (val !== undefined && val !== null) {
+        ws.getCell(`${col}${acc.excelRow}`).value = val
+      }
+    }
+  }
+}
+
+/**
+ * For each IS section with `sentinelRow != null` AND ≥1 extended account,
+ * overwrite the sentinel cell (D6/D7/D15/D30 across year columns C/D/E/F)
+ * with a live `=SUM(col{start}:col{end})` formula. This replaces the
+ * hardcoded sentinel number written by `injectGridCells`, turning the
+ * export into a reactive workbook where user edits to extended rows
+ * propagate automatically through derived formulas and downstream sheets.
+ *
+ * `net_interest` is skipped (sentinelRow: null) because rows 500-519 mix
+ * `income` and `expense` interestType — a simple SUM range can't express
+ * the signed total. D26/D27 sentinels remain as hardcoded numbers.
+ */
+export function replaceIsSectionSentinels(
+  workbook: ExcelJS.Workbook,
+  state: ExportableState,
+): void {
+  if (!state.incomeStatement) return
+  const ws = workbook.getWorksheet('INCOME STATEMENT')
+  if (!ws) return
+
+  const grid = ALL_GRID_MAPPINGS.find((g) => g.excelSheet === 'INCOME STATEMENT')
+  if (!grid) return
+
+  // Identify which sections have extended accounts in the user's data.
+  const sectionsWithExtended = new Set<IsSection>()
+  for (const acc of state.incomeStatement.accounts) {
+    if (acc.excelRow >= 100) sectionsWithExtended.add(acc.section)
+  }
+  if (sectionsWithExtended.size === 0) return
+
+  for (const map of IS_SECTION_INJECT) {
+    if (map.sentinelRow === null) continue
+    if (!sectionsWithExtended.has(map.section)) continue
+
+    for (const col of Object.values(grid.yearColumns)) {
+      const sumFormula = `SUM(${col}${map.extendedRowStart}:${col}${map.extendedRowEnd})`
+      ws.getCell(`${col}${map.sentinelRow}`).value = { formula: sumFormula }
+    }
+  }
+}
