@@ -8,6 +8,7 @@ import { IncomeStatementBuilder } from './income-statement'
 import { FixedAssetBuilder } from './fixed-asset'
 import { HomeBuilder } from './home'
 import { KeyDriversBuilder } from './key-drivers'
+import { AccPayablesBuilder } from './acc-payables'
 import { AamBuilder } from './aam'
 import { SimulasiPotensiBuilder } from './simulasi-potensi'
 
@@ -45,6 +46,7 @@ export function getSheetBuilders(): readonly SheetBuilder[] {
     // Input master + supporting inputs (Session 032)
     HomeBuilder,
     KeyDriversBuilder,
+    AccPayablesBuilder,
     // AAM chain (Session 031) — runs after inputs complete
     AamBuilder,
     SimulasiPotensiBuilder,
