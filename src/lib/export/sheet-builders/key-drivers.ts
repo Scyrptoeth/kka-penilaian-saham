@@ -19,8 +19,7 @@ const SHEET_NAME = 'KEY DRIVERS'
  * The synthetic `_cogsRatioProjected` / `_sellingExpenseRatioProjected`
  * / `_gaExpenseRatioProjected` array fields are handled by
  * writeArraysForSheet → writeArrayMapping, which expands the underlying
- * scalar ratio into a fixed-length array for columns E-J (matches the
- * legacy injectArrayCells contract).
+ * scalar ratio into a fixed-length array for columns E-J.
  *
  * Upstream: `['keyDrivers']`. Orchestrator clears the sheet when
  * state.keyDrivers is null.

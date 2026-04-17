@@ -468,7 +468,6 @@ describe('Phase C — State-Parity Verification', () => {
       }
 
       if (losses.length > 0) {
-        // eslint-disable-next-line no-console
         console.warn('[phase-c] coverage losses (first 20):', losses)
       }
     },

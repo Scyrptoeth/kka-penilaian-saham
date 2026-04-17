@@ -12,9 +12,8 @@ import { writeBsLabels } from './label-writer'
 const SHEET_NAME = 'BALANCE SHEET'
 
 /**
- * Write leaf-row year values for a single sheet using its grid mapping.
- * Mirrors the inner loop of `injectGridCells` but scoped to one sheet —
- * enables a builder to populate its own sheet without iterating all grids.
+ * Write leaf-row year values for this sheet using its grid mapping.
+ * Scoped to BALANCE SHEET only — builder owns the grid write end-to-end.
  */
 function writeBsLeafValues(
   ws: ExcelJS.Worksheet,

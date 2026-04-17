@@ -392,79 +392,8 @@ export function stripDecorativeTables(workbook: ExcelJS.Workbook): void {
 }
 
 // ---------------------------------------------------------------------------
-// Internal: Clear
-// ---------------------------------------------------------------------------
-
-function clearAllInputCells(
-  workbook: ExcelJS.Workbook,
-  skipSheets: ReadonlySet<string> = new Set(),
-): void {
-  // Clear scalar cells (skip scalars that target a migrated sheet)
-  for (const m of ALL_SCALAR_MAPPINGS) {
-    if (skipSheets.has(m.excelSheet)) continue
-    const ws = workbook.getWorksheet(m.excelSheet)
-    if (ws) ws.getCell(m.excelCell).value = null
-  }
-
-  // Clear grid cells (skip migrated sheets — builder owns the full sheet)
-  for (const g of ALL_GRID_MAPPINGS) {
-    if (skipSheets.has(g.excelSheet)) continue
-    const ws = workbook.getWorksheet(g.excelSheet)
-    if (!ws) continue
-    for (const row of g.leafRows) {
-      for (const col of Object.values(g.yearColumns)) {
-        ws.getCell(`${col}${row}`).value = null
-      }
-    }
-  }
-
-  // Clear array cells
-  for (const a of ALL_ARRAY_MAPPINGS) {
-    if (skipSheets.has(a.excelSheet)) continue
-    const ws = workbook.getWorksheet(a.excelSheet)
-    if (!ws) continue
-    for (let i = 0; i < a.length; i++) {
-      ws.getCell(`${offsetCol(a.startColumn, i)}${a.row}`).value = null
-    }
-  }
-
-  // Clear dynamic rows
-  for (const d of ALL_DYNAMIC_ROWS_MAPPINGS) {
-    if (skipSheets.has(d.excelSheet)) continue
-    const ws = workbook.getWorksheet(d.excelSheet)
-    if (!ws) continue
-    for (let r = d.startRow; r < d.startRow + d.maxRows; r++) {
-      for (const col of Object.keys(d.columns)) {
-        ws.getCell(`${col}${r}`).value = null
-      }
-    }
-  }
-
-  // Clear DLOM answers (F7,F9,...,F25)
-  if (!skipSheets.has('DLOM')) {
-    const dlomWs = workbook.getWorksheet('DLOM')
-    if (dlomWs) {
-      for (const row of DLOM_ANSWER_ROWS) {
-        dlomWs.getCell(`F${row}`).value = null
-      }
-      dlomWs.getCell('C31').value = null
-    }
-  }
-
-  // Clear DLOC answers (E7,E9,...,E15)
-  if (!skipSheets.has('DLOC(PFC)')) {
-    const dlocWs = workbook.getWorksheet('DLOC(PFC)')
-    if (dlocWs) {
-      for (const row of DLOC_ANSWER_ROWS) {
-        dlocWs.getCell(`E${row}`).value = null
-      }
-      dlocWs.getCell('B21').value = null
-    }
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Internal: Inject scalars
+// Internal: Scalar resolution helpers (consumed by exported
+// writeScalarsForSheet / writeScalarsFromSlice builder-facing APIs)
 // ---------------------------------------------------------------------------
 
 function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
@@ -484,20 +413,6 @@ function resolveSlice(state: ExportableState, mapping: ScalarCellMapping): unkno
   const slice = (state as unknown as Record<string, unknown>)[mapping.storeSlice]
   if (slice === null || slice === undefined) return undefined
   return getNestedValue(slice as Record<string, unknown>, mapping.storeField)
-}
-
-function injectScalarCells(
-  workbook: ExcelJS.Workbook,
-  state: ExportableState,
-  skipSheets: ReadonlySet<string> = new Set(),
-): void {
-  for (const m of ALL_SCALAR_MAPPINGS) {
-    if (skipSheets.has(m.excelSheet)) continue
-    const ws = workbook.getWorksheet(m.excelSheet)
-    if (!ws) continue
-
-    writeScalarMapping(ws, state, m)
-  }
 }
 
 function writeScalarMapping(
@@ -543,9 +458,8 @@ export function writeScalarsForSheet(
  * Builder-facing helper: write every scalar mapping whose source is
  * `storeSlice`, regardless of destination sheet. Used by WaccBuilder
  * to include the `wacc.taxRate → IS!B33` cross-sheet write alongside
- * its own WACC-sheet scalars. Resolves the Session 031 regression where
- * `injectScalarCells` filtering by destination left cross-sheet writes
- * to already-migrated sheets orphaned.
+ * its own WACC-sheet scalars. Implements the source-slice-owns-all-writes
+ * pattern (LESSON-091) that prevents silent cross-sheet regressions.
  */
 export function writeScalarsFromSlice(
   workbook: ExcelJS.Workbook,
@@ -657,7 +571,7 @@ export function injectBsCrossRefValues(workbook: ExcelJS.Workbook, state: Export
   }
 }
 
-/** BS grid year → column map, shared by injectGridCells and cross-ref injector. */
+/** BS grid year → column map, shared by injectBsCrossRefValues + writeGridForSheet. */
 const BALANCE_SHEET_GRID_COLUMNS: Readonly<Record<number, string>> = {
   2018: 'C',
   2019: 'D',
@@ -665,51 +579,10 @@ const BALANCE_SHEET_GRID_COLUMNS: Readonly<Record<number, string>> = {
   2021: 'F',
 }
 
-function injectGridCells(
-  workbook: ExcelJS.Workbook,
-  state: ExportableState,
-  skipSheets: ReadonlySet<string> = new Set(),
-): void {
-  for (const g of ALL_GRID_MAPPINGS) {
-    if (skipSheets.has(g.excelSheet)) continue
-    const ws = workbook.getWorksheet(g.excelSheet)
-    if (!ws) continue
-
-    const slice = (state as unknown as Record<string, unknown>)[g.storeSlice] as
-      | { rows: Record<number, Record<number, number>> }
-      | null
-    if (!slice) continue
-
-    for (const row of g.leafRows) {
-      const yearValues = slice.rows[row]
-      if (!yearValues) continue
-      for (const [yearStr, col] of Object.entries(g.yearColumns)) {
-        const year = Number(yearStr)
-        const val = yearValues[year]
-        if (val !== undefined && val !== null) {
-          ws.getCell(`${col}${row}`).value = val
-        }
-      }
-    }
-  }
-}
-
 // ---------------------------------------------------------------------------
-// Internal: Inject arrays (KEY DRIVERS projection arrays)
+// Internal: Array / DynamicRows writers (consumed by exported
+// writeArraysForSheet / writeDynamicRowsForSheet builder-facing APIs)
 // ---------------------------------------------------------------------------
-
-function injectArrayCells(
-  workbook: ExcelJS.Workbook,
-  state: ExportableState,
-  skipSheets: ReadonlySet<string> = new Set(),
-): void {
-  for (const a of ALL_ARRAY_MAPPINGS) {
-    if (skipSheets.has(a.excelSheet)) continue
-    const ws = workbook.getWorksheet(a.excelSheet)
-    if (!ws) continue
-    writeArrayMapping(ws, state, a)
-  }
-}
 
 function writeArrayMapping(
   ws: ExcelJS.Worksheet,
@@ -737,23 +610,6 @@ function writeArrayMapping(
   for (let i = 0; i < a.length && i < values.length; i++) {
     const col = offsetCol(a.startColumn, i)
     ws.getCell(`${col}${a.row}`).value = values[i]
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Internal: Inject dynamic rows (WACC companies, bank rates)
-// ---------------------------------------------------------------------------
-
-function injectDynamicRows(
-  workbook: ExcelJS.Workbook,
-  state: ExportableState,
-  skipSheets: ReadonlySet<string> = new Set(),
-): void {
-  for (const d of ALL_DYNAMIC_ROWS_MAPPINGS) {
-    if (skipSheets.has(d.excelSheet)) continue
-    const ws = workbook.getWorksheet(d.excelSheet)
-    if (!ws) continue
-    writeDynamicRowsMapping(ws, state, d)
   }
 }
 
@@ -907,7 +763,7 @@ export function injectExtendedBsAccounts(
   if (!grid) return
 
   for (const acc of state.balanceSheet.accounts) {
-    if (acc.excelRow < 100) continue // original rows handled by injectGridCells
+    if (acc.excelRow < 100) continue // baseline rows handled by BalanceSheetBuilder's grid write
 
     // Label (column B): customLabel > catalog labelEn > catalogId fallback
     const catalog = BS_CATALOG_ALL.find((c) => c.id === acc.catalogId)
@@ -1037,8 +893,8 @@ const IS_SECTION_INJECT: readonly IsSectionInjectMap[] = [
  * the INCOME STATEMENT sheet. Each row gets: label in column B, numeric
  * values in year columns (C/D/E/F = 2018/2019/2020/2021). Original
  * template cells (rows 6-35) untouched — sentinel numbers written there
- * by `injectGridCells` will be overwritten by `replaceIsSectionSentinels`
- * for non-net-interest sections.
+ * by IncomeStatementBuilder's grid write will be overwritten by
+ * `replaceIsSectionSentinels` for non-net-interest sections.
  */
 export function injectExtendedIsAccounts(
   workbook: ExcelJS.Workbook,
@@ -1052,7 +908,7 @@ export function injectExtendedIsAccounts(
   if (!grid) return
 
   for (const acc of state.incomeStatement.accounts) {
-    if (acc.excelRow < 100) continue // defensive guard — legacy positions handled by injectGridCells
+    if (acc.excelRow < 100) continue // defensive guard — baseline rows handled by IncomeStatementBuilder's grid write
 
     // Label (column B): customLabel > catalog labelEn > catalogId fallback
     const catalog = IS_CATALOG.find((c) => c.id === acc.catalogId)
@@ -1075,9 +931,10 @@ export function injectExtendedIsAccounts(
  * For each IS section with `sentinelRow != null` AND ≥1 extended account,
  * overwrite the sentinel cell (D6/D7/D15/D30 across year columns C/D/E/F)
  * with a live `=SUM(col{start}:col{end})` formula. This replaces the
- * hardcoded sentinel number written by `injectGridCells`, turning the
- * export into a reactive workbook where user edits to extended rows
- * propagate automatically through derived formulas and downstream sheets.
+ * hardcoded sentinel number written by IncomeStatementBuilder's grid
+ * write, turning the export into a reactive workbook where user edits
+ * to extended rows propagate automatically through derived formulas
+ * and downstream sheets.
  *
  * `net_interest` is skipped (sentinelRow: null) because rows 500-519 mix
  * `income` and `expense` interestType — a simple SUM range can't express

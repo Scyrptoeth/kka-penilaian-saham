@@ -19,11 +19,13 @@ const SHEET_NAME = 'WACC'
  *      bankRates (row 27+) on the WACC sheet.
  *
  * Session 031 regression fix: before this builder, once IS migrated
- * to IncomeStatementBuilder, the legacy injectScalarCells skipped
- * all INCOME STATEMENT-destination scalars including wacc.taxRate →
- * IS!B33 (its source is 'wacc', but its excelSheet is 'INCOME
- * STATEMENT'). The IS builder doesn't know about this cross-sheet
- * scalar (its upstream is only ['incomeStatement']).
+ * to IncomeStatementBuilder, destination-filtered scalar writes dropped
+ * INCOME STATEMENT-destination entries, which included wacc.taxRate →
+ * IS!B33 (source is 'wacc', destination sheet is 'INCOME STATEMENT').
+ * IncomeStatementBuilder can't own this write — its upstream is only
+ * ['incomeStatement'], not ['wacc']. WaccBuilder resolves the gap via
+ * `writeScalarsFromSlice('wacc')` — source-slice owns all writes
+ * regardless of destination sheet (LESSON-091).
  *
  * Fix: source-slice owns all writes. WaccBuilder iterates by
  * storeSlice instead of excelSheet for scalars — this naturally
