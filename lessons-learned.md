@@ -583,7 +583,11 @@ untuk 3+ sesi ke depan:
 - LESSON-083 (Triple-layer i18n enforcement pattern — script + ESLint + pretest gate)
 - LESSON-084 (Phase C pragmatism — template formula-preservation test over full fixture reconstruction)
 
-LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054, 074 **TIDAK** di-promote — workflow/session-specific
+### Session 030 (State-Driven Export Foundation T1+T2)
+- LESSON-085 (Multi-session refactor checkpoint — foundation with empty registry is safely mergeable mid-refactor)
+- LESSON-086 (ExcelJS runtime API surpasses `.d.ts` — cast through internal shape for CF/images/tables)
+
+LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054, 074, 087 **TIDAK** di-promote — workflow/session-specific
 insights yang general ke project lain tapi terlalu luas atau terlalu
 session-specific untuk section 8 (yang fokus KKA-specific gotchas).
 Tersimpan di lessons-learned saja.
@@ -2296,5 +2300,89 @@ Pivoted to a simpler but still powerful test: **template round-trip**. Load temp
 6. If full numerical E2E is needed later: use a real formula engine OR run LibreOffice headless to recalc exported file, then compare.
 
 **Proven at**: session-029 (2026-04-17). Template round-trip test passed on first run — 4/4 Phase C assertions. Real export-pipeline bug surfaces would show as `numerical-drift` mismatches in the generated `phase-c-verification-report.md`. Total implementation time: ~30 min. Had full fixture reconstruction been pursued, would have taken 3-4x longer with higher risk of seed-state bugs masking real export bugs.
+
+---
+
+## Session 030 — State-Driven Export Foundation (T1+T2)
+
+### LESSON-085: Multi-session refactor — foundation with empty registry is safely mergeable mid-refactor
+
+**Kategori**: Workflow | Architecture
+**Sesi**: session-030
+**Tanggal**: 2026-04-17
+
+**Konteks**: Starting a cross-cutting refactor (rewriting 29 sheet exports from template-based to state-driven) where realistic scope exceeds a single session's context budget.
+
+**Apa yang terjadi**: Session 030 plan had 10 tasks (T1-T10); only T1+T2 (foundation layer) completed. User chose to wrap at this milestone rather than push risky half-finished migrations. Foundation merged to main cleanly — branch 0ebec2f fast-forward, live deployment stays HTTP 200, 953/953 tests green, zero user-facing behavior change.
+
+**Root cause / insight**: The `SheetBuilder` registry starts as `readonly SheetBuilder[] = []`. The orchestrator `runSheetBuilders()` iterates this empty array and does nothing. No existing `exportToXlsx` code path invokes the orchestrator yet. Result: the entire T1+T2 foundation is **runtime-inert** until T3+ actually registers builders AND wires the orchestrator into the export pipeline. This makes infrastructure-only commits fully safe to land on main even though the refactor they enable is incomplete.
+
+**Cara menerapkan di masa depan**:
+1. **When planning a multi-session refactor, isolate foundation layers that are runtime-inert**. Shape: interface + utility + empty registry + orchestrator stub that no caller invokes yet. Merge these first.
+2. **The foundation-first pattern gives resumable progress**: Session 031 checks out main (not a feature branch), inherits foundation, and starts T3 with the full 29-row dependency matrix already documented in plan.md.
+3. **Signal at session start**: if user asks for an ambitious all-in-one refactor, proactively map task count × per-task tool-call estimate against remaining context budget. Present honest options (wrap foundation vs push partial vs push-until-danger) rather than optimistically promising all-in-one.
+4. **The partial-migration intermediate state is the expensive one, not the foundation state**. Option C from session 030 brainstorm (push some builders but not all) produces a "mixed state" where some sheets are state-driven and others template-driven — confusing to users AND future sessions. Avoid that state by design.
+5. **Document the wrap point clearly in session history**: which tasks DONE, which DEFERRED, and explicitly call out that runtime behavior is unchanged so future devs can't misread "foundation committed" as "feature shipped".
+
+**Proven at**: session-030 (2026-04-17). Foundation merged to main, 953/953 green, live HTTP 200, registry empty = user-facing export identical to pre-session. Session 031 plan ready in `plan.md` with 29-row dependency matrix.
+
+---
+
+### LESSON-086: ExcelJS runtime API surpasses its `.d.ts` — cast through internal shape for CF, images, tables
+
+**Kategori**: TypeScript | Excel
+**Sesi**: session-030
+**Tanggal**: 2026-04-17
+
+**Konteks**: Building `clearSheetCompletely()` utility that wipes all worksheet content including conditional formatting, embedded images, and structured tables.
+
+**Apa yang terjadi**: Straightforward ExcelJS API calls (`sheet.conditionalFormattings = []`, `sheet.removeImage(id)`, `for (const tbl of sheet.getTables())`) typecheck fail with `TS2551: Property 'conditionalFormattings' does not exist`, `TS2339: Property 'removeImage' does not exist`, `TS2339: Property 'name' does not exist on type '[Table, void]'`. All three work at runtime — the ExcelJS `.d.ts` is incomplete/incorrect relative to the ESM module's actual surface.
+
+**Root cause / insight**: ExcelJS is maintained but its TypeScript definitions lag behind. The `.d.ts` is hand-written, not auto-generated from source. Public APIs like `conditionalFormattings`, `getImages`, `removeImage`, and the internal `tables` record are all real and documented but missing from types. The `getTables()` method returns a weirdly-typed `[Table, void][]` tuple array that can't be destructured as `.name`.
+
+**Cara menerapkan di masa depan**:
+1. **Pattern**: cast sheet through an internal shape matching the runtime surface:
+   ```ts
+   const sheetInternal = sheet as unknown as {
+     conditionalFormattings?: unknown[]
+     tables?: Record<string, unknown>
+     getImages?: () => Array<{ imageId: string }>
+     removeImage?: (id: string) => void
+   }
+   ```
+2. **For tables specifically, prefer `ws.tables` record iteration** (mirrors Session 026's `stripDecorativeTables` pattern) over `ws.getTables()` tuple array.
+3. **Always guard optional methods**: `if (typeof sheetInternal.getImages === 'function')` before calling. ExcelJS sometimes drops methods for worksheets in degenerate states.
+4. **Don't patch the `.d.ts` file** — the fix is per-call-site. Upstreaming to ExcelJS would be ideal but not blocking.
+5. **This applies to ANY ExcelJS manipulation beyond basic cell values**: CF, images, tables, data validations, pivot tables, charts. Budget typecheck iteration time when doing advanced worksheet manipulation.
+
+**Proven at**: session-030 (2026-04-17). 3 typecheck errors eliminated with `sheetInternal` cast pattern in `src/lib/export/sheet-utils.ts`. 12 tests green. Pattern matches existing `stripDecorativeTables` in `export-xlsx.ts` line 338-353.
+
+---
+
+### LESSON-087: Proactive session budget check before "all-in-one" refactor commitments
+
+**Kategori**: Workflow | Anti-pattern
+**Sesi**: session-030
+**Tanggal**: 2026-04-17
+
+**Konteks**: User requests a large refactor and picks "all-in-one session" over staged delivery when presented with the scope.
+
+**Apa yang terjadi**: Session 030 brainstorm offered 3 scope options (A: all-in-one, B: staged across sessions, C: safety-mode incremental). User chose A. Reality: T1+T2 (foundation) consumed ~18 tool calls and roughly 1/3 context window. T3-T10 estimated at 100+ additional tool calls. Would have exhausted context mid-task around T5-T6 with no clean stopping point. Wrapped at T1+T2 by honest checkpoint — not by crash.
+
+**Root cause / insight**: User's "all-in-one" preference reflects goal ("ship this refactor fast") not constraint ("budget for this is unlimited"). Claude should **count tool calls realistically, not optimistically**. Refactors touching N sheets × M per-sheet tasks × K tool calls per task = hundreds of tool calls total, and tool-call cost is roughly linear in context consumption.
+
+**Cara menerapkan di masa depan**:
+1. **Before accepting "all-in-one" for any refactor touching >10 files or >5 architectural layers, compute honest tool-call estimate**:
+   - Brainstorm + clarifications: 10-20 calls
+   - Foundation: 15-25 calls
+   - Per-builder/feature unit: 8-15 calls
+   - Verification + merge + docs: 20-30 calls
+2. **If estimate > 100 tool calls, present the reality in the options table** (already done well in session 030 Q4). Honor user's final choice but frame the tradeoff transparently.
+3. **Check context indicator mid-session**. If approaching 50-60% after foundation, proactively offer a clean wrap point. Better to ship T1+T2 milestone than to blow up at T5.
+4. **The right wrap milestone is often the point where `main` becomes ship-quality even if the feature is incomplete**. For refactors, that's usually the foundation (empty-registry pattern). For new features, it's a minimum viable vertical slice.
+5. **Session history should record the wrap decision and rationale** so future sessions understand "this is mid-refactor" vs "this is abandoned work".
+6. **Complement with LESSON-085**: if foundation-first + empty-registry pattern is designed in, then mid-refactor wraps are low-risk. Plan architecture to enable graceful wrap points.
+
+**Proven at**: session-030 (2026-04-17). Honest estimate at T1+T2 showed T3-T10 infeasible. Offered wrap options, user picked A (wrap foundation). Merge clean, live green, Session 031 ready to resume. Zero mid-task crash, zero rollback needed.
 
 ---
