@@ -1,146 +1,166 @@
-# Session 033 Design — T6: 7 Computed Analysis Builders
+# Session 034 Design — T7: 9 Projection/Valuation/Dashboard Builders
 
 **Date**: 2026-04-17
-**Branch**: `feat/session-033-computed-builders`
+**Branch**: `feat/session-034-proy-valuation-dashboard-builders`
 
 ## Problem Statement
 
-Sessions 030-032 delivered the state-driven export foundation and
-migrated 13 of 29 nav sheets (BS, IS, FA, AAM, SIMULASI POTENSI (AAM),
-HOME, KEY DRIVERS, ACC PAYABLES, DLOM, DLOC(PFC), WACC, DISCOUNT RATE,
-BORROWING CAP) into the `SHEET_BUILDERS` registry. The remaining 16
-sheets still run through the template-based legacy pipeline, which means
-computed analysis sheets (CASH FLOW STATEMENT, FCF, NOPLAT, FINANCIAL
-RATIO, ROIC, GROWTH REVENUE, GROWTH RATE) still leak prototipe PT Raja
-Voltama data when the user has populated their own upstream but hasn't
-actually "computed" these sheets via the website.
+Sessions 030-033 migrated 20 of 29 WEBSITE_NAV_SHEETS into the state-driven
+`SHEET_BUILDERS` registry. The remaining 9 sheets — 5 projection sheets,
+3 valuation-chain sheets, 1 dashboard — are still owned by the legacy
+template-based pipeline, meaning when a user's upstream deviates from the
+PT Raja Voltama Elektrik prototipe, these derived sheets either leak
+prototipe labels/structure or produce wrong template-formula results.
 
-Session 033 targets the **7 computed analysis sheets** — derived outputs
-from BS / IS / FA / AP that have no user-input dimension. Each builder
-composes the existing `computeXxxLiveRows` calculator (from
-`src/data/live/`) with `deriveComputedRows` (for subtotals/totals via
-manifest `computedFrom`) and writes the result into the template cells.
+Session 034 completes T7: register builders for **PROY LR, PROY FIXED
+ASSETS, PROY BALANCE SHEET, PROY NOPLAT, PROY CASH FLOW STATEMENT, DCF,
+EEM, CFI, DASHBOARD**. After this session, all 29 WEBSITE_NAV_SHEETS are
+state-driven. Sessions 035+ handle T8-T10 (legacy cleanup + Phase C
+rewrite + V2 promotion).
 
 ## Chosen Approach
 
-**Pattern**: mirror Session 031/032 shape. Each builder file exports a
-`SheetBuilder` object. `build()` computes the sheet's data in memory,
-then writes all row × year cells via a new shared helper
-`writeComputedRowsToSheet(ws, manifest, allRows, histYears)`.
+**Pattern**: mirror Sessions 031/032/033. Each builder is a `SheetBuilder`
+object. Each `build()` composes pre-existing calc functions — no new
+pure-calc code required:
+- `computeFullProjectionPipeline` (shared pipeline, exists) returns all
+  6 PROY rows (LR/FA/BS/NOPLAT/AP/CFS) from HOME + BS + IS + FA? + KeyDrivers.
+- `computeHistoricalUpstream` (exists) returns NOPLAT/CFS/FCF/FA chain
+  consumed by DCF/EEM/CFI/Dashboard.
+- `buildDcfInput` / `buildEemInput` / `buildBorrowingCapInput` exist.
+- `buildCfiInput` + `buildDashboardInput` **do NOT exist** — extract to
+  `upstream-helpers.ts` in T2 (LESSON-046 enforcement).
 
-**No cross-sheet scalar writes needed** — verified via audit of
-`STANDALONE_SCALARS` in `cell-mapping.ts`: zero entries target any of
-the 7 T6 sheets. (LESSON-091 audit gate passed.)
+**Fixture-driven cell discovery**: all 9 target sheets have ground-truth
+fixtures in `__tests__/fixtures/*.json`. Rather than author separate
+cell-layout constant files, the per-builder TDD phase reads fixtures to
+determine cell addresses and validates builder output against fixture
+values. Fixtures ARE the source of truth.
 
-**Historical year computation**: `computeHistoricalYears(
-state.home.tahunTransaksi, 3 | 4)` from `src/lib/calculations/year-helpers.ts`.
-CFS + FCF + NOPLAT + ROIC + GROWTH REVENUE + GROWTH RATE use 3 years;
-FINANCIAL RATIO uses 4 years (matches BS/IS historical column span).
-
-**Shared helper T2 — `writeComputedRowsToSheet`**: extract the common
-"iterate `manifest.rows × manifest.columns`, write each
-`allRows[excelRow][year]` to cell `<col><row>`" pattern into a single
-tested helper. All 7 builders use it. Avoids 7× duplication while
-preserving per-builder customization (upstream selection, compute
-orchestration, year count).
-
-### Builder-per-sheet table
-
-| # | Sheet name            | Upstream                                     | Compute Source                                  | Years |
-|---|-----------------------|----------------------------------------------|-------------------------------------------------|-------|
-| 1 | `NOPLAT`              | `['incomeStatement']`                        | `computeNoplatLiveRows`                         | 3     |
-| 2 | `CASH FLOW STATEMENT` | `['balanceSheet','incomeStatement']`         | `computeCashFlowLiveRows` (+optional FA, AP)    | 3     |
-| 3 | `FCF`                 | `['balanceSheet','incomeStatement','fixedAsset']` | Chain: NOPLAT + FA + CFS → `computeFcfLiveRows` | 3     |
-| 4 | `ROIC`                | `['balanceSheet','incomeStatement','fixedAsset']` | Chain: NOPLAT + CFS + FA + FCF → `computeRoicLiveRows` | 3     |
-| 5 | `GROWTH REVENUE`      | `['incomeStatement']`                        | `computeGrowthRevenueLive`                      | 4 (BS/IS) |
-| 6 | `GROWTH RATE`         | `['balanceSheet','incomeStatement','fixedAsset']` | Chain: NOPLAT + FA + CFS + FCF + ROIC → `computeGrowthRateLive` | 3     |
-| 7 | `FINANCIAL RATIO`     | `['balanceSheet','incomeStatement']`         | `computeFinancialRatioLive` (+optional CFS)     | 4     |
+**No SheetManifest required for T7 sheets**: unlike Session 033 computed
+analysis (NOPLAT/CFS/FCF/ROIC/FR — all had manifests), PROY sheets never
+had manifests (LESSON-038: "PROY pages → custom page, not manifest").
+DCF/EEM/CFI/Dashboard likewise custom. Builders write cells directly —
+mirror `GrowthRateBuilder` pattern from Session 033.
 
 ## Key Technical Decisions
 
-### D1. Registry order — computed analysis after all inputs
+### D1. `buildCfiInput` + `buildDashboardInput` extraction (LESSON-046)
 
-These builders consume BS/IS/FA/AP upstream data. Registered AFTER
-input builders (Session 031/032 block) but BEFORE valuation chain
-(AAM/SIMULASI). Final order:
+Extract into `upstream-helpers.ts`:
+- `buildCfiInput(params): CfiInput` — composes `computeFullProjectionPipeline`
+  result + `computeHistoricalUpstream` result + DR to produce 4 year-series
+  needed by `computeCfi`.
+- `buildDashboardInput(params): DashboardInput` — new type encapsulates
+  all data the Dashboard builder writes to the template: revenue/net-income
+  series, BS composition, DCF/AAM/EEM valuation summary, share value.
+
+Refactor `src/app/valuation/cfi/page.tsx` + `src/app/dashboard/page.tsx`
+to consume the new builders. Zero behavior change — identical output.
+Tests validate via existing integration tests + new `upstream-helpers`
+unit tests.
+
+### D2. Registry order — T7 placement
+
+New order (post-T7):
 
 ```ts
-// Financial statements (Session 031)
+// Session 031 financial statements
 BalanceSheetBuilder, IncomeStatementBuilder, FixedAssetBuilder,
-// Input master + supporting inputs (Session 032)
+// Session 032 inputs
 HomeBuilder, KeyDriversBuilder, AccPayablesBuilder,
-// Questionnaires (Session 032)
 DlomBuilder, DlocBuilder,
-// Valuation parameters (Session 032)
 WaccBuilder, DiscountRateBuilder, BorrowingCapBuilder,
-// Computed analysis (Session 033)
+// Session 033 computed analysis
 NoplatBuilder, CashFlowStatementBuilder, FcfBuilder,
 RoicBuilder, GrowthRevenueBuilder, GrowthRateBuilder,
 FinancialRatioBuilder,
-// AAM chain (Session 031)
+// Session 034 projections (new)
+ProyLrBuilder, ProyFaBuilder, ProyBsBuilder,
+ProyNoplatBuilder, ProyCfsBuilder,
+// Session 034 valuation (new)
+DcfBuilder, CfiBuilder, EemBuilder,
+// Session 034 dashboard (new)
+DashboardBuilder,
+// Session 031 AAM chain — runs after all inputs + valuation
 AamBuilder, SimulasiPotensiBuilder,
 ```
 
-### D2. Null-safe upstream chaining
+Rationale: no cross-sheet scalar dependencies between T7 builders, but
+ordering matches logical data flow — projections before DCF (DCF consumes
+PROY), DCF before CFI (CFI consumes DCF projectedFcf), AAM/SIMULASI last
+as always.
 
-Each compute-live function accepts nullable optional inputs. Builder
-gate pattern: require MANDATORY upstream (enforced by orchestrator's
-`isPopulated` check via `upstream` array) but allow OPTIONAL upstream
-to fall through to the compute-live function's own null handling.
+### D3. Write values, not formulas (Session 033 D3 carry-over)
 
-Example: `CashFlowStatementBuilder` mandates `['balanceSheet', 'incomeStatement']`
-(without these, CFS is meaningless). `fixedAsset` + `accPayables` are
-optional (compute-live returns zero capex / zero financing rows when
-null).
+T7 sheets are derived outputs. User cannot edit them. Writing static
+computed values eliminates template-formula-chain complexity. Trade-off:
+user opening .xlsx in Excel sees static numbers on these sheets; they do
+NOT recompute when user tweaks an upstream cell in Excel. This matches
+website semantics.
 
-### D3. Write values, not formulas
+### D4. Cross-sheet scalar audit — PASSED
 
-T6 sheets are derived outputs — user cannot edit them via website.
-Writing static computed values is semantically correct and eliminates
-template-formula complexity (no cross-sheet ref chain to maintain).
+`grep -n "sheetName.*'PROY\|'DCF'\|'EEM'\|'CFI'\|'DASHBOARD'" src/lib/export/*.ts`
+returns **zero matches**. No `STANDALONE_SCALARS` entries target T7
+sheets. No cross-sheet writes from other builders into T7 sheets. No
+LESSON-091 hazard.
 
-**Trade-off accepted**: opening exported file in Excel, user cannot
-"tweak one upstream cell and see downstream auto-update" on these 7
-sheets — they show static numbers. This matches website behavior
-(these sheets are read-only in the website too). Live reactivity for
-user-editable sheets (BS/IS/FA etc.) is preserved via their respective
-template formulas.
+### D5. Dashboard scope — data cells only
 
-### D4. Historical year count derivation
+Excel DASHBOARD sheet contains data tables + chart references. ExcelJS
+does not reliably round-trip chart XML / image parts. Dashboard builder
+writes **data cells only** — chart objects left untouched. Charts in the
+exported file reference whatever cells the template chart objects already
+point to; if those cells are populated with current values, charts
+render with current data on Excel open.
 
-`state.home.tahunTransaksi` provides the latest year. Compute years:
+### D6. Cascade integration test — declarative growth 20 → 29
+
+`__tests__/integration/export-cascade.test.ts` `MIGRATED_SHEETS` array
+grows 20 → 29 sheets. Per LESSON-093, assertions unchanged — test works
+by data-table extension.
+
+### D7. Fixture-based TDD precision
+
+Per-builder test shape:
 ```ts
-import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
-const histYears3 = computeHistoricalYears(state.home.tahunTransaksi, 3)
-const histYears4 = computeHistoricalYears(state.home.tahunTransaksi, 4)
+import fixture from '../../../fixtures/proy-lr.json'
+const fixtureCell = (addr: string) =>
+  fixture.cells.find(c => c.addr === addr)?.value ?? null
+// After Builder.build(wb, state):
+expect(ws.getCell('C8').value).toBeCloseTo(fixtureCell('C8') as number, 0)
 ```
 
-Builder must guard: if `state.home === null`, fall through to
-`clearSheetCompletely` via orchestrator (null-upstream path).
-
-### D5. Cascade integration test extension
-
-`__tests__/integration/export-cascade.test.ts` MIGRATED_SHEETS array
-extends 13 → 20. Declarative pattern means test assertions unchanged
-(LESSON-093 — Session 032 pattern proven).
+Precision: integer-close (tolerance 0) for IDR values — fixture stores
+computed float; compute pipeline reproduces same float. Percent values
+use 6-decimal `toBeCloseTo`.
 
 ## What is OUT OF SCOPE
 
-- ❌ T7 (9 projection/valuation/dashboard builders — PROY×5, DCF, EEM, CFI, Dashboard) — deferred to Session 034
 - ❌ T8 (legacy `exportToXlsx` body cleanup + `stripCrossSheetRefsToBlankSheets`) — Session 035
 - ❌ T9 (Phase C rewrite to website-state parity) — Session 035
-- ❌ T10 (V2 promotion as primary) — Session 036
-- ❌ Cross-sheet formula preservation on T6 sheets — values-not-formulas chosen per D3
-- ❌ Upload parser, RESUME page, Dashboard polish — unrelated backlog
+- ❌ T10 (`exportToXlsxV2` promotion as primary) — Session 036
+- ❌ Dashboard chart object modification (ExcelJS limitation)
+- ❌ PROY ACC PAYABLES builder — sheet is hidden from website nav, stays in legacy pipeline (already hidden via applySheetVisibility)
+- ❌ RESUME sheet — hidden, not in WEBSITE_NAV_SHEETS
+- ❌ Upload parser, dark-mode polish, multi-case management — unrelated backlog
 
 ## Verification Strategy
 
-- **Per-builder**: unit tests loading real template, asserting cell
-  values match expected compute output (RED → GREEN → REFACTOR)
-- **Shared helper**: 5 TDD tests for `writeComputedRowsToSheet`
-  covering iteration, null skipping, column letter lookup, idempotency,
-  missing-row tolerance
-- **Orchestrator**: cascade integration test extended 13 → 20 sheets
-- **Pipeline**: Session 029 Phase C test unchanged (still 4/4 gates)
+- **Per-builder**: unit tests that (a) metadata check, (b) null-upstream
+  no-op, (c) populated-upstream matches fixture values at several cells
+- **Shared helper refactor (T2)**: ensure existing CFI/Dashboard pages
+  still work after extraction — browser smoke via build + prerender
+  verification + unit tests on new `buildCfiInput`/`buildDashboardInput`
+- **Cascade integration**: 20 → 29 MIGRATED_SHEETS grow, same assertions
+- **Pipeline**: Session 029 Phase C test unchanged — still 4/4 gates
 - **Build/lint/typecheck/audit**: full gate before merge
-- **Live**: post-merge HTTP check on penilaian-bisnis.vercel.app
+- **Post-merge**: HTTP 307 probe on penilaian-bisnis.vercel.app
+
+## Expected Impact
+
+**Tests**: 1125 → ~1200 (+75 estimated: 9 builders × 6-8 tests + T2 helper tests + cascade extension)
+**Registry**: 20 → 29 builders (full cascade coverage)
+**Legacy pipeline**: now skip-guards all 29 WEBSITE_NAV_SHEETS via reactive `MIGRATED_SHEET_NAMES`
+**State-driven migration completion**: Sessions 030-034 close Phase 2 entirely; T8-T10 are cleanup, not migration
