@@ -12,6 +12,8 @@ import { AccPayablesBuilder } from './acc-payables'
 import { DlomBuilder } from './dlom'
 import { DlocBuilder } from './dloc'
 import { WaccBuilder } from './wacc'
+import { DiscountRateBuilder } from './discount-rate'
+import { BorrowingCapBuilder } from './borrowing-cap'
 import { AamBuilder } from './aam'
 import { SimulasiPotensiBuilder } from './simulasi-potensi'
 
@@ -56,6 +58,8 @@ export function getSheetBuilders(): readonly SheetBuilder[] {
     // Valuation parameters (Session 032) — Wacc MUST run after IS
     // so its cross-sheet write to IS!B33 survives writeIsLabels
     WaccBuilder,
+    DiscountRateBuilder,
+    BorrowingCapBuilder,
     // AAM chain (Session 031) — runs after inputs complete
     AamBuilder,
     SimulasiPotensiBuilder,
