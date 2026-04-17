@@ -9,6 +9,7 @@ import { FixedAssetBuilder } from './fixed-asset'
 import { HomeBuilder } from './home'
 import { KeyDriversBuilder } from './key-drivers'
 import { AccPayablesBuilder } from './acc-payables'
+import { DlomBuilder } from './dlom'
 import { AamBuilder } from './aam'
 import { SimulasiPotensiBuilder } from './simulasi-potensi'
 
@@ -47,6 +48,8 @@ export function getSheetBuilders(): readonly SheetBuilder[] {
     HomeBuilder,
     KeyDriversBuilder,
     AccPayablesBuilder,
+    // Questionnaires (Session 032)
+    DlomBuilder,
     // AAM chain (Session 031) — runs after inputs complete
     AamBuilder,
     SimulasiPotensiBuilder,
