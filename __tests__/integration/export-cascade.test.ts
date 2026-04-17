@@ -57,6 +57,7 @@ const MIGRATED_SHEETS = [
   'DCF',
   'EEM',
   'CFI',
+  'DASHBOARD',
 ] as const
 
 function makeEmptyState(): ExportableState {
@@ -90,11 +91,15 @@ describe('Export cascade — all-null state', () => {
     // Sanity: template ships with SOME content on each migrated sheet —
     // at minimum a header/title row or a value cell. Exact addresses
     // vary per sheet, so scan the first ~20 rows for any truthy cell.
+    // Scan a wide range — some migrated sheets have content at non-leading
+    // positions (DASHBOARD template puts its 4-block summary at rows 58-62
+    // × cols G/L/P/U). A narrow top-left scan would falsely report "empty".
     const sampleFirstTruthyCell = (sheetName: string): boolean => {
       const ws = wb.getWorksheet(sheetName)
       if (!ws) return false
-      for (let r = 1; r <= 25; r++) {
-        for (const c of ['A', 'B', 'C', 'D', 'E']) {
+      const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'L', 'M', 'P', 'Q', 'U', 'V']
+      for (let r = 1; r <= 65; r++) {
+        for (const c of cols) {
           const v = ws.getCell(`${c}${r}`).value
           if (v !== null && v !== undefined && v !== '') return true
         }

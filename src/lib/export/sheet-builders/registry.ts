@@ -29,6 +29,7 @@ import { ProyCfsBuilder } from './proy-cfs'
 import { DcfBuilder } from './dcf'
 import { EemBuilder } from './eem'
 import { CfiBuilder } from './cfi'
+import { DashboardBuilder } from './dashboard'
 import { AamBuilder } from './aam'
 import { SimulasiPotensiBuilder } from './simulasi-potensi'
 
@@ -93,6 +94,8 @@ export function getSheetBuilders(): readonly SheetBuilder[] {
     DcfBuilder,
     EemBuilder,
     CfiBuilder,
+    // Session 034 dashboard
+    DashboardBuilder,
     // AAM chain (Session 031) — runs after inputs complete
     AamBuilder,
     SimulasiPotensiBuilder,
