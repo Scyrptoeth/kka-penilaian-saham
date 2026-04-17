@@ -577,6 +577,12 @@ untuk 3+ sesi ke depan:
 - LESSON-078 (Band layout + mirrored SUM for multi-block sheets — one leaf × N-block mirror requires parallel bands with slot-index allocation)
 - LESSON-079 (TypeScript self-reference in typed-const + satisfies — extract explicit key union type)
 
+### Session 029 (i18n Audit + Phase C Verification)
+- LESSON-081 (`git add -A` is a foot-gun — stage explicit paths for clean commits)
+- LESSON-082 (Vitest literal-type laxness vs `tsc --noEmit` — always run typecheck before claiming GREEN)
+- LESSON-083 (Triple-layer i18n enforcement pattern — script + ESLint + pretest gate)
+- LESSON-084 (Phase C pragmatism — template formula-preservation test over full fixture reconstruction)
+
 LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054, 074 **TIDAK** di-promote — workflow/session-specific
 insights yang general ke project lain tapi terlalu luas atau terlalu
 session-specific untuk section 8 (yang fokus KKA-specific gotchas).
@@ -2197,5 +2203,98 @@ TypeScript error TS2502: `'operands' is referenced directly or indirectly in its
 3. **Update skills at `~/.claude/skills/<name>/SKILL.md`** in parallel with repo docs; skills commit separately from repo commit
 
 **Proven at**: session-028 (2026-04-17). T0 commit 0cf6f21 updated only `HANDOFF-COWORK.md` in repo + 6 occurrences across 2 skill files. 7 history files (sessions 001/007/009/010/022/023/024/025/026) + 2 untracked prompt files preserved verbatim.
+
+### LESSON-081: `git add -A` is a foot-gun — stage explicit paths for clean commits
+
+**Kategori**: Workflow | Anti-pattern
+**Sesi**: session-029
+**Tanggal**: 2026-04-17
+
+**Konteks**: Committing a multi-file feature migration in a repository that has untracked user artifacts (screenshots, drafts, backup files) sitting in the working directory.
+
+**Apa yang terjadi**: During Session 029 T5/T6 batch migration (22 files changed), used `git add -A && git commit` as shortcut. Ended up sweeping 70+ untracked files — screenshots, prompt drafts, Excel lockfile, benchmark images — into the commit. Had to `git reset --soft HEAD~1`, then `git reset HEAD` to fully unstage, then `git add scripts/ src/` for selective re-staging, then re-commit. Clean history recovered, but wasted ~5 minutes + introduced risk of accidental push.
+
+**Root cause / insight**: `-A` stages ALL working tree changes including newly tracked files. In an active project where user drops screenshots, prompts, and Excel backups into the repo root as ephemera, the staging area becomes polluted. These artifacts are NEVER meant to be committed — they're user's local session memory.
+
+**Cara menerapkan di masa depan**:
+1. **Never `git add -A`** for feature commits. Always stage explicitly by directory or path: `git add src/ scripts/ __tests__/` — mirrors what the feature actually changed.
+2. If `git status` shows untracked artifacts (images, xlsx, draft markdowns), **glob stage** from the intended feature dir only.
+3. Acceptable `git add -A` contexts: initial project commit, post-rebase cleanup where only tracked files changed. Otherwise explicit paths.
+4. **Recovery is cheap** with `git reset --soft HEAD~1` + `git reset HEAD` — not destructive. Use it without hesitation when commit scope looks wrong.
+5. Add untracked-artifact patterns to `.gitignore` proactively if they recur (screenshots/*.png, drafts/*.md).
+
+**Proven at**: session-029 (2026-04-17). Recovered from erroneous 96-file commit, re-committed as 21-file clean scope. `.gitignore` updated to exclude generated reports (`i18n-audit-report.md`, `phase-c-*.md`).
+
+### LESSON-082: Vitest literal-type laxness vs `tsc --noEmit` — run typecheck before claiming GREEN
+
+**Kategori**: TypeScript | Testing | Workflow
+**Sesi**: session-029
+**Tanggal**: 2026-04-17
+
+**Konteks**: Editing `src/lib/i18n/translations.ts` to add interpolation support for `t()` function. Tests pass; editor shows no errors; commit locally.
+
+**Apa yang terjadi**: After adding `result = result.split(...).join(...)` in `t()` function, Vitest ran clean (8/8 tests green). Hours later during T15 full verification gate, `npm run typecheck` surfaced:
+```
+src/lib/i18n/translations.ts(683,7): error TS2322: Type 'string' is not
+assignable to type '"HOME" | "FCF" | "NOPLAT" | ... | (844 literals)'
+```
+Root cause: `entry[lang]` returns a union of all possible string literals in the `dict as const` object. TS inferred `let result` as that union. Reassigning with `split/join` produces `string` (not in the union). Vitest's Vite + esbuild pipeline didn't enforce this; `tsc --noEmit` (strict) did.
+
+**Root cause / insight**: **Vitest type-checking is laxer than `tsc --noEmit`**. Vitest transpiles with esbuild which prioritizes speed over strict literal-type tracking. `tsc --noEmit` is the ground truth for production-build compatibility. Pattern repeats across the codebase — LESSON-079 (Session 028 FA_BAND self-reference) and this one are same class of bug: features that "work" in Vitest but fail next build.
+
+**Cara menerapkan di masa depan**:
+1. **Never declare TDD "GREEN" from Vitest alone.** Chain: run Vitest (functional) → run `npm run typecheck` (strict types) → run `npm run build` (production bundle). All three must pass.
+2. **When modifying `dict as const`-style data**, explicitly annotate `let result: string` or `let result: TranslationValue` to decouple inference from the literal union. Prevents accidental widening errors from propagating into function signatures.
+3. **Add typecheck as pretest gate** in future projects where it's cheap enough — though current project's typecheck takes 30s+ so keeping it opt-in is pragmatic.
+4. **Pattern to watch**: any `let x = someConstLookup[key]` followed by `x = transform(x)` — TS will flag because transform likely widens the type.
+5. At commit-worthy milestones (end of task, pre-push), always run `npm run typecheck` explicitly.
+
+**Proven at**: session-029 (2026-04-17). Caught at T15 gate — would have surfaced as production-build failure on Vercel if pushed. Fix: `let result: string = entry[lang] ?? entry.en`. 1-char annotation, 0 test changes.
+
+### LESSON-083: Triple-layer i18n enforcement pattern — script + ESLint + pretest gate
+
+**Kategori**: Workflow | Framework
+**Sesi**: session-029
+**Tanggal**: 2026-04-17
+
+**Konteks**: Preventing regression on i18n coverage after a large migration effort. Individual developers may not remember the rule; individual test cases don't enforce it; post-hoc audits are reactive.
+
+**Apa yang terjadi**: Session 027 migrated 50+ files to `useT()`. Session 028 shipped new features without enforcement. By Session 029, audit surfaced 55 NEW hardcoded strings across 22 files — even in components added that same week. Pure process/discipline doesn't scale; enforcement must be automated.
+
+**Root cause / insight**: Single enforcement point = single failure mode. If CI catches it but editor doesn't, developer spends time on round-trip debugging. If ESLint catches it but script doesn't, audit runs find lint holes. Different developers hit different layers; all three layers must converge to "cannot ship with hardcoded UI strings".
+
+**Cara menerapkan di masa depan**:
+1. **Layer 1 — Editor feedback (IDE):** ESLint custom rule flagging violations inline. Fastest feedback loop.
+2. **Layer 2 — Pre-test gate (npm):** `pretest` chain runs audit script before Vitest; test suite can't start with violations present. Catches devs who don't have ESLint plugin.
+3. **Layer 3 — CI gate (`npm run lint` + `npm test`):** both enforce in pipeline. Cannot merge broken.
+4. **Accept-list in single JSON** (`scripts/i18n-accept-list.json`): both script and ESLint rule read the same file — no drift between enforcement layers. Future additions go in one place.
+5. **Pragma support** (`// i18n-ignore` before offending line): escape hatch for genuine edge cases — doesn't require accept-list bloat.
+6. **Start with the audit script** (LESSON-066 audit-first methodology): its static analyzer findings guide ESLint rule design. Don't write rule from scratch — mirror script logic.
+
+**Proven at**: session-029 (2026-04-17). Triple-layer now active: `audit-i18n.mjs` + `no-hardcoded-ui-strings.js` ESLint rule + `pretest` chain. Regression test: injecting a hardcoded string produces 2 lint errors before the commit stage. Reusable for other string-coverage problems (accessibility strings, log messages, deprecated API names).
+
+### LESSON-084: Phase C pragmatism — template formula-preservation test over full fixture reconstruction
+
+**Kategori**: Testing | Workflow | Export
+**Sesi**: session-029
+**Tanggal**: 2026-04-17
+
+**Konteks**: Designing an end-to-end integrity test for the Excel export pipeline. Existing unit tests cover individual stages (inject, sentinel, visibility, sanitize, BS/IS/FA extensions) in isolation. What should a composed E2E test verify that the unit tests miss?
+
+**Apa yang terjadi**: Initial Phase C design proposed a "website-vs-Excel numerical comparator" — seed store from fixtures → run all calc modules → snapshot → export → ExcelJS readback → snapshot → diff. Design.md documented this approach. Implementation started. Realized key limitation during T9: **ExcelJS doesn't evaluate formulas**. `cell.result` returns the cached result from the .xlsx's last save. So comparing website-computed value against exported-workbook result is really comparing against TEMPLATE'S CACHED VALUE (for PT Raja Voltama). This made the test either tautological (same fixture both sides) or required implementing formula evaluation (massive scope creep).
+
+Pivoted to a simpler but still powerful test: **template round-trip**. Load template → snapshot every formula cell. Run minimal-state export pipeline (no user data, just visibility + sanitize + table-strip + writeBuffer round-trip). Re-snapshot. Diff. If the pipeline corrupts any template cell value during serialization/deserialization/sanitization, this catches it.
+
+**Root cause / insight**: **ExcelJS is a read/write library, not a formula engine.** End-to-end tests that require formula evaluation need a separate engine (xlsx-calc, formula.js) or a real Excel subprocess. For Phase C's goal (export pipeline doesn't corrupt template), formula preservation is the RIGHT test — tighter and more useful than full numerical comparison.
+
+**Cara menerapkan di masa depan**:
+1. **Before designing an E2E test, map what each stage actually does.** Formula evaluation is NOT a stage in our export pipeline; it's Excel's job at file-open time.
+2. **Prefer tests that validate invariants your pipeline preserves**, not properties that depend on external systems to compute.
+3. **Minimal-state tests are powerful**: null/empty input + pipeline execution + verify no side effects is a great integrity probe. No seed reconstruction burden.
+4. **writeBuffer → load round-trip** in the test helper catches serialization corruption (one of Session 026's three corruption vectors was serialization-specific).
+5. **When a planned test reveals a design flaw during implementation, PIVOT in the same session** — don't plow through with a broken test. Document the pivot in session history (deviations section).
+6. If full numerical E2E is needed later: use a real formula engine OR run LibreOffice headless to recalc exported file, then compare.
+
+**Proven at**: session-029 (2026-04-17). Template round-trip test passed on first run — 4/4 Phase C assertions. Real export-pipeline bug surfaces would show as `numerical-drift` mismatches in the generated `phase-c-verification-report.md`. Total implementation time: ~30 min. Had full fixture reconstruction been pursued, would have taken 3-4x longer with higher risk of seed-state bugs masking real export bugs.
 
 ---
