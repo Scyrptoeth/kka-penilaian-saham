@@ -9,6 +9,8 @@ import {
   extendBsSectionSubtotals,
   injectExtendedIsAccounts,
   replaceIsSectionSentinels,
+  injectExtendedFaAccounts,
+  extendFaSectionSubtotals,
   sanitizeDanglingFormulas,
   stripDecorativeTables,
   injectBsCrossRefValues,
@@ -54,6 +56,9 @@ async function simulateExport(state: ExportableState): Promise<ExcelJS.Workbook>
   // Session 028 — IS extended injection (Approach δ: sentinel formula replacement).
   injectExtendedIsAccounts(wb, state)
   replaceIsSectionSentinels(wb, state)
+  // Session 028 — FA extended injection (Approach η: 7-band mirror + SUM append).
+  injectExtendedFaAccounts(wb, state)
+  extendFaSectionSubtotals(wb, state)
   // Apply website-nav 1:1 visibility (Session 024)
   applySheetVisibility(wb)
   // Inject BS rows 20 & 21 from FA store cross-refs (Session 026 follow-up)
@@ -816,6 +821,258 @@ describe('export-xlsx (template-based)', () => {
           // If template had a formula at D6, must NOT be the SUM(D100:D119) form
           expect((v as { formula: string }).formula).not.toContain('SUM(D100:D119)')
         }
+      })
+    })
+  })
+
+  // ─── Session 028: FA extended catalog native injection (Approach η) ───
+  describe('extended FA catalog native injection (Session 028 — Approach η: 7-band mirror)', () => {
+    const STATE_WITH_EXTENDED_FA: ExportableState = {
+      ...TEST_STATE,
+      fixedAsset: {
+        accounts: [
+          // Original (legacy positions handled by existing injectGridCells)
+          { catalogId: 'land', excelRow: 8, section: 'fixed_asset' as const },
+          // Extended catalog at slot 0, 1
+          { catalogId: 'computer_equipment', excelRow: 100, section: 'fixed_asset' as const },
+          { catalogId: 'furniture_fixtures', excelRow: 101, section: 'fixed_asset' as const },
+          // Custom at slot 2 (with customLabel)
+          { catalogId: 'custom_asset_x', excelRow: 1000, section: 'fixed_asset' as const, customLabel: 'Custom Alpha' },
+        ],
+        yearCount: 3,
+        language: 'en' as const,
+        rows: {
+          // Original row 8 (Land)
+          8: { 2019: 500, 2020: 600, 2021: 700 },
+          // Extended account at base 100 (slot 0)
+          100:  { 2019: 1000, 2020: 1100, 2021: 1200 },  // Acq Begin
+          2100: { 2019: 50,   2020: 55,   2021: 60   },  // Acq Add
+          4100: { 2019: 300,  2020: 350,  2021: 400  },  // Dep Begin
+          5100: { 2019: 30,   2020: 35,   2021: 40   },  // Dep Add
+          // Extended account at base 101 (slot 1)
+          101:  { 2019: 800, 2020: 850, 2021: 900 },
+          2101: { 2019: 40,  2020: 45,  2021: 50  },
+          4101: { 2019: 200, 2020: 220, 2021: 240 },
+          5101: { 2019: 20,  2020: 22,  2021: 24  },
+          // Custom at base 1000 (slot 2)
+          1000: { 2019: 5000, 2020: 5500, 2021: 6000 },
+          3000: { 2019: 200,  2020: 220,  2021: 240  },  // 1000 + 2000
+          5000: { 2019: 1000, 2020: 1100, 2021: 1200 },  // 1000 + 4000
+          6000: { 2019: 100,  2020: 110,  2021: 120  },  // 1000 + 5000
+        },
+      },
+    }
+
+    describe('injectExtendedFaAccounts — 4 user-input bands', () => {
+      it('Band 1 Acq Begin: writes value at slot row (100 + slotIndex)', async () => {
+        const wb = await simulateExport(STATE_WITH_EXTENDED_FA)
+        const fa = wb.getWorksheet('FIXED ASSET')!
+        // Slot 0 (base 100)
+        expect(fa.getCell('C100').value).toBe(1000)
+        expect(fa.getCell('D100').value).toBe(1100)
+        expect(fa.getCell('E100').value).toBe(1200)
+        // Slot 1 (base 101)
+        expect(fa.getCell('C101').value).toBe(800)
+        // Slot 2 (custom base 1000) lands on synthetic row 102
+        expect(fa.getCell('C102').value).toBe(5000)
+      })
+
+      it('Band 2 Acq Add: reads rows[base + 2000] at slot row (140 + slotIndex)', async () => {
+        const wb = await simulateExport(STATE_WITH_EXTENDED_FA)
+        const fa = wb.getWorksheet('FIXED ASSET')!
+        // Slot 0: rows[2100] → synthetic row 140
+        expect(fa.getCell('C140').value).toBe(50)
+        expect(fa.getCell('E140').value).toBe(60)
+        // Slot 1: rows[2101] → row 141
+        expect(fa.getCell('C141').value).toBe(40)
+        // Slot 2: rows[3000] → row 142
+        expect(fa.getCell('C142').value).toBe(200)
+      })
+
+      it('Band 4 Dep Begin: reads rows[base + 4000] at slot row (220 + slotIndex)', async () => {
+        const wb = await simulateExport(STATE_WITH_EXTENDED_FA)
+        const fa = wb.getWorksheet('FIXED ASSET')!
+        // Slot 0: rows[4100] → row 220
+        expect(fa.getCell('C220').value).toBe(300)
+        expect(fa.getCell('E220').value).toBe(400)
+        // Slot 2: rows[5000] → row 222
+        expect(fa.getCell('C222').value).toBe(1000)
+      })
+
+      it('Band 5 Dep Add: reads rows[base + 5000] at slot row (260 + slotIndex)', async () => {
+        const wb = await simulateExport(STATE_WITH_EXTENDED_FA)
+        const fa = wb.getWorksheet('FIXED ASSET')!
+        // Slot 0: rows[5100] → row 260
+        expect(fa.getCell('C260').value).toBe(30)
+        // Slot 1: rows[5101] → row 261
+        expect(fa.getCell('C261').value).toBe(20)
+        // Slot 2: rows[6000] → row 262
+        expect(fa.getCell('C262').value).toBe(100)
+      })
+    })
+
+    describe('injectExtendedFaAccounts — 3 formula bands (computed blocks)', () => {
+      it('Band 3 Acq End: writes formula =+<col>(100+i)+<col>(140+i)', async () => {
+        const wb = await simulateExport(STATE_WITH_EXTENDED_FA)
+        const fa = wb.getWorksheet('FIXED ASSET')!
+        // Slot 0 → row 180
+        const f0 = (fa.getCell('C180').value as { formula: string }).formula
+        expect(f0).toBe('+C100+C140')
+        // Slot 2 → row 182
+        const f2 = (fa.getCell('D182').value as { formula: string }).formula
+        expect(f2).toBe('+D102+D142')
+      })
+
+      it('Band 6 Dep End: writes formula =+<col>(220+i)+<col>(260+i)', async () => {
+        const wb = await simulateExport(STATE_WITH_EXTENDED_FA)
+        const fa = wb.getWorksheet('FIXED ASSET')!
+        // Slot 0 → row 300
+        const f0 = (fa.getCell('C300').value as { formula: string }).formula
+        expect(f0).toBe('+C220+C260')
+        // Slot 1 → row 301
+        const f1 = (fa.getCell('E301').value as { formula: string }).formula
+        expect(f1).toBe('+E221+E261')
+      })
+
+      it('Band 7 Net Value: writes formula =+<col>(180+i)-<col>(300+i)', async () => {
+        const wb = await simulateExport(STATE_WITH_EXTENDED_FA)
+        const fa = wb.getWorksheet('FIXED ASSET')!
+        // Slot 0 → row 340
+        const f0 = (fa.getCell('C340').value as { formula: string }).formula
+        expect(f0).toBe('+C180-C300')
+        // Slot 2 → row 342
+        const f2 = (fa.getCell('D342').value as { formula: string }).formula
+        expect(f2).toBe('+D182-D302')
+      })
+    })
+
+    describe('injectExtendedFaAccounts — slot assignment + labels', () => {
+      it('slot index preserves accounts array insertion order', async () => {
+        const wb = await simulateExport(STATE_WITH_EXTENDED_FA)
+        const fa = wb.getWorksheet('FIXED ASSET')!
+        // Order in array: computer_equipment (100) → slot 0 → row 100
+        //                 furniture_fixtures (101) → slot 1 → row 101
+        //                 custom_asset_x (1000)    → slot 2 → row 102
+        expect(fa.getCell('B100').value).toBe('Computer Equipment')
+        expect(fa.getCell('B101').value).toBe('Furniture & Fixtures')
+        expect(fa.getCell('B102').value).toBe('Custom Alpha')
+      })
+
+      it('writes labels to col B in ALL 7 bands (matches template convention)', async () => {
+        const wb = await simulateExport(STATE_WITH_EXTENDED_FA)
+        const fa = wb.getWorksheet('FIXED ASSET')!
+        // Slot 0 = Computer Equipment — appears in all 7 bands
+        expect(fa.getCell('B100').value).toBe('Computer Equipment') // Band 1
+        expect(fa.getCell('B140').value).toBe('Computer Equipment') // Band 2
+        expect(fa.getCell('B180').value).toBe('Computer Equipment') // Band 3
+        expect(fa.getCell('B220').value).toBe('Computer Equipment') // Band 4
+        expect(fa.getCell('B260').value).toBe('Computer Equipment') // Band 5
+        expect(fa.getCell('B300').value).toBe('Computer Equipment') // Band 6
+        expect(fa.getCell('B340').value).toBe('Computer Equipment') // Band 7
+      })
+
+      it('skips accounts with excelRow < 100 (defensive — legacy positions)', async () => {
+        const stateOriginalOnly: ExportableState = {
+          ...TEST_STATE,
+          fixedAsset: {
+            accounts: [
+              { catalogId: 'land', excelRow: 8, section: 'fixed_asset' as const },
+            ],
+            yearCount: 3,
+            language: 'en' as const,
+            rows: { 8: { 2019: 500, 2020: 600, 2021: 700 } },
+          },
+        }
+        const wb = await simulateExport(stateOriginalOnly)
+        const fa = wb.getWorksheet('FIXED ASSET')!
+        // No writes in any extended band
+        expect(fa.getCell('B100').value).toBeFalsy()
+        expect(fa.getCell('C180').value).toBeFalsy()
+      })
+
+      it('handles null fixedAsset → no modifications anywhere', async () => {
+        const wb = await simulateExport({ ...TEST_STATE, fixedAsset: null })
+        const fa = wb.getWorksheet('FIXED ASSET')!
+        expect(fa.getCell('B100').value).toBeFalsy()
+        expect(fa.getCell('C100').value).toBeFalsy()
+      })
+    })
+
+    describe('extendFaSectionSubtotals — appends +SUM(band) to 7 subtotals', () => {
+      it('C14 Acq Begin subtotal: appends +SUM(<col>100:<col>139) for all year cols', async () => {
+        const wb = await simulateExport(STATE_WITH_EXTENDED_FA)
+        const fa = wb.getWorksheet('FIXED ASSET')!
+        for (const col of ['C', 'D', 'E']) {
+          const f = (fa.getCell(`${col}14`).value as { formula: string }).formula
+          expect(f, `${col}14`).toContain(`SUM(${col}100:${col}139)`)
+        }
+      })
+
+      it('C23 Acq Add subtotal: appends +SUM(<col>140:<col>179)', async () => {
+        const wb = await simulateExport(STATE_WITH_EXTENDED_FA)
+        const fa = wb.getWorksheet('FIXED ASSET')!
+        const f = (fa.getCell('C23').value as { formula: string }).formula
+        expect(f).toContain('SUM(C140:C179)')
+      })
+
+      it('C32 Acq End subtotal: appends +SUM(<col>180:<col>219)', async () => {
+        const wb = await simulateExport(STATE_WITH_EXTENDED_FA)
+        const fa = wb.getWorksheet('FIXED ASSET')!
+        const f = (fa.getCell('C32').value as { formula: string }).formula
+        expect(f).toContain('SUM(C180:C219)')
+      })
+
+      it('C42 Dep Begin subtotal: appends +SUM(<col>220:<col>259)', async () => {
+        const wb = await simulateExport(STATE_WITH_EXTENDED_FA)
+        const fa = wb.getWorksheet('FIXED ASSET')!
+        const f = (fa.getCell('C42').value as { formula: string }).formula
+        expect(f).toContain('SUM(C220:C259)')
+      })
+
+      it('C51 Dep Add subtotal: appends +SUM(<col>260:<col>299)', async () => {
+        const wb = await simulateExport(STATE_WITH_EXTENDED_FA)
+        const fa = wb.getWorksheet('FIXED ASSET')!
+        const f = (fa.getCell('C51').value as { formula: string }).formula
+        expect(f).toContain('SUM(C260:C299)')
+      })
+
+      it('C60 Dep End subtotal: appends +SUM(<col>300:<col>339)', async () => {
+        const wb = await simulateExport(STATE_WITH_EXTENDED_FA)
+        const fa = wb.getWorksheet('FIXED ASSET')!
+        const f = (fa.getCell('C60').value as { formula: string }).formula
+        expect(f).toContain('SUM(C300:C339)')
+      })
+
+      it('C69 Net Value subtotal: appends +SUM(<col>340:<col>379)', async () => {
+        const wb = await simulateExport(STATE_WITH_EXTENDED_FA)
+        const fa = wb.getWorksheet('FIXED ASSET')!
+        const f = (fa.getCell('C69').value as { formula: string }).formula
+        expect(f).toContain('SUM(C340:C379)')
+      })
+
+      it('preserves original subtotal term (e.g., SUM(C8:C13) for C14)', async () => {
+        const wb = await simulateExport(STATE_WITH_EXTENDED_FA)
+        const fa = wb.getWorksheet('FIXED ASSET')!
+        const f = (fa.getCell('C14').value as { formula: string }).formula
+        expect(f).toContain('SUM(C8:C13)')
+      })
+
+      it('empty state (no extended FA) → subtotals unchanged', async () => {
+        const stateNoExtended: ExportableState = {
+          ...TEST_STATE,
+          fixedAsset: {
+            accounts: [
+              { catalogId: 'land', excelRow: 8, section: 'fixed_asset' as const },
+            ],
+            yearCount: 3,
+            language: 'en' as const,
+            rows: { 8: { 2019: 500, 2020: 600, 2021: 700 } },
+          },
+        }
+        const wb = await simulateExport(stateNoExtended)
+        const fa = wb.getWorksheet('FIXED ASSET')!
+        const f = (fa.getCell('C14').value as { formula: string }).formula
+        expect(f).not.toContain('SUM(C100:C139)')
       })
     })
   })

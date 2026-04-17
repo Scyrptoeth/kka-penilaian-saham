@@ -40,6 +40,10 @@ import {
   IS_CATALOG,
   type IsSection,
 } from '@/data/catalogs/income-statement-catalog'
+import {
+  FA_CATALOG,
+  FA_OFFSET,
+} from '@/data/catalogs/fixed-asset-catalog'
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -106,6 +110,17 @@ export async function exportToXlsx(state: ExportableState): Promise<Blob> {
   //     in Excel cascade up through D6 → D8 → downstream sheets.
   injectExtendedIsAccounts(workbook, state)
   replaceIsSectionSentinels(workbook, state)
+
+  // 5c. Session 028 — FA extended catalog (Approach η: 7-band mirror):
+  //     Each extended FA account appears as a slot across 7 synthetic
+  //     bands on FIXED ASSET sheet (rows 100-379). Bands 1/2/4/5 hold
+  //     user-input values from the store; bands 3/6/7 hold formulas that
+  //     mirror the template's Acq End / Dep End / Net Value per-row
+  //     computations. Each of the 7 block subtotals (C14/23/32/42/51/60/69)
+  //     gets `+SUM(<band>)` appended so the user-added accounts flow into
+  //     the section totals with full Excel reactivity.
+  injectExtendedFaAccounts(workbook, state)
+  extendFaSectionSubtotals(workbook, state)
 
   // 6. Apply website-nav 1:1 sheet visibility (Session 024 audit decision)
   applySheetVisibility(workbook)
@@ -903,6 +918,194 @@ export function replaceIsSectionSentinels(
     for (const col of Object.values(grid.yearColumns)) {
       const sumFormula = `SUM(${col}${map.extendedRowStart}:${col}${map.extendedRowEnd})`
       ws.getCell(`${col}${map.sentinelRow}`).value = { formula: sumFormula }
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Session 028 — FA extended catalog native injection (Approach η: 7-band mirror)
+//
+// The FIXED ASSET sheet has a characteristic 7-block layout: one leaf
+// account appears SEVEN times across the sheet (Acq Beginning / Additions
+// / Ending + Dep Beginning / Additions / Ending + Net Value). The
+// original 6 categories occupy rows 8-13 (band 1), 17-22 (band 2),
+// 26-31 (band 3), 36-41 (band 4), 45-50 (band 5), 54-59 (band 6),
+// 63-68 (band 7), with subtotals at rows 14/23/32/42/51/60/69.
+//
+// For extended accounts (base excelRow ≥ 100), we allocate 7 parallel
+// bands above the template content (rows 100-379, 40 slots per band).
+// Each extended account is assigned a SLOT INDEX by its position in the
+// filtered accounts array; that index is added to each band's start row
+// to determine the actual sheet position for that account in that block.
+//
+// Bands 1/2/4/5 hold user-input values. The store already records these
+// at offset keys: base+0 / base+2000 / base+4000 / base+5000.
+// Bands 3/6/7 hold formulas that mirror the template's per-row computed
+// values: Acq End = AcqBegin + AcqAdd, Dep End = DepBegin + DepAdd,
+// Net Value = AcqEnd − DepEnd.
+//
+// Subtotal extension: each of the 7 section subtotals gets `+SUM(<band>)`
+// appended across all year columns, matching the BS pattern (LESSON-067).
+// ---------------------------------------------------------------------------
+
+type FaBandKey =
+  | 'ACQ_BEGIN'
+  | 'ACQ_ADD'
+  | 'ACQ_END'
+  | 'DEP_BEGIN'
+  | 'DEP_ADD'
+  | 'DEP_END'
+  | 'NET_VALUE'
+
+interface FaBandMap {
+  /** Band row start on sheet */
+  start: number
+  /** Band extended-row end (start + 39 for 40 slots) */
+  end: number
+  /** Store key offset for value lookup (null = formula-only computed band) */
+  storeOffset: number | null
+  /** For computed bands: sign + operand band keys */
+  computed?: {
+    op: '+' | '-'
+    /** Band keys whose slot rows are referenced in the formula */
+    operands: [FaBandKey, FaBandKey]
+  }
+}
+
+/** 7-band layout on FIXED ASSET sheet. 40 slots per band. */
+const FA_BAND: Record<FaBandKey, FaBandMap> = {
+  ACQ_BEGIN:  { start: 100, end: 139, storeOffset: FA_OFFSET.ACQ_BEGINNING },
+  ACQ_ADD:    { start: 140, end: 179, storeOffset: FA_OFFSET.ACQ_ADDITIONS },
+  ACQ_END:    { start: 180, end: 219, storeOffset: null,
+                computed: { op: '+', operands: ['ACQ_BEGIN', 'ACQ_ADD'] } },
+  DEP_BEGIN:  { start: 220, end: 259, storeOffset: FA_OFFSET.DEP_BEGINNING },
+  DEP_ADD:    { start: 260, end: 299, storeOffset: FA_OFFSET.DEP_ADDITIONS },
+  DEP_END:    { start: 300, end: 339, storeOffset: null,
+                computed: { op: '+', operands: ['DEP_BEGIN', 'DEP_ADD'] } },
+  NET_VALUE:  { start: 340, end: 379, storeOffset: null,
+                computed: { op: '-', operands: ['ACQ_END', 'DEP_END'] } },
+}
+
+/** Maps each band to its section-subtotal row on the FIXED ASSET template. */
+const FA_BAND_SUBTOTAL_ROW: Record<FaBandKey, number> = {
+  ACQ_BEGIN: 14,
+  ACQ_ADD:   23,
+  ACQ_END:   32,
+  DEP_BEGIN: 42,
+  DEP_ADD:   51,
+  DEP_END:   60,
+  NET_VALUE: 69,
+}
+
+/** Ordered band keys — evaluation order matches the template's flow. */
+const FA_BAND_ORDER: readonly FaBandKey[] = [
+  'ACQ_BEGIN', 'ACQ_ADD', 'ACQ_END',
+  'DEP_BEGIN', 'DEP_ADD', 'DEP_END',
+  'NET_VALUE',
+] as const
+
+/**
+ * Write extended FA accounts (excelRow ≥ 100) to their synthetic slot
+ * positions across all 7 bands on FIXED ASSET sheet. Input-value bands
+ * read from `state.fixedAsset.rows[base + storeOffset]`; computed bands
+ * get per-slot formulas that reference the corresponding input-band
+ * slot rows.
+ *
+ * Labels (col B) are written to all 7 bands for consistency with the
+ * template which repeats category names across blocks.
+ */
+export function injectExtendedFaAccounts(
+  workbook: ExcelJS.Workbook,
+  state: ExportableState,
+): void {
+  if (!state.fixedAsset) return
+  const ws = workbook.getWorksheet('FIXED ASSET')
+  if (!ws) return
+
+  const grid = ALL_GRID_MAPPINGS.find((g) => g.excelSheet === 'FIXED ASSET')
+  if (!grid) return
+
+  const extendedAccounts = state.fixedAsset.accounts.filter((a) => a.excelRow >= 100)
+  if (extendedAccounts.length === 0) return
+
+  extendedAccounts.forEach((acc, slotIndex) => {
+    const catalog = FA_CATALOG.find((c) => c.id === acc.catalogId)
+    const label = acc.customLabel ?? (catalog ? catalog.labelEn : acc.catalogId)
+
+    for (const bandKey of FA_BAND_ORDER) {
+      const band = FA_BAND[bandKey]
+      const row = band.start + slotIndex
+
+      // Label in col B for every band
+      ws.getCell(`B${row}`).value = label
+
+      if (band.storeOffset !== null) {
+        // Input band — write value from store
+        const storeKey = acc.excelRow + band.storeOffset
+        const yearValues = state.fixedAsset!.rows[storeKey]
+        if (!yearValues) continue
+        for (const [yearStr, col] of Object.entries(grid.yearColumns)) {
+          const val = yearValues[Number(yearStr)]
+          if (val !== undefined && val !== null) {
+            ws.getCell(`${col}${row}`).value = val
+          }
+        }
+      } else if (band.computed) {
+        // Computed band — per-year-column formula referencing operand rows
+        const [opA, opB] = band.computed.operands
+        const rowA = FA_BAND[opA].start + slotIndex
+        const rowB = FA_BAND[opB].start + slotIndex
+        const sign = band.computed.op
+        for (const col of Object.values(grid.yearColumns)) {
+          const formula = `+${col}${rowA}${sign}${col}${rowB}`
+          ws.getCell(`${col}${row}`).value = { formula }
+        }
+      }
+    }
+  })
+}
+
+/**
+ * Append `+SUM(<col>{start}:<col>{end})` to each of the 7 FA section
+ * subtotals (C14/23/32/42/51/60/69) across all year columns, so user-
+ * added extended accounts flow into the section totals. No-op when no
+ * extended accounts exist. Mirrors the BS pattern from Session 025.
+ */
+export function extendFaSectionSubtotals(
+  workbook: ExcelJS.Workbook,
+  state: ExportableState,
+): void {
+  if (!state.fixedAsset) return
+  const ws = workbook.getWorksheet('FIXED ASSET')
+  if (!ws) return
+
+  const grid = ALL_GRID_MAPPINGS.find((g) => g.excelSheet === 'FIXED ASSET')
+  if (!grid) return
+
+  const hasExtended = state.fixedAsset.accounts.some((a) => a.excelRow >= 100)
+  if (!hasExtended) return
+
+  for (const bandKey of FA_BAND_ORDER) {
+    const band = FA_BAND[bandKey]
+    const subtotalRow = FA_BAND_SUBTOTAL_ROW[bandKey]
+
+    for (const col of Object.values(grid.yearColumns)) {
+      const cell = ws.getCell(`${col}${subtotalRow}`)
+      const existing = cell.value
+      const sumTerm = `SUM(${col}${band.start}:${col}${band.end})`
+
+      let newFormula: string
+      if (existing && typeof existing === 'object' && 'formula' in existing) {
+        newFormula = `${(existing as { formula: string }).formula}+${sumTerm}`
+      } else if (typeof existing === 'string' && existing.startsWith('=')) {
+        newFormula = `${existing.slice(1)}+${sumTerm}`
+      } else if (typeof existing === 'number') {
+        newFormula = `${existing}+${sumTerm}`
+      } else {
+        newFormula = sumTerm
+      }
+
+      cell.value = { formula: newFormula }
     }
   }
 }
