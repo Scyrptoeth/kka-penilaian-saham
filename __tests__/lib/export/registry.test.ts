@@ -115,6 +115,98 @@ describe('SHEET_BUILDERS registry state', () => {
   })
 })
 
+describe('runSheetBuilders return value — clearedSheets', () => {
+  it('returns clearedSheets=[] when the registry is empty', () => {
+    const wb = new ExcelJS.Workbook()
+    wb.addWorksheet('ANY')
+    const state = createEmptyState()
+
+    let result: { clearedSheets: readonly string[] } | undefined
+    runWithRegistry([], () => {
+      result = runSheetBuilders(wb, state)
+    })
+
+    expect(result).toEqual({ clearedSheets: [] })
+  })
+
+  it('returns clearedSheets=[] when every builder had populated upstream', () => {
+    const { wb } = createWorkbookWithSheet('A')
+    wb.addWorksheet('B')
+    const state = createEmptyState()
+    state.home = { namaPerusahaan: 'x' } as unknown as ExportableState['home']
+
+    const builderA: SheetBuilder = {
+      sheetName: 'A',
+      upstream: ['home'],
+      build: () => {},
+    }
+    const builderB: SheetBuilder = {
+      sheetName: 'B',
+      upstream: ['home'],
+      build: () => {},
+    }
+
+    let result: { clearedSheets: readonly string[] } | undefined
+    runWithRegistry([builderA, builderB], () => {
+      result = runSheetBuilders(wb, state)
+    })
+
+    expect(result?.clearedSheets).toEqual([])
+  })
+
+  it('lists sheet names whose upstream was unpopulated', () => {
+    const { wb } = createWorkbookWithSheet('POPULATED')
+    wb.addWorksheet('BLANK')
+    const state = createEmptyState()
+    state.home = { namaPerusahaan: 'x' } as unknown as ExportableState['home']
+    // state.balanceSheet remains null → BLANK builder is unpopulated
+
+    const populatedBuilder: SheetBuilder = {
+      sheetName: 'POPULATED',
+      upstream: ['home'],
+      build: () => {},
+    }
+    const blankBuilder: SheetBuilder = {
+      sheetName: 'BLANK',
+      upstream: ['balanceSheet'],
+      build: () => {},
+    }
+
+    let result: { clearedSheets: readonly string[] } | undefined
+    runWithRegistry([populatedBuilder, blankBuilder], () => {
+      result = runSheetBuilders(wb, state)
+    })
+
+    expect(result?.clearedSheets).toEqual(['BLANK'])
+  })
+
+  it('omits sheet names where the builder target sheet was missing from workbook', () => {
+    const wb = new ExcelJS.Workbook()
+    wb.addWorksheet('EXISTING')
+    const state = createEmptyState()
+    // Neither builder has populated upstream; one target is missing
+
+    const missingBuilder: SheetBuilder = {
+      sheetName: 'MISSING',
+      upstream: ['home'],
+      build: () => {},
+    }
+    const existingBuilder: SheetBuilder = {
+      sheetName: 'EXISTING',
+      upstream: ['home'],
+      build: () => {},
+    }
+
+    let result: { clearedSheets: readonly string[] } | undefined
+    runWithRegistry([missingBuilder, existingBuilder], () => {
+      result = runSheetBuilders(wb, state)
+    })
+
+    // Only EXISTING was actually cleared; MISSING was skipped entirely
+    expect(result?.clearedSheets).toEqual(['EXISTING'])
+  })
+})
+
 describe('formula reactivity probe (documents ExcelJS behavior)', () => {
   it('preserves cross-sheet formula through clear + repopulate', async () => {
     // Smoke test: two sheets, SRC populated with raw values, TGT has a

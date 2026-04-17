@@ -161,11 +161,22 @@ export const MIGRATED_SHEET_NAMES: ReadonlySet<string> = {
  * against the current state and either populate the sheet (build) or clear
  * it to a blank shell (clearSheetCompletely). Sheets not present in the
  * registry are untouched (legacy pipeline owns them during migration).
+ *
+ * Returns `{ clearedSheets }` listing sheet names that were cleared in
+ * this pass. Callers use this to drive downstream hygiene steps — notably
+ * `stripCrossSheetRefsToBlankSheets`, which rewires formulas in other
+ * populated sheets that still reference any cleared sheet.
+ *
+ * Only sheets that actually exist in the workbook AND whose builder ran
+ * `clearSheetCompletely` appear in `clearedSheets`. Missing sheets
+ * (`workbook.getWorksheet(name) === undefined`) are skipped entirely
+ * and do not appear in the return value.
  */
 export function runSheetBuilders(
   workbook: ExcelJS.Workbook,
   state: ExportableState,
-): void {
+): { clearedSheets: readonly string[] } {
+  const clearedSheets: string[] = []
   for (const builder of getSheetBuilders()) {
     const sheet = workbook.getWorksheet(builder.sheetName)
     if (!sheet) continue
@@ -174,6 +185,8 @@ export function runSheetBuilders(
       builder.build(workbook, state)
     } else {
       clearSheetCompletely(sheet)
+      clearedSheets.push(builder.sheetName)
     }
   }
+  return { clearedSheets }
 }
