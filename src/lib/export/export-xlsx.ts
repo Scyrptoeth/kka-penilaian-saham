@@ -44,6 +44,10 @@ import {
   FA_CATALOG,
   FA_OFFSET,
 } from '@/data/catalogs/fixed-asset-catalog'
+import {
+  MIGRATED_SHEET_NAMES,
+  runSheetBuilders,
+} from './sheet-builders/registry'
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -79,48 +83,55 @@ export async function exportToXlsx(state: ExportableState): Promise<Blob> {
   const workbook = new ExcelJS.Workbook()
   await workbook.xlsx.load(buffer)
 
-  // 3. Clear all input cells (remove prototype PT Raja Voltama data)
-  clearAllInputCells(workbook)
+  // 3. Clear all input cells (remove prototype PT Raja Voltama data).
+  //    Migrated sheets (owned by SHEET_BUILDERS) are skipped here because
+  //    the builder either populates them from scratch or clears them
+  //    completely via clearSheetCompletely() — either way the legacy
+  //    leaf-cell null-writes would be redundant.
+  clearAllInputCells(workbook, MIGRATED_SHEET_NAMES)
 
-  // 4. Inject user data
+  // 4. Inject user data via legacy per-type injectors. Migrated sheets are
+  //    skipped at this layer; their SheetBuilder owns them end-to-end.
   injectScalarCells(workbook, state)
-  injectGridCells(workbook, state)
-  injectBsCrossRefValues(workbook, state)
+  injectGridCells(workbook, state, MIGRATED_SHEET_NAMES)
+  if (!MIGRATED_SHEET_NAMES.has('BALANCE SHEET')) {
+    injectBsCrossRefValues(workbook, state)
+  }
   injectArrayCells(workbook, state)
   injectDynamicRows(workbook, state)
   injectDlomAnswers(workbook, state)
   injectDlocAnswers(workbook, state)
   injectDlomJenisPerusahaan(workbook, state)
-  injectAamAdjustments(workbook, state)
+  if (!MIGRATED_SHEET_NAMES.has('AAM')) {
+    injectAamAdjustments(workbook, state)
+  }
 
-  // 5. Inject extended BS catalog accounts as native rows + extend section
-  //    subtotals. Replaces the RINCIAN NERACA detail sheet pattern (Session 025).
-  injectExtendedBsAccounts(workbook, state)
-  extendBsSectionSubtotals(workbook, state)
+  // 5. Extended BS catalog injection (Session 025) — skipped when BS is
+  //    owned by BalanceSheetBuilder, which calls the same helpers itself.
+  if (!MIGRATED_SHEET_NAMES.has('BALANCE SHEET')) {
+    injectExtendedBsAccounts(workbook, state)
+    extendBsSectionSubtotals(workbook, state)
+  }
 
-  // 5b. Session 028 — IS extended catalog (Approach δ):
-  //     Write extended accounts as native rows, then REPLACE the sentinel
-  //     hardcoded numbers at rows 6/7/15/30 with live SUM(extendedRange)
-  //     formulas. Net-interest sentinels (D26/D27) stay hardcoded because
-  //     rows 500-519 mix income and expense via the `interestType` flag and
-  //     cannot be expressed with a simple contiguous SUM range. Derived
-  //     formulas (D8/D18/D22/D32/D35) stay untouched and resolve correctly
-  //     because they reference the sentinel cells — which now contain live
-  //     SUM formulas that evaluate to the same totals. User edits to D105
-  //     in Excel cascade up through D6 → D8 → downstream sheets.
-  injectExtendedIsAccounts(workbook, state)
-  replaceIsSectionSentinels(workbook, state)
+  // 5b. IS extended catalog (Session 028 Approach δ) — skipped when IS is
+  //     owned by IncomeStatementBuilder.
+  if (!MIGRATED_SHEET_NAMES.has('INCOME STATEMENT')) {
+    injectExtendedIsAccounts(workbook, state)
+    replaceIsSectionSentinels(workbook, state)
+  }
 
-  // 5c. Session 028 — FA extended catalog (Approach η: 7-band mirror):
-  //     Each extended FA account appears as a slot across 7 synthetic
-  //     bands on FIXED ASSET sheet (rows 100-379). Bands 1/2/4/5 hold
-  //     user-input values from the store; bands 3/6/7 hold formulas that
-  //     mirror the template's Acq End / Dep End / Net Value per-row
-  //     computations. Each of the 7 block subtotals (C14/23/32/42/51/60/69)
-  //     gets `+SUM(<band>)` appended so the user-added accounts flow into
-  //     the section totals with full Excel reactivity.
-  injectExtendedFaAccounts(workbook, state)
-  extendFaSectionSubtotals(workbook, state)
+  // 5c. FA extended catalog (Session 028 Approach η) — skipped when FA is
+  //     owned by FixedAssetBuilder.
+  if (!MIGRATED_SHEET_NAMES.has('FIXED ASSET')) {
+    injectExtendedFaAccounts(workbook, state)
+    extendFaSectionSubtotals(workbook, state)
+  }
+
+  // 5d. Session 030/031 — state-driven sheet builders. For each registered
+  //     builder: populate the sheet when upstream slices satisfy
+  //     isPopulated(), otherwise clear it to a blank shell. Non-registered
+  //     sheets remain untouched — legacy pipeline above owns them.
+  runSheetBuilders(workbook, state)
 
   // 6. Apply website-nav 1:1 sheet visibility (Session 024 audit decision)
   applySheetVisibility(workbook)
@@ -356,15 +367,20 @@ export function stripDecorativeTables(workbook: ExcelJS.Workbook): void {
 // Internal: Clear
 // ---------------------------------------------------------------------------
 
-function clearAllInputCells(workbook: ExcelJS.Workbook): void {
-  // Clear scalar cells
+function clearAllInputCells(
+  workbook: ExcelJS.Workbook,
+  skipSheets: ReadonlySet<string> = new Set(),
+): void {
+  // Clear scalar cells (skip scalars that target a migrated sheet)
   for (const m of ALL_SCALAR_MAPPINGS) {
+    if (skipSheets.has(m.excelSheet)) continue
     const ws = workbook.getWorksheet(m.excelSheet)
     if (ws) ws.getCell(m.excelCell).value = null
   }
 
-  // Clear grid cells
+  // Clear grid cells (skip migrated sheets — builder owns the full sheet)
   for (const g of ALL_GRID_MAPPINGS) {
+    if (skipSheets.has(g.excelSheet)) continue
     const ws = workbook.getWorksheet(g.excelSheet)
     if (!ws) continue
     for (const row of g.leafRows) {
@@ -376,6 +392,7 @@ function clearAllInputCells(workbook: ExcelJS.Workbook): void {
 
   // Clear array cells
   for (const a of ALL_ARRAY_MAPPINGS) {
+    if (skipSheets.has(a.excelSheet)) continue
     const ws = workbook.getWorksheet(a.excelSheet)
     if (!ws) continue
     for (let i = 0; i < a.length; i++) {
@@ -385,6 +402,7 @@ function clearAllInputCells(workbook: ExcelJS.Workbook): void {
 
   // Clear dynamic rows
   for (const d of ALL_DYNAMIC_ROWS_MAPPINGS) {
+    if (skipSheets.has(d.excelSheet)) continue
     const ws = workbook.getWorksheet(d.excelSheet)
     if (!ws) continue
     for (let r = d.startRow; r < d.startRow + d.maxRows; r++) {
@@ -395,21 +413,25 @@ function clearAllInputCells(workbook: ExcelJS.Workbook): void {
   }
 
   // Clear DLOM answers (F7,F9,...,F25)
-  const dlomWs = workbook.getWorksheet('DLOM')
-  if (dlomWs) {
-    for (const row of DLOM_ANSWER_ROWS) {
-      dlomWs.getCell(`F${row}`).value = null
+  if (!skipSheets.has('DLOM')) {
+    const dlomWs = workbook.getWorksheet('DLOM')
+    if (dlomWs) {
+      for (const row of DLOM_ANSWER_ROWS) {
+        dlomWs.getCell(`F${row}`).value = null
+      }
+      dlomWs.getCell('C31').value = null
     }
-    dlomWs.getCell('C31').value = null
   }
 
   // Clear DLOC answers (E7,E9,...,E15)
-  const dlocWs = workbook.getWorksheet('DLOC(PFC)')
-  if (dlocWs) {
-    for (const row of DLOC_ANSWER_ROWS) {
-      dlocWs.getCell(`E${row}`).value = null
+  if (!skipSheets.has('DLOC(PFC)')) {
+    const dlocWs = workbook.getWorksheet('DLOC(PFC)')
+    if (dlocWs) {
+      for (const row of DLOC_ANSWER_ROWS) {
+        dlocWs.getCell(`E${row}`).value = null
+      }
+      dlocWs.getCell('B21').value = null
     }
-    dlocWs.getCell('B21').value = null
   }
 }
 
@@ -502,8 +524,13 @@ const BALANCE_SHEET_GRID_COLUMNS: Readonly<Record<number, string>> = {
   2021: 'F',
 }
 
-function injectGridCells(workbook: ExcelJS.Workbook, state: ExportableState): void {
+function injectGridCells(
+  workbook: ExcelJS.Workbook,
+  state: ExportableState,
+  skipSheets: ReadonlySet<string> = new Set(),
+): void {
   for (const g of ALL_GRID_MAPPINGS) {
+    if (skipSheets.has(g.excelSheet)) continue
     const ws = workbook.getWorksheet(g.excelSheet)
     if (!ws) continue
 

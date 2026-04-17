@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
 import ExcelJS from 'exceljs'
-import { runSheetBuilders, SHEET_BUILDERS } from '@/lib/export/sheet-builders/registry'
+import {
+  runSheetBuilders,
+  SHEET_BUILDERS,
+  __setTestBuildersOverride,
+} from '@/lib/export/sheet-builders/registry'
 import type { SheetBuilder } from '@/lib/export/sheet-builders/types'
 import type { ExportableState } from '@/lib/export/export-xlsx'
 
@@ -133,18 +137,16 @@ describe('formula reactivity probe (documents ExcelJS behavior)', () => {
   })
 })
 
-// Helper: temporarily swap SHEET_BUILDERS contents for a test block.
-// Since the export is readonly at type level only, we mutate the backing
-// array reference via a Reflect trick. This is test-only scaffolding.
+// Helper: temporarily swap builders via the registry's test-only
+// override seam. Session 031 moved the registry to a function-backed
+// resolver to dodge a circular-import hazard, so direct array mutation
+// no longer propagates to `runSheetBuilders`. The override slot is
+// restored in the `finally` block so test isolation is preserved.
 function runWithRegistry(builders: SheetBuilder[], fn: () => void): void {
-  const target = SHEET_BUILDERS as unknown as SheetBuilder[]
-  const saved = [...target]
-  target.length = 0
-  target.push(...builders)
+  __setTestBuildersOverride(builders)
   try {
     fn()
   } finally {
-    target.length = 0
-    target.push(...saved)
+    __setTestBuildersOverride(null)
   }
 }
