@@ -25,6 +25,7 @@ import { ProyLrBuilder } from './proy-lr'
 import { ProyFaBuilder } from './proy-fa'
 import { ProyBsBuilder } from './proy-bs'
 import { ProyNoplatBuilder } from './proy-noplat'
+import { ProyCfsBuilder } from './proy-cfs'
 import { AamBuilder } from './aam'
 import { SimulasiPotensiBuilder } from './simulasi-potensi'
 
@@ -84,6 +85,7 @@ export function getSheetBuilders(): readonly SheetBuilder[] {
     ProyFaBuilder,
     ProyBsBuilder,
     ProyNoplatBuilder,
+    ProyCfsBuilder,
     // AAM chain (Session 031) — runs after inputs complete
     AamBuilder,
     SimulasiPotensiBuilder,
