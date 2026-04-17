@@ -1,15 +1,16 @@
 /**
  * Cascade integration test — verifies that when every store slice is
- * null/empty, the state-driven SheetBuilders (Session 031 set: BS, IS,
- * FA, AAM, SIMULASI POTENSI (AAM)) clear their target sheets to blank
- * shells via `clearSheetCompletely`. Non-migrated sheets stay untouched
- * because the legacy pipeline is not invoked here.
+ * null/empty, the state-driven SheetBuilders clear their target sheets
+ * to blank shells via `clearSheetCompletely`. Non-migrated sheets stay
+ * untouched because the legacy pipeline is not invoked here.
  *
- * Narrow scope for Session 031 per plan.md T9 — full 6-scenario cascade
- * matrix (null→partial→full population progression) lands in Session
- * 032+ when the remaining 24 builders migrate. A bigger matrix now
- * would depend on the legacy pipeline and produce confusing mixed
- * results.
+ * Coverage grows with each session:
+ *   - Session 031 (5 sheets): BS, IS, FA, AAM, SIMULASI POTENSI (AAM)
+ *   - Session 032 (+8 sheets): HOME, KEY DRIVERS, ACC PAYABLES, DLOM,
+ *     DLOC(PFC), WACC, DISCOUNT RATE, BORROWING CAP
+ *
+ * Further migrations (Sessions 033+) will extend `MIGRATED_SHEETS`
+ * with computed analysis builders, projection builders, etc.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -22,11 +23,21 @@ import type { ExportableState } from '@/lib/export/export-xlsx'
 const TEMPLATE_PATH = resolve(__dirname, '../../public/templates/kka-template.xlsx')
 
 const MIGRATED_SHEETS = [
+  // Session 031
   'BALANCE SHEET',
   'INCOME STATEMENT',
   'FIXED ASSET',
   'AAM',
   'SIMULASI POTENSI (AAM)',
+  // Session 032
+  'HOME',
+  'KEY DRIVERS',
+  'ACC PAYABLES',
+  'DLOM',
+  'DLOC(PFC)',
+  'WACC',
+  'DISCOUNT RATE',
+  'BORROWING CAP',
 ] as const
 
 function makeEmptyState(): ExportableState {

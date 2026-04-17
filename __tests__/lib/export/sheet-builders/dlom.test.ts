@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach } from 'vitest'
 import ExcelJS from 'exceljs'
 import { DlomBuilder } from '@/lib/export/sheet-builders/dlom'
 import type { ExportableState } from '@/lib/export/export-xlsx'
-import type { DlomState, WaccState } from '@/lib/store/useKkaStore'
+import type { DlomState } from '@/lib/store/useKkaStore'
 import type { HomeInputs } from '@/types/financial'
 
 function makeWorkbook(): ExcelJS.Workbook {
