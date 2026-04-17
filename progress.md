@@ -1,54 +1,55 @@
 # Progress — KKA Penilaian Saham
 
-> Latest state after Session 032 — T5 Input Builders (2026-04-17)
+> Latest state after Session 033 — T6 Computed Analysis Builders (2026-04-17)
 
 ## Verification Results
 ```
-Tests:     1066 / 1066 passing (81 files; was 999 at Session 031, +67)
+Tests:     1125 / 1125 passing (89 files; was 1066 at Session 032, +59)
 Build:     ✅ 34 static pages, compiled cleanly
 Typecheck: ✅ clean
 Lint:      ✅ clean (React Compiler compliant; local/no-hardcoded-ui-strings active)
 Audit:     ✅ 0 i18n violations (`npm run audit:i18n`)
 Phase C:   ✅ 4/4 integrity gates green (`npm run verify:phase-c`)
-Live:      https://penilaian-bisnis.vercel.app — /akses HTTP 200 (pending post-merge verify)
+Live:      https://penilaian-bisnis.vercel.app — pending Vercel deploy post-push (commit 529716d)
 Store:     v15 (unchanged — no schema change)
 ```
 
-## Session 032 Status — 8 Input Builders Shipped + IS!B33 Regression Fix
+## Session 033 Status — 7 Computed Analysis Builders Shipped
 
-**Scope delivered this session** (T5 of Session 030 10-task roadmap):
-- 8 new SheetBuilders migrated into `SHEET_BUILDERS` registry:
-  - `HomeBuilder` (upstream `['home']`) — HOME scalars B4-B12
-  - `KeyDriversBuilder` (upstream `['keyDrivers']`) — 9 scalars + 12 arrays
-  - `AccPayablesBuilder` (upstream `['accPayables']`) — NEW slice wiring through pipeline
-  - `DlomBuilder` (upstream `['home']`, conditional state.dlom logic) — C30+C31+F7..F25
-  - `DlocBuilder` (upstream `['dloc']`) — B21 + E7..E15
-  - `WaccBuilder` (upstream `['wacc']`) — WACC!B4..E22 + dynamic rows + **IS!B33 cross-sheet fix**
-  - `DiscountRateBuilder` (upstream `['discountRate']`) — C2..C8 + bankRates K/L
-  - `BorrowingCapBuilder` (upstream `['borrowingCapInput']`) — D5+D6
-- **Session 031 regression fix** — `wacc.taxRate → IS!B33` restored via new
-  `writeScalarsFromSlice('wacc')` helper (source-slice owns all writes pattern,
-  LESSON-091)
-- **Infrastructure**: extended `injectArrayCells` + `injectDynamicRows` with
-  `skipSheets` param; call-site guards added for
-  `injectDlomAnswers`/`injectDlocAnswers`/`injectDlomJenisPerusahaan`
-- **New ExportableState field**: `accPayables: AccPayablesInputState | null` fills
-  a 20-session wiring gap (LESSON-092)
-- **Cascade integration test** extended 5 → 13 migrated sheets via declarative
-  pattern (LESSON-093)
-- **5 new exported helpers**: `writeScalarsForSheet`, `writeScalarsFromSlice`,
-  `writeArraysForSheet`, `writeDynamicRowsForSheet`, `writeGridForSheet`
-- 67 new tests (999 → 1066)
+**Scope delivered this session** (T6 of Session 030 10-task roadmap):
+- **Shared helper `writeComputedRowsToSheet`** extracted — iterates
+  manifest.rows × histYears, writes allRows[excelRow][year] to cell
+  `<col><row>`. Used by 6 of 7 builders.
+- **7 new SheetBuilders migrated into `SHEET_BUILDERS` registry**:
+  - `NoplatBuilder` (upstream `['home', 'incomeStatement']`) —
+    computeNoplatLiveRows + deriveComputedRows → rows 7-19
+  - `CashFlowStatementBuilder` (upstream `['home', 'balanceSheet',
+    'incomeStatement']`) — FA+AP optional; 3-year CFS + 4-year BS
+    for year-1 delta
+  - `FcfBuilder` (upstream `['home', 'balanceSheet', 'incomeStatement',
+    'fixedAsset']`) — full chain: NOPLAT → FA comp → CFS → FCF
+  - `RoicBuilder` (same upstream as FCF) — adds BS comp; cross-year
+    row 13 via computeRoicLiveRows
+  - `GrowthRevenueBuilder` (upstream `['home', 'incomeStatement']`) —
+    4-year span, B/C/D/E columns
+  - `GrowthRateBuilder` (upstream same as FCF) — custom builder (no
+    manifest), direct cell writes B/C + B15 Average
+  - `FinancialRatioBuilder` (upstream `['home', 'balanceSheet',
+    'incomeStatement']`) — 18 ratios; FA+AP optional for CFS/FCF chain
+- **Cascade integration test extended 13 → 20 sheets** via declarative
+  pattern (LESSON-093 proven again)
+- **59 new tests** (1066 → 1125)
+- **No cross-sheet scalar regressions** — audit-cleared before start
+  (STANDALONE_SCALARS empty for target sheets)
 
-**Registry grew** 5 → 13 builders. Legacy pipeline auto-skips all 13 via the
-reactive `MIGRATED_SHEET_NAMES` proxy.
+**Registry grew** 13 → 20 builders. Legacy pipeline auto-skips all 20
+via the reactive `MIGRATED_SHEET_NAMES` proxy.
 
-**Deferred to Session 033+** (original Session 030 T6-T10):
-- T6: 7 computed analysis builders (CashFlowStatement, FinancialRatio, FCF,
-  NOPLAT, ROIC, GrowthRevenue, GrowthRate)
-- T7: 9 projection/valuation/dashboard builders (PROY×5, DCF, EEM, CFI,
-  Dashboard)
-- T8: Legacy `exportToXlsx` body cleanup + `stripCrossSheetRefsToBlankSheets`
+**Deferred to Session 034+** (original Session 030 T7-T10):
+- T7: 9 projection/valuation/dashboard builders (PROY×5, DCF, EEM,
+  CFI, Dashboard)
+- T8: Legacy `exportToXlsx` body cleanup +
+  `stripCrossSheetRefsToBlankSheets`
 - T9: Phase C rewrite to website-state parity
 - T10: `exportToXlsxV2` promotion as primary
 
@@ -70,8 +71,9 @@ reactive `MIGRATED_SHEET_NAMES` proxy.
 - Export pipeline (Sessions 018-032): template-based .xlsx export with 3,084 formulas preserved + website-nav 1:1 visibility + BS/IS/FA extended-catalog native injection + sanitizer pipeline
 - AAM dynamic interoperability (Session 027): section-based `AamInput`, dynamic from `balanceSheet.accounts`, IBD classification, EKUITAS section
 - State-driven export foundation (Session 030 Phase 1): `SheetBuilder` + `runSheetBuilders` + `clearSheetCompletely` + formula-reactivity probe — runtime-inert empty registry
-- **State-driven export core (Session 031)**: 5 builders populated in registry (BS/IS/FA/AAM/SIMULASI POTENSI AAM), legacy pipeline skip-guards per-sheet, label override pattern (LESSON-090), circular-import-safe lazy registry (LESSON-088)
-- **State-driven export T5 — input builders (Session 032)**: +8 builders (HOME/KeyDrivers/AccPayables/Dlom/Dloc/Wacc/DiscountRate/BorrowingCap). Session 031 IS!B33 regression fixed via source-slice-owns-writes (LESSON-091). 5 new exported builder-facing helpers. Registry grew 5 → 13.
+- State-driven export core (Session 031): 5 builders (BS/IS/FA/AAM/SIMULASI POTENSI), legacy pipeline skip-guards per-sheet, label override pattern (LESSON-090), circular-import-safe lazy registry (LESSON-088)
+- State-driven export T5 input builders (Session 032): +8 builders (HOME/KeyDrivers/AccPayables/Dlom/Dloc/Wacc/DiscountRate/BorrowingCap). Session 031 IS!B33 regression fixed via source-slice-owns-writes (LESSON-091). Registry grew 5 → 13.
+- **State-driven export T6 computed analysis builders (Session 033)**: +7 builders (NOPLAT/CashFlowStatement/FCF/ROIC/GrowthRevenue/GrowthRate/FinancialRatio). Shared helper `writeComputedRowsToSheet` avoids duplication across 6 manifest-based builders; GrowthRateBuilder uses custom writes (no manifest, 2-year layout). Registry grew 13 → 20. No cross-sheet regression risks (audit cleared STANDALONE_SCALARS for these sheets).
 
 ### Pages (34 total)
 - **Input**: HOME · Balance Sheet (dynamic 84) · Income Statement (dynamic 41) · Fixed Asset (dynamic 20) · Key Drivers · Acc Payables
@@ -82,6 +84,14 @@ reactive `MIGRATED_SHEET_NAMES` proxy.
 - **Dashboard**: 4 Recharts charts
 
 ### Recent Sessions Deliverables
+
+#### Session 033 (2026-04-17) — T6 Computed Analysis Builders
+- T1: Brainstorm + design.md (self-authorized blanket execution)
+- T2: writeComputedRowsToSheet shared helper (5 TDD tests)
+- T3-T9: 7 builders with per-builder TDD (54 builder-specific tests)
+- T10: Cascade test 13 → 20 (declarative), full verification gate, merge
+- 10 commits on feature branch, all green gates
+- 1 lesson extracted (LESSON-094, promoted to skill section 8)
 
 #### Session 032 (2026-04-17) — T5 Input Builders + IS!B33 Fix
 - T1: Brainstorm + design.md (identified IS!B33 regression + AccPayables 20-session gap)
@@ -103,51 +113,46 @@ reactive `MIGRATED_SHEET_NAMES` proxy.
 - T10: Full verification gate + merge (416c803)
 - 3 lessons extracted (all promoted)
 
-#### Session 030 Phase 1 (2026-04-17) — State-Driven Export Foundation
-- T1: `SheetBuilder` types + `isPopulated` resolver + `clearSheetCompletely` utility (12 tests)
-- T2: `SHEET_BUILDERS` registry + `runSheetBuilders` orchestrator + formula reactivity probe (6 tests)
-- Runtime-inert empty registry = safe to merge mid-refactor (LESSON-085)
-
 ## Next Session Priorities
-
-### Session 033 — Computed Analysis Builders (T6 original)
-
-1. **CashFlowStatementBuilder** — depends on BS + IS + FA + accPayables.
-   Composes `computeCashFlowStatement(buildCashFlowInput(state))` from
-   `src/lib/calculations/cash-flow.ts`. Writes leaf values; template
-   formulas cascade.
-2. **FcfBuilder** — depends on FA + NOPLAT outputs.
-3. **NoplatBuilder** — depends on IS + historical tax rates.
-4. **FinancialRatioBuilder** — depends on BS + IS + CFS.
-5. **RoicBuilder** — depends on NOPLAT + BS.
-6. **GrowthRevenueBuilder** — depends on IS.
-7. **GrowthRateBuilder** — depends on ROIC + FA + BS.
-8. Register all 7 in `SHEET_BUILDERS`. Legacy pipeline auto-skips.
 
 ### Session 034 — Projection/Valuation/Dashboard Builders (T7 original)
 
-9. 5 PROY builders (PROY LR, PROY FA, PROY BS, PROY NOPLAT, PROY CFS)
-10. 4 Valuation-computed builders (DCF, EEM, CFI, Dashboard)
+1. **ProyLrBuilder** — PROY LR depends on KEY DRIVERS + IS + PROY FA
+2. **ProyFaBuilder** — PROY FIXED ASSETS depends on FA historical
+3. **ProyBsBuilder** — PROY BALANCE SHEET depends on BS + KEY DRIVERS
+4. **ProyNoplatBuilder** — PROY NOPLAT depends on PROY LR + historical
+5. **ProyCfsBuilder** — PROY CASH FLOW STATEMENT depends on full chain
+6. **DcfBuilder** — DCF depends on full upstream + PROY chain + WACC/DR
+7. **EemBuilder** — EEM depends on AAM + upstream
+8. **CfiBuilder** — CFI depends on IS + NOPLAT + DR
+9. **DashboardBuilder** — 4 chart sources from various upstream
+
+Each composes `compute<Xxx>(build<Xxx>Input(state))` from
+`src/lib/calculations/` + `upstream-helpers.ts` (LESSON-046 pattern).
+Template formulas cascade. **Cross-sheet scalar audit WAJIB** —
+STANDALONE_SCALARS check before each builder, especially PROY sheets
+which may target other sheets.
 
 ### Session 035 — Legacy Cleanup + Phase C Rewrite + V2 Promotion (T8-T10)
 
-11. T8: Legacy `exportToXlsx` body cleanup + `stripCrossSheetRefsToBlankSheets`
-12. T9: Phase C rewrite — construct `ExportableState` from PT Raja Voltama
+10. T8: Legacy `exportToXlsx` body cleanup + `stripCrossSheetRefsToBlankSheets`
+11. T9: Phase C rewrite — construct `ExportableState` from PT Raja Voltama
     fixtures, assert website-state parity in the exported workbook
-13. T10: Promote `exportToXlsxV2` as primary; delete V1 legacy branches
+12. T10: Promote `exportToXlsxV2` as primary; delete V1 legacy branches
 
 ### Deferred beyond state-driven export migration
-- Upload parser (.xlsx → store) — reverse of export
+
+- Upload parser (.xlsx → store) — reverse of export, reuses cell-mapping + extended injection
 - AAM extended-account (excelRow ≥ 100) native injection (deferred from Session 031)
 - AccPayables extended-catalog (excelRow ≥ 100)
-- ESLint rule enhancement — `uiPropNames` array config
-- RESUME page — side-by-side DCF/AAM/EEM summary
+- ESLint rule enhancement — `uiPropNames` config for project-specific UI-text props
+- RESUME page — final summary comparing DCF/AAM/EEM results side by side
 - Dashboard polish — projected FCF chart, more KPIs
 - Multi-case management (multiple companies in one localStorage)
 - Cloud sync / multi-device
 - Audit trail / change history
 
 ## Latest Sessions
+- [Session 033](history/session-033-computed-builders.md) (2026-04-17): T6 Computed Analysis Builders — 7 SheetBuilders shipped (NOPLAT/CashFlowStatement/FCF/ROIC/GrowthRevenue/GrowthRate/FinancialRatio), shared `writeComputedRowsToSheet` helper, cascade 13→20, 59 new tests, 1 lesson
 - [Session 032](history/session-032-input-builders.md) (2026-04-17): T5 Input Builders — 8 SheetBuilders shipped (HOME/KeyDrivers/AccPayables/Dlom/Dloc/Wacc/DiscountRate/BorrowingCap), Session 031 IS!B33 regression fixed, 67 new tests, 3 lessons
 - [Session 031](history/session-031-core-builders.md) (2026-04-17): Core Builders T3+T4 — 5 SheetBuilders shipped (BS/IS/FA/AAM/SIMULASI POTENSI), label override pattern, circular-import-safe lazy registry, 46 new tests
-- [Session 030 Phase 1](history/session-030-foundation-sheet-builders.md) (2026-04-17): State-driven export foundation T1+T2, 18 new tests, 3 lessons, wrapped at milestone with T3-T10 deferred

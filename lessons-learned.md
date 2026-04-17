@@ -597,6 +597,9 @@ untuk 3+ sesi ke depan:
 - LESSON-092 (When adding a new store slice, audit the full export pipeline)
 - LESSON-093 (Cascade integration test should be declarative over MIGRATED_SHEETS)
 
+### Session 033 (Computed Analysis Builders T6 — 7 sheets)
+- LESSON-094 (deriveComputedRows recomputes subtotal rows — test fixtures must provide chain-input leaves, not pre-aggregated subtotals)
+
 LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054, 074, 087 **TIDAK** di-promote — workflow/session-specific
 insights yang general ke project lain tapi terlalu luas atau terlalu
 session-specific untuk section 8 (yang fokus KKA-specific gotchas).
@@ -2682,5 +2685,73 @@ The sample-cell set (`['B8', 'D8', 'C8', 'B100', 'F6', 'B6']`) is generic enough
 5. **Caveat**: if a new builder has genuinely different clear semantics (e.g., preserves some rows), the declarative pattern breaks. Fork into a dedicated `it()` block for that builder — don't contort the shared pattern to accommodate exceptions.
 
 **Proven at**: session-032 (2026-04-17). `MIGRATED_SHEETS` grew 5→13 via data change. 3 tests still the same count. Coverage 2.6× without touching assertion code.
+
+---
+
+## Session 033 — 2026-04-17
+
+### LESSON-094: deriveComputedRows recomputes subtotal rows from computedFrom — test fixtures must provide chain-input leaves, not pre-aggregated subtotals
+
+**Kategori**: Testing | Anti-pattern | Excel
+
+**Konteks**: Menulis TDD test untuk builder yang memanggil
+`deriveComputedRows(FIXED_ASSET_MANIFEST, fa.rows, cfsYears)` pada FA
+store data, kemudian mengonsumsi `faComp[23]` dan `faComp[51]` (Total
+Acquisition Additions + Total Depreciation Additions).
+
+**Apa yang terjadi**: Test pertama RED pada baris `expect(ws.getCell('C8').value).toBe(-200)`.
+Fixture memberikan `fa.rows = { 23: {2019: 500, ...}, 51: {2019: 200, ...} }`
+langsung sebagai pre-aggregated subtotals (seperti production store yang
+menyimpan sentinel di-row-23 via LESSON-058). Builder menerima, memanggil
+`deriveComputedRows(...)`, tapi `faComp[23]` ternyata = 0 bukan 500.
+
+**Root cause / insight**: `deriveComputedRows` membaca `values[absRef] ?? out[absRef]`
+untuk setiap `ref` di `computedFrom`. Ketika row 23 di manifest punya
+`computedFrom: [17, 18, 19, 20, 21, 22]`, fungsi ini MENGABAIKAN `values[23]`
+yang sudah di-pre-aggregate — fungsi selalu merekomputasi dari dependencies
+yang dideklarasi.
+
+Pre-aggregated subtotals di row 23 HANYA BERFUNGSI di production karena:
+1. FA editor (`DynamicFaEditor`) mengisi sentinel subtotals via `FA_SENTINEL_ROWS` pre-computation at persist time
+2. DAN menyediakan leaf rows 17-22, 45-50 juga
+3. Downstream merge `{ ...faComp, ...fa.rows }` membuat STORE subtotals win (LESSON-057)
+
+Test fixture yang hanya menyediakan pre-aggregated subtotals (tanpa leaves)
+tidak replika production. `deriveComputedRows` output = 0, dan tanpa
+merge-back pattern, output tetap 0.
+
+**Cara menerapkan di masa depan**:
+
+1. **Test fixture rule**: saat menulis test untuk builder yang memanggil
+   `deriveComputedRows(MANIFEST, values, years)`, selalu periksa
+   `MANIFEST.rows[*].computedFrom`. Setiap row yang di-consume downstream
+   MUST PROVIDE either (a) pre-aggregated sentinel AND leaves — matching production store, atau (b) just leaves yang di-sum correctly.
+
+2. **Simple rule untuk FA**: provide BOTH acqAdd leaves (rows 17-22)
+   yang sum ke target row 23, AND depAdd leaves (rows 45-50) yang sum
+   ke target row 51. Don't rely on shortcut of providing row 23/51 pre-aggregated.
+
+3. **Red flag saat test failure**: jika test mengharapkan value X tapi
+   mendapat 0, check apakah target row punya `computedFrom` di manifest.
+   Jika ya, fixture harus provide its dependencies.
+
+4. **Builder-side workaround (LESSON-057 pattern)**: kalau mau builder
+   robust terhadap partial input, merge `{ ...faComp, ...fa.rows }`
+   dalam builder seperti upstream-helpers. Tapi hati-hati: ini mengubah
+   semantic — pre-aggregated sentinels akan OVERRIDE re-derivation yang
+   mungkin include extended accounts. Jangan campur kedua strategi tanpa
+   rationale jelas.
+
+5. **For computed analysis builders**: FCF/ROIC/GrowthRate yang consume
+   faComp untuk Capex/Depreciation — production FA editor menyediakan both
+   leaves AND sentinel subtotals, jadi deriveComputedRows output match
+   store sentinels. Test fixture harus juga.
+
+**Proven at**: session-033 (2026-04-17). FcfBuilder test case
+"writes row 8 (Depreciation) = -FA row 51" failed RED dengan `-0 vs -200`.
+Fix: replaced `rows: {23: {...}, 51: {...}}` dengan distributed leaves
+`rows: {17:{y,...}, 18:{y,...}, ..., 45:{...}, ..., 50:{...}}`.
+Lesson applies to all 7 Session 033 builders that consume
+deriveComputedRows output.
 
 ---
