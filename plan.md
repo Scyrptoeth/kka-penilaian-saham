@@ -1,142 +1,135 @@
-# Session 032 Plan — T5: 8 Input-Driven SheetBuilders
+# Session 033 Plan — T6: 7 Computed Analysis Builders
 
 ## Branch
-`feat/session-032-input-builders` (off `main` at commit `e09fd53`)
+`feat/session-033-computed-builders` (off `main` at commit `19f4032`)
 
-## Scope (from Session 032 design.md)
-Migrate the 8 input-driven sheets into the state-driven `SHEET_BUILDERS`
-registry. Each builder is a thin wrapper over existing injectors filtered
-to its own sheet. Legacy pipeline auto-skips via the reactive
-`MIGRATED_SHEET_NAMES` proxy.
+## Scope (from Session 033 design.md)
+Migrate 7 computed analysis sheets into state-driven `SHEET_BUILDERS`
+registry. Each builder composes existing `computeXxxLiveRows` + manifest
+`deriveComputedRows` and writes values via new shared helper
+`writeComputedRowsToSheet`. No cross-sheet scalar audit concerns
+(verified empty STANDALONE_SCALARS for T6 sheets).
 
 ## Tasks (10 total — per Superpowers max)
 
 ### T1 — Brainstorm + design.md ✅
-- Explore codebase: registry shape, cell mappings, builder pattern
-- Identify Session 031 IS!B33 regression + plan WaccBuilder fix
-- Identify ACC PAYABLES missing-from-ExportableState gap
-- Write `design.md` Session 032
+- User authorized blanket execution
+- Design written (computed sheets, shared helper, null-safe chaining)
 
-### T2 — plan.md + infrastructure extension + feature branch
+### T2 — Shared helper `writeComputedRowsToSheet` + feature branch (TDD)
 Files:
-- `plan.md` (this file)
-- `src/lib/export/export-xlsx.ts`
-  - Add optional `skipSheets` param to: `injectArrayCells`,
-    `injectDynamicRows`, `injectDlomAnswers`, `injectDlocAnswers`,
-    `injectDlomJenisPerusahaan`
-  - Pass `MIGRATED_SHEET_NAMES` from `exportToXlsx` to each
-  - Add `accPayables: AccPayablesInputState | null` to
-    `ExportableState`
-- `src/lib/export/cell-mapping.ts`
-  - Add `ACC_PAYABLES_GRID: GridCellMapping`
-  - Include in `ALL_GRID_MAPPINGS`
-- `src/components/layout/ExportButton.tsx`
-  - Add `accPayables: state.accPayables` to exportState
-- Git: create `feat/session-032-input-builders` branch; commit
-  "chore(export): extend skipSheets coverage + accPayables mapping"
-
-**Verification**: `npm run typecheck` clean, existing tests still GREEN.
-
-### T3 — HomeBuilder (TDD)
-Files:
-- `__tests__/lib/export/sheet-builders/home.test.ts` (NEW) — RED
-- `src/lib/export/sheet-builders/home.ts` (NEW) — GREEN
-- `src/lib/export/sheet-builders/registry.ts` — add HomeBuilder
-
-Test cases (4):
-1. Populated home → B4,B5,B6,B7,B9,B12 match state
-2. Null home → sheet cleared (via orchestrator path)
-3. Partial scalar undefined → skipped gracefully
-4. Multi-run idempotent — same state, same output
-
-### T4 — KeyDriversBuilder (TDD)
-Files:
-- `__tests__/lib/export/sheet-builders/key-drivers.test.ts` (NEW)
-- `src/lib/export/sheet-builders/key-drivers.ts` (NEW)
-- `registry.ts` — add KeyDriversBuilder
-
-Test cases (4):
-1. Populated state → 9 scalars + 12 arrays written to KEY DRIVERS
-2. Null state → sheet cleared
-3. `_cogsRatioProjected` synthetic array expansion works
-4. Array write respects `length` per mapping
-
-### T5 — AccPayablesBuilder (TDD)
-Files:
-- `__tests__/lib/export/sheet-builders/acc-payables.test.ts` (NEW)
-- `src/lib/export/sheet-builders/acc-payables.ts` (NEW)
-- `registry.ts` — add AccPayablesBuilder
-
-Test cases (4):
-1. Populated state → rows 10/11/14/19/20/23 across C/D/E written
-2. Null state → sheet cleared
-3. Partial year data → missing years skipped, existing written
-4. Template formula at row 9 (Beginning) UNTOUCHED
-
-### T6 — DlomBuilder (TDD)
-Files:
-- `__tests__/lib/export/sheet-builders/dlom.test.ts` (NEW)
-- `src/lib/export/sheet-builders/dlom.ts` (NEW)
-- `registry.ts` — add DlomBuilder
+- `__tests__/lib/export/sheet-builders/computed-writer.test.ts` (NEW) — RED
+- `src/lib/export/sheet-builders/computed-writer.ts` (NEW) — GREEN
 
 Test cases (5):
-1. Home populated + dlom populated → all 3 cells + 10 answers written
-2. Home populated + dlom null → only C30 (jenisPerusahaan) written
-3. Null home → sheet cleared
-4. jenisPerusahaan="terbuka" → C30 = "DLOM Perusahaan terbuka "
-5. jenisPerusahaan="tertutup" → C30 = "DLOM Perusahaan tertutup "
+1. Writes values at `<col><excelRow>` for each manifest row with data
+2. Skips rows with `type` in `['header','separator']` (no excelRow)
+3. Skips year entries where `allRows[row][year]` is null/undefined
+4. Idempotent — repeated calls produce identical output
+5. Missing worksheet — no throw (defensive)
 
-### T7 — DlocBuilder (TDD)
+Branch: `git checkout -b feat/session-033-computed-builders`
+
+### T3 — NoplatBuilder (TDD)
 Files:
-- `__tests__/lib/export/sheet-builders/dloc.test.ts` (NEW)
-- `src/lib/export/sheet-builders/dloc.ts` (NEW)
-- `registry.ts` — add DlocBuilder
+- `__tests__/lib/export/sheet-builders/noplat.test.ts` (NEW)
+- `src/lib/export/sheet-builders/noplat.ts` (NEW)
+- `registry.ts` — add NoplatBuilder AFTER BorrowingCapBuilder, BEFORE AamBuilder
 
-Test cases (3):
-1. Populated → B21 + E7,E9,E11,E13,E15 written
-2. Null → sheet cleared
-3. Partial factor answers → empty factors left unwritten
+Test cases (6):
+1. Metadata: sheetName='NOPLAT', upstream=['incomeStatement']
+2. Populated IS + home → writes values at NOPLAT_MANIFEST rows × columns
+3. Null IS → orchestrator clears (not tested here — cascade integration covers)
+4. Null home → builder returns early (no throw)
+5. Missing worksheet → no throw
+6. Idempotent
 
-### T8 — WaccBuilder (TDD) 🔧 includes IS!B33 fix
+### T4 — CashFlowStatementBuilder (TDD)
 Files:
-- `__tests__/lib/export/sheet-builders/wacc.test.ts` (NEW)
-- `src/lib/export/sheet-builders/wacc.ts` (NEW)
-- `registry.ts` — add WaccBuilder (position: after FixedAssetBuilder per
-  design D4, but MUST be after IncomeStatementBuilder for IS!B33 write)
+- `__tests__/lib/export/sheet-builders/cash-flow-statement.test.ts` (NEW)
+- `src/lib/export/sheet-builders/cash-flow-statement.ts` (NEW)
+- `registry.ts` — add
+
+Test cases (7):
+1. Metadata: sheetName='CASH FLOW STATEMENT', upstream=['balanceSheet','incomeStatement']
+2. Populated BS+IS (no FA, no AP) → CFS values written
+3. Populated BS+IS+FA → row 17 (Capex) populated from FA row 23
+4. Populated BS+IS+AP → row 23/26 (loan/repayment) populated
+5. Null home → no throw
+6. Missing worksheet → no throw
+7. Idempotent
+
+### T5 — FcfBuilder (TDD)
+Files:
+- `__tests__/lib/export/sheet-builders/fcf.test.ts` (NEW)
+- `src/lib/export/sheet-builders/fcf.ts` (NEW)
+- `registry.ts` — add
 
 Test cases (5):
-1. Populated → 4 scalars written to WACC
-2. Populated → IS!B33 = state.wacc.taxRate (cross-sheet write)
-3. Populated → comparableCompanies + bankRates dynamic rows
-4. Null state → WACC sheet cleared; IS!B33 NOT written by this builder
-5. Overrides null → waccOverride cell skipped gracefully
+1. Metadata: sheetName='FCF', upstream=['balanceSheet','incomeStatement','fixedAsset']
+2. Full chain populated → FCF values written per FCF_MANIFEST
+3. Null FA → orchestrator clears (not tested here)
+4. Null home → no throw
+5. Idempotent
 
-### T9 — DiscountRateBuilder + BorrowingCapBuilder (TDD, folded)
+### T6 — RoicBuilder (TDD)
 Files:
-- `__tests__/lib/export/sheet-builders/discount-rate.test.ts` (NEW)
-- `src/lib/export/sheet-builders/discount-rate.ts` (NEW)
-- `__tests__/lib/export/sheet-builders/borrowing-cap.test.ts` (NEW)
-- `src/lib/export/sheet-builders/borrowing-cap.ts` (NEW)
-- `registry.ts` — add both
+- `__tests__/lib/export/sheet-builders/roic.test.ts` (NEW)
+- `src/lib/export/sheet-builders/roic.ts` (NEW)
+- `registry.ts` — add
 
-DR test cases (3):
-1. Populated → 6 scalars + bankRates dynamic table
-2. Null → sheet cleared
-3. `multiplyBy100` column transform applied to rate column
+Test cases (5):
+1. Metadata
+2. Full chain populated → ROIC values written per ROIC_MANIFEST
+3. Null home → no throw
+4. Missing worksheet → no throw
+5. Idempotent
 
-BorrowingCap test cases (2):
-1. Populated → D5 + D6 written
-2. Null → sheet cleared
-
-### T10 — Cascade integration test extension + verification + merge + Mode B
+### T7 — GrowthRevenueBuilder (TDD)
 Files:
-- `__tests__/integration/export-cascade.test.ts` — extend
-  `WANT_BLANK_SHEETS` from 5 → 13
-- `progress.md` — update to Session 032 complete state
-- `history/session-032-input-builders.md` (NEW)
-- `lessons-learned.md` — append new lessons
-- `~/.claude/skills/start-kka-penilaian-saham/SKILL.md` — promote
-  lessons worthy of "always-load" (if any)
+- `__tests__/lib/export/sheet-builders/growth-revenue.test.ts` (NEW)
+- `src/lib/export/sheet-builders/growth-revenue.ts` (NEW)
+- `registry.ts` — add
+
+Test cases (4):
+1. Metadata: sheetName='GROWTH REVENUE', upstream=['incomeStatement']
+2. Populated IS → GrowthRevenue values written
+3. Null home → no throw
+4. Idempotent
+
+### T8 — GrowthRateBuilder (TDD)
+Files:
+- `__tests__/lib/export/sheet-builders/growth-rate.test.ts` (NEW)
+- `src/lib/export/sheet-builders/growth-rate.ts` (NEW)
+- `registry.ts` — add
+
+Test cases (5):
+1. Metadata
+2. Full chain populated → Growth Rate values written
+3. Null home → no throw
+4. Missing worksheet → no throw
+5. Idempotent
+
+### T9 — FinancialRatioBuilder (TDD)
+Files:
+- `__tests__/lib/export/sheet-builders/financial-ratio.test.ts` (NEW)
+- `src/lib/export/sheet-builders/financial-ratio.ts` (NEW)
+- `registry.ts` — add
+
+Test cases (5):
+1. Metadata: sheetName='FINANCIAL RATIO', upstream=['balanceSheet','incomeStatement']
+2. BS+IS populated → 14/18 ratios written; 4 CF ratios = 0 without CFS
+3. BS+IS+FA+AP populated → all 18 ratios live
+4. Null home → no throw
+5. Idempotent
+
+### T10 — Registry verify + cascade extension + full gate + merge + Mode B
+Files:
+- `__tests__/integration/export-cascade.test.ts` — extend `MIGRATED_SHEETS` 13 → 20
+- `progress.md` — update to Session 033 complete state
+- `history/session-033-computed-builders.md` (NEW)
+- `lessons-learned.md` — append new lessons (if any)
+- `~/.claude/skills/start-kka-penilaian-saham/SKILL.md` — promote lessons (if any)
 
 Verification gate (all must be GREEN):
 ```bash
@@ -151,7 +144,7 @@ npm run verify:phase-c 2>&1 | tail -10
 Merge:
 ```bash
 git checkout main
-git merge --ff-only feat/session-032-input-builders
+git merge --ff-only feat/session-033-computed-builders
 git push origin main
 ```
 
@@ -162,28 +155,30 @@ curl -s -o /dev/null -w "%{http_code}" https://penilaian-bisnis.vercel.app/akses
 
 Mode B commit:
 ```
-docs: session 032 wrap-up — 8 input builders + IS!B33 fix + N lessons
+docs: session 033 wrap-up — 7 computed analysis builders + N lessons
 ```
 
 ## Expected outcome
 
-- 13 sheets now in `SHEET_BUILDERS` registry (5 from Session 031 +
-  8 new)
-- IS!B33 cross-sheet regression fixed
-- AccPayables data finally flows from store to export
-- Legacy pipeline auto-skips migrated sheets without manual coordination
-- ~40-50 new tests added (999 → ~1040)
-- 16 remaining builders queued for Session 033+
+- 20 sheets now in `SHEET_BUILDERS` registry (13 from Sessions 031-032 + 7 new)
+- `CASH FLOW STATEMENT`, `FCF`, `NOPLAT`, `FINANCIAL RATIO`, `ROIC`,
+  `GROWTH REVENUE`, `GROWTH RATE` no longer leak prototipe when user's
+  upstream data doesn't match PT Raja Voltama exactly
+- Cascade integration test covers 20 sheets (declarative — add name, coverage grows)
+- ~40-45 new tests added (1066 → ~1110)
+- 9 remaining builders queued for Session 034 (PROY×5 + DCF + EEM + CFI + Dashboard)
 
 ## Risk mitigation
 
-- **Risk**: WaccBuilder's IS!B33 write might interfere with
-  IncomeStatementBuilder's label write. **Mitigation**: explicit test
-  case verifying order (T8 case 2).
-- **Risk**: AccPayables cell mapping year columns wrong (template may
-  use different columns). **Mitigation**: first test case loads real
-  template and reads cell addresses to verify before asserting.
-- **Risk**: Adding `accPayables` to ExportableState breaks existing
-  tests expecting the old shape. **Mitigation**: default to `null` at
-  all test call sites; scan test helpers for `ExportableState`
-  constructions.
+- **Risk**: Compute-live function signatures differ from assumed shape.
+  **Mitigation**: read each `compute-Xxx-live.ts` signature at start of
+  its own TDD task (T3-T9), before writing builder.
+- **Risk**: Manifest `columns` field uses unexpected keys (e.g. number
+  vs string). **Mitigation**: `writeComputedRowsToSheet` handles generic
+  `Record<number | string, string>` via `Object.entries` + Number().
+- **Risk**: FINANCIAL RATIO has non-ratio rows (headers/sections) that
+  compute-live doesn't return. **Mitigation**: helper iterates manifest
+  rows; missing keys in `allRows` skipped gracefully (case 3 of T2 tests).
+- **Risk**: Compute-chain order inside builder wrong (e.g. FCF needs
+  NOPLAT before FA). **Mitigation**: mirror existing `computeHistoricalUpstream`
+  pattern from `upstream-helpers.ts` which has correct ordering.

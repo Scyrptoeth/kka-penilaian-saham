@@ -1,174 +1,146 @@
-# Session 032 Design — T5: 8 Input-Driven SheetBuilders
+# Session 033 Design — T6: 7 Computed Analysis Builders
 
 **Date**: 2026-04-17
-**Branch**: `feat/session-032-input-builders`
+**Branch**: `feat/session-033-computed-builders`
 
 ## Problem Statement
 
-Session 030 established the state-driven export foundation. Session 031
-migrated the 5 core sheets (BS, IS, FA, AAM, SIMULASI POTENSI). The
-remaining 24 sheets still run through the template-based legacy pipeline,
-which means any sheet the user has NOT explicitly populated still leaks
-prototipe PT Raja Voltama data on export.
+Sessions 030-032 delivered the state-driven export foundation and
+migrated 13 of 29 nav sheets (BS, IS, FA, AAM, SIMULASI POTENSI (AAM),
+HOME, KEY DRIVERS, ACC PAYABLES, DLOM, DLOC(PFC), WACC, DISCOUNT RATE,
+BORROWING CAP) into the `SHEET_BUILDERS` registry. The remaining 16
+sheets still run through the template-based legacy pipeline, which means
+computed analysis sheets (CASH FLOW STATEMENT, FCF, NOPLAT, FINANCIAL
+RATIO, ROIC, GROWTH REVENUE, GROWTH RATE) still leak prototipe PT Raja
+Voltama data when the user has populated their own upstream but hasn't
+actually "computed" these sheets via the website.
 
-Session 032 targets the **8 input-driven sheets**: HOME, KEY DRIVERS,
-ACC PAYABLES, DLOM, DLOC(PFC), WACC, DISCOUNT RATE, BORROWING CAP.
-These are the direct-entry sheets where the user types numbers and
-strings; none require calc-engine chains. Each builder is a thin wrapper
-over the existing scalar / grid / array / dynamic-row injectors,
-filtered to the builder's own sheet.
+Session 033 targets the **7 computed analysis sheets** — derived outputs
+from BS / IS / FA / AP that have no user-input dimension. Each builder
+composes the existing `computeXxxLiveRows` calculator (from
+`src/data/live/`) with `deriveComputedRows` (for subtotals/totals via
+manifest `computedFrom`) and writes the result into the template cells.
 
 ## Chosen Approach
 
-**Pattern**: follow Session 031 exactly. Each builder file exports a
-`SheetBuilder` object with `{sheetName, upstream, build}`. `build()`
-composes a subset of the existing injector helpers, filtered to the
-builder's sheet via a per-sheet `skipSheets` extension.
+**Pattern**: mirror Session 031/032 shape. Each builder file exports a
+`SheetBuilder` object. `build()` computes the sheet's data in memory,
+then writes all row × year cells via a new shared helper
+`writeComputedRowsToSheet(ws, manifest, allRows, histYears)`.
 
-**Registry**: register all 8 in `SHEET_BUILDERS`. The reactive
-`MIGRATED_SHEET_NAMES` proxy (Session 031 LESSON-088) auto-skips them
-in the legacy pipeline. Zero manual coordination needed.
+**No cross-sheet scalar writes needed** — verified via audit of
+`STANDALONE_SCALARS` in `cell-mapping.ts`: zero entries target any of
+the 7 T6 sheets. (LESSON-091 audit gate passed.)
 
-**Builder-per-sheet table** (sheet name → upstream → operations):
+**Historical year computation**: `computeHistoricalYears(
+state.home.tahunTransaksi, 3 | 4)` from `src/lib/calculations/year-helpers.ts`.
+CFS + FCF + NOPLAT + ROIC + GROWTH REVENUE + GROWTH RATE use 3 years;
+FINANCIAL RATIO uses 4 years (matches BS/IS historical column span).
 
-| # | Sheet name | Upstream | Writes |
-|---|---|---|---|
-| 1 | `HOME` | `['home']` | 6 home scalars (B4,B5,B6,B7,B9,B12) |
-| 2 | `KEY DRIVERS` | `['keyDrivers']` | 9 scalars + 12 arrays |
-| 3 | `ACC PAYABLES` | `['accPayables']` | 6 leaf rows × 3 year columns (NEW: slice added to ExportableState) |
-| 4 | `DLOM` | `['home']` ⚠ | 10 answers (F7..F25) + C31 kepemilikan + C30 jenisPerusahaan (sourced from home) |
-| 5 | `DLOC(PFC)` | `['dloc']` | 5 answers (E7..E15) + B21 kepemilikan |
-| 6 | `WACC` | `['wacc']` | 4 scalars + 2 dynamic-row tables + IS!B33 cross-sheet fix 🔧 |
-| 7 | `DISCOUNT RATE` | `['discountRate']` | 6 scalars + 1 dynamic-row table |
-| 8 | `BORROWING CAP` | `['borrowingCapInput']` | 2 scalars (D5, D6) |
+**Shared helper T2 — `writeComputedRowsToSheet`**: extract the common
+"iterate `manifest.rows × manifest.columns`, write each
+`allRows[excelRow][year]` to cell `<col><row>`" pattern into a single
+tested helper. All 7 builders use it. Avoids 7× duplication while
+preserving per-builder customization (upstream selection, compute
+orchestration, year count).
 
-⚠ **DlomBuilder upstream = `['home']`** (not `['dlom']`): DLOM!C30
-jenisPerusahaan is sourced from HOME slice. If user has filled HOME but
-not opened the DLOM factor questionnaire, DLOM sheet should still display
-the correct jenisPerusahaan — so the builder must run when HOME exists
-even if `state.dlom` is null. The 10 answer-row writes are conditional
-on `state.dlom` inside `build()`.
+### Builder-per-sheet table
 
-🔧 **WACC builder includes IS!B33 fix**: `cell-mapping.ts` defines
-`STANDALONE_SCALARS` entry `wacc.taxRate → INCOME STATEMENT!B33`. When
-Session 031 migrated IS, the legacy `injectScalarCells` started skipping
-this entry (because `excelSheet='INCOME STATEMENT'` is in `skipSheets`).
-That left IS!B33 blank whenever IS is migrated — a silent Session 031
-regression. Phase C uses minimal state and cascade test uses all-null,
-so no test caught it. **Session 032 resolves this naturally** via
-WaccBuilder writing IS!B33 directly as part of its build: "source-slice
-owns all writes regardless of destination sheet". Registry order ensures
-WaccBuilder runs AFTER IncomeStatementBuilder, so its write wins.
+| # | Sheet name            | Upstream                                     | Compute Source                                  | Years |
+|---|-----------------------|----------------------------------------------|-------------------------------------------------|-------|
+| 1 | `NOPLAT`              | `['incomeStatement']`                        | `computeNoplatLiveRows`                         | 3     |
+| 2 | `CASH FLOW STATEMENT` | `['balanceSheet','incomeStatement']`         | `computeCashFlowLiveRows` (+optional FA, AP)    | 3     |
+| 3 | `FCF`                 | `['balanceSheet','incomeStatement','fixedAsset']` | Chain: NOPLAT + FA + CFS → `computeFcfLiveRows` | 3     |
+| 4 | `ROIC`                | `['balanceSheet','incomeStatement','fixedAsset']` | Chain: NOPLAT + CFS + FA + FCF → `computeRoicLiveRows` | 3     |
+| 5 | `GROWTH REVENUE`      | `['incomeStatement']`                        | `computeGrowthRevenueLive`                      | 4 (BS/IS) |
+| 6 | `GROWTH RATE`         | `['balanceSheet','incomeStatement','fixedAsset']` | Chain: NOPLAT + FA + CFS + FCF + ROIC → `computeGrowthRateLive` | 3     |
+| 7 | `FINANCIAL RATIO`     | `['balanceSheet','incomeStatement']`         | `computeFinancialRatioLive` (+optional CFS)     | 4     |
 
 ## Key Technical Decisions
 
-### D1. ACC PAYABLES sheet gets NEW cell mapping + ExportableState extension
+### D1. Registry order — computed analysis after all inputs
 
-`ExportableState` currently has no `accPayables` field. AccPayables user
-data never reaches Excel export. Session 032 adds:
-- `ExportableState.accPayables: AccPayablesInputState | null`
-- New `ACC_PAYABLES_GRID: GridCellMapping` in `cell-mapping.ts`:
-  - `storeSlice: 'accPayables'`
-  - `excelSheet: 'ACC PAYABLES'`
-  - `leafRows: [10, 11, 14, 19, 20, 23]` — Addition/Repayment/Interest × ST/LT blocks
-  - `yearColumns: { 2019: 'C', 2020: 'D', 2021: 'E' }` — 3 historical years
-- `ExportButton.tsx` passes `state.accPayables` in the exportState object
-
-Beginning (rows 9, 18) + Ending (rows 12, 21) are NOT in `leafRows` —
-they are template formulas `=C9+C10+C11` etc., fed by the leaves once
-the leaves are injected. Full Excel reactivity preserved.
-
-AccPayablesBuilder is still owning the whole sheet: it writes ONLY the
-leaf rows (Addition/Repayment/Interest). The Beginning/Ending formula
-cells remain whatever the template has — `clearSheetCompletely` runs
-only when state is null (via orchestrator), not on populated-state
-builds.
-
-### D2. Legacy injector skipSheets param expansion
-
-Session 031 extended `clearAllInputCells`, `injectScalarCells`,
-`injectGridCells` with optional `skipSheets` param. Session 032
-extends the same pattern to:
-- `injectArrayCells(wb, state, skipSheets?)`
-- `injectDynamicRows(wb, state, skipSheets?)`
-- `injectDlomAnswers(wb, state, skipSheets?)`
-- `injectDlocAnswers(wb, state, skipSheets?)`
-- `injectDlomJenisPerusahaan(wb, state, skipSheets?)`
-
-Then `exportToXlsx` passes `MIGRATED_SHEET_NAMES` to each. Builder
-authors never touch these helpers directly — they wrap the same
-injectors filtered to their own sheet.
-
-### D3. Builder test shape
-
-Each builder gets a dedicated test file
-`__tests__/lib/export/sheet-builders/<name>.test.ts`:
-
-1. Load real template via `ExcelJS.Workbook().xlsx.load(buffer)` using
-   the `loadTemplate()` helper already in Session 031 tests.
-2. Construct minimal `state` with the relevant slice populated.
-3. Call `builder.build(workbook, state)` directly.
-4. Assert key cells written correctly.
-5. Assert no cross-sheet leakage (e.g. WACC test also reads IS!B33).
-
-### D4. Registry order
-
-Final order reflects a stable dependency reading. WaccBuilder MUST run
-after IncomeStatementBuilder so its IS!B33 write survives IS's own
-`writeIsLabels` pass:
+These builders consume BS/IS/FA/AP upstream data. Registered AFTER
+input builders (Session 031/032 block) but BEFORE valuation chain
+(AAM/SIMULASI). Final order:
 
 ```ts
-return [
-  // Financial statements (Session 031)
-  BalanceSheetBuilder,
-  IncomeStatementBuilder,
-  FixedAssetBuilder,
-  // Input master + supporting inputs (Session 032)
-  HomeBuilder,
-  KeyDriversBuilder,
-  AccPayablesBuilder,
-  // Questionnaires (Session 032)
-  DlomBuilder,
-  DlocBuilder,
-  // Valuation parameters (Session 032) — Wacc must run AFTER IS
-  WaccBuilder,
-  DiscountRateBuilder,
-  BorrowingCapBuilder,
-  // AAM chain (Session 031)
-  AamBuilder,
-  SimulasiPotensiBuilder,
-]
+// Financial statements (Session 031)
+BalanceSheetBuilder, IncomeStatementBuilder, FixedAssetBuilder,
+// Input master + supporting inputs (Session 032)
+HomeBuilder, KeyDriversBuilder, AccPayablesBuilder,
+// Questionnaires (Session 032)
+DlomBuilder, DlocBuilder,
+// Valuation parameters (Session 032)
+WaccBuilder, DiscountRateBuilder, BorrowingCapBuilder,
+// Computed analysis (Session 033)
+NoplatBuilder, CashFlowStatementBuilder, FcfBuilder,
+RoicBuilder, GrowthRevenueBuilder, GrowthRateBuilder,
+FinancialRatioBuilder,
+// AAM chain (Session 031)
+AamBuilder, SimulasiPotensiBuilder,
 ```
+
+### D2. Null-safe upstream chaining
+
+Each compute-live function accepts nullable optional inputs. Builder
+gate pattern: require MANDATORY upstream (enforced by orchestrator's
+`isPopulated` check via `upstream` array) but allow OPTIONAL upstream
+to fall through to the compute-live function's own null handling.
+
+Example: `CashFlowStatementBuilder` mandates `['balanceSheet', 'incomeStatement']`
+(without these, CFS is meaningless). `fixedAsset` + `accPayables` are
+optional (compute-live returns zero capex / zero financing rows when
+null).
+
+### D3. Write values, not formulas
+
+T6 sheets are derived outputs — user cannot edit them via website.
+Writing static computed values is semantically correct and eliminates
+template-formula complexity (no cross-sheet ref chain to maintain).
+
+**Trade-off accepted**: opening exported file in Excel, user cannot
+"tweak one upstream cell and see downstream auto-update" on these 7
+sheets — they show static numbers. This matches website behavior
+(these sheets are read-only in the website too). Live reactivity for
+user-editable sheets (BS/IS/FA etc.) is preserved via their respective
+template formulas.
+
+### D4. Historical year count derivation
+
+`state.home.tahunTransaksi` provides the latest year. Compute years:
+```ts
+import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
+const histYears3 = computeHistoricalYears(state.home.tahunTransaksi, 3)
+const histYears4 = computeHistoricalYears(state.home.tahunTransaksi, 4)
+```
+
+Builder must guard: if `state.home === null`, fall through to
+`clearSheetCompletely` via orchestrator (null-upstream path).
 
 ### D5. Cascade integration test extension
 
-Existing `__tests__/integration/export-cascade.test.ts` asserts 5
-migrated sheets become blank when state is all-null. Session 032
-extends its `WANT_BLANK_SHEETS` list from 5 → 13 (add 8 new sheet
-names). Non-migrated sheets (DCF, EEM, etc.) remain in the `UNTOUCHED`
-assertion set.
+`__tests__/integration/export-cascade.test.ts` MIGRATED_SHEETS array
+extends 13 → 20. Declarative pattern means test assertions unchanged
+(LESSON-093 — Session 032 pattern proven).
 
 ## What is OUT OF SCOPE
 
-- ❌ T6 (7 computed analysis builders — CFS, FR, FCF, NOPLAT, ROIC,
-      Growth Revenue, Growth Rate) — deferred to Session 033
-- ❌ T7-T10 (9 projection/valuation/dashboard + legacy cleanup + Phase C
-      rewrite + V2 promotion) — deferred to Session 034+
-- ❌ AccPayables extended-account catalog (excelRow ≥ 100) — baseline
-      leaf mapping only; extended catalog is a separate architectural
-      decision (matches BS/IS/FA deferred pattern)
-- ❌ AAM extended-account (excelRow ≥ 100) native injection — deferred
-      from Session 031
-- ❌ Upload parser (.xlsx → store) — reverse of export, different
-      feature entirely
-- ❌ RESUME page, Dashboard polish, multi-case management — lower
-      priority, deferred
+- ❌ T7 (9 projection/valuation/dashboard builders — PROY×5, DCF, EEM, CFI, Dashboard) — deferred to Session 034
+- ❌ T8 (legacy `exportToXlsx` body cleanup + `stripCrossSheetRefsToBlankSheets`) — Session 035
+- ❌ T9 (Phase C rewrite to website-state parity) — Session 035
+- ❌ T10 (V2 promotion as primary) — Session 036
+- ❌ Cross-sheet formula preservation on T6 sheets — values-not-formulas chosen per D3
+- ❌ Upload parser, RESUME page, Dashboard polish — unrelated backlog
 
 ## Verification Strategy
 
-- Per-builder: unit tests with real template + mock state (RED first)
-- Orchestrator: cascade integration test extended to 13 sheets
-- Pipeline: Session 029 Phase C test unchanged (still 4/4 gates)
-- Build/lint/typecheck/audit: full gate before merge
-- Manual: load an exported .xlsx in Excel (LESSON-071 — look for repair
-      dialogs)
+- **Per-builder**: unit tests loading real template, asserting cell
+  values match expected compute output (RED → GREEN → REFACTOR)
+- **Shared helper**: 5 TDD tests for `writeComputedRowsToSheet`
+  covering iteration, null skipping, column letter lookup, idempotency,
+  missing-row tolerance
+- **Orchestrator**: cascade integration test extended 13 → 20 sheets
+- **Pipeline**: Session 029 Phase C test unchanged (still 4/4 gates)
+- **Build/lint/typecheck/audit**: full gate before merge
+- **Live**: post-merge HTTP check on penilaian-bisnis.vercel.app
