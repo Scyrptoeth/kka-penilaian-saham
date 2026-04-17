@@ -567,7 +567,12 @@ untuk 3+ sesi ke depan:
 - LESSON-071 (Excel repair log is ground truth — minta screenshot tombol "View" sebelum menebak)
 - LESSON-072 (ExcelJS Table round-trip is unsafe — strip decorative Tables before export)
 
-LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054 **TIDAK** di-promote — workflow/session-specific
+### Session 027 (AAM Dynamic Interoperability + Full i18n)
+- LESSON-073 (Section-based calc input > named-field input for dynamic account systems)
+- LESSON-075 (Flat dictionary + useT() hook — right i18n pattern for client-side-only Next.js)
+- LESSON-076 (Lift language to root store level — works before any data slice exists)
+
+LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054, 074 **TIDAK** di-promote — workflow/session-specific
 insights yang general ke project lain tapi terlalu luas atau terlalu
 session-specific untuk section 8 (yang fokus KKA-specific gotchas).
 Tersimpan di lessons-learned saja.
@@ -2008,5 +2013,79 @@ The safer approach (E3): use synthetic row numbers ALREADY pre-allocated in the 
 4. **Anti-pattern**: Assume "round-trip aman karena file buka di Excel". ExcelJS mis-serialization bisa silent — file buka di Excel (karena Excel tolerant di beberapa area) tapi dengan repair dialog. Strict verification pakai XML-level inspection, bukan hanya "file opens".
 
 **Proven at**: session-026 (2026-04-15). 4 Tables di FINANCIAL RATIO dibersihkan via `stripDecorativeTables` step 8 di `exportToXlsx`. Post-fix sample: zero `xl/tables/` folder, zero table refs, cell values preserved (test `preserves FINANCIAL RATIO cell values` verifies B5 still truthy).
+
+---
+
+## Session 027 — AAM Dynamic Interoperability + Full i18n (2026-04-16/17)
+
+### LESSON-073: Section-based calc input > named-field input for dynamic account systems
+
+**Kategori**: TypeScript | Design
+**Sesi**: session-027
+**Tanggal**: 2026-04-16
+
+**Konteks**: Saat calc function (`computeAam`) menerima data dari dynamic account list yang jumlahnya bervariasi per user.
+
+**Apa yang terjadi**: `AamInput` awalnya punya 20 named fields (`cashOnHands`, `cashOnBank`, `accountReceivable`, dll.) yang hardcoded ke specific BS row numbers. Saat user menambah akun via catalog atau "Isi Manual", akun baru invisible ke calc function. Redesign ke section-based totals (`totalCurrentAssets`, `nonIbdCurrentLiabilities`, `interestBearingDebtHistorical`, `totalEquity`) membuat calc function agnostic terhadap jumlah dan jenis akun.
+
+**Root cause / insight**: Named-field interface = static contract. Dynamic account system = variable contract. Mismatch ini inevitable saat user bisa add/remove accounts. Section-based totals adalah abstraction layer yang benar — calc function hanya perlu "total per section", bukan individual accounts.
+
+**Cara menerapkan di masa depan**: Saat calc function menerima data dari dynamic source (catalog, user-defined list), gunakan aggregated section totals sebagai interface. Per-account detail adalah concern UI/page level, bukan calc level. Builder function (`buildAamInput`) handle aggregation.
+
+**Proven at**: session-027 (2026-04-16). `AamInput` 20 fields → 11 section-based fields. 15/15 tests pass with identical fixture results.
+
+---
+
+### LESSON-074: IBD classification at catalog level with fallback for custom accounts
+
+**Kategori**: Design | TypeScript
+**Sesi**: session-027
+**Tanggal**: 2026-04-16
+
+**Konteks**: AAM NAV formula excludes bank loans (Interest Bearing Debt) from asset deduction. With dynamic accounts, need to classify which liabilities are IBD vs non-IBD.
+
+**Apa yang terjadi**: Design decision: classify IBD by catalog ID (`IBD_CATALOG_IDS = Set(['short_term_debt', 'long_term_debt'])`), not by structural position or user flag. Custom accounts (catalogId starts with `custom_`) default to non-IBD (conservative — deducted from NAV).
+
+**Root cause / insight**: Catalog-based classification is zero-effort for users (automatic) and correct for 95%+ cases. Adding a per-account IBD toggle adds UX complexity for rare edge case. Conservative default (non-IBD = deducted from NAV) is safer from tax perspective.
+
+**Cara menerapkan di masa depan**: For any binary classification of dynamic accounts (IBD/non-IBD, operating/non-operating, etc.), classify at catalog level via ID set. Custom accounts get conservative default. Add user-facing toggle only if classification error rate justifies the UX cost.
+
+**Proven at**: session-027 (2026-04-16). `isIbdAccount()` helper + `IBD_CATALOG_IDS` set in `balance-sheet-catalog.ts`.
+
+---
+
+### LESSON-075: Flat dictionary + useT() hook — right i18n pattern for client-side-only Next.js
+
+**Kategori**: Framework | Design | Workflow
+**Sesi**: session-027
+**Tanggal**: 2026-04-17
+
+**Konteks**: Full i18n untuk 34 pages + 20 components. App is 100% client-side (no server data fetching, no SSR i18n routing).
+
+**Apa yang terjadi**: Chose simplest possible architecture: single flat `translations.ts` dictionary (`{ 'key': { en: '...', id: '...' } }`), typed `TranslationKey` from `keyof typeof dict`, `useT()` hook reading from root Zustand store. No i18n framework (next-intl, react-i18next) needed. 500+ keys migrated across 50+ files in one session.
+
+**Root cause / insight**: For client-side-only apps without locale-based routing, full i18n frameworks are over-engineering. A flat dictionary + hook gives: (1) full type safety via `TranslationKey`, (2) zero bundle overhead, (3) instant toggle without page reload, (4) no build complexity. The tradeoff (no pluralization, no ICU, no server-side locale detection) is acceptable for this app.
+
+**Cara menerapkan di masa depan**: For any client-side-only Next.js app with ≤2 languages and no locale-based routing: flat dictionary + Zustand + hook. For apps with 3+ languages, SSR locale routing, or ICU plurals: consider next-intl.
+
+**Proven at**: session-027 (2026-04-17). 500+ keys, 50+ files, 878 tests pass, zero i18n framework dependency.
+
+---
+
+### LESSON-076: Lift language to root store level — works before any data slice exists
+
+**Kategori**: Framework | Design
+**Sesi**: session-027
+**Tanggal**: 2026-04-17
+
+**Konteks**: Language was stored inside `balanceSheet.language`. But language toggle needs to work even on pages where `balanceSheet` is null (e.g., HOME page, login page, empty states).
+
+**Apa yang terjadi**: Store v14→v15 migration lifts `language` to root level. `setGlobalLanguage` updates root + propagates to BS/IS/FA slices. `useT()` reads from `s.language` (root), not `s.balanceSheet?.language`. Toggle works globally from first page load.
+
+**Root cause / insight**: Language is a UI preference, not a data property. Storing it inside a data slice creates a chicken-and-egg problem: can't read language until data is entered. Root-level state = available immediately, no null guards.
+
+**Cara menerapkan di masa depan**: Any UI preference (language, theme, display density, units) belongs at root store level, not inside data slices. Data slices may be null; preferences should never be null.
+
+**Proven at**: session-027 (2026-04-17). Store v15, `language: 'en'` as root default, migration reads from `balanceSheet.language` if exists.
 
 ---
