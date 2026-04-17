@@ -48,6 +48,8 @@ const MIGRATED_SHEETS = [
   'GROWTH REVENUE',
   'GROWTH RATE',
   'FINANCIAL RATIO',
+  // Session 034
+  'PROY LR',
 ] as const
 
 function makeEmptyState(): ExportableState {

@@ -21,6 +21,7 @@ import { RoicBuilder } from './roic'
 import { GrowthRevenueBuilder } from './growth-revenue'
 import { GrowthRateBuilder } from './growth-rate'
 import { FinancialRatioBuilder } from './financial-ratio'
+import { ProyLrBuilder } from './proy-lr'
 import { AamBuilder } from './aam'
 import { SimulasiPotensiBuilder } from './simulasi-potensi'
 
@@ -75,6 +76,8 @@ export function getSheetBuilders(): readonly SheetBuilder[] {
     GrowthRevenueBuilder,
     GrowthRateBuilder,
     FinancialRatioBuilder,
+    // Projections (Session 034)
+    ProyLrBuilder,
     // AAM chain (Session 031) — runs after inputs complete
     AamBuilder,
     SimulasiPotensiBuilder,
