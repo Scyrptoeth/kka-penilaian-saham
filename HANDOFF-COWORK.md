@@ -3,7 +3,7 @@
 > **Tanggal**: 2026-04-13 (setelah Session 017)
 > **Tujuan**: Menyamakan pemahaman antara Claude Code CLI (paling update) dan Cowork
 > **Repo**: https://github.com/Scyrptoeth/kka-penilaian-saham
-> **Live**: https://kka-penilaian-saham.vercel.app
+> **Live**: https://penilaian-bisnis.vercel.app
 
 ---
 
