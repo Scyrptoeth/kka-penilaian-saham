@@ -51,6 +51,7 @@ const MIGRATED_SHEETS = [
   // Session 034
   'PROY LR',
   'PROY FIXED ASSETS',
+  'PROY BALANCE SHEET',
 ] as const
 
 function makeEmptyState(): ExportableState {
