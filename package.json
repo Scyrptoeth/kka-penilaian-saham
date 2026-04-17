@@ -6,7 +6,7 @@
     "dev": "next dev",
     "prebuild": "node scripts/build-nip-whitelist.cjs",
     "predev": "node scripts/build-nip-whitelist.cjs",
-    "pretest": "node scripts/build-nip-whitelist.cjs",
+    "pretest": "node scripts/build-nip-whitelist.cjs && node scripts/audit-i18n.mjs",
     "build:whitelist": "node scripts/build-nip-whitelist.cjs",
     "build": "next build",
     "start": "next start",
@@ -16,7 +16,9 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "extract:fixtures": "python3 scripts/extract-fixtures.py",
-    "seed:sync": "node scripts/copy-fixtures.cjs"
+    "seed:sync": "node scripts/copy-fixtures.cjs",
+    "audit:i18n": "node scripts/audit-i18n.mjs --write-report",
+    "verify:phase-c": "node scripts/verify-phase-c.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
