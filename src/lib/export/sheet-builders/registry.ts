@@ -24,6 +24,7 @@ import { FinancialRatioBuilder } from './financial-ratio'
 import { ProyLrBuilder } from './proy-lr'
 import { ProyFaBuilder } from './proy-fa'
 import { ProyBsBuilder } from './proy-bs'
+import { ProyNoplatBuilder } from './proy-noplat'
 import { AamBuilder } from './aam'
 import { SimulasiPotensiBuilder } from './simulasi-potensi'
 
@@ -82,6 +83,7 @@ export function getSheetBuilders(): readonly SheetBuilder[] {
     ProyLrBuilder,
     ProyFaBuilder,
     ProyBsBuilder,
+    ProyNoplatBuilder,
     // AAM chain (Session 031) — runs after inputs complete
     AamBuilder,
     SimulasiPotensiBuilder,

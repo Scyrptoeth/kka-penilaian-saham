@@ -52,6 +52,7 @@ const MIGRATED_SHEETS = [
   'PROY LR',
   'PROY FIXED ASSETS',
   'PROY BALANCE SHEET',
+  'PROY NOPLAT',
 ] as const
 
 function makeEmptyState(): ExportableState {
