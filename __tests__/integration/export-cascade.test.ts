@@ -8,9 +8,11 @@
  *   - Session 031 (5 sheets): BS, IS, FA, AAM, SIMULASI POTENSI (AAM)
  *   - Session 032 (+8 sheets): HOME, KEY DRIVERS, ACC PAYABLES, DLOM,
  *     DLOC(PFC), WACC, DISCOUNT RATE, BORROWING CAP
+ *   - Session 033 (+7 sheets): NOPLAT, CASH FLOW STATEMENT, FCF, ROIC,
+ *     GROWTH REVENUE, GROWTH RATE, FINANCIAL RATIO
  *
- * Further migrations (Sessions 033+) will extend `MIGRATED_SHEETS`
- * with computed analysis builders, projection builders, etc.
+ * Further migrations (Sessions 034+) will extend `MIGRATED_SHEETS`
+ * with projection builders, valuation/dashboard builders, etc.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -38,6 +40,14 @@ const MIGRATED_SHEETS = [
   'WACC',
   'DISCOUNT RATE',
   'BORROWING CAP',
+  // Session 033
+  'NOPLAT',
+  'CASH FLOW STATEMENT',
+  'FCF',
+  'ROIC',
+  'GROWTH REVENUE',
+  'GROWTH RATE',
+  'FINANCIAL RATIO',
 ] as const
 
 function makeEmptyState(): ExportableState {
