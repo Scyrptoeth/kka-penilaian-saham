@@ -18,6 +18,7 @@ import { NoplatBuilder } from './noplat'
 import { CashFlowStatementBuilder } from './cash-flow-statement'
 import { FcfBuilder } from './fcf'
 import { RoicBuilder } from './roic'
+import { GrowthRevenueBuilder } from './growth-revenue'
 import { AamBuilder } from './aam'
 import { SimulasiPotensiBuilder } from './simulasi-potensi'
 
@@ -69,6 +70,7 @@ export function getSheetBuilders(): readonly SheetBuilder[] {
     CashFlowStatementBuilder,
     FcfBuilder,
     RoicBuilder,
+    GrowthRevenueBuilder,
     // AAM chain (Session 031) — runs after inputs complete
     AamBuilder,
     SimulasiPotensiBuilder,
