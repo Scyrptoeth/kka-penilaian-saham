@@ -294,6 +294,10 @@ const dict = {
   'dcf.marketValue100': { en: 'Market Value (100%)', id: 'Nilai Pasar (100%)' },
   'dcf.rounded': { en: 'Rounded', id: 'Pembulatan' },
   'dcf.perShare': { en: 'Value Per Share (DCF)', id: 'Nilai Per Saham (DCF)' },
+  'dcf.fcfYearRow': { en: 'FCF ({year})', id: 'FCF ({year})' },
+  'dcf.discountFactorYearRow': { en: 'Discount Factor ({year})', id: 'Faktor Diskon ({year})' },
+  'dcf.dlomWithPercentRow': { en: 'DLOM ({pct})', id: 'DLOM ({pct})' },
+  'dcf.marketValuePortionRow': { en: 'Market Value ({pct} Equity)', id: 'Nilai Pasar ({pct} Ekuitas)' },
 
   // ═══════════════════════════════════════════════════════════════════
   // EEM PAGE
@@ -654,21 +658,31 @@ const dict = {
 } as const
 
 export type TranslationKey = keyof typeof dict
+export type TVars = Record<string, string | number>
 
 /**
- * Get translated string for a given key and language.
- * Falls back to English if key not found.
+ * Get translated string for a given key and language. Falls back to English
+ * if the key's `id` value is missing. Supports `{name}` placeholder
+ * interpolation when `vars` is provided.
  */
-export function t(key: TranslationKey, lang: Lang): string {
+export function t(key: TranslationKey, lang: Lang, vars?: TVars): string {
   const entry = dict[key]
   if (!entry) return key
-  return entry[lang] ?? entry.en
+  let result = entry[lang] ?? entry.en
+  if (vars) {
+    for (const [k, v] of Object.entries(vars)) {
+      result = result.split(`{${k}}`).join(String(v))
+    }
+  }
+  return result
 }
 
 /**
- * Create a bound translation function for a given language.
- * Used by the useT() hook.
+ * Create a bound translation function for a given language. The returned
+ * function accepts optional vars for placeholder interpolation.
  */
-export function createT(lang: Lang): (key: TranslationKey) => string {
-  return (key: TranslationKey) => t(key, lang)
+export function createT(
+  lang: Lang,
+): (key: TranslationKey, vars?: TVars) => string {
+  return (key, vars) => t(key, lang, vars)
 }
