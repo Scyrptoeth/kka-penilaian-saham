@@ -45,10 +45,7 @@ import {
   FA_CATALOG,
   FA_OFFSET,
 } from '@/data/catalogs/fixed-asset-catalog'
-import {
-  MIGRATED_SHEET_NAMES,
-  runSheetBuilders,
-} from './sheet-builders/registry'
+import { runSheetBuilders } from './sheet-builders/registry'
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -72,94 +69,45 @@ export interface ExportableState {
 }
 
 /**
- * Export the user's data to an .xlsx file based on the source template.
+ * Export the user's state to an .xlsx file based on the source template.
  * Returns a Blob ready for download.
+ *
+ * Session 035 pipeline — 100% state-driven. All 29 WEBSITE_NAV_SHEETS are
+ * owned by SheetBuilders registered in `SHEET_BUILDERS`; the orchestrator
+ * decides per sheet whether to build (populated upstream) or clear
+ * (unpopulated upstream). Subsequent hygiene steps resolve partial-data
+ * edge cases, enforce visibility, and neutralize ExcelJS serialization
+ * quirks that would otherwise surface as "Removed Records" repair
+ * prompts when the file opens in Excel.
  */
 export async function exportToXlsx(state: ExportableState): Promise<Blob> {
-  // 1. Fetch template
   const response = await fetch('/templates/kka-template.xlsx')
   if (!response.ok) throw new Error(`Failed to load template: ${response.status}`)
   const buffer = await response.arrayBuffer()
-
-  // 2. Load workbook
   const workbook = new ExcelJS.Workbook()
   await workbook.xlsx.load(buffer)
 
-  // 3. Clear all input cells (remove prototype PT Raja Voltama data).
-  //    Migrated sheets (owned by SHEET_BUILDERS) are skipped here because
-  //    the builder either populates them from scratch or clears them
-  //    completely via clearSheetCompletely() — either way the legacy
-  //    leaf-cell null-writes would be redundant.
-  clearAllInputCells(workbook, MIGRATED_SHEET_NAMES)
+  // State-driven builders: populate or clear every registered sheet.
+  const { clearedSheets } = runSheetBuilders(workbook, state)
 
-  // 4. Inject user data via legacy per-type injectors. Migrated sheets are
-  //    skipped at this layer; their SheetBuilder owns them end-to-end.
-  injectScalarCells(workbook, state, MIGRATED_SHEET_NAMES)
-  injectGridCells(workbook, state, MIGRATED_SHEET_NAMES)
-  if (!MIGRATED_SHEET_NAMES.has('BALANCE SHEET')) {
-    injectBsCrossRefValues(workbook, state)
-  }
-  injectArrayCells(workbook, state, MIGRATED_SHEET_NAMES)
-  injectDynamicRows(workbook, state, MIGRATED_SHEET_NAMES)
-  if (!MIGRATED_SHEET_NAMES.has('DLOM')) {
-    injectDlomAnswers(workbook, state)
-    injectDlomJenisPerusahaan(workbook, state)
-  }
-  if (!MIGRATED_SHEET_NAMES.has('DLOC(PFC)')) {
-    injectDlocAnswers(workbook, state)
-  }
-  if (!MIGRATED_SHEET_NAMES.has('AAM')) {
-    injectAamAdjustments(workbook, state)
-  }
+  // Partial-data guard: cross-sheet formulas pointing to cleared sheets
+  // would render stale cached values; replace with cached-result plain
+  // numbers (same pattern as sanitizeDanglingFormulas).
+  stripCrossSheetRefsToBlankSheets(workbook, clearedSheets)
 
-  // 5. Extended BS catalog injection (Session 025) — skipped when BS is
-  //    owned by BalanceSheetBuilder, which calls the same helpers itself.
-  if (!MIGRATED_SHEET_NAMES.has('BALANCE SHEET')) {
-    injectExtendedBsAccounts(workbook, state)
-    extendBsSectionSubtotals(workbook, state)
-  }
-
-  // 5b. IS extended catalog (Session 028 Approach δ) — skipped when IS is
-  //     owned by IncomeStatementBuilder.
-  if (!MIGRATED_SHEET_NAMES.has('INCOME STATEMENT')) {
-    injectExtendedIsAccounts(workbook, state)
-    replaceIsSectionSentinels(workbook, state)
-  }
-
-  // 5c. FA extended catalog (Session 028 Approach η) — skipped when FA is
-  //     owned by FixedAssetBuilder.
-  if (!MIGRATED_SHEET_NAMES.has('FIXED ASSET')) {
-    injectExtendedFaAccounts(workbook, state)
-    extendFaSectionSubtotals(workbook, state)
-  }
-
-  // 5d. Session 030/031 — state-driven sheet builders. For each registered
-  //     builder: populate the sheet when upstream slices satisfy
-  //     isPopulated(), otherwise clear it to a blank shell. Non-registered
-  //     sheets remain untouched — legacy pipeline above owns them.
-  runSheetBuilders(workbook, state)
-
-  // 6. Apply website-nav 1:1 sheet visibility (Session 024 audit decision)
+  // Website-nav 1:1 visibility (Session 024).
   applySheetVisibility(workbook)
 
-  // 7. Strip dangling formulas the template inherited from its prior Excel
-  //    life (external-workbook refs like `'[3]BALANCE SHEET'!A3` and stale
-  //    `#REF!`). ExcelJS drops the externalLinks/ parts on round-trip but
-  //    leaves the formula strings behind — Excel then shows the repair
-  //    dialog on open. Replace with the cached last-known value.
+  // Strip dangling externalLink formulas (`[3]BALANCE SHEET`, `#REF!`)
+  // inherited from the template's prior Excel life — prevents Excel's
+  // repair dialog on open (Session 026).
   sanitizeDanglingFormulas(workbook)
 
-  // 8. Remove decorative tables. The template's FINANCIAL RATIO sheet
-  //    defines four styled Tables (Table7/8/9/11) purely for visual
-  //    grouping. ExcelJS round-trip mis-serialises their metadata
-  //    (`headerRowCount="0"` with column names that have no header row),
-  //    which Excel detects on open and flags as
-  //    "Removed Records: AutoFilter from table*.xml". Since the tables
-  //    provide no functional filtering/sorting, dropping them entirely
-  //    eliminates the repair prompt without affecting the workbook.
+  // Drop decorative Tables (FINANCIAL RATIO Table7/8/9/11) that ExcelJS
+  // round-trip mis-serialises; Excel would otherwise flag them as
+  // "Removed Records: AutoFilter" on open.
   stripDecorativeTables(workbook)
 
-  // 9. Generate output
   const outBuffer = await workbook.xlsx.writeBuffer()
   return new Blob([outBuffer], {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.xlsx',
