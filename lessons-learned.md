@@ -600,6 +600,12 @@ untuk 3+ sesi ke depan:
 ### Session 033 (Computed Analysis Builders T6 — 7 sheets)
 - LESSON-094 (deriveComputedRows recomputes subtotal rows — test fixtures must provide chain-input leaves, not pre-aggregated subtotals)
 
+### Session 034 (PROY + Valuation + Dashboard Builders T7 — 9 sheets, FULL CASCADE 29/29)
+- LESSON-095 (Fixture-driven TDD for export builders — per-sheet JSON fixtures are cell-layout ground truth when sheets lack SheetManifest)
+- LESSON-096 (Preserve template post-equity formulas in valuation builders — cross-sheet references auto-resolve via sibling builders)
+- LESSON-097 (Narrow SheetBuilder.upstream to actual data dependencies — over-declaring gates the builder unnecessarily)
+- LESSON-098 (Cascade sanity-scan must accommodate sparse sheet content — widen or go unbounded, don't whitelist)
+
 LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054, 074, 087 **TIDAK** di-promote — workflow/session-specific
 insights yang general ke project lain tapi terlalu luas atau terlalu
 session-specific untuk section 8 (yang fokus KKA-specific gotchas).
@@ -2753,5 +2759,98 @@ Fix: replaced `rows: {23: {...}, 51: {...}}` dengan distributed leaves
 `rows: {17:{y,...}, 18:{y,...}, ..., 45:{...}, ..., 50:{...}}`.
 Lesson applies to all 7 Session 033 builders that consume
 deriveComputedRows output.
+
+---
+
+### LESSON-095: Fixture-driven TDD for export builders — per-sheet JSON fixtures are cell-layout ground truth
+
+**Kategori**: Testing | Excel | Workflow
+**Sesi**: session-034
+**Tanggal**: 2026-04-17
+
+**Konteks**: Migrating sheets without SheetManifest (PROY/DCF/EEM/CFI/Dashboard) into state-driven SheetBuilder registry requires knowing which cells the builder owns. Options: (a) upfront layout-constants file, (b) per-builder discovery during TDD.
+
+**Apa yang terjadi**: All 9 target sheets had pre-extracted ground-truth fixtures in `__tests__/fixtures/*.json` from the prototipe PT Raja Voltama workbook. Per-builder TDD could inspect fixture to determine cell addresses and assert builder output matches fixture values at those addresses — same pattern Sessions 001-003 used for pure-calc validation.
+
+**Root cause / insight**: Fixtures capture the DJP-template's exact cell-layout conventions (header row 5/6, year columns C-F for 4-year layouts, etc.) as data. Authoring a separate `PROJECTION_CELL_LAYOUTS.ts` constants file would duplicate fixture information and risk drift. Instead: fixture = source of truth, TDD validates against it.
+
+**Cara menerapkan di masa depan**:
+- When migrating a new sheet WITHOUT SheetManifest, ask: "Does `__tests__/fixtures/<slug>.json` exist?" If yes, use fixture for cell discovery; do NOT author separate constants.
+- Inspect fixture via one-shot python command: `python3 -c "import json; d=json.load(open('__tests__/fixtures/X.json')); [print(c['addr'], c.get('value')) for c in d['cells'] if ...]"`.
+- Per-builder test pattern: load fixture → identify cells with numeric values → build workbook → assert `ws.getCell(addr).value` matches fixture-value OR satisfies invariant (row sum, ratio, etc.).
+- Anti-pattern: per-builder managedRows constant without fixture cross-check is opaque — audit trail lives in fixture.
+- When compute-live function produces more rows than needed, iterate `Object.keys(computeOutput)` pattern (PROY BS/NOPLAT/CFS used this) is resilient; when only specific rows relevant, explicit managedRows (PROY LR/FA used this) is more auditable. Both acceptable.
+
+**Proven at**: session-034 (2026-04-17). 9 builders × ~6 tests each validated against fixtures. Zero fixture authoring cost.
+
+---
+
+### LESSON-096: Preserve template post-equity formulas in valuation builders — don't overwrite cross-sheet references
+
+**Kategori**: Excel | Design | Anti-pattern
+**Sesi**: session-034
+**Tanggal**: 2026-04-17
+
+**Konteks**: DCF/EEM sheets have rows below the core valuation (e.g. DCF rows 34-42, EEM rows 35-45) containing DLOM/DLOC/Market Value/share-value transformations. These reference cross-sheet cells (HOME!B8, EEM!C35, etc.).
+
+**Apa yang terjadi**: Initial design assumption was builders write ALL cells they "own". But cells with cross-sheet formulas depend on UP-TO-DATE source-sheet values. If HomeBuilder writes HOME!B8 = 0.5 (user's proporsi), and DCF!B38 has formula `=HOME!B8`, the formula resolves to 0.5 automatically. Writing a STATIC value at DCF!B38 would break the live-reactivity chain — if user later re-exports with different HOME data, DCF!B38 would stay stuck at the stale value.
+
+**Root cause / insight**: In a **multi-builder registry**, owned cells split into two classes:
+- **Computed outputs** (builder's primary responsibility): write values. E.g. DCF!C29 = enterpriseValue.
+- **Cross-sheet references** (depend on another builder's work): LEAVE TEMPLATE FORMULAS INTACT. They resolve automatically when the referenced builder writes its cells.
+
+**Cara menerapkan di masa depan**:
+- Before writing a cell, check: "Does the template's existing formula reference a cell my sibling builders own?" If yes, leave it — don't write.
+- Builders for DCF/EEM/CFI/Dashboard limit writes to computed-output ranges (rows 7-33 for DCF, 7-34 for EEM, etc.) and explicitly document what's left as template formula.
+- Trade-off accepted: if the template formula is WRONG (e.g. legacy formula pointing to a now-deleted sheet), it won't be fixed by our builder. This is fine — legacy cleanup (T8) handles formula pruning separately.
+- Anti-pattern: "I own this whole sheet so I write every cell" ignores cross-sheet dependencies.
+
+**Proven at**: session-034 (DcfBuilder doesn't touch rows 34-42; EemBuilder doesn't touch rows 35-45). Template formulas there reference HOME/DLOM/EEM/DLOC — maintained by their respective builders. Live-reactivity chain preserved.
+
+---
+
+### LESSON-097: Narrow SheetBuilder.upstream to actual data dependencies
+
+**Kategori**: Design | Anti-pattern | Workflow
+**Sesi**: session-034
+**Tanggal**: 2026-04-17
+
+**Konteks**: Initial plan.md assumed valuation builders (DCF/EEM/CFI) all need `['home','balanceSheet','incomeStatement','fixedAsset','keyDrivers','discountRate']` per symmetry. Turned out EEM uses historical FCF only — no projection pipeline.
+
+**Apa yang terjadi**: First EEM builder implementation required keyDrivers to run `computeFullProjectionPipeline` just to obtain `allBs` and historical year arrays. But EEM's pure calc only reads historical upstream (NOPLAT/FA/CFS from `computeHistoricalUpstream`). Projection was dead weight. When user has BS/IS/FA/DR but hasn't entered KD yet, a keyDrivers-gated EEM builder would fail the populated check and blank-clear EEM — even though EEM can compute fine.
+
+**Root cause / insight**: `upstream` array controls both (a) which slices gate `build()` invocation and (b) implicitly which user state is considered "sufficient" to populate a sheet. Over-declaring upstream forces users to enter EXTRA data before seeing their sheet populated — degrading UX.
+
+**Cara menerapkan di masa depan**:
+- For each builder, trace data dependencies IN THE BUILD FUNCTION back to the minimum upstream slices needed.
+- If projection pipeline is only used to derive `histYears4 + allBs`, REPLACE the pipeline call with direct `computeHistoricalYears + deriveComputedRows(BALANCE_SHEET_MANIFEST, ...)` — fewer upstream gates.
+- EEM narrowed from `[..., 'keyDrivers', 'discountRate']` to `[..., 'discountRate']` (no KD). AccPayables optional (not declared — falls through to null).
+- Rule: the SMALLEST upstream that lets the builder produce correct output is the RIGHT upstream. Larger = UX regression.
+- Anti-pattern: copy-paste upstream arrays between sibling builders for "consistency".
+
+**Proven at**: session-034 (EemBuilder — users who haven't entered KD still see EEM populated; Dashboard builder — works with just BS+IS, gracefully degrades projection block when KD/FA missing).
+
+---
+
+### LESSON-098: Cascade sanity-scan must accommodate sparse sheet content
+
+**Kategori**: Testing | Anti-pattern
+**Sesi**: session-034
+**Tanggal**: 2026-04-17
+
+**Konteks**: `__tests__/integration/export-cascade.test.ts` pre-condition asserts that every MIGRATED_SHEETS entry has SOME prototipe content in the template — by scanning first 25 rows × cols A-E for a non-empty cell. Purpose: confirm `clearSheetCompletely` is actually clearing something (not hitting already-blank sheets).
+
+**Apa yang terjadi**: DASHBOARD template clusters its content at rows 58-62 × cols G-V (4-block summary). No content at all in rows 1-25 × cols A-E. Scan window returned empty → sanity assertion failed on the migrated-sheet loop.
+
+**Root cause / insight**: "Top-left narrow scan" embeds an unstated assumption — "every DJP-template sheet has content in its first few rows and leftmost columns". The assumption holds for 28 of 29 sheets but breaks for DASHBOARD. Tests with narrow fixed scan ranges are fragile to sheet-layout diversity.
+
+**Cara menerapkan di masa depan**:
+- When extending a sanity-scan test to cover more sheets, AUDIT the template cell distribution of each new sheet first. Widen scan range if any sheet has sparse content.
+- Prefer widening to whitelisting — `if (sheetName === 'DASHBOARD') scanWider()` is fragile; a single wider scan rule covers all.
+- My fix: widened to cols A-V × rows 1-65 (includes DASHBOARD's 58-62 × G-V cluster). Catches all 29 sheets' content.
+- Alternative: scan until first truthy cell found, unbounded (slower but fully robust). Tolerable performance for once-per-test-run.
+- Anti-pattern: narrow scan windows in assertions that are supposed to generalize across diverse templates.
+
+**Proven at**: session-034 (cascade 20→29 extension exposed the narrow-scan bug; widened to A-V × 1-65; all 29 sheets' sanity check passes).
 
 ---
