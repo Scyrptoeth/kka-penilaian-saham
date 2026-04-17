@@ -679,8 +679,11 @@ function injectDlomJenisPerusahaan(workbook: ExcelJS.Workbook, state: Exportable
 /**
  * Inject per-row AAM adjustments into the AAM sheet D column.
  * Each BS row number maps to a specific AAM Excel row via BS_ROW_TO_AAM_D_ROW.
+ *
+ * Exported for reuse by `AamBuilder` (Session 031) — the builder wraps
+ * this helper with label writing and sheet-clear semantics.
  */
-function injectAamAdjustments(workbook: ExcelJS.Workbook, state: ExportableState): void {
+export function injectAamAdjustments(workbook: ExcelJS.Workbook, state: ExportableState): void {
   const adj = state.aamAdjustments
   if (!adj || Object.keys(adj).length === 0) return
 
