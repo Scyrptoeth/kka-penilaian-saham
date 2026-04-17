@@ -592,6 +592,11 @@ untuk 3+ sesi ke depan:
 - LESSON-089 (Test-only override seam beats mutating a const array — `__setTestXxxOverride` pattern)
 - LESSON-090 (State-driven label override — write accounts[].labelXx at excelRow, mirror via offsets)
 
+### Session 032 (Input Builders T5 — 8 sheets + IS!B33 regression fix)
+- LESSON-091 (Source-slice builder owns all writes — prevents silent cross-sheet regressions)
+- LESSON-092 (When adding a new store slice, audit the full export pipeline)
+- LESSON-093 (Cascade integration test should be declarative over MIGRATED_SHEETS)
+
 LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054, 074, 087 **TIDAK** di-promote — workflow/session-specific
 insights yang general ke project lain tapi terlalu luas atau terlalu
 session-specific untuk section 8 (yang fokus KKA-specific gotchas).
@@ -2542,5 +2547,140 @@ For **AAM sheet**, labels require an **indirection map** (BS_ROW_TO_AAM_D_ROW) b
 6. **Testing pattern**: for each builder, test (a) labelEn when language=en, (b) labelId when language=id, (c) customLabel overrides both, (d) for multi-band sheets, labels mirror across all bands, (e) for indirection sheets (AAM), correct row translation.
 
 **Proven at**: session-031 (2026-04-17). `writeBsLabels`, `writeIsLabels`, `writeFaLabels`, `writeAamLabels` ship with 14 label-writer tests + 34 per-builder tests. Primary user complaint fixed — rename propagates end-to-end from website → Excel export.
+
+---
+
+## Session 032 — T5: 8 Input-Driven SheetBuilders + IS!B33 Regression Fix
+
+### LESSON-091: Source-slice builder owns all writes — prevents silent cross-sheet regressions
+
+**Kategori**: Anti-pattern | Design | Workflow | Excel
+**Sesi**: session-032
+**Tanggal**: 2026-04-17
+
+**Konteks**: Cross-sheet scalar mapping where data sourced from slice X writes to sheet Y. Example: `STANDALONE_SCALARS` entry `wacc.taxRate → IS!B33` (WACC Hamada formulas on WACC sheet read B33 from INCOME STATEMENT sheet).
+
+**Apa yang terjadi**: Session 031 migrated IS into `IncomeStatementBuilder`. Legacy `injectScalarCells(wb, state, MIGRATED_SHEET_NAMES)` filters by `m.excelSheet`, so any scalar with `excelSheet === 'INCOME STATEMENT'` got skipped — including `wacc.taxRate → IS!B33`. The IS builder doesn't know about this cross-sheet scalar (upstream=['incomeStatement']). Phase C test uses minimal state; cascade test uses all-null. Neither caught it. IS!B33 stayed blank for populated states → WACC formulas silently computed with 0/undefined → numerical drift invisible to user.
+
+**Root cause / insight**: Destination-filtering skip logic + destination-sheet-owns-writes pattern = cross-sheet writes get orphaned when destination sheet migrates and source slice is still legacy. The architecture couldn't express "this write belongs to slice X regardless of which sheet it lands on."
+
+**Solusi yang bekerja** (Session 032 WaccBuilder):
+
+```ts
+/** Write every scalar whose storeSlice === arg, regardless of destination. */
+export function writeScalarsFromSlice(
+  workbook: ExcelJS.Workbook,
+  state: ExportableState,
+  storeSlice: string,
+): void {
+  for (const m of ALL_SCALAR_MAPPINGS) {
+    if (m.storeSlice !== storeSlice) continue
+    const ws = workbook.getWorksheet(m.excelSheet)
+    if (!ws) continue
+    writeScalarMapping(ws, state, m)
+  }
+}
+
+export const WaccBuilder: SheetBuilder = {
+  sheetName: 'WACC',
+  upstream: ['wacc'],
+  build(wb, state) {
+    writeScalarsFromSlice(wb, state, 'wacc') // covers WACC!B4..E22 + IS!B33
+    writeDynamicRowsForSheet(wb, state, 'WACC')
+  },
+}
+```
+
+**Cara menerapkan di masa depan**:
+1. **Principle**: source-slice builder owns all writes from its slice. If slice X has scalars writing to sheets Y1, Y2, Y3, the X-builder writes to all three. This naturally covers cross-sheet scalars without coordination between multiple builders.
+2. **Registry order matters** for cross-sheet writes: if X-builder writes to sheet Y, and Y-builder also touches the same cell (e.g., via `writeLabels`), order the X-builder AFTER Y-builder so its write survives. Document the constraint in the builder's JSDoc.
+3. **Audit trigger**: when migrating a new sheet, grep `STANDALONE_SCALARS` + filter `ALL_SCALAR_MAPPINGS` by the sheet name — look for entries where `storeSlice !== this sheet's slice`. Those are cross-sheet writes that need source-slice-owns logic.
+4. **Test pattern**: for every source-slice builder, assert its cross-sheet writes with explicit destination-sheet cell reads. WaccBuilder test case "writes wacc.taxRate to INCOME STATEMENT!B33" is the regression guard.
+5. **Anti-pattern**: letting the destination-sheet builder handle cross-sheet writes from another slice. That's wrong-way coupling — IS builder shouldn't know about WACC's tax rate.
+
+**Proven at**: session-032 (2026-04-17). `writeScalarsFromSlice` added to export-xlsx.ts. WaccBuilder (12 tests) includes explicit IS!B33 regression assertion. Fix is orthogonal to Session 031 IS builder — resolved by adding the right pattern, not editing the prior code.
+
+---
+
+### LESSON-092: When adding a new store slice, audit the full export pipeline
+
+**Kategori**: Workflow | Anti-pattern
+**Sesi**: session-032
+**Tanggal**: 2026-04-17
+
+**Konteks**: New store slices accumulate organically as features ship. Session 012 added `accPayables` slice. Session 021 added AP persistence UI. But the slice **never reached Excel export** — no `ExportableState` field, no cell mapping, no injector. Gap invisible for ~20 sessions (012 → 032) because:
+- Website-only tests passed (store read/write worked)
+- Export tests used minimal state (null accPayables didn't matter)
+- No visual smoke test of exported ACC PAYABLES sheet contents
+
+**Apa yang terjadi**: Session 032 T5 discovered the gap when trying to write `AccPayablesBuilder.upstream = ['accPayables']`. The `UpstreamSlice` union didn't include it. Following the import chain: ExportableState had no `accPayables` field. Following cell-mapping: no grid or scalar for ACC PAYABLES sheet. ExportButton.tsx didn't pass `state.accPayables`. **Four separate wiring points, all dark**.
+
+**Root cause / insight**: The export pipeline has multiple "layers" that each need to know about a new slice:
+
+| Layer | File | What it needs |
+|---|---|---|
+| Type shape | `ExportableState` (export-xlsx.ts) | New field declaration |
+| State reading | `ExportButton.tsx` | Pass `state.xxx` in exportState object |
+| Cell mapping | `cell-mapping.ts` | `XXX_GRID` / `XXX_SCALARS` / `XXX_ARRAYS` |
+| Registry integration | `ALL_XXX_MAPPINGS` | Include the new mapping |
+| Upstream union | `sheet-builders/types.ts` | `UpstreamSlice \| 'xxx'` |
+
+Adding a slice to the Zustand store doesn't cascade through these automatically. Each gap produces silent no-op behavior: the data isn't exported but no error fires.
+
+**Cara menerapkan di masa depan**:
+1. **Checklist ritual**: when adding a new store slice, grep for every existing slice name (e.g., `grep -r 'balanceSheet' src/`) and verify the new slice has parallel entries everywhere.
+2. **Phase C test as safety net**: the Session 029 Phase C test can catch wiring gaps IF the test state includes the new slice. Session 034+ Phase C rewrite should construct `ExportableState` from PT Raja Voltama fixtures — that exercises every slice end-to-end.
+3. **Integration test with populated state**: the cascade test today asserts all-null → blank shells. A companion "all-populated → no cells blank that should be filled" test would catch silent gaps. Defer this to Session 033 when more builders exist to exercise.
+4. **Documentation**: any time `ExportableState` grows, update the builder-authoring guide in skill Section 8 (or equivalent) to remind future authors.
+5. **No "deferred YAGNI" shortcuts** on wiring: Session 012 deferred AccPayables export "because prototype values are all zero". That reasoning decayed — by Session 032 users DO populate the slice, and the gap was still there. Either wire it fully or don't add the slice at all.
+
+**Proven at**: session-032 (2026-04-17). AP slice wiring added in T2 (ExportableState + cell mapping + ExportButton). AccPayablesBuilder (T5) uses the newly-wired path. 10 tests verify end-to-end data flow from store → export.
+
+---
+
+### LESSON-093: Cascade integration test should be declarative over MIGRATED_SHEETS
+
+**Kategori**: Testing | Workflow
+**Sesi**: session-032
+**Tanggal**: 2026-04-17
+
+**Konteks**: Integration test that verifies the `SHEET_BUILDERS` registry correctly clears unpopulated sheets. Two assertion loops: (a) sample cells on each migrated sheet become null after all-null runSheetBuilders; (b) non-migrated sheets stay untouched.
+
+**Apa yang terjadi**: Session 031 wrote the test with a 5-entry `MIGRATED_SHEETS` const array. Session 032 added 8 more builders. Instead of adding 8 new `it()` blocks, the test grew coverage by changing ONE data value — the array literal grew from 5 → 13. Zero new assertion code.
+
+**Root cause / insight**: Declarative-over-data tests scale for free as the registry grows. The pattern:
+
+```ts
+const MIGRATED_SHEETS = [
+  'BALANCE SHEET',      // Session 031
+  'INCOME STATEMENT',
+  // ... 5 from S031
+  'HOME',               // Session 032
+  'KEY DRIVERS',
+  // ... 8 from S032
+  // Future sessions keep appending
+] as const
+
+it('clears migrated sheets to blank shells when every upstream slice is null', async () => {
+  const wb = await loadTemplate()
+  runSheetBuilders(wb, makeEmptyState())
+  for (const name of MIGRATED_SHEETS) {
+    for (const addr of SAMPLE_CELLS) {
+      expect(wb.getWorksheet(name)!.getCell(addr).value).toBeNull()
+    }
+  }
+})
+```
+
+The sample-cell set (`['B8', 'D8', 'C8', 'B100', 'F6', 'B6']`) is generic enough to hit prototipe content on most sheets without being tied to specific sheet layouts.
+
+**Cara menerapkan di masa depan**:
+1. **Default pattern**: any time you're asserting a property across N items from a registry, express it as iteration over the registry's `names` / `keys` array, not N separate `it()` blocks.
+2. **Trade-off accepted**: a failure message reads "expected null at BORROWING CAP!B8 but got '…'" — slightly less granular than 13 named tests, but still actionable. Debug-friendly.
+3. **Sample cells should be generic**: `['B8', 'D8', 'C8', 'B100']` works for ANY sheet with prototipe content in the first ~20 rows. Don't embed sheet-specific addresses in the assertion loop.
+4. **Non-migrated assertion stays specific**: the "DCF untouched" case still names one specific sheet because it's easier to reason about than "iterate all non-migrated and check equality". Asymmetric patterns are fine — data-driven where it scales, hand-written where it stays stable.
+5. **Caveat**: if a new builder has genuinely different clear semantics (e.g., preserves some rows), the declarative pattern breaks. Fork into a dedicated `it()` block for that builder — don't contort the shared pattern to accommodate exceptions.
+
+**Proven at**: session-032 (2026-04-17). `MIGRATED_SHEETS` grew 5→13 via data change. 3 tests still the same count. Coverage 2.6× without touching assertion code.
 
 ---
