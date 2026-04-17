@@ -338,6 +338,80 @@ export function sanitizeDanglingFormulas(workbook: ExcelJS.Workbook): void {
 }
 
 // ---------------------------------------------------------------------------
+// Internal: Strip cross-sheet refs pointing to sheets a builder cleared
+// ---------------------------------------------------------------------------
+
+/**
+ * Partial-data export guard. When a `SheetBuilder` determines that its
+ * upstream slice is unpopulated, it calls `clearSheetCompletely` —
+ * leaving every cell in that sheet empty. Any formula in OTHER sheets
+ * that still references the cleared sheet becomes dangling: Excel would
+ * render a stale cached value or `#REF!` on open.
+ *
+ * This helper scans formula cells on non-cleared sheets, detects refs
+ * to any sheet in `clearedSheets`, and replaces the formula with its
+ * cached `result`. The substitution is lossless-to-the-eye (Excel shows
+ * the last-computed value instead of a broken formula) and matches the
+ * approach of `sanitizeDanglingFormulas`.
+ *
+ * Sheet-reference syntax covered:
+ *   - Quoted:   `'SHEET NAME'!A1` (names containing spaces/special chars)
+ *   - Unquoted: `SHEETNAME!A1`   (single-word alphanumeric names)
+ *
+ * Word-boundary anchor on the unquoted pattern prevents substring
+ * collisions (e.g. `AAM` cleared must not strip `'SIMULASI POTENSI (AAM)'!`
+ * references — the quoted sheet name is semantically distinct).
+ */
+export function stripCrossSheetRefsToBlankSheets(
+  workbook: ExcelJS.Workbook,
+  clearedSheets: readonly string[],
+): void {
+  if (clearedSheets.length === 0) return
+
+  const escape = (s: string): string =>
+    s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const patterns = clearedSheets.flatMap((name) => {
+    const esc = escape(name)
+    return [
+      new RegExp(`'${esc}'!`),     // quoted form
+      new RegExp(`\\b${esc}!`),    // unquoted form, word-boundary anchored
+    ]
+  })
+
+  const clearedSet = new Set(clearedSheets)
+
+  for (const ws of workbook.worksheets) {
+    if (clearedSet.has(ws.name)) continue // leave the cleared sheet itself alone
+
+    ws.eachRow({ includeEmpty: false }, (row) => {
+      row.eachCell({ includeEmpty: false }, (cell) => {
+        const v = cell.value as unknown
+        if (!v || typeof v !== 'object') return
+
+        const formula =
+          'formula' in v ? (v as { formula?: unknown }).formula :
+          'sharedFormula' in v ? (v as { sharedFormula?: unknown }).sharedFormula :
+          undefined
+        if (typeof formula !== 'string') return
+
+        if (!patterns.some((p) => p.test(formula))) return
+
+        const cached = (v as { result?: unknown }).result
+        const isErrorString =
+          typeof cached === 'string' && /^#[A-Z!\/0-9?]+$/.test(cached)
+        const isErrorObject =
+          !!cached &&
+          typeof cached === 'object' &&
+          'error' in cached &&
+          typeof (cached as { error: unknown }).error === 'string'
+        const safe = isErrorString || isErrorObject ? null : cached
+        cell.value = (safe ?? null) as ExcelJS.CellValue
+      })
+    })
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Internal: Strip decorative tables
 // ---------------------------------------------------------------------------
 
