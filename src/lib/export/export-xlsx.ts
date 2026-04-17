@@ -92,7 +92,7 @@ export async function exportToXlsx(state: ExportableState): Promise<Blob> {
 
   // 4. Inject user data via legacy per-type injectors. Migrated sheets are
   //    skipped at this layer; their SheetBuilder owns them end-to-end.
-  injectScalarCells(workbook, state)
+  injectScalarCells(workbook, state, MIGRATED_SHEET_NAMES)
   injectGridCells(workbook, state, MIGRATED_SHEET_NAMES)
   if (!MIGRATED_SHEET_NAMES.has('BALANCE SHEET')) {
     injectBsCrossRefValues(workbook, state)
@@ -458,8 +458,13 @@ function resolveSlice(state: ExportableState, mapping: ScalarCellMapping): unkno
   return getNestedValue(slice as Record<string, unknown>, mapping.storeField)
 }
 
-function injectScalarCells(workbook: ExcelJS.Workbook, state: ExportableState): void {
+function injectScalarCells(
+  workbook: ExcelJS.Workbook,
+  state: ExportableState,
+  skipSheets: ReadonlySet<string> = new Set(),
+): void {
   for (const m of ALL_SCALAR_MAPPINGS) {
+    if (skipSheets.has(m.excelSheet)) continue
     const ws = workbook.getWorksheet(m.excelSheet)
     if (!ws) continue
 

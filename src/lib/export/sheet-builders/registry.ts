@@ -6,6 +6,8 @@ import { isPopulated } from './populated'
 import { BalanceSheetBuilder } from './balance-sheet'
 import { IncomeStatementBuilder } from './income-statement'
 import { FixedAssetBuilder } from './fixed-asset'
+import { AamBuilder } from './aam'
+import { SimulasiPotensiBuilder } from './simulasi-potensi'
 
 /**
  * Ordered list of SheetBuilders. Populated incrementally across Session 030+
@@ -37,6 +39,8 @@ export function getSheetBuilders(): readonly SheetBuilder[] {
     BalanceSheetBuilder,
     IncomeStatementBuilder,
     FixedAssetBuilder,
+    AamBuilder,
+    SimulasiPotensiBuilder,
   ]
 }
 
