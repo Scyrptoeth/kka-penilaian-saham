@@ -660,7 +660,10 @@ untuk 3+ sesi ke depan:
 ### Session 049 (Proy. P&L OpEx Merge + Common-Size Projection Drivers)
 - LESSON-139 (Driver-display sync — sub-row labels MUST render the same value that drives compute; breaking this creates silent divergence between surface promise and compute substrate)
 
-LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054, 074, 087, 109, 113, 117, 120, 121, 125, 127, 128, 130, 131, 134, 136, 138, 140 **TIDAK** di-promote — workflow/session-specific
+### Session 050 (Key Drivers Auto Read-Only)
+- LESSON-141 (Mirror upstream → store at persist time via useMemo, not via useEffect + setState — React Compiler setState-in-effect escape hatch)
+
+LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054, 074, 087, 109, 113, 117, 120, 121, 125, 127, 128, 130, 131, 134, 136, 138, 140, 142 **TIDAK** di-promote — workflow/session-specific
 insights yang general ke project lain tapi terlalu luas atau terlalu
 session-specific untuk section 8 (yang fokus KKA-specific gotchas).
 Tersimpan di lessons-learned saja.
@@ -4170,3 +4173,86 @@ This is the dual of LESSON-108 (no hardcoded row-number lists in compute): both 
 5. Related to but distinct from `clearSheetCompletely` (LESSON-085) which wipes the entire sheet when upstream is null. The pre-clear pattern here is surgical: only the specific dropped rows, only when upstream IS populated but the new projection schema doesn't use those rows.
 
 **Proven at**: session-049 (2026-04-19). `src/lib/export/sheet-builders/proy-lr.ts` — pre-write loop clears C15/D15/E15/F15 + C16/D16/E16/F16. Phase C 5/5 green post-change; no user visible regression.
+
+---
+
+## Session 050 — Key Drivers Auto Read-Only
+
+### LESSON-141: Mirror upstream → store at persist time via useMemo, not via useEffect + setState
+
+**Kategori**: Framework | React | Anti-pattern
+
+**Sesi**: session-050
+**Tanggal**: 2026-04-19
+
+**Konteks**: A form needs to display + persist values that are derived from other store slices (e.g. Key Drivers Cost & Expense Ratios mirror IS average common size; Additional Capex mirrors Proy Fixed Asset 7-year projection). Store remains the source of truth for export. Naive implementation wraps a `useEffect(() => setState(merged), [kdAuto])` around the mirror — which React Compiler's `react-hooks/set-state-in-effect` rejects (cascading renders, LESSON-016).
+
+**Apa yang terjadi**: First implementation used `useEffect(() => { if (!kdAuto) return; setState(s => ({...s, ...overrides})) }, [kdAuto])`. ESLint rule rejected with `Avoid calling setState() directly within an effect`. The mirror needed to be restructured without violating the rule.
+
+**Root cause / insight**: Mirror-style logic (A reflects B when B changes) is commonly implemented via effect-setState because it feels like "subscribe to B, update A". React Compiler's model says: **derive A from B at render time**, don't sync via effect. For mirror-to-store the answer is: derive the persist payload (not local state) at save time via `useMemo`, then the persist effect naturally fires on payload change.
+
+**Solusi yang bekerja**:
+
+```ts
+// ❌ Rejected by React Compiler
+useEffect(() => {
+  if (!kdAuto) return
+  setState(s => ({...s, operationalDrivers: {...s.operationalDrivers, cogsRatio: kdAuto.cogsRatio, ...}, additionalCapexByAccount: kdAuto.additionalCapexByAccount}))
+}, [kdAuto])
+
+useEffect(() => {
+  timerRef.current = setTimeout(() => onSave(state), 500)
+  return () => clearTimeout(timerRef.current)
+}, [state, onSave])
+
+// ✅ React Compiler compliant
+const mergedForPersist = useMemo<KeyDriversState>(() => {
+  if (!kdAuto) return state
+  return { ...state, operationalDrivers: {...state.operationalDrivers, cogsRatio: kdAuto.cogsRatio, ...}, additionalCapexByAccount: kdAuto.additionalCapexByAccount }
+}, [state, kdAuto])
+
+useEffect(() => {
+  timerRef.current = setTimeout(() => onSave(mergedForPersist), 500)
+  return () => clearTimeout(timerRef.current)
+}, [mergedForPersist, onSave])
+```
+
+**Cara menerapkan di masa depan**:
+
+- Any mirror logic (A reflects B where B is an upstream prop/derived value): **derive at render, not via effect**
+- Display-side: read via `kdAuto ?? state.X` inline at render — no need to merge into local state first
+- Persist-side: wrap merged payload in `useMemo`, then `useEffect(() => onSave(merged), [merged, onSave])` fires naturally when either state or upstream changes
+- This pattern generalizes LESSON-016 (derive state from props) to the specific case where both local state AND upstream contribute to the payload the parent needs
+- One-way flow preserved: local state never stores overridden fields; user can still edit other fields which the merge preserves; upstream always wins for its own scope
+- Before switching to this pattern, verify the override is truly one-way. If user must be able to edit auto fields with override persistence, the pattern differs (requires explicit null-sentinel per-cell override tracking)
+
+**Related to**: LESSON-016 (derive state from props), LESSON-034 (hydration-gate child mount), LESSON-115 (cross-sheet read-only sentinel pattern).
+
+**Proven at**: session-050 (2026-04-19). `src/components/forms/KeyDriversForm.tsx` — KD Cost & Expense Ratios + Additional Capex now mirror IS/FA via `mergedForPersist` useMemo. Lint clean, React Compiler green, no setState-in-effect.
+
+---
+
+### LESSON-142: Per-slice `yearCount` demands per-slice histYears in multi-slice calc helpers
+
+**Kategori**: Testing | Anti-pattern (local)
+
+**Sesi**: session-050
+**Tanggal**: 2026-04-19
+
+**Konteks**: A pure helper consumes data from multiple store slices simultaneously (e.g. `buildKdAutoValues` reads `incomeStatement.rows` AND `fixedAsset.rows`). Each slice has its own `yearCount` — IS defaults to 4 historical years, FA defaults to 3. Naive single `histYears` param that tries to serve both is silently wrong for at least one.
+
+**Apa yang terjadi**: First draft of `buildKdAutoValues` accepted a single `histYears: readonly number[]`. TDD passed because fixtures used the same years for both. Integration discovery during page wiring: `computeHistoricalYears(tahunTransaksi, home.historicalYearCount)` — `home.historicalYearCount` doesn't exist because HOME doesn't track yearCount. Each slice does. Using `incomeStatement.yearCount` only would feed FA with 4 years instead of 3 → FA compute's `historicalYears` mismatch → ADDITIONS seed from wrong year.
+
+**Root cause / insight**: Sheets/slices evolve independently (Session 010 dynamic catalogs). Helper functions that pre-date dynamic catalogs often assume a single uniform `histYears`. Modernizing to multi-slice compute requires explicit per-slice year windows at the interface boundary.
+
+**Cara menerapkan di masa depan**:
+
+- When designing a helper consuming N store slices, add N `XxxHistYears` params (or one object `histYearsBySlice`)
+- Fixtures for TDD: use different year sets per slice to catch the bug (e.g. IS `[2019, 2020, 2021]` vs FA `[2020, 2021]`)
+- If the helper has existing callers sharing a single span, keep backward compat by accepting a single param + warning comment. New callers supply per-slice.
+- In page wiring: always read `yearCount` from the slice itself (`incomeStatement.yearCount`, `fixedAsset.yearCount`) — not from HOME
+- Extends LESSON-013 (cross-sheet column offset) one level up: not just column letters but entire year-span windows differ per sheet
+
+**Proven at**: session-050 (2026-04-19). `src/lib/calculations/kd-auto-values.ts` — `KdAutoValuesInput` split into `isHistYears` + `faHistYears` mid-implementation. 10/10 TDD cases updated via `replace_all`. Local lesson (not promoted) — `buildKdAutoValues` is the first multi-slice helper currently in the codebase.
+
+---
