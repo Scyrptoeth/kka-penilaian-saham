@@ -6,11 +6,11 @@ import { useT } from '@/lib/i18n/useT'
 
 /**
  * Session 043 Task 1 — icon-dominant pill toggle.
- *
- * Pill (56×28): sun icon left + moon icon right. A thumb circle slides
- * left↔right to indicate the active mode. Active icon sits on the thumb
- * (ink bg + canvas glyph = high contrast); inactive icon sits on the
- * track (ink-muted). No text label — the icons speak for themselves.
+ * Session 044 Task 2 — active icon now renders INSIDE the sliding thumb
+ * (symmetric with LanguageToggle's flag-in-thumb pattern). The inactive
+ * icon sits on the opposite track side as a muted indicator. Fixes the
+ * Session 043 regression where a track-only sun icon was hidden behind
+ * the thumb in light mode.
  *
  * SSR-safe via `useSyncExternalStore` mounted gate (LESSON-064) — avoids
  * React Compiler's `set-state-in-effect` violation.
@@ -45,18 +45,28 @@ export function ThemeToggle() {
       role="switch"
       className="relative inline-flex h-7 w-14 shrink-0 items-center rounded-full border border-grid-strong bg-canvas-raised transition-colors hover:border-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1"
     >
-      {/* Track icons */}
+      {/* Track icon on the INACTIVE side (opposite the thumb) */}
       <span className="pointer-events-none absolute inset-0 flex items-center justify-between px-1.5">
-        <SunIcon className={`h-3.5 w-3.5 transition-colors ${isDark ? 'text-ink-muted' : 'text-canvas'}`} />
-        <MoonIcon className={`h-3.5 w-3.5 transition-colors ${isDark ? 'text-canvas' : 'text-ink-muted'}`} />
+        <SunIcon
+          className={`h-3.5 w-3.5 transition-opacity ${isDark ? 'text-ink-muted opacity-60' : 'opacity-0'}`}
+        />
+        <MoonIcon
+          className={`h-3.5 w-3.5 transition-opacity ${isDark ? 'opacity-0' : 'text-ink-muted opacity-60'}`}
+        />
       </span>
-      {/* Sliding thumb */}
+      {/* Sliding thumb with ACTIVE icon inside */}
       <span
         aria-hidden
-        className={`pointer-events-none absolute top-0.5 h-6 w-6 rounded-full bg-ink shadow-sm transition-transform ${
+        className={`pointer-events-none absolute top-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-ink shadow-sm transition-transform ${
           isDark ? 'translate-x-[30px]' : 'translate-x-0.5'
         }`}
-      />
+      >
+        {isDark ? (
+          <MoonIcon className="h-3.5 w-3.5 text-canvas" />
+        ) : (
+          <SunIcon className="h-3.5 w-3.5 text-canvas" />
+        )}
+      </span>
     </button>
   )
 }
