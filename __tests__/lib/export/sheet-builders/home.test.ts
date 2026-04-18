@@ -52,7 +52,7 @@ function makeState(overrides: Partial<ExportableState>): ExportableState {
     dloc: null,
     borrowingCapInput: null,
     aamAdjustments: {},
-    nilaiPengalihanDilaporkan: 0,
+    nilaiPengalihanDilaporkan: 0, interestBearingDebt: 0,
     ...overrides,
   }
 }

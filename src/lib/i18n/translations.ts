@@ -42,6 +42,7 @@ const dict = {
   'nav.item.wacc': { en: 'WACC', id: 'WACC' },
   'nav.item.discountRate': { en: 'Discount Rate', id: 'Tingkat Diskonto' },
   'nav.item.borrowingCap': { en: 'Borrowing Cap', id: 'Kapasitas Pinjaman' },
+  'nav.item.interestBearingDebt': { en: 'Interest Bearing Debt', id: 'Utang Berbunga' },
   'nav.item.dcf': { en: 'DCF', id: 'DCF' },
   'nav.item.aam': { en: 'AAM', id: 'AAM' },
   'nav.item.eem': { en: 'EEM', id: 'EEM' },
@@ -279,6 +280,119 @@ const dict = {
   'aam.dlomLabel': { en: 'DLOM', id: 'DLOM' },
   'aam.dlocPfcLabel': { en: 'DLOC/PFC', id: 'DLOC/PFC' },
   'aam.marketValuePortion': { en: 'Market Value', id: 'Nilai Pasar' },
+  'aam.tleNote.prefix': {
+    en: 'Note: Ensure you apply negative adjustments to Liability Accounts (both Current and Non-Current Liabilities) that qualify as Interest Bearing Debt. To learn about Interest Bearing Debt, read the trivia in the Interest Bearing Debt section or',
+    id: 'Catatan: Pastikan Anda melakukan penyesuaian negatif terhadap Akun di Liabilitas (baik Liabilitas Jangka Pendek maupun Liabilitas Jangka Panjang) yang termasuk sebagai Utang Berbunga. Tentang Utang Berbunga, Anda bisa membaca trivianya di bagian Utang Berbunga atau',
+  },
+  'aam.tleNote.linkText': { en: 'click here', id: 'klik di sini' },
+  'aam.tleNote.linkAria': {
+    en: 'Go to Interest Bearing Debt page to read full trivia',
+    id: 'Buka halaman Utang Berbunga untuk membaca trivia lengkap',
+  },
+
+  // ═══════════════════════════════════════════════════════════════════
+  // INTEREST BEARING DEBT PAGE (Session 038)
+  // ═══════════════════════════════════════════════════════════════════
+  'ibd.title': { en: 'Interest Bearing Debt', id: 'Utang Berbunga' },
+  'ibd.subtitle': {
+    en: 'Single required input — the total Interest Bearing Debt used by AAM, DCF, and EEM.',
+    id: 'Input wajib tunggal — total Utang Berbunga yang digunakan oleh AAM, DCF, dan EEM.',
+  },
+  'ibd.input.label': { en: 'Total Interest Bearing Debt (IDR)', id: 'Total Utang Berbunga (Rp)' },
+  'ibd.input.helper': {
+    en: 'Enter the aggregate IBD amount. Enter 0 if the company has none. Auto-saved on blur.',
+    id: 'Masukkan total Utang Berbunga. Isi 0 bila perusahaan tidak memilikinya. Tersimpan otomatis saat keluar dari field.',
+  },
+  'ibd.input.placeholder': { en: '0', id: '0' },
+  'ibd.input.clear': { en: 'Clear', id: 'Kosongkan' },
+  'ibd.state.filled': {
+    en: 'Current value saved.',
+    id: 'Nilai tersimpan.',
+  },
+  'ibd.state.empty': {
+    en: 'Not yet filled — AAM, DCF, and EEM pages will remain empty until you enter a value here.',
+    id: 'Belum diisi — halaman AAM, DCF, dan EEM tetap kosong sampai Anda mengisi nilai di sini.',
+  },
+
+  // Trivia — structured content (bilingual, always-visible per user spec)
+  'ibd.trivia.heading': { en: 'Trivia: Interest Bearing Debt', id: 'Trivia: Utang Berbunga' },
+  'ibd.trivia.intro1': {
+    en: 'In accounting, Interest Bearing Debt is a corporate financial obligation that requires the borrower to pay periodic interest to the creditor (lender), in addition to repaying the principal on the agreed maturity date.',
+    id: 'Dalam akuntansi, Interest Bearing Debt (Utang Berbunga) adalah kewajiban finansial perusahaan yang mengharuskan peminjam untuk membayar bunga secara berkala kepada kreditur (pemberi pinjaman), selain mengembalikan jumlah pokok pinjaman pada waktu yang telah disepakati.',
+  },
+  'ibd.trivia.intro2': {
+    en: 'In simple terms, it is debt that carries an explicit "cost of funds". Companies typically take on this kind of debt to obtain external financing for working capital, asset purchases, or business expansion.',
+    id: 'Sederhananya, ini adalah utang yang memiliki "biaya sewa uang" (cost of funds) yang eksplisit. Perusahaan biasanya mengambil utang jenis ini untuk mendapatkan pendanaan eksternal guna modal kerja, pembelian aset, atau ekspansi bisnis.',
+  },
+  'ibd.trivia.include.heading': {
+    en: 'What Counts as Interest Bearing Debt?',
+    id: 'Apa Saja yang Termasuk Interest Bearing Debt?',
+  },
+  'ibd.trivia.include.intro': {
+    en: 'The following are the main components classified as Interest Bearing Debt on a statement of financial position (balance sheet):',
+    id: 'Berikut adalah komponen-komponen utama yang diklasifikasikan sebagai Interest Bearing Debt dalam laporan posisi keuangan (neraca):',
+  },
+  'ibd.trivia.include.bankLoans.term': { en: 'Bank Loans', id: 'Pinjaman Bank' },
+  'ibd.trivia.include.bankLoans.desc': {
+    en: 'The most common form — both short-term (e.g. working-capital credit) and long-term (e.g. investment credit).',
+    id: 'Ini adalah bentuk paling umum, baik itu pinjaman jangka pendek (seperti kredit modal kerja) maupun pinjaman jangka panjang (seperti kredit investasi).',
+  },
+  'ibd.trivia.include.bonds.term': { en: 'Bonds Payable', id: 'Utang Obligasi' },
+  'ibd.trivia.include.bonds.desc': {
+    en: 'Debt securities issued by the company to the public or investors. The company is obligated to pay coupons (interest) on a regular schedule and redeem the principal at maturity.',
+    id: 'Surat utang yang diterbitkan oleh perusahaan kepada publik atau investor. Perusahaan wajib membayar kupon (bunga) secara rutin dan melunasi pokoknya saat jatuh tempo.',
+  },
+  'ibd.trivia.include.notes.term': { en: 'Notes Payable', id: 'Wesel Bayar' },
+  'ibd.trivia.include.notes.desc': {
+    en: 'A formal written promise to pay a specific sum on an agreed date. Notes typically state the interest rate explicitly.',
+    id: 'Janji tertulis secara formal untuk membayar sejumlah uang tertentu pada tanggal yang disepakati. Wesel bayar biasanya secara eksplisit mencantumkan tingkat bunga tertentu.',
+  },
+  'ibd.trivia.include.mortgage.term': { en: 'Mortgage Payable', id: 'Utang Hipotek' },
+  'ibd.trivia.include.mortgage.desc': {
+    en: 'A long-term loan secured by collateral in the form of fixed assets such as land or buildings.',
+    id: 'Pinjaman jangka panjang yang pelunasannya dijamin dengan agunan berupa aset tetap, seperti tanah atau bangunan.',
+  },
+  'ibd.trivia.include.lease.term': {
+    en: 'Finance / Capital Lease Liabilities',
+    id: 'Kewajiban Sewa Pembiayaan',
+  },
+  'ibd.trivia.include.lease.desc': {
+    en: 'Under modern accounting standards (e.g. PSAK 73 / IFRS 16), when a company leases an asset for a long term (finance lease), the lease obligation is recognised as debt because the instalments contain an implicit element of principal amortisation and interest expense.',
+    id: 'Berdasarkan standar akuntansi modern (seperti PSAK 73 / IFRS 16), ketika perusahaan menyewa aset untuk jangka waktu panjang (sewa guna usaha), kewajiban pembayarannya diakui sebagai utang karena cicilan sewanya mengandung unsur pelunasan pokok dan beban bunga implisit.',
+  },
+  'ibd.trivia.include.commercialPaper.term': { en: 'Commercial Paper', id: 'Surat Berharga Komersial' },
+  'ibd.trivia.include.commercialPaper.desc': {
+    en: 'Short-term, unsecured debt instruments issued by companies. Although often sold at a discount (not with explicit coupon interest), the discount difference is recognised in accounting as interest expense.',
+    id: 'Instrumen utang jangka pendek tanpa jaminan yang diterbitkan perusahaan. Meskipun sering kali dijual dengan harga diskonto (bukan kupon bunga langsung), selisih diskonto tersebut secara akuntansi dicatat dan diakui sebagai beban bunga.',
+  },
+  'ibd.trivia.exclude.heading': {
+    en: 'As Comparison: Non-Interest Bearing Debt',
+    id: 'Sebagai Pembanding: Non-Interest Bearing Debt',
+  },
+  'ibd.trivia.exclude.intro': {
+    en: 'To sharpen understanding, it is important to also recognise which debts are not in this category. Debt that arises from normal business operations usually does not charge interest — and is therefore called Non-Interest Bearing Debt. Examples include:',
+    id: 'Untuk memperjelas pemahaman, penting juga mengetahui utang apa yang tidak termasuk dalam kategori ini. Utang yang muncul dari operasi normal bisnis biasanya tidak membebankan bunga, sehingga disebut Non-Interest Bearing Debt. Contohnya meliputi:',
+  },
+  'ibd.trivia.exclude.accountsPayable.term': { en: 'Accounts Payable', id: 'Utang Usaha' },
+  'ibd.trivia.exclude.accountsPayable.desc': {
+    en: 'Bills from suppliers for the purchase of raw materials or goods.',
+    id: 'Tagihan dari pemasok (supplier) atas pembelian bahan baku atau barang.',
+  },
+  'ibd.trivia.exclude.accrued.term': { en: 'Accrued Expenses', id: 'Beban yang Masih Harus Dibayar' },
+  'ibd.trivia.exclude.accrued.desc': {
+    en: 'For example, employee wages not yet paid or last month\'s electricity bill.',
+    id: 'Misalnya gaji karyawan yang belum dibayar atau tagihan listrik bulan lalu.',
+  },
+  'ibd.trivia.exclude.unearnedRevenue.term': { en: 'Unearned Revenue', id: 'Pendapatan Diterima di Muka' },
+  'ibd.trivia.exclude.unearnedRevenue.desc': {
+    en: 'Advance payment from customers for goods or services not yet delivered.',
+    id: 'Uang muka dari pelanggan untuk barang/jasa yang belum dikirimkan.',
+  },
+  'ibd.trivia.exclude.taxesPayable.term': { en: 'Taxes Payable', id: 'Utang Pajak' },
+  'ibd.trivia.exclude.taxesPayable.desc': {
+    en: 'Tax amounts that must be remitted to the state treasury.',
+    id: 'Pajak yang harus disetorkan ke kas negara.',
+  },
 
   // ═══════════════════════════════════════════════════════════════════
   // DCF PAGE

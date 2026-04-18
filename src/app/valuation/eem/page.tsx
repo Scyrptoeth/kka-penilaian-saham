@@ -31,10 +31,11 @@ export default function EemPage() {
   const discountRateState = useKkaStore(s => s.discountRate)
   const bcInput = useKkaStore(s => s.borrowingCapInput)
   const aamAdjustments = useKkaStore(s => s.aamAdjustments)
+  const interestBearingDebt = useKkaStore(s => s.interestBearingDebt)
   const hasHydrated = useKkaStore(s => s._hasHydrated)
 
   const data = useMemo(() => {
-    if (!hasHydrated || !home || !balanceSheet || !incomeStatement || !discountRateState) return null
+    if (!hasHydrated || !home || !balanceSheet || !incomeStatement || !discountRateState || interestBearingDebt === null) return null
 
     const histYears4 = computeHistoricalYears(home.tahunTransaksi, 4)
     const histYears3 = computeHistoricalYears(home.tahunTransaksi, 3)
@@ -77,7 +78,7 @@ export default function EemPage() {
 
     // ── AAM (for adjusted values) ──
     const proporsiSaham = computeProporsiSaham(home)
-    const aam = computeAam(buildAamInput({ accounts: balanceSheet!.accounts, allBs, lastYear: lastHistYear, home, aamAdjustments }))
+    const aam = computeAam(buildAamInput({ accounts: balanceSheet!.accounts, allBs, lastYear: lastHistYear, home, aamAdjustments, interestBearingDebt }))
 
     // ── EEM ──
     const eemResult = computeEem({
@@ -94,7 +95,7 @@ export default function EemPage() {
       historicalTotalWC: allCfs[10]?.[lastHistYear] ?? 0,
       historicalCapex: -(allFa[23]?.[lastHistYear] ?? 0),
       wacc: dr.wacc,
-      interestBearingDebt: -(bs(31) + bs(38)),
+      interestBearingDebt: -interestBearingDebt,
       nonOperatingAsset: bs(8),
     })
 
@@ -108,7 +109,7 @@ export default function EemPage() {
     })
 
     return { eemResult, sv, bc, proporsiSaham, home }
-  }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, accPayables, discountRateState, bcInput, aamAdjustments])
+  }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, accPayables, discountRateState, bcInput, aamAdjustments, interestBearingDebt])
 
   if (!hasHydrated) {
     return <div className="mx-auto max-w-[1100px] p-6 text-sm text-ink-muted">{t('common.loadingData')}</div>
@@ -124,6 +125,7 @@ export default function EemPage() {
           { label: 'Balance Sheet', href: '/input/balance-sheet', filled: !!balanceSheet },
           { label: 'Income Statement', href: '/input/income-statement', filled: !!incomeStatement },
           { label: 'Discount Rate', href: '/valuation/discount-rate', filled: !!discountRateState },
+          { label: t('nav.item.interestBearingDebt'), href: '/valuation/interest-bearing-debt', filled: interestBearingDebt !== null },
         ]}
       />
     )

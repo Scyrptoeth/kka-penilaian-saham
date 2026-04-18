@@ -96,7 +96,7 @@ function makeState(over: Partial<ExportableState> = {}): ExportableState {
     fixedAsset: makeFa(), accPayables: null, wacc: null,
     discountRate: makeDr(), keyDrivers: makeKd(),
     dlom: null, dloc: null, borrowingCapInput: null,
-    aamAdjustments: {}, nilaiPengalihanDilaporkan: 0,
+    aamAdjustments: {}, nilaiPengalihanDilaporkan: 0, interestBearingDebt: 0,
     ...over,
   }
 }
@@ -105,7 +105,7 @@ describe('CfiBuilder', () => {
   it('has sheetName + upstream', () => {
     expect(CfiBuilder.sheetName).toBe('CFI')
     expect(CfiBuilder.upstream).toEqual([
-      'home', 'balanceSheet', 'incomeStatement', 'fixedAsset', 'keyDrivers', 'discountRate',
+      'home', 'balanceSheet', 'incomeStatement', 'fixedAsset', 'keyDrivers', 'discountRate', 'interestBearingDebt',
     ])
   })
 

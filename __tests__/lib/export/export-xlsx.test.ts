@@ -490,7 +490,7 @@ describe('export-xlsx (template-based)', () => {
       dloc: null,
       borrowingCapInput: null,
       aamAdjustments: {},
-      nilaiPengalihanDilaporkan: 0,
+      nilaiPengalihanDilaporkan: 0, interestBearingDebt: 0,
     }
     // Should not throw
     const wb = await simulateExport(minimalState)

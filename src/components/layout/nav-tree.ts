@@ -67,6 +67,7 @@ export const NAV_TREE: NavGroup[] = [
       { label: 'nav.item.wacc', href: '/valuation/wacc' },
       { label: 'nav.item.discountRate', href: '/valuation/discount-rate' },
       { label: 'nav.item.borrowingCap', href: '/valuation/borrowing-cap' },
+      { label: 'nav.item.interestBearingDebt', href: '/valuation/interest-bearing-debt' },
       { label: 'nav.item.dcf', href: '/valuation/dcf' },
       { label: 'nav.item.aam', href: '/valuation/aam' },
       { label: 'nav.item.eem', href: '/valuation/eem' },

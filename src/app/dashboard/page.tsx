@@ -62,10 +62,11 @@ export default function DashboardPage() {
   const discountRateState = useKkaStore(s => s.discountRate)
   const bcInput = useKkaStore(s => s.borrowingCapInput)
   const aamAdjustments = useKkaStore(s => s.aamAdjustments)
+  const interestBearingDebt = useKkaStore(s => s.interestBearingDebt)
   const hasHydrated = useKkaStore(s => s._hasHydrated)
 
   const data = useMemo(() => {
-    if (!hasHydrated || !home || !balanceSheet || !incomeStatement) return null
+    if (!hasHydrated || !home || !balanceSheet || !incomeStatement || interestBearingDebt === null) return null
 
     const histYears4 = computeHistoricalYears(home.tahunTransaksi, 4)
     const histYears3 = computeHistoricalYears(home.tahunTransaksi, 3)
@@ -107,7 +108,7 @@ export default function DashboardPage() {
 
     // ── Chart 3: Valuation Comparison ──
     const valuationData: Array<{ method: string; perShare: number }> = []
-    const aamResult = computeAam(buildAamInput({ accounts: balanceSheet!.accounts, allBs, lastYear: ly, home, aamAdjustments }))
+    const aamResult = computeAam(buildAamInput({ accounts: balanceSheet!.accounts, allBs, lastYear: ly, home, aamAdjustments, interestBearingDebt }))
     // AAM ends at Market Value Portion (session 022). Per-share divides that
     // portion by the proportional share count (jumlahSahamBeredar × proporsiSaham).
     valuationData.push({
@@ -137,6 +138,7 @@ export default function DashboardPage() {
           proyNoplatRows: pipeline.proyNoplatRows, proyFaRows: pipeline.proyFaRows,
           proyCfsRows: pipeline.proyCfsRows,
           wacc: dr.wacc, growthRate: upstream.growthRate,
+          interestBearingDebt,
         }))
 
         const svDcf = computeShareValue({
@@ -151,6 +153,7 @@ export default function DashboardPage() {
         const eemResult = computeEem(buildEemInput({
           aamResult, allBs, upstream, lastYear: ly,
           waccTangible: bcData.waccTangible, wacc: dr.wacc,
+          interestBearingDebt,
         }))
         const svEem = computeShareValue({
           equityValue100: eemResult.equityValue100,
@@ -169,7 +172,7 @@ export default function DashboardPage() {
     }))
 
     return { revenueData, bsData, valuationData, fcfData }
-  }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, keyDrivers, discountRateState, bcInput, aamAdjustments])
+  }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, keyDrivers, discountRateState, bcInput, aamAdjustments, interestBearingDebt])
 
   if (!hasHydrated) {
     return <div className="mx-auto max-w-[1200px] p-6 text-sm text-ink-muted">{t('common.loadingData')}</div>
@@ -184,6 +187,7 @@ export default function DashboardPage() {
           { label: 'HOME', href: '/', filled: !!home },
           { label: 'Balance Sheet', href: '/input/balance-sheet', filled: !!balanceSheet },
           { label: 'Income Statement', href: '/input/income-statement', filled: !!incomeStatement },
+          { label: t('nav.item.interestBearingDebt'), href: '/valuation/interest-bearing-debt', filled: interestBearingDebt !== null },
         ]}
       />
     )

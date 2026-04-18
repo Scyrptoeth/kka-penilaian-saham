@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState, useCallback } from 'react'
+import Link from 'next/link'
 import { useKkaStore, computeProporsiSaham } from '@/lib/store/useKkaStore'
 import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
@@ -142,6 +143,7 @@ export default function AamPage() {
   const balanceSheet = useKkaStore(s => s.balanceSheet)
   const aamAdjustments = useKkaStore(s => s.aamAdjustments)
   const setAamAdjustments = useKkaStore(s => s.setAamAdjustments)
+  const interestBearingDebt = useKkaStore(s => s.interestBearingDebt)
   const hasHydrated = useKkaStore(s => s._hasHydrated)
   const { t, language } = useT()
 
@@ -156,7 +158,7 @@ export default function AamPage() {
   }, [aamAdjustments, setAamAdjustments])
 
   const data = useMemo(() => {
-    if (!hasHydrated || !home || !balanceSheet) return null
+    if (!hasHydrated || !home || !balanceSheet || interestBearingDebt === null) return null
 
     const histYears = computeHistoricalYears(home.tahunTransaksi, 4)
     const bsComp = deriveComputedRows(BALANCE_SHEET_MANIFEST.rows, balanceSheet.rows, histYears)
@@ -169,10 +171,11 @@ export default function AamPage() {
       lastYear: ly,
       home,
       aamAdjustments,
+      interestBearingDebt,
     }))
 
     return { result, allBs, ly, accounts: balanceSheet.accounts }
-  }, [hasHydrated, home, balanceSheet, aamAdjustments])
+  }, [hasHydrated, home, balanceSheet, aamAdjustments, interestBearingDebt])
 
   if (!hasHydrated) {
     return <div className="mx-auto max-w-[1100px] p-6 text-sm text-ink-muted">{t('common.loadingData')}</div>
@@ -186,6 +189,7 @@ export default function AamPage() {
         inputs={[
           { label: 'HOME', href: '/', filled: !!home },
           { label: 'Balance Sheet', href: '/input/balance-sheet', filled: !!balanceSheet },
+          { label: t('nav.item.interestBearingDebt'), href: '/valuation/interest-bearing-debt', filled: interestBearingDebt !== null },
         ]}
       />
     )
@@ -303,6 +307,23 @@ export default function AamPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Session 038 — IBD workflow cross-reference note */}
+      <aside
+        role="note"
+        aria-label={t('aam.tleNote.linkAria')}
+        className="mb-8 rounded-sm border-l-2 border-accent bg-canvas-raised px-4 py-3 text-[13px] leading-relaxed text-ink-soft"
+      >
+        {t('aam.tleNote.prefix')}{' '}
+        <Link
+          href="/valuation/interest-bearing-debt"
+          aria-label={t('aam.tleNote.linkAria')}
+          className="font-semibold text-accent underline decoration-accent/40 underline-offset-2 transition-colors hover:decoration-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        >
+          {t('aam.tleNote.linkText')}
+        </Link>
+        .
+      </aside>
 
       {/* Valuation Chain */}
       <h2 className="mb-3 text-base font-semibold text-ink">{t('aam.valuation')}</h2>

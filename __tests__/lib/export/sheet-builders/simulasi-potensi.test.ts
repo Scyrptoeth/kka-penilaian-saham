@@ -54,7 +54,7 @@ function makeState(overrides: Partial<ExportableState>): ExportableState {
     dloc: null,
     borrowingCapInput: null,
     aamAdjustments: {},
-    nilaiPengalihanDilaporkan: 0,
+    nilaiPengalihanDilaporkan: 0, interestBearingDebt: 0,
     ...overrides,
   }
 }
@@ -89,7 +89,7 @@ describe('SimulasiPotensiBuilder.build', () => {
     const wb = makeWorkbook()
     const state = makeState({
       balanceSheet: makeBsState([]),
-      nilaiPengalihanDilaporkan: 0,
+      nilaiPengalihanDilaporkan: 0, interestBearingDebt: 0,
     })
 
     SimulasiPotensiBuilder.build(wb, state)

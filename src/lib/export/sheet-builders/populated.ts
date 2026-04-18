@@ -18,6 +18,9 @@ export function isPopulated(
     if (key === 'aamAdjustments') {
       return Object.keys(state.aamAdjustments).length > 0
     }
+    if (key === 'interestBearingDebt') {
+      return state.interestBearingDebt !== null
+    }
     return state[key] !== null
   })
 }

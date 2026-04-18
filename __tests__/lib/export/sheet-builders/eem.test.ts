@@ -109,7 +109,7 @@ function makeState(over: Partial<ExportableState> = {}): ExportableState {
     fixedAsset: makeFa(), accPayables: null, wacc: null,
     discountRate: makeDr(), keyDrivers: makeKd(),
     dlom: null, dloc: null, borrowingCapInput: makeBc(),
-    aamAdjustments: {}, nilaiPengalihanDilaporkan: 0,
+    aamAdjustments: {}, nilaiPengalihanDilaporkan: 0, interestBearingDebt: 0,
     ...over,
   }
 }
@@ -118,7 +118,7 @@ describe('EemBuilder', () => {
   it('has sheetName + upstream', () => {
     expect(EemBuilder.sheetName).toBe('EEM')
     expect(EemBuilder.upstream).toEqual([
-      'home', 'balanceSheet', 'incomeStatement', 'fixedAsset', 'discountRate',
+      'home', 'balanceSheet', 'incomeStatement', 'fixedAsset', 'discountRate', 'interestBearingDebt',
     ])
   })
 

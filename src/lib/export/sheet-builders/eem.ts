@@ -24,7 +24,7 @@ const SHEET_NAME = 'EEM'
  */
 export const EemBuilder: SheetBuilder = {
   sheetName: SHEET_NAME,
-  upstream: ['home', 'balanceSheet', 'incomeStatement', 'fixedAsset', 'discountRate'],
+  upstream: ['home', 'balanceSheet', 'incomeStatement', 'fixedAsset', 'discountRate', 'interestBearingDebt'],
   build(workbook, state) {
     const ws = workbook.getWorksheet(SHEET_NAME)
     if (
@@ -33,10 +33,13 @@ export const EemBuilder: SheetBuilder = {
       !state.balanceSheet ||
       !state.incomeStatement ||
       !state.fixedAsset ||
-      !state.discountRate
+      !state.discountRate ||
+      state.interestBearingDebt === null
     ) {
       return
     }
+
+    const ibd = state.interestBearingDebt
 
     const histYears3 = computeHistoricalYears(state.home.tahunTransaksi, 3)
     const histYears4 = computeHistoricalYears(state.home.tahunTransaksi, 4)
@@ -67,6 +70,7 @@ export const EemBuilder: SheetBuilder = {
       lastYear,
       home: state.home,
       aamAdjustments: state.aamAdjustments,
+      interestBearingDebt: ibd,
     }))
 
     const bc = computeBorrowingCap(buildBorrowingCapInput({
@@ -76,6 +80,7 @@ export const EemBuilder: SheetBuilder = {
     const eemInput = buildEemInput({
       aamResult, allBs, upstream, lastYear,
       waccTangible: bc.waccTangible, wacc: dr.wacc,
+      interestBearingDebt: ibd,
     })
     const eem = computeEem(eemInput)
 

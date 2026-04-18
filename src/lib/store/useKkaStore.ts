@@ -131,6 +131,13 @@ interface KkaState {
   aamAdjustments: Record<number, number>
   /** Session 017 — SIMULASI POTENSI reported share transfer value (user input). Default 0. */
   nilaiPengalihanDilaporkan: number
+  /**
+   * Session 038 — Interest Bearing Debt (Utang Berbunga) as a single required
+   * valuation input. Consumed by AAM, DCF, and EEM. `null` = user has not yet
+   * filled the field; consumer pages (AAM/DCF/EEM) show PageEmptyState until
+   * a numeric value (including 0) is entered via /valuation/interest-bearing-debt.
+   */
+  interestBearingDebt: number | null
   setHome: (home: HomeInputs) => void
   resetHome: () => void
   /**
@@ -162,6 +169,8 @@ interface KkaState {
   /** Toggle global language (EN/ID) — updates root + balanceSheet, incomeStatement, fixedAsset language. */
   setGlobalLanguage: (lang: 'en' | 'id') => void
   setNilaiPengalihanDilaporkan: (v: number) => void
+  /** Session 038 — persist IBD input (null = cleared). */
+  setInterestBearingDebt: (v: number | null) => void
   /** Reset ALL store slices to initial state (destructive — clears all user data). */
   resetAll: () => void
   _hasHydrated: boolean
@@ -169,7 +178,7 @@ interface KkaState {
 }
 
 const STORE_KEY = 'kka-penilaian-saham'
-const STORE_VERSION = 16
+const STORE_VERSION = 17
 
 /**
  * Migrate persisted state from older versions to the current schema.
@@ -508,6 +517,17 @@ export function migratePersistedState(
     }
   }
 
+  // v16→v17: Session 038 — add root-level `interestBearingDebt: number | null`.
+  // IBD promoted to a dedicated valuation input page (required before AAM/DCF/EEM
+  // become actionable). null sentinel = user has not filled — pages gate on it.
+  // Idempotent: if the field already exists, leave it alone.
+  if (fromVersion < 17) {
+    const current = (state as Record<string, unknown>).interestBearingDebt
+    if (current === undefined) {
+      state = { ...state, interestBearingDebt: null }
+    }
+  }
+
   return state
 }
 
@@ -528,6 +548,7 @@ export const useKkaStore = create<KkaState>()(
       borrowingCapInput: null,
       aamAdjustments: {},
       nilaiPengalihanDilaporkan: 0,
+      interestBearingDebt: null,
       setHome: (home) => set({ home }),
       resetHome: () => set({ home: null }),
       setDlom: (dlom) =>
@@ -565,6 +586,7 @@ export const useKkaStore = create<KkaState>()(
           fixedAsset: state.fixedAsset ? { ...state.fixedAsset, language: lang } : state.fixedAsset,
         })),
       setNilaiPengalihanDilaporkan: (v) => set({ nilaiPengalihanDilaporkan: v }),
+      setInterestBearingDebt: (v) => set({ interestBearingDebt: v }),
       resetAll: () => set({
         language: 'en',
         home: null,
@@ -580,6 +602,7 @@ export const useKkaStore = create<KkaState>()(
         borrowingCapInput: null,
         aamAdjustments: {},
         nilaiPengalihanDilaporkan: 0,
+        interestBearingDebt: null,
       }),
       _hasHydrated: false,
       _setHasHydrated: (hydrated) => set({ _hasHydrated: hydrated }),
@@ -603,6 +626,7 @@ export const useKkaStore = create<KkaState>()(
         borrowingCapInput: state.borrowingCapInput,
         aamAdjustments: state.aamAdjustments,
         nilaiPengalihanDilaporkan: state.nilaiPengalihanDilaporkan,
+        interestBearingDebt: state.interestBearingDebt,
       }),
       migrate: migratePersistedState,
       onRehydrateStorage: () => (state) => {

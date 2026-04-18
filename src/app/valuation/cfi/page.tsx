@@ -26,10 +26,11 @@ export default function CfiPage() {
   const fixedAsset = useKkaStore(s => s.fixedAsset)
   const keyDrivers = useKkaStore(s => s.keyDrivers)
   const discountRateState = useKkaStore(s => s.discountRate)
+  const interestBearingDebt = useKkaStore(s => s.interestBearingDebt)
   const hasHydrated = useKkaStore(s => s._hasHydrated)
 
   const data = useMemo(() => {
-    if (!hasHydrated || !home || !balanceSheet || !incomeStatement || !keyDrivers || !discountRateState) return null
+    if (!hasHydrated || !home || !balanceSheet || !incomeStatement || !keyDrivers || !discountRateState || interestBearingDebt === null) return null
 
     const pipeline = computeFullProjectionPipeline({
       home, balanceSheet, incomeStatement, fixedAsset, keyDrivers,
@@ -51,6 +52,7 @@ export default function CfiPage() {
       upstream, allBs, lastHistYear, projYears,
       proyNoplatRows, proyFaRows, proyCfsRows,
       wacc: dr.wacc, growthRate: upstream.growthRate,
+      interestBearingDebt,
     }))
 
     // ── CFI via centralized input builder (LESSON-046) ──
@@ -62,7 +64,7 @@ export default function CfiPage() {
     }))
     const allYears = [...histYears3, ...projYears]
     return { cfiResult, histYears3, projYears, allYears }
-  }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, keyDrivers, discountRateState])
+  }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, keyDrivers, discountRateState, interestBearingDebt])
 
   if (!hasHydrated) {
     return <div className="mx-auto max-w-[1100px] p-6 text-sm text-ink-muted">{t('common.loadingData')}</div>
@@ -79,6 +81,7 @@ export default function CfiPage() {
           { label: 'Income Statement', href: '/input/income-statement', filled: !!incomeStatement },
           { label: 'Key Drivers', href: '/input/key-drivers', filled: !!keyDrivers },
           { label: 'Discount Rate', href: '/valuation/discount-rate', filled: !!discountRateState },
+          { label: t('nav.item.interestBearingDebt'), href: '/valuation/interest-bearing-debt', filled: interestBearingDebt !== null },
         ]}
       />
     )

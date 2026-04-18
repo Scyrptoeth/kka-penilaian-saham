@@ -110,7 +110,7 @@ function makeState(overrides: Partial<ExportableState>): ExportableState {
     home: makeHome(), balanceSheet: null, incomeStatement: null,
     fixedAsset: null, accPayables: null, wacc: null,
     discountRate: null, keyDrivers: null, dlom: null, dloc: null,
-    borrowingCapInput: null, aamAdjustments: {}, nilaiPengalihanDilaporkan: 0,
+    borrowingCapInput: null, aamAdjustments: {}, nilaiPengalihanDilaporkan: 0, interestBearingDebt: 0,
     ...overrides,
   }
 }

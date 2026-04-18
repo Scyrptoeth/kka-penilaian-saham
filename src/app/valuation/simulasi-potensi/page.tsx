@@ -35,6 +35,7 @@ export default function SimulasiPotensiPage() {
   const aamAdjustments = useKkaStore(s => s.aamAdjustments)
   const nilaiPengalihanDilaporkan = useKkaStore(s => s.nilaiPengalihanDilaporkan)
   const setNilaiPengalihanDilaporkan = useKkaStore(s => s.setNilaiPengalihanDilaporkan)
+  const interestBearingDebt = useKkaStore(s => s.interestBearingDebt)
   const hasHydrated = useKkaStore(s => s._hasHydrated)
 
   const [method, setMethod] = useState<ValuationMethod>('AAM')
@@ -45,7 +46,7 @@ export default function SimulasiPotensiPage() {
   }, [setNilaiPengalihanDilaporkan])
 
   const equityValues = useMemo(() => {
-    if (!hasHydrated || !home || !balanceSheet) return null
+    if (!hasHydrated || !home || !balanceSheet || interestBearingDebt === null) return null
 
     const histYears4 = computeHistoricalYears(home.tahunTransaksi, 4)
     const histYears3 = computeHistoricalYears(home.tahunTransaksi, 3)
@@ -54,7 +55,7 @@ export default function SimulasiPotensiPage() {
     const ly = histYears4[histYears4.length - 1]!
 
     // ── AAM (always available with BS) ──
-    const aamResult = computeAam(buildAamInput({ accounts: balanceSheet!.accounts, allBs, lastYear: ly, home, aamAdjustments }))
+    const aamResult = computeAam(buildAamInput({ accounts: balanceSheet!.accounts, allBs, lastYear: ly, home, aamAdjustments, interestBearingDebt }))
 
     const result: Record<ValuationMethod, number | null> = {
       AAM: aamResult.equityValue,
@@ -84,6 +85,7 @@ export default function SimulasiPotensiPage() {
             proyNoplatRows: pipeline.proyNoplatRows, proyFaRows: pipeline.proyFaRows,
             proyCfsRows: pipeline.proyCfsRows,
             wacc: dr.wacc, growthRate: upstream.growthRate,
+            interestBearingDebt,
           }))
           result.DCF = dcfResult.equityValue100
         } catch { /* DCF may fail if wacc === growthRate */ }
@@ -95,13 +97,14 @@ export default function SimulasiPotensiPage() {
         const eemResult = computeEem(buildEemInput({
           aamResult, allBs, upstream, lastYear: ly,
           waccTangible: bcData.waccTangible, wacc: dr.wacc,
+          interestBearingDebt,
         }))
         result.EEM = eemResult.equityValue100
       } catch { /* EEM may fail if wacc === 0 */ }
     }
 
     return result
-  }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, keyDrivers, discountRateState, bcInput, aamAdjustments])
+  }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, keyDrivers, discountRateState, bcInput, aamAdjustments, interestBearingDebt])
 
   // Derive risk categories from actual DLOM/DLOC percentages (not hardcoded!)
   const dlomRisk = home ? deriveDlomRiskCategory(home.dlomPercent) : 'Moderat'
@@ -135,6 +138,7 @@ export default function SimulasiPotensiPage() {
         inputs={[
           { label: 'HOME', href: '/', filled: !!home },
           { label: 'Balance Sheet', href: '/input/balance-sheet', filled: !!balanceSheet },
+          { label: t('nav.item.interestBearingDebt'), href: '/valuation/interest-bearing-debt', filled: interestBearingDebt !== null },
         ]}
       />
     )

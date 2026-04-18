@@ -20,6 +20,7 @@ export type UpstreamSlice =
   | 'dloc'
   | 'borrowingCapInput'
   | 'aamAdjustments'
+  | 'interestBearingDebt'
 
 /**
  * One SheetBuilder per exported Excel sheet. build() is only called when

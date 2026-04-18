@@ -19,7 +19,7 @@ const SHEET_NAME = 'DCF'
  */
 export const DcfBuilder: SheetBuilder = {
   sheetName: SHEET_NAME,
-  upstream: ['home', 'balanceSheet', 'incomeStatement', 'fixedAsset', 'keyDrivers', 'discountRate'],
+  upstream: ['home', 'balanceSheet', 'incomeStatement', 'fixedAsset', 'keyDrivers', 'discountRate', 'interestBearingDebt'],
   build(workbook, state) {
     const ws = workbook.getWorksheet(SHEET_NAME)
     if (
@@ -29,10 +29,13 @@ export const DcfBuilder: SheetBuilder = {
       !state.incomeStatement ||
       !state.fixedAsset ||
       !state.keyDrivers ||
-      !state.discountRate
+      !state.discountRate ||
+      state.interestBearingDebt === null
     ) {
       return
     }
+
+    const ibd = state.interestBearingDebt
 
     const pipeline = computeFullProjectionPipeline({
       home: state.home,
@@ -60,6 +63,7 @@ export const DcfBuilder: SheetBuilder = {
       upstream, allBs, lastHistYear, projYears,
       proyNoplatRows, proyFaRows, proyCfsRows,
       wacc: dr.wacc, growthRate: upstream.growthRate,
+      interestBearingDebt: ibd,
     })
     const dcf = computeDcf(dcfInput)
 

@@ -96,6 +96,15 @@ export interface BuildAamParams {
   lastYear: number
   home: HomeInputs
   aamAdjustments: Record<number, number>
+  /**
+   * Session 038: user-entered total Interest Bearing Debt (POSITIVE
+   * amount). Sourced from `/valuation/interest-bearing-debt` page.
+   * Replaces the previous classifier-based auto-aggregation via
+   * `isIbdAccount()` — see AAM page note that instructs users to apply
+   * negative adjustments (column D) on IBD liability accounts so NAV
+   * math does not double-count.
+   */
+  interestBearingDebt: number
 }
 
 /**
@@ -107,7 +116,7 @@ export interface BuildAamParams {
  * always included as special non-current asset from BS sentinel.
  */
 export function buildAamInput(params: BuildAamParams): AamInput {
-  const { accounts, allBs, lastYear: ly, home, aamAdjustments: adj } = params
+  const { accounts, allBs, lastYear: ly, home, aamAdjustments: adj, interestBearingDebt } = params
   const bs = (row: number) => allBs[row]?.[ly] ?? 0
   const a = (row: number) => adj[row] ?? 0
   const adjusted = (row: number) => bs(row) + a(row)
@@ -158,10 +167,11 @@ export function buildAamInput(params: BuildAamParams): AamInput {
   const totalCurrentLiabilities = nonIbdCL + ibdCL
   const totalNonCurrentLiabilities = nonIbdNCL + ibdNCL
 
-  // IBD uses HISTORICAL values (not adjusted) per Excel convention
-  const ibdHistorical = accounts
-    .filter(isIbdAccount)
-    .reduce((sum, acct) => sum + bs(acct.excelRow), 0)
+  // Session 038: IBD is now a dedicated user input from the store
+  // (POSITIVE amount). Classifier-based auto-aggregation is retained only
+  // for the CL/NCL split so AAM page subtotals (non-IBD vs IBD categories)
+  // continue to display — the split has no effect on NAV math when the
+  // user follows the workflow of zeroing IBD accounts via column D.
 
   return {
     totalCurrentAssets,
@@ -174,7 +184,7 @@ export function buildAamInput(params: BuildAamParams): AamInput {
     nonIbdNonCurrentLiabilities: nonIbdNCL,
     ibdNonCurrentLiabilities: ibdNCL,
     totalNonCurrentLiabilities,
-    interestBearingDebtHistorical: ibdHistorical,
+    interestBearingDebtHistorical: interestBearingDebt,
     totalEquity,
     totalAdjustments,
     dlomPercent: home.dlomPercent,
@@ -195,12 +205,19 @@ export interface BuildDcfParams {
   proyCfsRows: Record<number, YearKeyedSeries>
   wacc: number
   growthRate: number
+  /**
+   * Session 038: user-entered total Interest Bearing Debt (POSITIVE
+   * amount). Builder negates internally to match `DcfInput.interestBearingDebt`
+   * which the Excel workbook stores as (BS!F31+F38)*-1.
+   */
+  interestBearingDebt: number
 }
 
 /** Build DcfInput from upstream + projection pipeline. Eliminates 15-param copy-paste. */
 export function buildDcfInput(params: BuildDcfParams): DcfInput {
-  const { upstream, allBs, lastHistYear: ly, projYears, proyNoplatRows, proyFaRows, proyCfsRows, wacc, growthRate } = params
+  const { upstream, allBs: _allBs, lastHistYear: ly, projYears, proyNoplatRows, proyFaRows, proyCfsRows, wacc, growthRate, interestBearingDebt } = params
   const { allNoplat, allFa, allCfs, roicRows } = upstream
+  void _allBs // retained in params for API stability; no longer used for IBD lookup
 
   return {
     historicalNoplat: allNoplat[19]?.[ly] ?? 0,
@@ -215,7 +232,7 @@ export function buildDcfInput(params: BuildDcfParams): DcfInput {
     projectedCapex: projYears.map(y => -(proyFaRows[23]?.[y] ?? 0)),
     wacc,
     growthRate,
-    interestBearingDebt: -((allBs[31]?.[ly] ?? 0) + (allBs[38]?.[ly] ?? 0)),
+    interestBearingDebt: -interestBearingDebt,
     excessCash: -(roicRows[10]?.[ly] ?? 0),
     idleAsset: -(roicRows[9]?.[ly] ?? 0),
   }
@@ -230,11 +247,17 @@ export interface BuildEemParams {
   lastYear: number
   waccTangible: number
   wacc: number
+  /**
+   * Session 038: user-entered IBD (POSITIVE). Builder negates internally
+   * to match `EemInput.interestBearingDebt` which workbook stores as
+   * (BS!F31+F38)*-1.
+   */
+  interestBearingDebt: number
 }
 
 /** Build EemInput from AAM result + upstream data. */
 export function buildEemInput(params: BuildEemParams): EemInput {
-  const { aamResult, allBs, upstream, lastYear: ly, waccTangible, wacc } = params
+  const { aamResult, allBs, upstream, lastYear: ly, waccTangible, wacc, interestBearingDebt } = params
   const { allNoplat, allFa, allCfs } = upstream
   const bs = (row: number) => allBs[row]?.[ly] ?? 0
 
@@ -250,7 +273,7 @@ export function buildEemInput(params: BuildEemParams): EemInput {
     historicalTotalWC: (allCfs[8]?.[ly] ?? 0) + (allCfs[9]?.[ly] ?? 0),
     historicalCapex: -(allFa[23]?.[ly] ?? 0),
     wacc,
-    interestBearingDebt: -((allBs[31]?.[ly] ?? 0) + (allBs[38]?.[ly] ?? 0)),
+    interestBearingDebt: -interestBearingDebt,
     nonOperatingAsset: bs(8),
   }
 }

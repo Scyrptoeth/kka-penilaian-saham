@@ -90,7 +90,7 @@ function makeState(over: Partial<ExportableState> = {}): ExportableState {
     home: makeHome(), balanceSheet: makeBs(), incomeStatement: makeIs(),
     fixedAsset: makeFa(), accPayables: null, wacc: null, discountRate: null,
     keyDrivers: makeKd(), dlom: null, dloc: null, borrowingCapInput: null,
-    aamAdjustments: {}, nilaiPengalihanDilaporkan: 0,
+    aamAdjustments: {}, nilaiPengalihanDilaporkan: 0, interestBearingDebt: 0,
     ...over,
   }
 }

@@ -66,6 +66,8 @@ export interface ExportableState {
   borrowingCapInput: BorrowingCapInputState | null
   aamAdjustments: Record<number, number>
   nilaiPengalihanDilaporkan: number
+  /** Session 038 — dedicated Interest Bearing Debt input. null = user has not filled. */
+  interestBearingDebt: number | null
 }
 
 /**

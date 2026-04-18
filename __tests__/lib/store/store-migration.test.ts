@@ -450,10 +450,31 @@ describe('migratePersistedState — v13 → v14 (faAdjustment → aamAdjustments
     expect(migrated).not.toHaveProperty('keyDrivers.additionalCapex')
   })
 
+  it('v16 → v17 adds interestBearingDebt: null root-level', () => {
+    const v16State = {
+      home: {
+        namaPerusahaan: 'PT ABC',
+        dlomPercent: 0.32,
+        dlocPercent: 0.42,
+      },
+      language: 'en',
+    }
+    const migrated = migratePersistedState(v16State, 16) as Record<string, unknown>
+    expect(migrated.interestBearingDebt).toBeNull()
+    // Existing slices preserved
+    expect((migrated.home as Record<string, unknown>).namaPerusahaan).toBe('PT ABC')
+  })
+
+  it('v16 → v17 preserves existing interestBearingDebt if already set (idempotency)', () => {
+    const partialState = { home: null, language: 'en', interestBearingDebt: 5_000_000 }
+    const migrated = migratePersistedState(partialState, 16) as Record<string, unknown>
+    expect(migrated.interestBearingDebt).toBe(5_000_000)
+  })
+
   it('passes future versions through unchanged', () => {
-    const v16State = { home: null, language: 'en', futureSlice: {} }
-    const migrated = migratePersistedState(v16State, 16)
-    expect(migrated).toBe(v16State)
+    const v17State = { home: null, language: 'en', interestBearingDebt: null, futureSlice: {} }
+    const migrated = migratePersistedState(v17State, 17)
+    expect(migrated).toBe(v17State)
   })
 
   it('passes non-object payloads through unchanged', () => {
