@@ -4,6 +4,8 @@ import type { YearKeyedSeries } from '@/types/financial'
 import {
   computeCommonSize,
   computeGrowthYoY,
+  computeAverage,
+  averageSeries,
 } from '@/lib/calculations/derivation-helpers'
 
 const ROWS: readonly ManifestRow[] = [
@@ -113,5 +115,68 @@ describe('computeGrowthYoY', () => {
     const gr = computeGrowthYoY(ROWS, values, YEARS)
     expect(gr[11]).toBeUndefined()
     expect(gr[12]).toBeUndefined()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// computeAverage — leading-zero / leading-null skip semantics (Session 037)
+// ---------------------------------------------------------------------------
+
+describe('computeAverage', () => {
+  it('simple mean of positive numbers', () => {
+    expect(computeAverage([0.1, 0.2, 0.3])).toBeCloseTo(0.2, 12)
+  })
+
+  it('skips leading null — user example 1: [-, 10%, 5%] → 7.5%', () => {
+    expect(computeAverage([null, 0.1, 0.05])).toBeCloseTo(0.075, 12)
+  })
+
+  it('keeps middle null as zero — user example 2: [10%, -, 5%] → 5%', () => {
+    expect(computeAverage([0.1, null, 0.05])).toBeCloseTo(0.05, 12)
+  })
+
+  it('keeps trailing null as zero — user example 3: [10%, 5%, -] → 5%', () => {
+    expect(computeAverage([0.1, 0.05, null])).toBeCloseTo(0.05, 12)
+  })
+
+  it('skips leading zero — [0, 10%, 5%] → 7.5%', () => {
+    expect(computeAverage([0, 0.1, 0.05])).toBeCloseTo(0.075, 12)
+  })
+
+  it('skips multiple leading zeros/nulls — [0, null, 10] → 10', () => {
+    expect(computeAverage([0, null, 10])).toBe(10)
+  })
+
+  it('returns null when all values are null or zero', () => {
+    expect(computeAverage([null, null, null])).toBeNull()
+    expect(computeAverage([0, 0, 0])).toBeNull()
+    expect(computeAverage([])).toBeNull()
+  })
+
+  it('handles negative values normally once past leading skip', () => {
+    expect(computeAverage([0.1, -0.05, 0.2])).toBeCloseTo(
+      (0.1 + -0.05 + 0.2) / 3,
+      12,
+    )
+  })
+
+  it('treats undefined like null', () => {
+    expect(computeAverage([undefined, 0.1, 0.05])).toBeCloseTo(0.075, 12)
+  })
+})
+
+describe('averageSeries', () => {
+  it('returns null for undefined series', () => {
+    expect(averageSeries(undefined, [2019, 2020, 2021])).toBeNull()
+  })
+
+  it('picks values in year-order, passes through computeAverage', () => {
+    const series: YearKeyedSeries = { 2019: 0, 2020: 0.1, 2021: 0.05 }
+    expect(averageSeries(series, [2019, 2020, 2021])).toBeCloseTo(0.075, 12)
+  })
+
+  it('missing year in series treated as null → included as 0 in divisor when not leading', () => {
+    const series: YearKeyedSeries = { 2019: 0.1, 2021: 0.05 }
+    expect(averageSeries(series, [2019, 2020, 2021])).toBeCloseTo(0.05, 12)
   })
 })

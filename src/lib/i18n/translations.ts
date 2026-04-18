@@ -127,6 +127,7 @@ const dict = {
   'table.lineItemHeader': { en: 'Line Item', id: 'Pos-Pos' },
   'table.commonSize': { en: 'Common Size', id: 'Common Size' },
   'table.growthYoY': { en: 'Growth YoY', id: 'Pertumbuhan YoY' },
+  'table.average': { en: 'Average', id: 'Rata-Rata' },
 
   // ═══════════════════════════════════════════════════════════════════
   // DATA SOURCE HEADER

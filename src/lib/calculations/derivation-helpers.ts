@@ -75,3 +75,56 @@ export function computeGrowthYoY(
   }
   return out
 }
+
+/**
+ * Compute the arithmetic mean of a numeric series with leading-zero /
+ * leading-null skip semantics.
+ *
+ * Rules (Session 037 — per user spec):
+ *   1. Trim leading entries that are null/undefined/0. Once the first
+ *      non-null non-zero entry is found, all remaining entries count in
+ *      both numerator and divisor.
+ *   2. Within the trimmed window, null/undefined are treated as 0 (still
+ *      counted in the divisor).
+ *   3. If no valid entry exists (all null/undefined/0), return null.
+ *
+ * Examples:
+ *   [null, 0.10, 0.05]  → (0.10 + 0.05) / 2 = 0.075
+ *   [0.10, null, 0.05]  → (0.10 + 0 + 0.05) / 3 = 0.05
+ *   [0.10, 0.05, null]  → (0.10 + 0.05 + 0) / 3 = 0.05
+ *   [null, null, null]  → null
+ */
+export function computeAverage(
+  values: readonly (number | null | undefined)[],
+): number | null {
+  let firstValid = -1
+  for (let i = 0; i < values.length; i++) {
+    const v = values[i]
+    if (v != null && v !== 0) {
+      firstValid = i
+      break
+    }
+  }
+  if (firstValid === -1) return null
+  const relevant = values.slice(firstValid)
+  let sum = 0
+  for (const v of relevant) sum += v ?? 0
+  return sum / relevant.length
+}
+
+/**
+ * Convenience wrapper: compute arithmetic mean of a {@link YearKeyedSeries}
+ * across the given years using {@link computeAverage} semantics. Missing
+ * year entries collapse to null (then pass through the same leading-skip
+ * logic).
+ *
+ *   averageSeries({ 2020: 0.1, 2021: 0.05 }, [2019, 2020, 2021])
+ *   // leading null → (0.1 + 0.05) / 2 = 0.075
+ */
+export function averageSeries(
+  series: YearKeyedSeries | undefined,
+  years: readonly number[],
+): number | null {
+  if (!series) return null
+  return computeAverage(years.map((y) => series[y] ?? null))
+}
