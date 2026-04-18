@@ -177,4 +177,79 @@ describe('ProyBsBuilder', () => {
       }
     }
   })
+
+  // Session 040 — Extended catalog + custom account injection
+  describe('extended + custom account injection', () => {
+    function makeBsWithExtended(language: 'en' | 'id' = 'en'): BalanceSheetInputState {
+      return {
+        accounts: [
+          // Baseline CA leaves (subset — enough for subtotal to compute)
+          { catalogId: 'cash', excelRow: 8, section: 'current_assets' },
+          { catalogId: 'account_receivable', excelRow: 10, section: 'current_assets' },
+          { catalogId: 'inventory', excelRow: 12, section: 'current_assets' },
+          // Extended CA (excelRow 100, real catalog entry: short_term_invest)
+          { catalogId: 'short_term_invest', excelRow: 100, section: 'current_assets' },
+          // Custom equity (excelRow >= 1000, with customLabel)
+          { catalogId: 'custom_1000', excelRow: 1000, section: 'equity', customLabel: 'Treasury Reserve' },
+          // Baseline equity to anchor subtotal
+          { catalogId: 'paid_in_capital', excelRow: 43, section: 'equity' },
+        ],
+        yearCount: 4,
+        language,
+        rows: {
+          8: { 2018: 900, 2019: 1000, 2020: 1100, 2021: 1200 },
+          10: { 2018: 200, 2019: 220, 2020: 240, 2021: 260 },
+          12: { 2018: 300, 2019: 330, 2020: 360, 2021: 390 },
+          100: { 2018: 50, 2019: 55, 2020: 60, 2021: 66 },
+          1000: { 2018: 1000, 2019: 1050, 2020: 1100, 2021: 1155 },
+          43: { 2018: 500, 2019: 500, 2020: 500, 2021: 500 },
+        },
+      }
+    }
+
+    it('writes extended catalog account (row 100) label at B100 + histYear value at C100', () => {
+      const wb = makeWb()
+      ProyBsBuilder.build(wb, makeState({ balanceSheet: makeBsWithExtended('en') }))
+      const ws = wb.getWorksheet('PROY BALANCE SHEET')!
+      expect(ws.getCell('B100').value).toBe('Short-term Investments')
+      // C = lastHistYear (2021). Seeded value = 66.
+      expect(ws.getCell('C100').value).toBe(66)
+    })
+
+    it('writes extended row projections (numbers) at D/E/F', () => {
+      const wb = makeWb()
+      ProyBsBuilder.build(wb, makeState({ balanceSheet: makeBsWithExtended('en') }))
+      const ws = wb.getWorksheet('PROY BALANCE SHEET')!
+      for (const col of ['D', 'E', 'F']) {
+        const val = ws.getCell(`${col}100`).value
+        expect(typeof val, `${col}100 must be a number`).toBe('number')
+      }
+    })
+
+    it('writes custom account (row 1000) with customLabel at B1000 + value at C1000', () => {
+      const wb = makeWb()
+      ProyBsBuilder.build(wb, makeState({ balanceSheet: makeBsWithExtended('en') }))
+      const ws = wb.getWorksheet('PROY BALANCE SHEET')!
+      expect(ws.getCell('B1000').value).toBe('Treasury Reserve')
+      expect(ws.getCell('C1000').value).toBe(1155)
+    })
+
+    it('honors language=id for catalog label lookup at B100', () => {
+      const wb = makeWb()
+      ProyBsBuilder.build(wb, makeState({ balanceSheet: makeBsWithExtended('id') }))
+      const ws = wb.getWorksheet('PROY BALANCE SHEET')!
+      expect(ws.getCell('B100').value).toBe('Investasi Jangka Pendek')
+    })
+
+    it('rows 100+ stay empty when no extended/custom accounts in state', () => {
+      const wb = makeWb()
+      ProyBsBuilder.build(wb, makeState()) // baseline makeBs() — no extended
+      const ws = wb.getWorksheet('PROY BALANCE SHEET')!
+      const b100 = ws.getCell('B100').value
+      expect(b100 == null || b100 === '').toBe(true)
+      for (const col of ['C', 'D', 'E', 'F']) {
+        expect(ws.getCell(`${col}100`).value == null).toBe(true)
+      }
+    })
+  })
 })

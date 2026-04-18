@@ -1,5 +1,7 @@
 import type { SheetBuilder } from './types'
 import { computeFullProjectionPipeline } from '@/lib/calculations/projection-pipeline'
+import { BS_CATALOG_ALL } from '@/data/catalogs/balance-sheet-catalog'
+import { resolveLabel } from './label-writer'
 
 const SHEET_NAME = 'PROY BALANCE SHEET'
 
@@ -98,10 +100,31 @@ export const ProyBsBuilder: SheetBuilder = {
       for (const keyStr of Object.keys(proyBsRows)) {
         const inputBsRow = Number(keyStr)
         const templateRow = INPUT_BS_TO_PROY_BS_TEMPLATE[inputBsRow]
-        if (templateRow === undefined) continue // extended/custom/unmapped
+        if (templateRow === undefined) continue // extended/custom handled below
         const val = proyBsRows[inputBsRow]?.[year]
         if (val !== undefined && Number.isFinite(val)) {
           ws.getCell(`${col}${templateRow}`).value = val
+        }
+      }
+    }
+
+    // Session 040 — Extended catalog (excelRow ≥ 100) + custom (≥ 1000)
+    // injection at synthetic rows. Subtotals already include extended
+    // contributions via deriveComputedRows + dynamic manifest computedFrom,
+    // so we only write leaf labels + values — no formula modification.
+    // Diverges from Session 025 BS pattern (which appends +SUM to live
+    // subtotal formulas) because PROY BS writes STATIC computed values.
+    const { accounts, language } = state.balanceSheet
+    for (const acc of accounts) {
+      if (acc.excelRow < 100) continue // baseline handled above
+      ws.getCell(`B${acc.excelRow}`).value = resolveLabel(acc, BS_CATALOG_ALL, language)
+      const series = proyBsRows[acc.excelRow]
+      if (!series) continue
+      for (const [col, year] of cols) {
+        if (!year) continue
+        const val = series[year]
+        if (val !== undefined && Number.isFinite(val)) {
+          ws.getCell(`${col}${acc.excelRow}`).value = val
         }
       }
     }
