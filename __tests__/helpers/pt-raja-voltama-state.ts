@@ -210,7 +210,15 @@ export function loadPtRajaVoltamaState(): ExportableState {
       language: 'en',
       rows: faRows,
     },
-    accPayables: { rows: apRows },
+    accPayables: {
+      // Session 042 Task 4 migration shape: default 1 ST + 1 LT schedule,
+      // fixture's legacy flat rows mapped onto baseline rows 9/10/12/18/19/21.
+      schedules: [
+        { id: 'st_default', section: 'st_bank_loans', slotIndex: 0 },
+        { id: 'lt_default', section: 'lt_bank_loans', slotIndex: 0 },
+      ],
+      rows: apRows,
+    },
     wacc: {
       marketParams: {
         equityRiskPremium: num(wacc, 'B4'),

@@ -160,7 +160,11 @@ const ACC_PAYABLES_GRID: GridCellMapping = {
   kind: 'grid',
   storeSlice: 'accPayables',
   excelSheet: 'ACC PAYABLES',
-  leafRows: [10, 11, 14, 19, 20, 23],
+  // Session 042 Task 4: AP is now dynamic-schedule. Baseline Addition rows
+  // (10, 19) retained here so fixture-based upload roundtrips still detect
+  // them. Extended Additions + all Beginning/Ending writes are handled by
+  // AccPayablesBuilder via schedule iteration, not by this grid mapping.
+  leafRows: [10, 19],
   yearColumns: { 2019: 'C', 2020: 'D', 2021: 'E' },
 }
 

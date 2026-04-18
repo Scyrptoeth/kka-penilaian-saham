@@ -616,4 +616,59 @@ describe('migratePersistedState — v13 → v14 (faAdjustment → aamAdjustments
     expect(migratePersistedState(null, 1)).toBeNull()
     expect(migratePersistedState('garbage', 1)).toBe('garbage')
   })
+
+  // Session 042 Task 4 — accPayables schedule shape
+  it('v19 → v20 promotes accPayables to schedule shape and folds Repayment into Addition', () => {
+    const v19State = {
+      home: null,
+      language: 'en',
+      accPayables: {
+        rows: {
+          9: { 2019: 0, 2020: 100 },
+          10: { 2019: 200, 2020: 300 },
+          11: { 2019: -50, 2020: -100 },
+          12: { 2019: 150, 2020: 350 },
+          14: { 2019: 10 },
+        },
+      },
+    }
+    const migrated = migratePersistedState(v19State, 19) as Record<string, unknown>
+    const ap = migrated.accPayables as Record<string, unknown>
+    expect(Array.isArray(ap.schedules)).toBe(true)
+    expect((ap.schedules as unknown[]).length).toBe(2)
+    const rows = ap.rows as Record<number, Record<number, number>>
+    // Addition merged = 200 + (-50) = 150
+    expect(rows[10][2019]).toBe(150)
+    expect(rows[10][2020]).toBe(200)
+    // Beginning and Ending preserved
+    expect(rows[9][2019]).toBe(0)
+    expect(rows[12][2020]).toBe(350)
+    // Repayment (11) and Interest Payable (14) dropped
+    expect(rows[11]).toBeUndefined()
+    expect(rows[14]).toBeUndefined()
+  })
+
+  it('v19 → v20 leaves null accPayables as null', () => {
+    const v19State = {
+      home: null,
+      language: 'en',
+      accPayables: null,
+    }
+    const migrated = migratePersistedState(v19State, 19) as Record<string, unknown>
+    expect(migrated.accPayables).toBeNull()
+  })
+
+  it('v19 → v20 is idempotent for already-migrated accPayables', () => {
+    const v19State = {
+      home: null,
+      language: 'en',
+      accPayables: {
+        schedules: [{ id: 'st_default', section: 'st_bank_loans', slotIndex: 0 }],
+        rows: { 10: { 2021: 5_000 } },
+      },
+    }
+    const migrated = migratePersistedState(v19State, 19) as Record<string, unknown>
+    const ap = migrated.accPayables as Record<string, unknown>
+    expect((ap.schedules as unknown[]).length).toBe(1)
+  })
 })

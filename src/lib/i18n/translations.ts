@@ -811,6 +811,12 @@ const dict = {
   'accPayables.row.repayment': { en: 'Repayment', id: 'Pembayaran' },
   'accPayables.row.ending': { en: 'Ending', id: 'Saldo Akhir' },
   'accPayables.row.interestPayable': { en: 'Interest Payable', id: 'Bunga Dibayar' },
+  'accPayables.schedule.default': { en: 'Bank Loan Schedule {index}', id: 'Jadwal Pinjaman Bank {index}' },
+  'accPayables.schedule.add.st': { en: '+ Add Short-Term Schedule', id: '+ Tambah Jadwal Jangka Pendek' },
+  'accPayables.schedule.add.lt': { en: '+ Add Long-Term Schedule', id: '+ Tambah Jadwal Jangka Panjang' },
+  'accPayables.schedule.remove': { en: 'Remove schedule', id: 'Hapus jadwal' },
+  'accPayables.schedule.rename.aria': { en: 'Rename schedule', id: 'Ubah nama jadwal' },
+  'accPayables.addition.helper': { en: 'Positive = new loan drawdown. Negative = principal repayment.', id: 'Positif = penarikan pinjaman baru. Negatif = pembayaran pokok.' },
 
   // ═══════════════════════════════════════════════════════════════════
   // GROWTH RATE PAGE

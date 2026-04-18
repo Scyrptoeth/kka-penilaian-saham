@@ -2,31 +2,38 @@ import { describe, expect, it, beforeEach } from 'vitest'
 import ExcelJS from 'exceljs'
 import { AccPayablesBuilder } from '@/lib/export/sheet-builders/acc-payables'
 import type { ExportableState } from '@/lib/export/export-xlsx'
-import type { AccPayablesInputState } from '@/data/live/types'
+import type { AccPayablesInputState, ApSchedule } from '@/data/live/types'
 
 function makeWorkbook(): ExcelJS.Workbook {
   const wb = new ExcelJS.Workbook()
-  const ws = wb.addWorksheet('ACC PAYABLES')
-  // Seed Beginning formula (template-style) to confirm it stays intact
-  ws.getCell('C9').value = { formula: '=C12' }
-  ws.getCell('C12').value = { formula: '=C9+C10+C11' }
+  wb.addWorksheet('ACC PAYABLES')
   return wb
+}
+
+function defaultSchedules(): ApSchedule[] {
+  return [
+    { id: 'st_default', section: 'st_bank_loans', slotIndex: 0 },
+    { id: 'lt_default', section: 'lt_bank_loans', slotIndex: 0 },
+  ]
 }
 
 function makeAccPayables(
   overrides: Partial<AccPayablesInputState> = {},
 ): AccPayablesInputState {
   return {
+    schedules: defaultSchedules(),
+    // Simulated sentinel-precomputed values (mirrors DynamicApEditor persist
+    // behaviour: Beg + End computed at persist time from Addition).
     rows: {
-      10: { 2019: 100, 2020: 200, 2021: 300 }, // ST Addition
-      11: { 2019: -50, 2020: -70, 2021: -90 }, // ST Repayment (negative)
-      14: { 2019: 5, 2020: 6, 2021: 7 }, // ST Interest
+      9: { 2019: 0, 2020: 100, 2021: 300 },     // ST Beg
+      10: { 2019: 100, 2020: 200, 2021: 300 },  // ST Addition (signed)
+      12: { 2019: 100, 2020: 300, 2021: 600 },  // ST End
+      18: { 2019: 0, 2020: 1000, 2021: 3000 },  // LT Beg
       19: { 2019: 1000, 2020: 2000, 2021: 3000 }, // LT Addition
-      20: { 2019: -500, 2020: -700, 2021: -900 }, // LT Repayment
-      23: { 2019: 50, 2020: 60, 2021: 70 }, // LT Interest
+      21: { 2019: 1000, 2020: 3000, 2021: 6000 }, // LT End
     },
     ...overrides,
-  } as AccPayablesInputState
+  }
 }
 
 function makeState(overrides: Partial<ExportableState>): ExportableState {
@@ -43,9 +50,11 @@ function makeState(overrides: Partial<ExportableState>): ExportableState {
     dloc: null,
     borrowingCapInput: null,
     aamAdjustments: {},
-    nilaiPengalihanDilaporkan: 0, interestBearingDebt: 0,
+    nilaiPengalihanDilaporkan: 0,
+    interestBearingDebt: null,
+    changesInWorkingCapital: null,
     ...overrides,
-  }
+  } as ExportableState
 }
 
 describe('AccPayablesBuilder — metadata', () => {
@@ -55,7 +64,7 @@ describe('AccPayablesBuilder — metadata', () => {
   })
 })
 
-describe('AccPayablesBuilder.build — leaf values', () => {
+describe('AccPayablesBuilder.build — baseline schedules (slot 0)', () => {
   let wb: ExcelJS.Workbook
   beforeEach(() => {
     wb = makeWorkbook()
@@ -69,63 +78,126 @@ describe('AccPayablesBuilder.build — leaf values', () => {
     expect(ws.getCell('E10').value).toBe(300)
   })
 
-  it('writes ST Repayment row 11 as signed (negative) values', () => {
+  it('writes ST Beginning row 9 (sentinel pre-computed)', () => {
     AccPayablesBuilder.build(wb, makeState({}))
     const ws = wb.getWorksheet('ACC PAYABLES')!
-    expect(ws.getCell('C11').value).toBe(-50)
-    expect(ws.getCell('E11').value).toBe(-90)
+    expect(ws.getCell('C9').value).toBe(0)
+    expect(ws.getCell('D9').value).toBe(100)
   })
 
-  it('writes LT Addition row 19 across C/D/E', () => {
+  it('writes ST Ending row 12 as live formula =C9+C10 with cached result', () => {
+    AccPayablesBuilder.build(wb, makeState({}))
+    const ws = wb.getWorksheet('ACC PAYABLES')!
+    const c12 = ws.getCell('C12').value as { formula: string; result: number }
+    expect(typeof c12).toBe('object')
+    expect(c12.formula).toBe('C9+C10')
+    expect(c12.result).toBe(100)
+  })
+
+  it('writes LT Addition row 19 + Ending row 21 as formula', () => {
     AccPayablesBuilder.build(wb, makeState({}))
     const ws = wb.getWorksheet('ACC PAYABLES')!
     expect(ws.getCell('C19').value).toBe(1000)
-    expect(ws.getCell('D19').value).toBe(2000)
-  })
-
-  it('writes interest rows 14 and 23', () => {
-    AccPayablesBuilder.build(wb, makeState({}))
-    const ws = wb.getWorksheet('ACC PAYABLES')!
-    expect(ws.getCell('C14').value).toBe(5)
-    expect(ws.getCell('C23').value).toBe(50)
+    const e21 = ws.getCell('E21').value as { formula: string; result: number }
+    expect(e21.formula).toBe('E18+E19')
+    expect(e21.result).toBe(6000)
   })
 })
 
-describe('AccPayablesBuilder.build — template formulas preserved', () => {
-  let wb: ExcelJS.Workbook
-  beforeEach(() => {
-    wb = makeWorkbook()
+describe('AccPayablesBuilder.build — extended schedules (slot 1+)', () => {
+  it('writes ST slot 1 Addition at synthetic row 140', () => {
+    const wb = makeWorkbook()
+    const state = makeState({
+      accPayables: {
+        schedules: [
+          ...defaultSchedules(),
+          { id: 'st_2', section: 'st_bank_loans', slotIndex: 1 },
+        ],
+        rows: {
+          140: { 2020: 500_000 },   // ST slot 1 Addition
+          100: { 2020: 0 },         // ST slot 1 Beg
+          180: { 2020: 500_000 },   // ST slot 1 End (sentinel)
+        },
+      },
+    })
+
+    AccPayablesBuilder.build(wb, state)
+    const ws = wb.getWorksheet('ACC PAYABLES')!
+    expect(ws.getCell('D140').value).toBe(500_000)
+    expect(ws.getCell('D100').value).toBe(0)
+    const d180 = ws.getCell('D180').value as { formula: string; result: number }
+    expect(d180.formula).toBe('D100+D140')
+    expect(d180.result).toBe(500_000)
   })
 
-  it('does NOT overwrite C9 (Beginning formula)', () => {
-    AccPayablesBuilder.build(wb, makeState({}))
-    const v = wb.getWorksheet('ACC PAYABLES')!.getCell('C9').value
-    expect(v && typeof v === 'object' && 'formula' in v).toBe(true)
+  it('writes LT slot 2 schedule at synthetic rows 221/261/301', () => {
+    const wb = makeWorkbook()
+    const state = makeState({
+      accPayables: {
+        schedules: [
+          ...defaultSchedules(),
+          { id: 'lt_2', section: 'lt_bank_loans', slotIndex: 2 },
+        ],
+        rows: {
+          261: { 2021: 750_000 },  // LT slot 2 Addition
+        },
+      },
+    })
+
+    AccPayablesBuilder.build(wb, state)
+    const ws = wb.getWorksheet('ACC PAYABLES')!
+    expect(ws.getCell('E261').value).toBe(750_000)
+    const e301 = ws.getCell('E301').value as { formula: string }
+    expect(e301.formula).toBe('E221+E261')
   })
 
-  it('does NOT overwrite C12 (Ending formula)', () => {
-    AccPayablesBuilder.build(wb, makeState({}))
-    const v = wb.getWorksheet('ACC PAYABLES')!.getCell('C12').value
-    expect(v && typeof v === 'object' && 'formula' in v).toBe(true)
+  it('writes custom label for extended schedules', () => {
+    const wb = makeWorkbook()
+    const state = makeState({
+      accPayables: {
+        schedules: [
+          { id: 'st_default', section: 'st_bank_loans', slotIndex: 0 },
+          {
+            id: 'st_obligasi',
+            section: 'st_bank_loans',
+            slotIndex: 1,
+            customLabel: 'Obligasi A',
+          },
+        ],
+        rows: {},
+      },
+    })
+
+    AccPayablesBuilder.build(wb, state)
+    const ws = wb.getWorksheet('ACC PAYABLES')!
+    expect(ws.getCell('B100').value).toBe('Obligasi A')
+    expect(ws.getCell('B140').value).toBe('Obligasi A')
+    expect(ws.getCell('B180').value).toBe('Obligasi A')
   })
 })
 
 describe('AccPayablesBuilder.build — edge cases', () => {
-  it('partial year data — only present years written', () => {
-    const wb = makeWorkbook()
-    const partial: AccPayablesInputState = {
-      rows: { 10: { 2020: 50 } }, // only 2020, no 2019/2021
-    }
-    AccPayablesBuilder.build(wb, makeState({ accPayables: partial }))
-    const ws = wb.getWorksheet('ACC PAYABLES')!
-    expect(ws.getCell('C10').value).toBe(null) // 2019 → unwritten
-    expect(ws.getCell('D10').value).toBe(50) // 2020 → written
-    expect(ws.getCell('E10').value).toBe(null) // 2021 → unwritten
-  })
-
   it('missing worksheet — no throw', () => {
     const blankWb = new ExcelJS.Workbook()
     expect(() => AccPayablesBuilder.build(blankWb, makeState({}))).not.toThrow()
+  })
+
+  it('null accPayables — no throw, no writes', () => {
+    const wb = makeWorkbook()
+    expect(() =>
+      AccPayablesBuilder.build(wb, makeState({ accPayables: null })),
+    ).not.toThrow()
+  })
+
+  it('empty schedules array — no writes', () => {
+    const wb = makeWorkbook()
+    const state = makeState({
+      accPayables: { schedules: [], rows: {} },
+    })
+    AccPayablesBuilder.build(wb, state)
+    const ws = wb.getWorksheet('ACC PAYABLES')!
+    // No writes anywhere — all cells stay null
+    expect(ws.getCell('C10').value).toBeNull()
   })
 
   it('idempotent — same output on repeated build', () => {

@@ -58,11 +58,39 @@ export interface FixedAssetInputState {
 }
 
 /**
- * Acc Payables — hidden worksheet dependency for CFS financing section.
- * Rows 10 + 19 → New Loan; Row 20 → Principal Repayment.
- * Session 012 adds the slice; dedicated input page deferred (YAGNI —
- * prototype values are all zero, CFS defaults financing to 0 when null).
+ * Acc Payables — bank loan schedules (dynamic catalog as of Session 042).
+ *
+ * Session 042 Task 4 promoted this slice to full dynamic catalog treatment
+ * (Opsi B + 5a=A + 5b=A + 5c=A):
+ *   - 2 fixed sections: short-term bank loans + long-term bank loans
+ *   - Each section holds an ordered list of schedules; default seeds 1 per
+ *   - 3 bands per schedule: Beginning (computed), Addition (signed leaf),
+ *     Ending (computed Beg + Addition)
+ *   - Repayment is expressed as negative Addition (LESSON-055 convention)
+ *
+ * Row encoding (template baseline + synthetic extensions):
+ *   ST_BEG  baseline: 9     extended: 100-139  (slot 1..40)
+ *   ST_ADD  baseline: 10    extended: 140-179
+ *   ST_END  baseline: 12    extended: 180-219  (computed band)
+ *   LT_BEG  baseline: 18    extended: 220-259
+ *   LT_ADD  baseline: 19    extended: 260-299
+ *   LT_END  baseline: 21    extended: 300-339  (computed band)
+ *
+ * slotIndex 0 = baseline template rows; slotIndex N≥1 = synthetic extended.
  */
+export type ApSection = 'st_bank_loans' | 'lt_bank_loans'
+
+export interface ApSchedule {
+  /** Stable id (e.g. 'st_default_1', 'ap_<timestamp>') */
+  id: string
+  section: ApSection
+  /** 0 = baseline template schedule, 1+ = user-added (uses synthetic rows) */
+  slotIndex: number
+  /** User rename overrides the default "Short-Term Bank Loan N" label */
+  customLabel?: string
+}
+
 export interface AccPayablesInputState {
+  schedules: ApSchedule[]
   rows: Record<number, YearKeyedSeries>
 }

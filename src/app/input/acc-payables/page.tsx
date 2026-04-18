@@ -8,62 +8,50 @@ import { formatIdr } from '@/components/financial/format'
 import { parseFinancialInput } from '@/components/forms/parse-financial-input'
 import { useT } from '@/lib/i18n/useT'
 import type { YearKeyedSeries } from '@/types/financial'
+import type { ApSchedule, ApSection } from '@/data/live/types'
+import {
+  AP_BANDS,
+  apRowFor,
+  computeApSentinels,
+  createDefaultApState,
+} from '@/data/catalogs/acc-payables-catalog'
 
-// -- Row definitions for Bank Loan Schedules --
-// Matches Excel ACC PAYABLES sheet structure
+type LocalRows = Record<number, YearKeyedSeries>
 
-const ST_ROWS = [
-  { row: 9, labelKey: 'accPayables.row.beginning' as const, editable: false },
-  { row: 10, labelKey: 'accPayables.row.addition' as const, editable: true },
-  { row: 11, labelKey: 'accPayables.row.repayment' as const, editable: true },
-  { row: 12, labelKey: 'accPayables.row.ending' as const, editable: false },
-  { row: 14, labelKey: 'accPayables.row.interestPayable' as const, editable: true },
-] as const
-
-const LT_ROWS = [
-  { row: 18, labelKey: 'accPayables.row.beginning' as const, editable: false },
-  { row: 19, labelKey: 'accPayables.row.addition' as const, editable: true },
-  { row: 20, labelKey: 'accPayables.row.repayment' as const, editable: true },
-  { row: 21, labelKey: 'accPayables.row.ending' as const, editable: false },
-  { row: 23, labelKey: 'accPayables.row.interestPayable' as const, editable: true },
-] as const
-
-/**
- * Compute derived rows (Beginning + Ending) from leaf data.
- * - Beginning year 0 = 0 (no prior year data)
- * - Beginning year N = Ending year N-1
- * - Ending = Beginning + Addition + Repayment
- */
-function computeApDerived(
-  leafRows: Record<number, YearKeyedSeries>,
-  years: number[],
-  beginRow: number,
-  additionRow: number,
-  repaymentRow: number,
-  endingRow: number,
-): Record<number, YearKeyedSeries> {
-  const result: Record<number, YearKeyedSeries> = {}
-  const beginSeries: YearKeyedSeries = {}
-  const endingSeries: YearKeyedSeries = {}
-
-  for (let i = 0; i < years.length; i++) {
-    const y = years[i]
-    const beginning = i === 0 ? 0 : (endingSeries[years[i - 1]] ?? 0)
-    beginSeries[y] = beginning
-    const addition = leafRows[additionRow]?.[y] ?? 0
-    const repayment = leafRows[repaymentRow]?.[y] ?? 0
-    endingSeries[y] = beginning + addition + repayment
+function nextSlotIndex(
+  schedules: readonly ApSchedule[],
+  section: ApSection,
+): number {
+  const bandBudget =
+    AP_BANDS[section].add.extendedEnd - AP_BANDS[section].add.extendedStart + 1
+  // Baseline slot 0 + up to `bandBudget` extended slots (slotIndex 1..bandBudget)
+  const usedSlots = new Set(
+    schedules.filter((s) => s.section === section).map((s) => s.slotIndex),
+  )
+  for (let i = 0; i <= bandBudget; i++) {
+    if (!usedSlots.has(i)) return i
   }
+  return bandBudget
+}
 
-  result[beginRow] = beginSeries
-  result[endingRow] = endingSeries
-  return result
+function scheduleLabel(
+  schedule: ApSchedule,
+  schedulesInSection: readonly ApSchedule[],
+  sectionLabel: string,
+): string {
+  if (schedule.customLabel) return schedule.customLabel
+  const sortedIndex =
+    schedulesInSection
+      .slice()
+      .sort((a, b) => a.slotIndex - b.slotIndex)
+      .findIndex((s) => s.id === schedule.id) + 1
+  return `${sectionLabel} ${sortedIndex}`
 }
 
 function AccPayablesEditor() {
   const { t } = useT()
   const home = useKkaStore((s) => s.home)!
-  const accPayables = useKkaStore((s) => s.accPayables)
+  const accPayables = useKkaStore((s) => s.accPayables) ?? createDefaultApState()
   const setAccPayables = useKkaStore((s) => s.setAccPayables)
   const tahunTransaksi = home.tahunTransaksi
 
@@ -72,106 +60,123 @@ function AccPayablesEditor() {
     [tahunTransaksi],
   )
 
-  const [localRows, setLocalRows] = useState<Record<number, YearKeyedSeries>>(
-    () => accPayables?.rows ?? {},
+  const [localSchedules, setLocalSchedules] = useState<ApSchedule[]>(
+    () => accPayables.schedules,
   )
+  const [localRows, setLocalRows] = useState<LocalRows>(() => accPayables.rows)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const schedulePersist = useCallback(
-    (nextRows: Record<number, YearKeyedSeries>) => {
+    (nextSchedules: ApSchedule[], nextRows: LocalRows) => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
       debounceRef.current = setTimeout(() => {
-        setAccPayables({ rows: nextRows })
+        const sentinels = computeApSentinels(nextSchedules, nextRows, years)
+        setAccPayables({
+          schedules: nextSchedules,
+          rows: { ...nextRows, ...sentinels },
+        })
       }, 500)
     },
-    [setAccPayables],
+    [setAccPayables, years],
   )
 
-  // Compute derived rows (Beginning + Ending for both ST and LT)
-  const stDerived = useMemo(
-    () => computeApDerived(localRows, years, 9, 10, 11, 12),
-    [localRows, years],
-  )
-  const ltDerived = useMemo(
-    () => computeApDerived(localRows, years, 18, 19, 20, 21),
-    [localRows, years],
+  const sentinels = useMemo(
+    () => computeApSentinels(localSchedules, localRows, years),
+    [localSchedules, localRows, years],
   )
 
-  const allValues = useMemo(
-    () => ({ ...localRows, ...stDerived, ...ltDerived }),
-    [localRows, stDerived, ltDerived],
-  )
-
-  function handleCellChange(row: number, year: number, raw: string) {
+  function setAdditionCell(row: number, year: number, raw: string) {
     const value = parseFinancialInput(raw)
-    const nextRows = { ...localRows }
+    const nextRows: LocalRows = { ...localRows }
     if (!nextRows[row]) nextRows[row] = {}
     nextRows[row] = { ...nextRows[row], [year]: value }
     setLocalRows(nextRows)
-    schedulePersist(nextRows)
+    schedulePersist(localSchedules, nextRows)
   }
 
-  function renderSection(
-    title: string,
-    rows: readonly { row: number; labelKey: string; editable: boolean }[],
-  ) {
+  function addSchedule(section: ApSection) {
+    const slotIndex = nextSlotIndex(localSchedules, section)
+    // slotIndex is unique per section → deterministic pure id (LESSON — avoid
+    // Date.now() in component body to satisfy react-hooks/purity).
+    const next: ApSchedule = {
+      id: `${section}_slot${slotIndex}`,
+      section,
+      slotIndex,
+    }
+    const nextSchedules = [...localSchedules, next]
+    setLocalSchedules(nextSchedules)
+    schedulePersist(nextSchedules, localRows)
+  }
+
+  function removeSchedule(id: string) {
+    const nextSchedules = localSchedules.filter((s) => s.id !== id)
+    const target = localSchedules.find((s) => s.id === id)
+    let nextRows = localRows
+    if (target) {
+      const addRow = apRowFor(target.section, target.slotIndex, 'add')
+      const begRow = apRowFor(target.section, target.slotIndex, 'beg')
+      const endRow = apRowFor(target.section, target.slotIndex, 'end')
+      nextRows = { ...localRows }
+      delete nextRows[addRow]
+      delete nextRows[begRow]
+      delete nextRows[endRow]
+    }
+    setLocalSchedules(nextSchedules)
+    setLocalRows(nextRows)
+    schedulePersist(nextSchedules, nextRows)
+  }
+
+  function renameSchedule(id: string, label: string) {
+    const nextSchedules = localSchedules.map((s) =>
+      s.id === id
+        ? { ...s, customLabel: label.trim() === '' ? undefined : label.trim() }
+        : s,
+    )
+    setLocalSchedules(nextSchedules)
+    schedulePersist(nextSchedules, localRows)
+  }
+
+  function renderSection(section: ApSection, sectionLabel: string, addButtonLabel: string) {
+    const schedules = localSchedules
+      .filter((s) => s.section === section)
+      .slice()
+      .sort((a, b) => a.slotIndex - b.slotIndex)
+
     return (
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[600px] border-collapse text-sm">
-          <thead>
-            <tr className="border-b border-grid-strong">
-              <th className="bg-canvas-raised px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
-                {title}
-              </th>
-              {years.map((y) => (
-                <th
-                  key={y}
-                  className="bg-canvas-raised px-3 py-2 text-right font-mono text-[11px] font-semibold text-ink-muted"
-                >
-                  {y}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((def) => {
-              const isComputed = !def.editable
-              return (
-                <tr
-                  key={def.row}
-                  className={`border-b border-grid ${isComputed ? 'bg-canvas-raised font-semibold' : ''}`}
-                >
-                  <td className="px-3 py-1.5 text-ink-soft">{t(def.labelKey as import('@/lib/i18n/translations').TranslationKey)}</td>
-                  {years.map((y) => {
-                    const val = allValues[def.row]?.[y] ?? 0
-                    if (isComputed) {
-                      return (
-                        <td
-                          key={y}
-                          className={`px-3 py-1.5 text-right font-mono tabular-nums ${val < 0 ? 'text-negative' : ''}`}
-                        >
-                          {formatIdr(val)}
-                        </td>
-                      )
-                    }
-                    return (
-                      <td key={y} className="px-1 py-0.5">
-                        <input
-                          type="text"
-                          className="w-full rounded-sm border border-grid bg-canvas px-2 py-1 text-right font-mono text-sm tabular-nums text-ink outline-none focus:border-accent focus:ring-1 focus:ring-accent"
-                          defaultValue={val !== 0 ? formatIdr(val) : ''}
-                          placeholder="0"
-                          onBlur={(e) => handleCellChange(def.row, y, e.target.value)}
-                        />
-                      </td>
-                    )
-                  })}
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-muted">
+            {sectionLabel}
+          </h2>
+          <button
+            type="button"
+            onClick={() => addSchedule(section)}
+            className="text-xs font-medium text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          >
+            {addButtonLabel}
+          </button>
+        </div>
+
+        {schedules.length === 0 ? (
+          <p className="py-4 text-center text-xs text-ink-muted">—</p>
+        ) : (
+          schedules.map((schedule) => (
+            <ScheduleCard
+              key={schedule.id}
+              schedule={schedule}
+              schedulesInSection={schedules}
+              sectionLabel={sectionLabel}
+              years={years}
+              localRows={localRows}
+              sentinels={sentinels}
+              onRename={renameSchedule}
+              onRemove={removeSchedule}
+              onCellChange={setAdditionCell}
+              t={t}
+            />
+          ))
+        )}
+      </section>
     )
   }
 
@@ -192,15 +197,182 @@ function AccPayablesEditor() {
         <p className="text-xs text-ink-muted">{t('common.autoSaved')}</p>
       </div>
 
-      <div className="mt-6 space-y-6">
-        {renderSection(t('accPayables.shortTerm'), ST_ROWS)}
-        {renderSection(t('accPayables.longTerm'), LT_ROWS)}
+      <div className="mt-6 space-y-8">
+        {renderSection(
+          'st_bank_loans',
+          t('accPayables.shortTerm'),
+          t('accPayables.schedule.add.st'),
+        )}
+        {renderSection(
+          'lt_bank_loans',
+          t('accPayables.longTerm'),
+          t('accPayables.schedule.add.lt'),
+        )}
       </div>
 
-      <p className="mt-4 text-xs text-ink-muted">
-        {t('accPayables.footerNote')}
-      </p>
+      <p className="mt-6 text-xs text-ink-muted">{t('accPayables.footerNote')}</p>
+      <p className="mt-2 text-xs text-ink-muted">{t('accPayables.addition.helper')}</p>
     </div>
+  )
+}
+
+interface ScheduleCardProps {
+  schedule: ApSchedule
+  schedulesInSection: readonly ApSchedule[]
+  sectionLabel: string
+  years: number[]
+  localRows: LocalRows
+  sentinels: Record<number, YearKeyedSeries>
+  onRename: (id: string, label: string) => void
+  onRemove: (id: string) => void
+  onCellChange: (row: number, year: number, raw: string) => void
+  t: ReturnType<typeof useT>['t']
+}
+
+function ScheduleCard({
+  schedule,
+  schedulesInSection,
+  sectionLabel,
+  years,
+  localRows,
+  sentinels,
+  onRename,
+  onRemove,
+  onCellChange,
+  t,
+}: ScheduleCardProps) {
+  const begRow = apRowFor(schedule.section, schedule.slotIndex, 'beg')
+  const addRow = apRowFor(schedule.section, schedule.slotIndex, 'add')
+  const endRow = apRowFor(schedule.section, schedule.slotIndex, 'end')
+  const displayLabel = scheduleLabel(schedule, schedulesInSection, sectionLabel)
+  const isRemovable = schedulesInSection.length > 1 || schedule.slotIndex > 0
+
+  return (
+    <div className="rounded border border-grid bg-canvas-raised">
+      <div className="flex items-center justify-between gap-2 border-b border-grid px-3 py-2">
+        <input
+          type="text"
+          defaultValue={schedule.customLabel ?? displayLabel}
+          placeholder={displayLabel}
+          aria-label={t('accPayables.schedule.rename.aria')}
+          onBlur={(e) => {
+            const next = e.target.value
+            if (next !== (schedule.customLabel ?? displayLabel)) {
+              onRename(schedule.id, next)
+            }
+          }}
+          className="flex-1 rounded-sm bg-transparent px-1 py-0.5 text-sm font-medium text-ink outline-none hover:bg-canvas focus:bg-canvas focus:ring-1 focus:ring-accent"
+        />
+        {isRemovable && (
+          <button
+            type="button"
+            onClick={() => onRemove(schedule.id)}
+            aria-label={t('accPayables.schedule.remove')}
+            className="text-xs text-ink-muted hover:text-negative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-negative"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[560px] border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-grid">
+              <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-ink-muted"></th>
+              {years.map((y) => (
+                <th
+                  key={y}
+                  className="px-3 py-2 text-right font-mono text-[11px] font-semibold text-ink-muted"
+                >
+                  {y}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <RowDisplay
+              label={t('accPayables.row.beginning')}
+              years={years}
+              values={sentinels[begRow] ?? {}}
+            />
+            <RowEditable
+              label={t('accPayables.row.addition')}
+              years={years}
+              values={localRows[addRow] ?? {}}
+              onChange={(y, raw) => onCellChange(addRow, y, raw)}
+            />
+            <RowDisplay
+              label={t('accPayables.row.ending')}
+              years={years}
+              values={sentinels[endRow] ?? {}}
+              bold
+            />
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function RowDisplay({
+  label,
+  years,
+  values,
+  bold,
+}: {
+  label: string
+  years: number[]
+  values: YearKeyedSeries
+  bold?: boolean
+}) {
+  return (
+    <tr className={`border-b border-grid ${bold ? 'bg-canvas font-semibold' : ''}`}>
+      <td className="px-3 py-1.5 text-ink-soft">{label}</td>
+      {years.map((y) => {
+        const v = values[y] ?? 0
+        return (
+          <td
+            key={y}
+            className={`px-3 py-1.5 text-right font-mono tabular-nums ${v < 0 ? 'text-negative' : ''}`}
+          >
+            {formatIdr(v)}
+          </td>
+        )
+      })}
+    </tr>
+  )
+}
+
+function RowEditable({
+  label,
+  years,
+  values,
+  onChange,
+}: {
+  label: string
+  years: number[]
+  values: YearKeyedSeries
+  onChange: (year: number, raw: string) => void
+}) {
+  return (
+    <tr className="border-b border-grid">
+      <td className="px-3 py-1.5 text-ink-soft">{label}</td>
+      {years.map((y) => {
+        const v = values[y] ?? 0
+        return (
+          <td key={y} className="px-1 py-0.5">
+            <input
+              type="text"
+              className="w-full rounded-sm border border-grid bg-canvas px-2 py-1 text-right font-mono text-sm tabular-nums text-ink outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+              defaultValue={v !== 0 ? formatIdr(v) : ''}
+              placeholder="0"
+              onBlur={(e) => onChange(y, e.target.value)}
+            />
+          </td>
+        )
+      })}
+    </tr>
   )
 }
 

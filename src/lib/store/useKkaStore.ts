@@ -229,7 +229,7 @@ interface KkaState {
 }
 
 const STORE_KEY = 'kka-penilaian-saham'
-const STORE_VERSION = 19
+const STORE_VERSION = 20
 
 /**
  * Migrate persisted state from older versions to the current schema.
@@ -647,6 +647,62 @@ export function migratePersistedState(
     const ibd = (state as Record<string, unknown>).interestBearingDebt
     if (typeof ibd === 'number' || ibd === undefined) {
       state = { ...state, interestBearingDebt: null }
+    }
+  }
+
+  if (fromVersion < 20) {
+    // Session 042 Task 4 — Promote accPayables to dynamic-schedule shape.
+    //
+    // Old shape: { rows: Record<number, YearKeyedSeries> } with data at
+    //            template rows 9/10/11/12/14/18/19/20/21/23
+    // New shape: { schedules: ApSchedule[], rows: Record<...> }
+    //
+    // Migration preserves Addition data by merging legacy Addition +
+    // legacy Repayment into a single signed Addition (LESSON-055 plain
+    // addition convention). Legacy Interest Payable rows (14/23) are
+    // discarded — that data wasn't consumed by any compute module.
+    const ap = (state as Record<string, unknown>).accPayables
+    if (ap && typeof ap === 'object' && ap !== null && !('schedules' in ap)) {
+      const legacyRows = (ap as Record<string, unknown>).rows
+      const rows: Record<number, Record<number, number>> = {}
+      if (legacyRows && typeof legacyRows === 'object') {
+        for (const [key, value] of Object.entries(legacyRows)) {
+          const numKey = Number(key)
+          if (!Number.isFinite(numKey)) continue
+          if (value && typeof value === 'object') {
+            rows[numKey] = { ...(value as Record<number, number>) }
+          }
+        }
+      }
+      // Fold legacy Repayment (rows 11, 20) into Addition (rows 10, 19).
+      // Sign assumption from LESSON-055: Addition positive, Repayment negative.
+      // If both exist, Addition becomes Addition + Repayment (signed sum).
+      const foldInto = (addRow: number, repayRow: number) => {
+        if (!rows[repayRow]) return
+        if (!rows[addRow]) rows[addRow] = {}
+        for (const [yearStr, repayVal] of Object.entries(rows[repayRow])) {
+          const year = Number(yearStr)
+          const existing = rows[addRow][year] ?? 0
+          rows[addRow][year] = existing + (repayVal as number)
+        }
+        delete rows[repayRow]
+      }
+      foldInto(10, 11)
+      foldInto(19, 20)
+      // Discard Interest Payable rows (14, 23) — not consumed downstream.
+      delete rows[14]
+      delete rows[23]
+
+      state = {
+        ...state,
+        accPayables: {
+          schedules: [
+            { id: 'st_default', section: 'st_bank_loans', slotIndex: 0 },
+            { id: 'lt_default', section: 'lt_bank_loans', slotIndex: 0 },
+          ],
+          rows,
+        },
+      }
     }
   }
 
