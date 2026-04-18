@@ -657,7 +657,10 @@ untuk 3+ sesi ke depan:
 ### Session 047 (Proy FA Net Value clamp + sticky floor rule)
 - LESSON-137 (Domain-clamp + sticky floor pattern for projection outputs that violate semantic rules — extends LESSON-134 stopping rule with clamp + monotonic sticky behavior)
 
-LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054, 074, 087, 109, 113, 117, 120, 121, 125, 127, 128, 130, 131, 134, 136, 138 **TIDAK** di-promote — workflow/session-specific
+### Session 049 (Proy. P&L OpEx Merge + Common-Size Projection Drivers)
+- LESSON-139 (Driver-display sync — sub-row labels MUST render the same value that drives compute; breaking this creates silent divergence between surface promise and compute substrate)
+
+LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054, 074, 087, 109, 113, 117, 120, 121, 125, 127, 128, 130, 131, 134, 136, 138, 140 **TIDAK** di-promote — workflow/session-specific
 insights yang general ke project lain tapi terlalu luas atau terlalu
 session-specific untuk section 8 (yang fokus KKA-specific gotchas).
 Tersimpan di lessons-learned saja.
@@ -4109,3 +4112,61 @@ Applies to: FA Net Value (done), potential future applications: Debt principal (
 4. Mirror existing proven sections when user complains about readability — don't design from scratch.
 
 **Proven at**: session-048 (2026-04-19). `src/components/financial/FinancialTable.tsx` + `src/app/valuation/dcf/page.tsx` — 6 row-group additions. User reference pattern `referensi-garis-pembatas` = DCF DISCOUNTING section.
+
+---
+
+## Session 049 — Proy. P&L OpEx Merge + Common-Size Projection Drivers
+
+### LESSON-139: Driver-display sync — sub-row labels MUST render the same value that drives compute
+
+**Kategori**: Design | Anti-pattern | Workflow
+
+**Sesi**: session-049
+**Tanggal**: 2026-04-19
+
+**Konteks**: When a projected financial statement exposes "what drives each projected leaf" as a visual sub-row under the leaf (e.g. a muted italic row below COGS showing "COGS % of Revenue — 60%" so the user can see WHY the projected number is what it is), the displayed driver value and the actual compute driver must be the same variable. Not "approximately equal", not "a parallel metric" — literally the same value read from the same source.
+
+**Apa yang terjadi**: Initial clarification Q3 had two possible interpretations — (A) Display mirrors Compute (sub-row value IS the compute driver; changing one inevitably changes the other), or (B) Display is informational, Compute stays independent (sub-row shows one metric e.g. "avg common size", compute uses a different driver e.g. `cogsRatio` from Key Drivers). Path B looked smaller (no compute refactor) but was subtly broken: user reads "COGS Growth = 10%" in the sub-row but compute actually uses `cogsRatio = 55%` from Key Drivers → projected COGS != 10% × Revenue. User would be unable to reconcile the visible metric with the actual projection. Session 049 user confirmed Path A explicitly.
+
+**Root cause / insight**: A sub-row labeled to communicate "driver" makes an IMPLICIT PROMISE to the reader: "this number IS what I used". Breaking that promise with a parallel/approximate metric silently misleads every user who cross-checks the compute against what they see. The visual affordance itself forces an invariant.
+
+This is the dual of LESSON-108 (no hardcoded row-number lists in compute): both say "don't create hidden divergence between the surface UX and the compute substrate". LESSON-108 addresses *data-source divergence* (display aggregates accounts dynamically, compute uses stale hardcoded rows). LESSON-139 addresses *driver-value divergence* (display shows one ratio, compute uses another).
+
+**Cara menerapkan di masa depan**:
+
+1. Before adding a sub-row that describes "what drives X", audit: does the compute actually use THIS value? If not, either (a) change compute to use it (preferred), or (b) don't add the sub-row.
+2. When a user requests an info-display row in a projection schedule, treat it as a request for *driver transparency* — then reconcile compute to match display, not the other way around.
+3. If you're tempted to keep compute independent ("small refactor, just add display"), stop. The only net effect of that path is to create a surface promise that the compute fails to keep. Pick Skenario A (full refactor) every time, OR decline the display row.
+4. Verify by asking: "If a user manually multiplies the displayed driver by Revenue, do they get the projected leaf value?" If no, fix compute. Add a test asserting `projection.leaf[y] === revenue[y] × commonSize.driver`.
+
+**Proven at**: session-049 (2026-04-19). `src/data/live/compute-proy-lr-live.ts` + `src/app/projection/income-statement/page.tsx`. 6 sub-rows added; compute refactored so each sub-row's displayed ratio literally = the multiplier used in that row's projection formula. User clarification Q3 chose Skenario A explicitly — path B was available and smaller but rejected.
+
+---
+
+### LESSON-140: Pre-write clear dropped-row cells in template export — local
+
+**Kategori**: Excel | Anti-pattern
+
+**Sesi**: session-049
+**Tanggal**: 2026-04-19
+
+**Konteks**: Template-based ExcelJS export where a sheet builder declares a `managedRows` allowlist of cells to overwrite, and the SOURCE template XLSX contains values at rows that are NO LONGER in `managedRows` after a refactor.
+
+**Apa yang terjadi**: Session 049 dropped rows 15 + 16 (Selling/Others OpEx + General & Admin) from `ProyLrBuilder.managedRows` because the projection model no longer emits them. Exporting without any cleanup would LEAK the prototipe PT Raja Voltama values (still baked into `public/templates/kka-template.xlsx`) at those cells into every user's exported file — a silent data-leak / misleading legacy value trap. Users who checked their exported file would see Selling + G&A rows populated with company-specific prototipe numbers even though those rows don't exist in their store.
+
+**Root cause / insight**: ExcelJS template-based export only modifies cells the builder writes. Cells NOT written retain their template values. A refactor that shrinks `managedRows` quietly creates a leak window for everything that was previously managed but now isn't. This is the "negative space" of the managed rows declaration — what you DON'T write still gets exported.
+
+**Cara menerapkan di masa depan**:
+
+1. When a SheetBuilder's `managedRows` list shrinks (old managed row no longer emitted), add an explicit pre-write clear loop:
+   ```ts
+   for (const [col] of cols) {
+     ws.getCell(`${col}${droppedRow}`).value = 0  // or null / ''
+   }
+   ```
+2. This runs BEFORE the managed-rows write loop so any template value at those positions is neutralized regardless of whether the builder's current projection produces a write for that row.
+3. Choice of `0` vs `null` vs `''`: for numeric contexts, `0` is safest because downstream sheet formulas referencing the cleared cell evaluate to `0 × X = 0` rather than `#VALUE!`. For text/label positions, use `null`.
+4. This is a LOCAL pattern (specific to refactors that shrink managedRows). General sheet builders that write a stable rowset don't need this — their first pass already covers everything.
+5. Related to but distinct from `clearSheetCompletely` (LESSON-085) which wipes the entire sheet when upstream is null. The pre-clear pattern here is surgical: only the specific dropped rows, only when upstream IS populated but the new projection schema doesn't use those rows.
+
+**Proven at**: session-049 (2026-04-19). `src/lib/export/sheet-builders/proy-lr.ts` — pre-write loop clears C15/D15/E15/F15 + C16/D16/E16/F16. Phase C 5/5 green post-change; no user visible regression.
