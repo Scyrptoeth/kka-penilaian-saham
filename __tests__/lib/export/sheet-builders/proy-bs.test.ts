@@ -147,50 +147,31 @@ describe('ProyBsBuilder', () => {
     expect(wb.getWorksheet('PROY BALANCE SHEET')!.getCell('C9').value).toBe(999)
   })
 
-  // Session 036 — Full Simple Growth model emits output keyed by Input BS
-  // row numbers (8, 16, 27, 35, 49, 51 etc.), NOT Proy BS template rows
-  // (9, 21, 33, 45, 60, 62). These tests will be re-enabled in Task 9 when
-  // the ProyBsBuilder adds an Input BS → Proy BS template row translation.
-  it('writes leaf cash-on-hands at Input BS row 8 (Session 036: Full Simple Growth)', () => {
+  // Session 036 — Input BS row output translates to Proy BS template rows
+  // via INPUT_BS_TO_PROY_BS_TEMPLATE map (Input row 8 Cash → template row 9).
+  it('writes Cash on Hands at template row 9 (translated from Input BS row 8)', () => {
     const wb = makeWb()
-    // Pre-create cells at Input BS row positions too
-    const ws0 = wb.getWorksheet('PROY BALANCE SHEET')!
-    for (const row of [8, 10, 16, 27, 35, 41, 49, 51]) {
-      for (const col of ['C', 'D', 'E', 'F']) ws0.getCell(`${col}${row}`).value = 999
-    }
     ProyBsBuilder.build(wb, makeState())
     const ws = wb.getWorksheet('PROY BALANCE SHEET')!
-    expect(ws.getCell('C8').value).toBe(1200) // last historical year
+    // Input BS row 8 (Cash on Hands) with histYear value 1200 → template row 9
+    expect(ws.getCell('C9').value).toBe(1200)
   })
 
-  it('emits subtotals derived via computedFrom (Input BS layout)', () => {
+  it('writes Total Current Assets at template row 21 (translated from Input BS row 16)', () => {
     const wb = makeWb()
-    const ws0 = wb.getWorksheet('PROY BALANCE SHEET')!
-    for (const row of [8, 10, 11, 12, 14, 16, 27, 35, 49, 51]) {
-      for (const col of ['C', 'D']) ws0.getCell(`${col}${row}`).value = 999
-    }
     ProyBsBuilder.build(wb, makeState())
     const ws = wb.getWorksheet('PROY BALANCE SHEET')!
-    // Total Current Assets (row 16) = sum of 8, 10, 11, 12, 14 at historical year
-    const tca = ws.getCell('C16').value as number
-    const leaves =
-      (ws.getCell('C8').value as number) +
-      (ws.getCell('C10').value as number) +
-      (ws.getCell('C11').value as number) +
-      (ws.getCell('C12').value as number) +
-      (ws.getCell('C14').value as number)
-    expect(tca).toBeCloseTo(leaves, 0)
+    // Input row 16 = sum of 8+10+11+12+14 = 1200+260+65+390+16 = 1931 at 2021
+    const tca = ws.getCell('C21').value as number
+    expect(tca).toBeCloseTo(1931, 0)
   })
 
-  it('writes non-999 values at Input BS row positions on D/E/F', () => {
+  it('writes non-999 projected values at Proy BS template rows on D/E/F', () => {
     const wb = makeWb()
-    const ws0 = wb.getWorksheet('PROY BALANCE SHEET')!
-    for (const row of [8, 10, 11, 12, 14, 16]) {
-      for (const col of ['D', 'E', 'F']) ws0.getCell(`${col}${row}`).value = 999
-    }
     ProyBsBuilder.build(wb, makeState())
     const ws = wb.getWorksheet('PROY BALANCE SHEET')!
-    for (const row of [8, 10, 11, 12, 14, 16]) {
+    // Template rows that should receive values from mapped Input BS rows
+    for (const row of [9, 13, 17, 21, 25, 33, 37, 39, 45, 55, 60, 62]) {
       for (const col of ['D', 'E', 'F']) {
         expect(ws.getCell(`${col}${row}`).value, `${col}${row}`).not.toBe(999)
       }

@@ -143,17 +143,17 @@ describe('ProyFaBuilder — build', () => {
     expect(wb.getWorksheet('PROY FIXED ASSETS')!.getCell('D17').value).toBe(999)
   })
 
-  it('writes Column C = last historical year values at FA offset keys', () => {
+  it('translates FA offset keys to Proy FA template rows (original accounts)', () => {
     const wb = makeWb()
-    const ws0 = wb.getWorksheet('PROY FIXED ASSETS')!
-    // Seed FA offset-keyed cells (Session 036: per-account layout)
-    for (const row of [8, 9, 10, 11, 12, 13, 14, 23, 32, 42, 51, 60, 69]) {
-      for (const col of ['C', 'D', 'E', 'F']) ws0.getCell(`${col}${row}`).value = 999
-    }
     ProyFaBuilder.build(wb, makeState())
     const ws = wb.getWorksheet('PROY FIXED ASSETS')!
-    // Acq Beginning Land (row 8) at 2021 = 120 (from fixture)
-    expect(ws.getCell('C8').value).toBe(120)
+    // Land excelRow 8:
+    //   Acq Beg (key 8) → template row 8 (delta 0)
+    //   Acq Add (key 2008) → template row 17 (delta 9)
+    //   Dep Beg (key 4008) → template row 36 (delta 28)
+    expect(ws.getCell('C8').value).toBe(120) // last hist year Acq Beg Land
+    expect(ws.getCell('C17').value).toBe(14) // last hist year Acq Add Land
+    expect(ws.getCell('C36').value).toBe(-50) // Dep Beg Land
   })
 
   it('writes Acquisition Total subtotal at row 14 summing per-account leaves', () => {
