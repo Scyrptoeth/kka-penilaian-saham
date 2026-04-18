@@ -654,7 +654,10 @@ untuk 3+ sesi ke depan:
 - LESSON-133 (Compute-side self-healing fallback complements sentinel persist — Opsi 2C defense in depth)
 - LESSON-135 (Audit old test fixtures for realistic semantic consistency when adding state-dependent compute rules)
 
-LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054, 074, 087, 109, 113, 117, 120, 121, 125, 127, 128, 130, 131, 134, 136 **TIDAK** di-promote — workflow/session-specific
+### Session 047 (Proy FA Net Value clamp + sticky floor rule)
+- LESSON-137 (Domain-clamp + sticky floor pattern for projection outputs that violate semantic rules — extends LESSON-134 stopping rule with clamp + monotonic sticky behavior)
+
+LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054, 074, 087, 109, 113, 117, 120, 121, 125, 127, 128, 130, 131, 134, 136, 138 **TIDAK** di-promote — workflow/session-specific
 insights yang general ke project lain tapi terlalu luas atau terlalu
 session-specific untuk section 8 (yang fokus KKA-specific gotchas).
 Tersimpan di lessons-learned saja.
@@ -4047,3 +4050,62 @@ Key properties: `table-fixed` + `<colgroup>` make columns independent of content
 
 **Proven at**: session-046 (2026-04-19). `src/app/projection/fixed-asset/page.tsx` — 3 tables (Acq Cost, Depreciation, Net Value) each with identical colgroup; Acq + Dep each contain 3 sub-sections via colSpan header rows. Year columns now align within AND across categories.
 
+
+---
+
+## Session 047 — Proy FA Net Value Clamp + Sticky Rule
+
+### LESSON-137: Domain-clamp + sticky floor pattern for projection outputs that violate semantic rules
+
+**Kategori**: Excel | Anti-pattern | Design
+**Sesi**: session-047
+**Tanggal**: 2026-04-19
+
+**Konteks**: Roll-forward projection systems where derived outputs (Net Value, Working Capital, Inventory Balance) are computed from band math (e.g. `Net = Acq End − Dep End`). Sometimes the math produces semantically-invalid values — for fixed assets, a negative book value doesn't exist in accounting. Session 046 LESSON-134 handled one part (halt Dep Additions when Net ≤ 0), but Net itself could still display negative for one year before the stopping rule kicked in.
+
+**Apa yang terjadi**: User flagged 4 akun FA dengan Net Value negatif di projection years post-Session-046. Session 046's "halt Dep Add when prev Net ≤ 0" halts further depreciation BUT (a) doesn't clamp the FIRST year Net goes negative (it shows as -X before triggering), and (b) if Acq Add continues after Dep is frozen, raw Net can swing back positive, which contradicts the "asset disposed" semantic.
+
+**Root cause / insight**: Stopping-rule pattern (halt flow) and clamping-rule pattern (floor derived output) solve different problems:
+- **Stopping rule** (LESSON-134): prevent further movement in a flow. Doesn't fix the CURRENT output.
+- **Clamping rule** (LESSON-137): floor the derived output to its semantic minimum. Needed when output itself is the user-visible thing.
+- **Sticky flag**: once output hits the floor, stay there. Prevents "revival" from continued Acq growth after Dep freeze, which is nonsensical for a disposed asset.
+
+Combined via `const assetDone = prevNet <= 0; const thisNet = assetDone ? 0 : Math.max(0, rawNet)`. One branch for sticky, one for first-time clamp.
+
+**Cara menerapkan di masa depan**: For any multi-band roll-forward projection where derived output has a semantic floor:
+1. Compute raw derived output as usual (`rawOutput = ...`).
+2. Apply sticky flag: `disposed = prevOutput ≤ floor`.
+3. Apply clamp + sticky: `output = disposed ? floor : Math.max(floor, rawOutput)`.
+4. Historical year: preserve user's actual data — don't clamp (ground truth semantic, see LESSON-135 rationale).
+5. Flow stopping rule (LESSON-134) continues to apply alongside — both needed.
+
+Applies to: FA Net Value (done), potential future applications: Debt principal (floor 0 after full repayment), inventory balance (floor 0 after stockout), accumulated depreciation (ceiling Acq End to prevent over-depreciation), retained earnings in loss scenarios (depends on domain).
+
+**Proven at**: session-047 (2026-04-19). `src/data/live/compute-proy-fixed-assets-live.ts` — 3 TDD cases covering clamp, sticky, and historical preservation. 1328/1328 tests passing.
+
+---
+
+## Session 048 — Per-Row Dividers Financial Ratio + DCF
+
+### LESSON-138: `border-b border-grid` per data row for high-density financial tables — local
+
+**Kategori**: Design
+**Sesi**: session-048
+**Tanggal**: 2026-04-19
+
+**Konteks**: Multi-row financial tables where readers need to track label → value across a wide layout (e.g. Financial Ratio with 17 ratios × 4-5 year columns + Average, DCF breakdown rows with indented sub-items). Without row dividers, eyes wander across the gap.
+
+**Apa yang terjadi**: User reported "kesulitan untuk membaca item atau nama akun dan nilai atau valuenya" on Financial Ratio and DCF breakdown groups. Referenced the existing DISCOUNTING section in DCF (which DID have `border-b border-grid` per row) as the correct pattern to mirror.
+
+**Root cause / insight**: Initial FinancialTable + DCF design prioritized clean aesthetic (minimal borders). That choice was valid for low-density content (short 3-column tables) but fails at high density (wide tables with many rows). Existing DCF DISCOUNTING section accidentally got it right because explicit per-row border-b styling. The pattern is:
+- **Minimal default**: no per-row borders. Works for 2-3 columns with short content.
+- **High-density addition**: `border-b border-grid` per data row — subtle light gray, doesn't compete with numbers but guides the eye.
+- **Section separators** remain thicker (`border-t-2 border-grid-strong`) to maintain visual hierarchy.
+
+**Cara menerapkan di masa depan**: When designing a financial display:
+1. **Row count × column count > 30 cells** → default to `border-b border-grid` per data row.
+2. **< 30 cells + semantic grouping clear from whitespace alone** → skip row borders.
+3. **Inline breakdown rows** (indented sub-items under a parent row) → always add `border-b border-grid` — otherwise they visually blur together.
+4. Mirror existing proven sections when user complains about readability — don't design from scratch.
+
+**Proven at**: session-048 (2026-04-19). `src/components/financial/FinancialTable.tsx` + `src/app/valuation/dcf/page.tsx` — 6 row-group additions. User reference pattern `referensi-garis-pembatas` = DCF DISCOUNTING section.
