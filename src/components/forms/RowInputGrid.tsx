@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef, type RefObject } from 'react'
 import type { ManifestRow, CatalogAccount } from '@/data/manifests/types'
 import type { YearKeyedSeries } from '@/types/financial'
 import { cn } from '@/lib/utils/cn'
 import { useT } from '@/lib/i18n/useT'
 import { formatIdr, formatPercent, isNegative } from '@/components/financial/format'
 import { averageSeries } from '@/lib/calculations/derivation-helpers'
+import { useAutoFlipPosition } from '@/lib/hooks/useAutoFlipPosition'
 import { parseFinancialInput } from './parse-financial-input'
 
 interface RowInputGridProps {
@@ -180,30 +181,20 @@ export function RowInputGrid({
             }
 
             if (type === 'add-button') {
-              const isOpen = openDropdownSection === row.section
               return (
-                <tr key={`add-${row.section}-${idx}`}>
-                  <td colSpan={colCount} className="relative bg-canvas px-3 py-1">
-                    <button
-                      type="button"
-                      onClick={() => row.section && onAddButtonClick?.(row.section)}
-                      className="text-[13px] font-medium text-ink-muted transition-colors hover:text-accent"
-                    >
-                      {row.label}
-                    </button>
-                    {isOpen && row.section && (
-                      <InlineDropdown
-                        section={row.section}
-                        catalog={dropdownCatalog}
-                        language={language}
-                        onSelect={(item) => onSelectCatalogItem?.(item)}
-                        onCustom={(section, label) => onCustomEntry?.(section, label)}
-                        onClose={() => onCloseDropdown?.()}
-                        strings={dropdownStrings}
-                      />
-                    )}
-                  </td>
-                </tr>
+                <AddAccountRow
+                  key={`add-${row.section}-${idx}`}
+                  row={row}
+                  colCount={colCount}
+                  isOpen={openDropdownSection === row.section}
+                  dropdownCatalog={dropdownCatalog}
+                  language={language}
+                  dropdownStrings={dropdownStrings}
+                  onAddButtonClick={onAddButtonClick}
+                  onSelectCatalogItem={onSelectCatalogItem}
+                  onCustomEntry={onCustomEntry}
+                  onCloseDropdown={onCloseDropdown}
+                />
               )
             }
 
@@ -342,6 +333,62 @@ export function RowInputGrid({
 }
 
 // ---------------------------------------------------------------------------
+// Add-account row — holds trigger ref + mounts InlineDropdown conditionally
+// ---------------------------------------------------------------------------
+
+function AddAccountRow({
+  row,
+  colCount,
+  isOpen,
+  dropdownCatalog,
+  language,
+  dropdownStrings,
+  onAddButtonClick,
+  onSelectCatalogItem,
+  onCustomEntry,
+  onCloseDropdown,
+}: {
+  row: ManifestRow
+  colCount: number
+  isOpen: boolean
+  dropdownCatalog: readonly CatalogAccount[]
+  language: 'en' | 'id'
+  dropdownStrings?: { manualEntry: string; allAccountsAdded: string; accountNamePlaceholder: string; cancel: string; add: string }
+  onAddButtonClick?: (section: string) => void
+  onSelectCatalogItem?: (item: CatalogAccount) => void
+  onCustomEntry?: (section: string, label: string) => void
+  onCloseDropdown?: () => void
+}) {
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  return (
+    <tr>
+      <td colSpan={colCount} className="relative bg-canvas px-3 py-1">
+        <button
+          ref={triggerRef}
+          type="button"
+          onClick={() => row.section && onAddButtonClick?.(row.section)}
+          className="text-[13px] font-medium text-ink-muted transition-colors hover:text-accent"
+        >
+          {row.label}
+        </button>
+        {isOpen && row.section && (
+          <InlineDropdown
+            section={row.section}
+            catalog={dropdownCatalog}
+            language={language}
+            triggerRef={triggerRef}
+            onSelect={(item) => onSelectCatalogItem?.(item)}
+            onCustom={(section, label) => onCustomEntry?.(section, label)}
+            onClose={() => onCloseDropdown?.()}
+            strings={dropdownStrings}
+          />
+        )}
+      </td>
+    </tr>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Inline dropdown for add-button rows
 // ---------------------------------------------------------------------------
 
@@ -349,6 +396,7 @@ function InlineDropdown({
   section,
   catalog,
   language = 'id',
+  triggerRef,
   onSelect,
   onCustom,
   onClose,
@@ -357,6 +405,7 @@ function InlineDropdown({
   section: string
   catalog: readonly CatalogAccount[]
   language?: 'en' | 'id'
+  triggerRef: RefObject<HTMLElement | null>
   onSelect: (item: CatalogAccount) => void
   onCustom: (section: string, label: string) => void
   onClose: () => void
@@ -366,6 +415,7 @@ function InlineDropdown({
   const [customMode, setCustomMode] = useState(false)
   const [customLabel, setCustomLabel] = useState('')
   const ref = useRef<HTMLDivElement>(null)
+  const { placement } = useAutoFlipPosition(triggerRef, { contentHeight: 240 })
 
   // Close on outside click
   useEffect(() => {
@@ -392,8 +442,10 @@ function InlineDropdown({
     add: translate('dropdown.add'),
   }
 
+  const positionClass = placement === 'top' ? 'bottom-full mb-1' : 'top-full mt-1'
+
   return (
-    <div ref={ref} className="absolute left-3 top-full z-30 mt-1 w-64 rounded-sm border border-grid bg-canvas-raised shadow-lg">
+    <div ref={ref} className={`absolute left-3 ${positionClass} z-30 w-64 rounded-sm border border-grid bg-canvas-raised shadow-lg`}>
       {!customMode ? (
         <ul className="max-h-48 overflow-y-auto py-1">
           {catalog.map((cat) => (
