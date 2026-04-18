@@ -23,6 +23,7 @@ export function CashFlowLiveView() {
   const incomeStatement = useKkaStore((s) => s.incomeStatement)
   const fixedAsset = useKkaStore((s) => s.fixedAsset)
   const accPayables = useKkaStore((s) => s.accPayables)
+  const changesInWorkingCapital = useKkaStore((s) => s.changesInWorkingCapital)
   const hasHydrated = useKkaStore((s) => s._hasHydrated)
 
   const liveRows = useMemo(() => {
@@ -35,14 +36,17 @@ export function CashFlowLiveView() {
     const bsYears = computeHistoricalYears(home.tahunTransaksi, 4)
 
     return computeCashFlowLiveRows(
+      balanceSheet.accounts,
       balanceSheet.rows,
       incomeStatement.rows,
       fixedAsset?.rows ?? null,
       accPayables?.rows ?? null,
       cfsYears,
       bsYears,
+      changesInWorkingCapital?.excludedCurrentAssets ?? [],
+      changesInWorkingCapital?.excludedCurrentLiabilities ?? [],
     )
-  }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, accPayables])
+  }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, accPayables, changesInWorkingCapital])
 
   if (!hasHydrated) return null
 

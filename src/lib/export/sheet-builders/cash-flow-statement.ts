@@ -38,12 +38,15 @@ export const CashFlowStatementBuilder: SheetBuilder = {
     const bsYears = computeHistoricalYears(state.home.tahunTransaksi, 4)
 
     const leaves = computeCashFlowLiveRows(
+      state.balanceSheet.accounts,
       state.balanceSheet.rows,
       state.incomeStatement.rows,
       state.fixedAsset?.rows ?? null,
       state.accPayables?.rows ?? null,
       cfsYears,
       bsYears,
+      state.changesInWorkingCapital?.excludedCurrentAssets ?? [],
+      state.changesInWorkingCapital?.excludedCurrentLiabilities ?? [],
     )
     const comp = deriveComputedRows(
       CASH_FLOW_STATEMENT_MANIFEST.rows,

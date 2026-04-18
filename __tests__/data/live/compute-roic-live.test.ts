@@ -21,6 +21,7 @@ import { INCOME_STATEMENT_MANIFEST } from '@/data/manifests/income-statement'
 import { FCF_MANIFEST } from '@/data/manifests/fcf'
 import { BALANCE_SHEET_MANIFEST } from '@/data/manifests/balance-sheet'
 import type { YearKeyedSeries } from '@/types/financial'
+import type { BsAccountEntry } from '@/data/catalogs/balance-sheet-catalog'
 import {
   balanceSheetCells,
   incomeStatementCells,
@@ -102,7 +103,26 @@ describe('ROIC live mode matches fixture', () => {
 
   const faComputed = deriveComputedRows(FIXED_ASSET_MANIFEST.rows, faLeaves, YEARS)
 
-  const cfsLeafRows = computeCashFlowLiveRows(bsLeaves, isLeaves, faLeaves, null, YEARS, BS_YEARS)
+  // PT Raja prototipe-equivalent account setup + CA exclusions to reproduce
+  // legacy BS_CA_ROWS=[10,11,12,14] formula (user excluded Cash rows 8, 9 and
+  // Prepaid row 13 from Operating Working Capital via WC scope page).
+  const ptRajaAccounts: BsAccountEntry[] = [
+    { catalogId: 'cash', excelRow: 8, section: 'current_assets' },
+    { catalogId: 'cash_bank', excelRow: 9, section: 'current_assets' },
+    { catalogId: 'account_receivable', excelRow: 10, section: 'current_assets' },
+    { catalogId: 'other_receivable', excelRow: 11, section: 'current_assets' },
+    { catalogId: 'inventory', excelRow: 12, section: 'current_assets' },
+    { catalogId: 'prepaid_expenses', excelRow: 13, section: 'current_assets' },
+    { catalogId: 'other_current_assets', excelRow: 14, section: 'current_assets' },
+    { catalogId: 'short_term_debt', excelRow: 31, section: 'current_liabilities' },
+    { catalogId: 'account_payable', excelRow: 32, section: 'current_liabilities' },
+    { catalogId: 'tax_payable', excelRow: 33, section: 'current_liabilities' },
+    { catalogId: 'other_current_liab', excelRow: 34, section: 'current_liabilities' },
+  ]
+  const cfsLeafRows = computeCashFlowLiveRows(
+    ptRajaAccounts, bsLeaves, isLeaves, faLeaves, null, YEARS, BS_YEARS,
+    [8, 9, 13], [],
+  )
   const cfsComputed = deriveComputedRows(CASH_FLOW_STATEMENT_MANIFEST.rows, cfsLeafRows, YEARS)
   const allCfsRows = { ...cfsLeafRows, ...cfsComputed }
 

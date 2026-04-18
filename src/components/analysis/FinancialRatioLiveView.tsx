@@ -28,6 +28,7 @@ export function FinancialRatioLiveView() {
   const incomeStatement = useKkaStore((s) => s.incomeStatement)
   const fixedAsset = useKkaStore((s) => s.fixedAsset)
   const accPayables = useKkaStore((s) => s.accPayables)
+  const changesInWorkingCapital = useKkaStore((s) => s.changesInWorkingCapital)
   const hasHydrated = useKkaStore((s) => s._hasHydrated)
 
   const isLive =
@@ -49,12 +50,15 @@ export function FinancialRatioLiveView() {
     const bsYears = computeHistoricalYears(home.tahunTransaksi, 4)
 
     const cfsLeafRows = computeCashFlowLiveRows(
+      balanceSheet.accounts,
       balanceSheet.rows,
       incomeStatement.rows,
       fixedAsset?.rows ?? null,
       accPayables?.rows ?? null,
       cfsYears,
       bsYears,
+      changesInWorkingCapital?.excludedCurrentAssets ?? [],
+      changesInWorkingCapital?.excludedCurrentLiabilities ?? [],
     )
     const cfsComputed = deriveComputedRows(
       CASH_FLOW_STATEMENT_MANIFEST.rows,
@@ -86,7 +90,7 @@ export function FinancialRatioLiveView() {
       allCfsRows,
       allFcfRows,
     )
-  }, [isLive, home, balanceSheet, incomeStatement, fixedAsset, accPayables])
+  }, [isLive, home, balanceSheet, incomeStatement, fixedAsset, accPayables, changesInWorkingCapital])
 
   if (!hasHydrated) return null
   if (!home || !balanceSheet || !incomeStatement) {

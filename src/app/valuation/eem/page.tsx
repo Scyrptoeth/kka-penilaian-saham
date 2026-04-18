@@ -32,6 +32,7 @@ export default function EemPage() {
   const bcInput = useKkaStore(s => s.borrowingCapInput)
   const aamAdjustments = useKkaStore(s => s.aamAdjustments)
   const interestBearingDebt = useKkaStore(s => s.interestBearingDebt)
+  const changesInWorkingCapital = useKkaStore(s => s.changesInWorkingCapital)
   const hasHydrated = useKkaStore(s => s._hasHydrated)
 
   const data = useMemo(() => {
@@ -57,7 +58,12 @@ export default function EemPage() {
     const allFa = faComp ? { ...(faRows ?? {}), ...faComp } : {}
 
     // ── Historical CFS ──
-    const cfsLeaf = computeCashFlowLiveRows(balanceSheet.rows, incomeStatement.rows, faRows, accPayables?.rows ?? null, histYears3, histYears4)
+    const cfsLeaf = computeCashFlowLiveRows(
+      balanceSheet.accounts,
+      balanceSheet.rows, incomeStatement.rows, faRows, accPayables?.rows ?? null, histYears3, histYears4,
+      changesInWorkingCapital?.excludedCurrentAssets ?? [],
+      changesInWorkingCapital?.excludedCurrentLiabilities ?? [],
+    )
     const cfsComp = deriveComputedRows(CASH_FLOW_STATEMENT_MANIFEST.rows, cfsLeaf, histYears3)
     const allCfs = { ...cfsLeaf, ...cfsComp }
 
@@ -109,7 +115,7 @@ export default function EemPage() {
     })
 
     return { eemResult, sv, bc, proporsiSaham, home }
-  }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, accPayables, discountRateState, bcInput, aamAdjustments, interestBearingDebt])
+  }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, accPayables, discountRateState, bcInput, aamAdjustments, interestBearingDebt, changesInWorkingCapital])
 
   if (!hasHydrated) {
     return <div className="mx-auto max-w-[1100px] p-6 text-sm text-ink-muted">{t('common.loadingData')}</div>

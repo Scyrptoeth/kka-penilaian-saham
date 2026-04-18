@@ -62,12 +62,15 @@ export const FcfBuilder: SheetBuilder = {
 
     // CFS full chain
     const cfsLeaf = computeCashFlowLiveRows(
+      state.balanceSheet.accounts,
       state.balanceSheet.rows,
       state.incomeStatement.rows,
       state.fixedAsset.rows,
       state.accPayables?.rows ?? null,
       cfsYears,
       bsYears,
+      state.changesInWorkingCapital?.excludedCurrentAssets ?? [],
+      state.changesInWorkingCapital?.excludedCurrentLiabilities ?? [],
     )
     const cfsComp = deriveComputedRows(
       CASH_FLOW_STATEMENT_MANIFEST.rows,

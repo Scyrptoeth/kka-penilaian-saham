@@ -39,12 +39,15 @@ export const FinancialRatioBuilder: SheetBuilder = {
 
     // CFS chain (optional upstream → falls through to null if FA missing)
     const cfsLeaf = computeCashFlowLiveRows(
+      state.balanceSheet.accounts,
       state.balanceSheet.rows,
       state.incomeStatement.rows,
       state.fixedAsset?.rows ?? null,
       state.accPayables?.rows ?? null,
       cfsYears,
       bsYears,
+      state.changesInWorkingCapital?.excludedCurrentAssets ?? [],
+      state.changesInWorkingCapital?.excludedCurrentLiabilities ?? [],
     )
     const cfsComp = deriveComputedRows(
       CASH_FLOW_STATEMENT_MANIFEST.rows,

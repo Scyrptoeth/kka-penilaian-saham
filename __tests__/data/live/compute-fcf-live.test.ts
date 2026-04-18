@@ -17,6 +17,7 @@ import { CASH_FLOW_STATEMENT_MANIFEST } from '@/data/manifests/cash-flow-stateme
 import { INCOME_STATEMENT_MANIFEST } from '@/data/manifests/income-statement'
 import { FCF_MANIFEST } from '@/data/manifests/fcf'
 import type { YearKeyedSeries } from '@/types/financial'
+import type { BsAccountEntry } from '@/data/catalogs/balance-sheet-catalog'
 import {
   balanceSheetCells,
   incomeStatementCells,
@@ -97,8 +98,22 @@ describe('FCF live mode matches fixture at all historical years', () => {
   const faComputed = deriveComputedRows(FIXED_ASSET_MANIFEST.rows, faLeaves, CFS_YEARS)
 
   // 3. CFS from BS + IS + FA
+  const ptRajaAccounts: BsAccountEntry[] = [
+    { catalogId: 'cash', excelRow: 8, section: 'current_assets' },
+    { catalogId: 'cash_bank', excelRow: 9, section: 'current_assets' },
+    { catalogId: 'account_receivable', excelRow: 10, section: 'current_assets' },
+    { catalogId: 'other_receivable', excelRow: 11, section: 'current_assets' },
+    { catalogId: 'inventory', excelRow: 12, section: 'current_assets' },
+    { catalogId: 'prepaid_expenses', excelRow: 13, section: 'current_assets' },
+    { catalogId: 'other_current_assets', excelRow: 14, section: 'current_assets' },
+    { catalogId: 'short_term_debt', excelRow: 31, section: 'current_liabilities' },
+    { catalogId: 'account_payable', excelRow: 32, section: 'current_liabilities' },
+    { catalogId: 'tax_payable', excelRow: 33, section: 'current_liabilities' },
+    { catalogId: 'other_current_liab', excelRow: 34, section: 'current_liabilities' },
+  ]
   const cfsLeafRows = computeCashFlowLiveRows(
-    bsLeaves, isLeaves, faLeaves, null, CFS_YEARS, BS_YEARS,
+    ptRajaAccounts, bsLeaves, isLeaves, faLeaves, null, CFS_YEARS, BS_YEARS,
+    [8, 9, 13], [],
   )
   const cfsComputed = deriveComputedRows(
     CASH_FLOW_STATEMENT_MANIFEST.rows, cfsLeafRows, CFS_YEARS,

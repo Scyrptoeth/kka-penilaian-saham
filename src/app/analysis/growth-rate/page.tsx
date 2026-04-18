@@ -38,6 +38,7 @@ export default function GrowthRatePage() {
   const incomeStatement = useKkaStore(s => s.incomeStatement)
   const fixedAsset = useKkaStore(s => s.fixedAsset)
   const accPayables = useKkaStore(s => s.accPayables)
+  const changesInWorkingCapital = useKkaStore(s => s.changesInWorkingCapital)
   const hasHydrated = useKkaStore(s => s._hasHydrated)
 
   const data = useMemo(() => {
@@ -57,7 +58,10 @@ export default function GrowthRatePage() {
       : null
 
     const cfsLeaf = computeCashFlowLiveRows(
+      balanceSheet.accounts,
       balanceSheet.rows, incomeStatement.rows, faRows, accPayables?.rows ?? null, years3, bsYears,
+      changesInWorkingCapital?.excludedCurrentAssets ?? [],
+      changesInWorkingCapital?.excludedCurrentLiabilities ?? [],
     )
     const cfsComp = deriveComputedRows(CASH_FLOW_STATEMENT_MANIFEST.rows, cfsLeaf, years3)
     const allCfs = { ...cfsLeaf, ...cfsComp }
@@ -75,7 +79,7 @@ export default function GrowthRatePage() {
     const allFa = faComp ? { ...(faRows ?? {}), ...faComp } : {}
 
     return computeGrowthRateLive(allBs, allFa, roicRows, years3)
-  }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, accPayables])
+  }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, accPayables, changesInWorkingCapital])
 
   if (!hasHydrated) return null
   if (!home || !balanceSheet || !incomeStatement) {

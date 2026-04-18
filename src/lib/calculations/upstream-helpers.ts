@@ -37,12 +37,31 @@ export const BORROWING_PERCENT_DEFAULT = 0.7
 
 export interface HistoricalUpstreamInput {
   balanceSheetRows: Record<number, YearKeyedSeries>
+  /**
+   * Session 039 — BS account entries needed for account-driven WC aggregation.
+   * Kept optional (`[]` default) so test helpers and callers that predate
+   * Session 039 don't break; CFS live compute will return 0 deltas when the
+   * account list is empty, which is correct no-op behavior.
+   */
+  balanceSheetAccounts?: readonly BsAccountEntry[]
   incomeStatementRows: Record<number, YearKeyedSeries>
   fixedAssetRows: Record<number, YearKeyedSeries> | null
   accPayablesRows: Record<number, YearKeyedSeries> | null
   allBs: Record<number, YearKeyedSeries>
   histYears3: number[]
   histYears4: number[]
+  /**
+   * Session 039 — Working Capital scope. `null` = user has not confirmed scope
+   * yet; compute treats every CA / CL account as included (behaviorally
+   * identical to `{ excludedCurrentAssets: [], excludedCurrentLiabilities: [] }`).
+   * This default makes the helper safe to call before the user visits the
+   * WC scope page; the UI-level `PageEmptyState` gate on 9 consumer pages
+   * ensures users see a nagging prompt before trusting downstream numbers.
+   */
+  changesInWorkingCapital?: {
+    excludedCurrentAssets: readonly number[]
+    excludedCurrentLiabilities: readonly number[]
+  } | null
 }
 
 export interface HistoricalUpstreamResult {
@@ -60,14 +79,25 @@ export interface HistoricalUpstreamResult {
  * Dashboard all need. Previously copy-pasted in 5 locations.
  */
 export function computeHistoricalUpstream(input: HistoricalUpstreamInput): HistoricalUpstreamResult {
-  const { balanceSheetRows, incomeStatementRows, fixedAssetRows, accPayablesRows, allBs, histYears3, histYears4 } = input
+  const {
+    balanceSheetRows, balanceSheetAccounts = [],
+    incomeStatementRows, fixedAssetRows, accPayablesRows,
+    allBs, histYears3, histYears4,
+    changesInWorkingCapital,
+  } = input
 
   const noplatLeaf = computeNoplatLiveRows(incomeStatementRows, histYears3)
   const noplatComp = deriveComputedRows(NOPLAT_MANIFEST.rows, noplatLeaf, histYears3)
   const allNoplat = { ...noplatLeaf, ...noplatComp }
 
+  const excludedCA = changesInWorkingCapital?.excludedCurrentAssets ?? []
+  const excludedCL = changesInWorkingCapital?.excludedCurrentLiabilities ?? []
+
   const cfsLeaf = computeCashFlowLiveRows(
-    balanceSheetRows, incomeStatementRows, fixedAssetRows, accPayablesRows, histYears3, histYears4,
+    balanceSheetAccounts, balanceSheetRows,
+    incomeStatementRows, fixedAssetRows, accPayablesRows,
+    histYears3, histYears4,
+    excludedCA, excludedCL,
   )
   const cfsComp = deriveComputedRows(CASH_FLOW_STATEMENT_MANIFEST.rows, cfsLeaf, histYears3)
   const allCfs = { ...cfsLeaf, ...cfsComp }

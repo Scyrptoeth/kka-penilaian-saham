@@ -43,6 +43,7 @@ export function ExportButton() {
         aamAdjustments: state.aamAdjustments,
         nilaiPengalihanDilaporkan: state.nilaiPengalihanDilaporkan,
         interestBearingDebt: state.interestBearingDebt,
+        changesInWorkingCapital: state.changesInWorkingCapital,
       }
 
       const blob = await exportToXlsx(exportState)

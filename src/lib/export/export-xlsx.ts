@@ -68,6 +68,16 @@ export interface ExportableState {
   nilaiPengalihanDilaporkan: number
   /** Session 038 — dedicated Interest Bearing Debt input. null = user has not filled. */
   interestBearingDebt: number | null
+  /**
+   * Session 039 — Working Capital scope control. Account-driven exclusion
+   * list for CFS ΔCA / ΔCL aggregation. `null` = user has not confirmed
+   * scope yet; CFS / FCF / FR / DCF / EEM / CFI / Simulasi / Dashboard / Proy CFS
+   * pages gate via PageEmptyState.
+   */
+  changesInWorkingCapital: {
+    excludedCurrentAssets: number[]
+    excludedCurrentLiabilities: number[]
+  } | null
 }
 
 /**
