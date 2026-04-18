@@ -616,6 +616,13 @@ untuk 3+ sesi ke depan:
 - LESSON-103 (Template row translation is a narrow adapter between compute conventions and template conventions — lives in export builder, not compute)
 - LESSON-104 (When rewriting a calc module signature, grep ALL callers before claiming GREEN — typecheck + test + form + cell-mapping)
 
+### Session 037 (Average Columns — Input BS/IS/FA + Analysis FR/NOPLAT/GR)
+- LESSON-105 (Parallel extension of RowInputGrid + FinancialTable via shared derivation helper — mirror prop surface, centralize compute in derivation-helpers.ts)
+
+### Session 038 (Interest Bearing Debt dedicated page + required gating)
+- LESSON-106 (Auto-classifier aggregation + per-row adjustments = double-count trap — drop classifier, promote subtotal to user input)
+- LESSON-107 (Extract cross-cutting required valuation inputs into dedicated page + required-gate — null sentinel, PageEmptyState at every consumer, sign-reconciliation at builder boundary)
+
 LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054, 074, 087 **TIDAK** di-promote — workflow/session-specific
 insights yang general ke project lain tapi terlalu luas atau terlalu
 session-specific untuk section 8 (yang fokus KKA-specific gotchas).
@@ -3059,5 +3066,177 @@ places than the direct consumer. Data flows through:
 
 **Proven at**: session-036 (8 callers of FA compute + 3 callers of BS
 compute + 4 test fixtures updated; 1201 tests pass + 1 doc-skip).
+
+---
+## Session 037 — Average Columns across Input + Analysis Tables
+
+### LESSON-105: Parallel extension of RowInputGrid + FinancialTable via shared derivation helper
+
+**Kategori**: Design | Workflow
+**Sesi**: session-037
+**Tanggal**: 2026-04-18
+
+**Konteks**: When a UI feature (column/sub-column) needs to appear on
+**both** the input-side editors (`RowInputGrid` consumed by BS/IS/FA
+dynamic editors) **and** the analysis-side tables (`FinancialTable`
+consumed via `SheetPage` + manifest) simultaneously.
+
+**Apa yang terjadi**: Session 037 shipped "Average/Rata-Rata" columns
+across 6 pages (3 inputs + 3 analysis). Naïve implementation would
+duplicate averaging logic in both renderers + in each consumer page.
+
+**Root cause / insight**: The two renderers (`RowInputGrid` and
+`FinancialTable`) evolved in parallel and have similar column-group
+semantics (values / commonSize / growth / optional average). The
+cleanest way to add a cross-cutting feature is:
+
+1. Extract the pure compute into a single helper in
+   `src/lib/calculations/derivation-helpers.ts` — e.g. `computeAverage`
+   (primitive) + `averageSeries` (YearKeyedSeries-aware wrapper).
+2. Add mirrored prop surface to both renderers:
+   - `RowInputGrid`: `showCommonSizeAverage` + `showGrowthAverage`.
+   - `FinancialTable`: `showValueAverage` + `showCommonSizeAverage` +
+     `showGrowthAverage`. (`showValueAverage` is FR-specific: FR has no
+     column groups — it needs a flat column after the value years.)
+3. Manifest-side opt-in: `SheetManifest.showAverage?: { values?; commonSize?; growth? }`
+   feeds through `SheetPage` into `FinancialTable`.
+4. Gate visibility uniformly on `years.length >= 2` (user spec: hide
+   when only 1 historical year).
+
+**Cara menerapkan di masa depan**: For any new table feature that
+affects both input and analysis sides, identify the smallest pure
+compute primitive, put it in `derivation-helpers.ts`, then extend
+**both** prop surfaces in lock-step. Never inline duplicate compute in
+pages.
+
+**Anti-pattern to avoid**: Inlining a compute like
+`computeAverage(series, years)` inside `DynamicBsEditor` without
+also centralizing it — the moment the same feature lands on the
+analysis side, divergence begins.
+
+**Proven at**: session-037. 16 files changed, net +339/−7 LOC. One
+`computeAverage` + `averageSeries` helper (+12 TDD cases) serves both
+`RowInputGrid` + `FinancialTable`. Three FR/NOPLAT/GR manifests + three
+Input editors opt in via a single boolean each. Zero regressions.
+
+---
+
+## Session 038 — Interest Bearing Debt Dedicated Page
+
+### LESSON-106: Auto-classifier aggregation + per-row adjustments = double-count trap
+
+**Kategori**: Anti-pattern | Design
+**Sesi**: session-038
+**Tanggal**: 2026-04-18
+
+**Konteks**: A valuation calc reads **both** (a) adjusted-per-row
+values from the user (`aamAdjustments: Record<number, number>`) and
+(b) an auto-aggregated subtotal derived by classifying the same source
+rows (`isIbdAccount` classifier summing matching BS liability rows).
+
+**Apa yang terjadi**: AAM pre-Session-038 computed
+`interestBearingDebtHistorical` via the classifier while the page also
+let users enter column-D adjustments on the **same** IBD accounts. If
+the user zeroed out an IBD row via adjustment, the classifier still
+summed its historical positive value, so the account was effectively
+counted once in Net Asset Value (via the liability subtotal) **and**
+again in the separate IBD line — silent double-count.
+
+**Root cause / insight**: Two summation paths over the same source set
+cannot coexist when the user is allowed to edit that set. Either:
+  - Remove the auto-classifier and promote the subtotal to a **user
+    input** (preferred — single source of truth, user-auditable).
+  - Or make adjustments IBD-aware and skip reclassified rows (brittle).
+
+The cleaner choice is *remove the classifier* for that subtotal and
+document the responsibility shift in a cross-reference note so users
+know they must zero the IBD rows via column D before relying on the
+dedicated IBD input.
+
+**Cara menerapkan di masa depan**: Any valuation calc that mixes a
+classifier-driven aggregate with per-row user adjustments is suspect.
+Before adding such a classifier, ask: "does the user have write access
+to the source accounts via another path (adjustments, direct edit)?"
+If yes, drop the classifier — demand user input + surface a workflow
+note.
+
+**Anti-pattern to avoid**: "Helpful" classifier auto-compute when the
+underlying rows are user-editable. Apparent UX convenience; real trap.
+
+**Proven at**: session-038. `buildAamInput` retained the classifier
+only for CL/NCL **display split** (nonIbdCL vs ibdCL subtotals). The
+actual IBD value now flows from the store's root-level
+`interestBearingDebt: number | null`. DCF and EEM builders likewise
+drop their `(BS!F31+F38)*-1` shortcut and accept IBD from the same
+store slice (negating internally to honor their pre-signed
+convention). AAM page shows an inline bilingual note below TOTAL
+LIABILITIES & EQUITY with a hyperlink to `/valuation/interest-bearing-debt`.
+
+---
+
+### LESSON-107: Extract cross-cutting required valuation inputs into dedicated page + required-gate
+
+**Kategori**: Design | Workflow
+**Sesi**: session-038
+**Tanggal**: 2026-04-18
+
+**Konteks**: A single scalar value is consumed by 3+ valuation
+compute modules (AAM, DCF, EEM in our case) and the business domain
+deems it *mandatory* before any of those outputs are meaningful.
+
+**Apa yang terjadi**: IBD was initially embedded inside AAM as an
+auto-computed field. User requested it be editable. Rather than
+inlining an edit cell inside AAM (which would not cover DCF/EEM
+consumers), Session 038 extracted IBD to a standalone page with a
+required-input gate across all consumers.
+
+**Root cause / insight**: When one value feeds N compute consumers,
+each consumer needs to gate on it independently. Inlining the input in
+ONE consumer creates an asymmetry — the other N−1 consumers silently
+fall back to 0 or (worse) to a stale classifier result. The symmetric
+solution:
+
+1. **Store**: single root-level nullable slice
+   (`interestBearingDebt: number | null`). `null` sentinel means
+   "user has not filled"; a `number` (including 0) means explicit
+   confirmation.
+2. **Dedicated page** at `/valuation/<concept>`: minimal numeric
+   input + always-visible educational content (trivia) + clear
+   filled/empty state indicator. Auto-save onBlur per project
+   convention. No SIMPAN button.
+3. **Consumer gating**: every consumer (page + export builder) checks
+   `slice === null` → PageEmptyState (pages) or `return` (builders).
+   Consumer input-builders (`buildAamInput`/`buildDcfInput`/`buildEemInput`)
+   accept the value as an explicit required param — never default to 0.
+4. **Sidebar nav entry** adjacent to primary consumers (after
+   `Borrowing Cap`, before `DCF` in our case).
+5. **i18n**: hierarchical key scheme per concept
+   (`<concept>.title`, `<concept>.input.*`, `<concept>.trivia.*`)
+   keeps the flat dictionary navigable.
+
+**Cara menerapkan di masa depan**: Candidates that match this pattern
+in KKA: `corporateTaxRate`, `riskFreeRate`, `marketPremium` — any
+scalar that (a) has business significance beyond a casual default and
+(b) feeds multiple valuation modules. Before embedding such a value in
+a consumer page, ask: "are there ≥3 consumers?" If yes, extract.
+
+**Sign-convention reconciliation when refactoring**: related modules
+may have different internal sign conventions (AAM subtracts positive
+IBD; DCF/EEM add a pre-negated IBD per Excel `*-1`). Builders must
+negate at the boundary — one negation per consumer, inline, commented.
+Do NOT refactor shared compute modules to switch sign; the boundary is
+the right place.
+
+**Anti-pattern to avoid**:
+- Embedding a cross-cutting required scalar inline in one consumer.
+- Defaulting to 0 silently when the store value is null — the user
+  can't tell whether 0 is correct or "not yet filled".
+- Auto-computing from source data (classifier) when the user is
+  expected to explicitly confirm the value (see LESSON-106).
+
+**Proven at**: session-038. Store v16→v17 migration + single input
+page + 6 consumer-page PageEmptyState gates + 3 input-builder param
+additions + 3 sheet-builder upstream extensions. 1 line of user note
+per consumer (AAM bilingual, inline hyperlink). 1215 tests green.
 
 ---
