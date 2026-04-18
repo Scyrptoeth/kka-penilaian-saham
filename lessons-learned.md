@@ -663,7 +663,11 @@ untuk 3+ sesi ke depan:
 ### Session 050 (Key Drivers Auto Read-Only)
 - LESSON-141 (Mirror upstream → store at persist time via useMemo, not via useEffect + setState — React Compiler setState-in-effect escape hatch)
 
-LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054, 074, 087, 109, 113, 117, 120, 121, 125, 127, 128, 130, 131, 134, 136, 138, 140, 142 **TIDAK** di-promote — workflow/session-specific
+### Session 051 (Proy BS strict growth + Equity editable + Proy FA seed fallback)
+- LESSON-143 (`averageYoYStrict` — projection growth requires ≥ 2 real YoY observations or null/flat fallback — single source of truth for INPUT display + Proy compute)
+- LESSON-144 (Multiplicative roll-forward projection seed MUST fall back to last non-zero historical when histYear entry is undefined — distinguishes "user typed 0" from "user left blank")
+
+LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054, 074, 087, 109, 113, 117, 120, 121, 125, 127, 128, 130, 131, 134, 136, 138, 140, 142, 145 **TIDAK** di-promote — workflow/session-specific
 insights yang general ke project lain tapi terlalu luas atau terlalu
 session-specific untuk section 8 (yang fokus KKA-specific gotchas).
 Tersimpan di lessons-learned saja.
@@ -4254,5 +4258,97 @@ useEffect(() => {
 - Extends LESSON-013 (cross-sheet column offset) one level up: not just column letters but entire year-span windows differ per sheet
 
 **Proven at**: session-050 (2026-04-19). `src/lib/calculations/kd-auto-values.ts` — `KdAutoValuesInput` split into `isHistYears` + `faHistYears` mid-implementation. 10/10 TDD cases updated via `replace_all`. Local lesson (not promoted) — `buildKdAutoValues` is the first multi-slice helper currently in the codebase.
+
+---
+
+### LESSON-143: `averageYoYStrict` — projection growth requires ≥ 2 real YoY observations or null/flat fallback
+
+**Kategori**: Excel | Design | Anti-pattern (promoted)
+
+**Sesi**: session-051
+**Tanggal**: 2026-04-19
+
+**Konteks**: A dynamic-catalog manual-entry account has sparse historical data — user entered a value only for the most recent 1 or 2 historical years (typical for accounts created mid-period like "Hutang PPh Pasal 21/2021" or "Setara Kas"). Proy BS projects via `value[N] = prev × (1 + avgGrowth)`. INPUT BS shows the same `avgGrowth` in the Average Growth YoY column.
+
+**Apa yang terjadi**: Prior algorithm (`computeAvgGrowth` / leading-zero-skip `averageSeries`) silently extrapolated from a single trailing YoY observation: e.g. Setara Kas with only 2020=191M + 2021=635M produced `avg = 231.9%`. Proy BS then projected 635M → 2.1B → 7.0B → 23.2B — geometric explosion from 1 data point. INPUT BS Avg column showed the same misleading 231.9%. User rightfully flagged as "keliru" (wrong).
+
+**Root cause / insight**: Statistical extrapolation from a single observation is not extrapolation — it's guessing. A YoY ratio needs AT LEAST 2 observations (both with non-zero prev) to signal a real trend. Leading-zero-skip semantic, while correct for _averaging N legitimate values_, silently passes through single-point data as "the average". The fix belongs at the derivation layer, not at display-time filtering, so both compute AND display see consistent results.
+
+**Cara menerapkan di masa depan**:
+
+- Any projection growth driver that consumes historical `YearKeyedSeries` → use `averageYoYStrict(series, historicalYears)` from `@/lib/calculations/derivation-helpers`
+- Returns `number | null`:
+  - `null` = insufficient real observations → caller renders "—" AND projects flat (× 1.0)
+  - `number` = mean of real YoY ratios (pair is "real" when prev AND curr are `!= null` AND prev ≠ 0 AND `isFinite(prev)`)
+- Single source of truth for INPUT display (Avg column) AND Proy compute (projection multiplier) — LESSON-139 driver-display sync applied across INPUT ↔ Proy pairing
+- Red flag during QA: Proy showing geometric explosion on a leaf whose INPUT Avg is large (>100%) when the account has only 1-2 filled years — that's almost always a sparse-data issue, not a genuine high-growth observation
+- Do NOT remove the legacy `computeAvgGrowth` helper (helpers.ts) — it's still used by Proy FA + Proy LR where sparse semantic hasn't been explicitly requested. This lesson scopes strict rule to **BS-side only** per user Q4=B. Apply the same helper to other projection modules only if similar complaints arise.
+
+**Proven at**: session-051 (2026-04-19). `src/lib/calculations/derivation-helpers.ts` added `averageYoYStrict` (10 TDD cases). `computeProyBsLive` + `DynamicBsEditor` Growth YoY Average column both consume it. Setara Kas 231.9% → "—" + flat projection. Hutang PPh Pasal 21/2021 68.4% → "—" + flat.
+
+---
+
+### LESSON-144: Multiplicative roll-forward projection seed MUST fall back to last non-zero historical when `histYear` entry is undefined
+
+**Kategori**: Excel | Anti-pattern (promoted)
+
+**Sesi**: session-051
+**Tanggal**: 2026-04-19
+
+**Konteks**: A projection module using `value[N+1] = value[N] × (1 + growth)` seeds from `historicalSeries[histYear]`. User has entered data for earlier historical years but left the `histYear` cell blank (e.g. company had Acq Additions in 2019-2020 but none in 2021). Under the seed-is-0 rule, `0 × (1 + g) = 0` — projection stalls at zero forever, even though growth was computed correctly from pre-histYear observations.
+
+**Apa yang terjadi**: `computeProyFixedAssetsLive` seeded `acqAddAtHist = acqAddHist[histYear] ?? 0`. For user data where histYear Additions was undefined, seed = 0 → all projection years = 0. Downstream: KD Additional Capex (Session 050) auto-populates from Proy FA Acq Additions band → shows 0 across every account every year, even though history clearly had spending activity.
+
+**Root cause / insight**: `?? 0` conflates two distinct states: "user entered 0" (explicit intent — no acquisition that year) vs "user left blank" (missing data — should fall back to previous value). In JS/TS, the distinction is `!= null` vs `=== 0`. The multiplicative formula amplifies this ambiguity catastrophically: 0 is a mathematical absorbing element.
+
+**Cara menerapkan di masa depan**:
+
+- For any projection formula of the form `value[N+1] = value[N] × something`, the histYear seed logic MUST distinguish:
+  ```ts
+  const rawSeed = historicalSeries[histYear]
+  const seed = rawSeed != null
+    ? rawSeed  // respect explicit 0 — user intent
+    : lastNonZeroHistorical(historicalSeries, historicalYears) ?? 0  // fallback
+  ```
+- `lastNonZeroHistorical(series, years)` walks `years` from end backwards, returns first `!= null && !== 0` value
+- ONLY applies to bands/leaves that are _multiplicatively_ projected. Additively-projected (roll-forward sum) bands don't suffer this issue because Beg[N+1] = End[N] identity carries forward naturally
+- Red flag during QA: Proy sheet shows "—" or 0 for EVERY year including histYear of a band that has growth % tertera (non-zero). That's the signature of stalled-at-zero seed
+- Respect `== 0` at histYear as user intent (no operation that year → stays 0). Don't override what user typed
+
+**Proven at**: session-051 (2026-04-19). `src/data/live/compute-proy-fixed-assets-live.ts` applies fallback to ACQ_ADDITIONS + DEP_ADDITIONS seeds. Historical End values (ACQ_ENDING/DEP_ENDING) still `?? (Beg + Add)` self-heal — additive derivation isn't affected. Fixes root cause of KD Additional Capex display blank across all accounts.
+
+---
+
+### LESSON-145: Resolver prop pattern for derivation columns — decouple presentational grid from computation semantics
+
+**Kategori**: Design | TypeScript (local)
+
+**Sesi**: session-051
+**Tanggal**: 2026-04-19
+
+**Konteks**: Need to swap one derivation semantic (loose `averageSeries` leading-zero-skip) for another (strict `averageYoYStrict`) in a shared UI component (`RowInputGrid`) used by multiple editors, without duplicating the component or forcing all consumers to migrate simultaneously.
+
+**Apa yang terjadi**: `RowInputGrid` previously computed the Growth YoY Average cell inline: `averageSeries(growth?.[excelRow], growthYears)`. Changing this hardcoded composition to strict semantic would affect ALL current + future consumers (BS, IS, FA editors). Not all consumers want the strict rule — e.g. common-size averaging is fine with leading-zero-skip.
+
+**Root cause / insight**: Presentational components should receive _values_ or _resolvers_, not hardcode computation paths. When a component renders a derivation that callers may want to customize, expose a resolver prop `(key) => result`. Default to current behavior when resolver is absent; apply resolver output when present.
+
+**Cara menerapkan di masa depan**:
+
+- When introducing a new derivation semantic that COULD replace an existing one in a shared grid/table component:
+  ```ts
+  interface Props {
+    // existing default composition stays
+    xxxAverageResolver?: (excelRow: number) => number | null
+  }
+  // in render:
+  const avg = resolver ? resolver(row) : defaultComposition(...)
+  ```
+- Caller opts in per-instance by providing resolver. Backward compat preserved — old callers untouched
+- Resolver return type `number | null` — null signals "no meaningful value"; component renders "—"
+- Pattern generalizes beyond averaging: any per-row derivation column where semantic might be parameterized (e.g. per-row format, conditional color, alternate denominator) can use the same prop shape
+- Trade-off vs inline config: resolver lets caller compute from arbitrary data (including outside component's view); inline props would limit to pre-declared shapes. Prefer resolver when caller has cross-slice data already
+- Local lesson (not promoted) — one consumer migrated in Session 051 (DynamicBsEditor); IS/FA/AP editors stay on default `averageSeries`. Promote if a third consumer adopts
+
+**Proven at**: session-051 (2026-04-19). `RowInputGrid.growthAverageResolver?: (excelRow) => number | null` prop added; `DynamicBsEditor` passes `(row) => averageYoYStrict(allValues[row], years)`. Single-line swap at caller site; zero impact on IS/FA editors still using loose semantic.
 
 ---
