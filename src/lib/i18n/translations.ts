@@ -32,6 +32,7 @@ const dict = {
   'nav.item.roic': { en: 'ROIC', id: 'ROIC' },
   'nav.item.growthRate': { en: 'Growth Rate', id: 'Tingkat Pertumbuhan' },
   'nav.item.cashFlowStatement': { en: 'Cash Flow Statement', id: 'Laporan Arus Kas' },
+  'nav.item.changesInWorkingCapital': { en: 'Changes in Working Capital', id: 'Perubahan Modal Kerja' },
   'nav.item.proyLR': { en: 'Proy. P&L', id: 'Proy. L/R' },
   'nav.item.proyFixedAsset': { en: 'Proy. Fixed Asset', id: 'Proy. Aset Tetap' },
   'nav.item.proyBalanceSheet': { en: 'Proy. Balance Sheet', id: 'Proy. Neraca' },
@@ -392,6 +393,168 @@ const dict = {
   'ibd.trivia.exclude.taxesPayable.desc': {
     en: 'Tax amounts that must be remitted to the state treasury.',
     id: 'Pajak yang harus disetorkan ke kas negara.',
+  },
+
+  // ═══════════════════════════════════════════════════════════════════
+  // CHANGES IN WORKING CAPITAL (Session 039)
+  // ═══════════════════════════════════════════════════════════════════
+  'wc.title': { en: 'Changes in Working Capital', id: 'Perubahan Modal Kerja' },
+  'wc.subtitle': {
+    en: 'Define the scope of Operating Working Capital: select which Current Asset and Current Liability accounts contribute to the Cash Flow Statement working-capital change.',
+    id: 'Tentukan ruang lingkup Modal Kerja Operasional: pilih akun Aset Lancar dan Kewajiban Lancar mana yang berkontribusi pada perubahan modal kerja di Laporan Arus Kas.',
+  },
+  'wc.section.currentAssets': { en: 'Current Assets', id: 'Aset Lancar' },
+  'wc.section.currentLiabilities': { en: 'Current Liabilities', id: 'Kewajiban Lancar' },
+  'wc.included.label': {
+    en: 'Included in Operating Working Capital',
+    id: 'Termasuk dalam Modal Kerja Operasional',
+  },
+  'wc.excluded.label': {
+    en: 'Excluded from Working Capital',
+    id: 'Dikecualikan dari Modal Kerja',
+  },
+  'wc.excluded.count': {
+    en: '{count} account(s) excluded',
+    id: '{count} akun dikecualikan',
+  },
+  'wc.empty.section': {
+    en: 'No accounts in this section yet. Add accounts via Input Data → Balance Sheet.',
+    id: 'Belum ada akun di bagian ini. Tambahkan akun melalui Input Data → Neraca.',
+  },
+  'wc.action.exclude': { en: 'Exclude from Working Capital', id: 'Kecualikan dari Modal Kerja' },
+  'wc.action.include': { en: 'Include in Working Capital', id: 'Sertakan dalam Modal Kerja' },
+  'wc.action.confirm': { en: 'Confirm Scope', id: 'Konfirmasi Cakupan' },
+  'wc.action.update': { en: 'Update Scope', id: 'Perbarui Cakupan' },
+  'wc.state.unconfirmed': {
+    en: 'Scope not yet confirmed. Downstream pages (CFS, FCF, DCF, etc.) are locked until you confirm.',
+    id: 'Cakupan belum dikonfirmasi. Halaman downstream (CFS, FCF, DCF, dll.) terkunci sampai Anda mengkonfirmasi.',
+  },
+  'wc.state.confirmed': {
+    en: 'Scope confirmed. Downstream pages unlocked.',
+    id: 'Cakupan sudah dikonfirmasi. Halaman downstream terbuka.',
+  },
+  'wc.gate.required.label': {
+    en: 'Changes in Working Capital',
+    id: 'Perubahan Modal Kerja',
+  },
+
+  // Trivia — bilingual Working Capital scope reference
+  'wc.trivia.heading': { en: 'Trivia: Scope of Working Capital', id: 'Trivia: Ruang Lingkup Modal Kerja' },
+  'wc.trivia.intro1': {
+    en: 'In financial analysis, financial management, and business valuation, the concept used is Operating Working Capital. In this concept, we must distinguish operational business activities from financing/investing activities.',
+    id: 'Namun, dalam praktik analisis keuangan, manajemen keuangan, dan valuasi perusahaan yang lebih mendalam, konsep yang digunakan adalah Operating Working Capital (Modal Kerja Operasional). Dalam konsep ini, kita harus memisahkan antara aktivitas operasional (bisnis inti) dengan aktivitas pendanaan/investasi (financing/investing).',
+  },
+  'wc.trivia.intro2': {
+    en: 'The following is a negative list of current assets and current liabilities that are NOT counted as working capital in the operational analysis:',
+    id: 'Berikut adalah pengecualian (negative list) dari aset lancar dan kewajiban lancar yang tidak dihitung sebagai working capital dalam analisis operasional:',
+  },
+
+  // Negative List — Current Assets
+  'wc.trivia.excludeCA.heading': {
+    en: '1. Current Assets that are NOT part of Working Capital',
+    id: '1. Aset Lancar yang TIDAK Termasuk Working Capital',
+  },
+  'wc.trivia.excludeCA.intro': {
+    en: 'Excluded current assets are those that are investment-oriented or pure liquidity, not tied to the daily business operating cycle.',
+    id: 'Aset lancar yang dikecualikan dari perhitungan working capital adalah aset-aset yang sifatnya investasi atau likuiditas murni, bukan aset berputar dalam siklus operasi harian perusahaan.',
+  },
+  'wc.trivia.excludeCA.cash.term': { en: 'Cash and Cash Equivalents', id: 'Kas dan Setara Kas (Cash and Cash Equivalents)' },
+  'wc.trivia.excludeCA.cash.desc': {
+    en: 'Cash is generally excluded from working capital calculation (especially when computing Free Cash Flow). Reason: Cash is considered the final result of operating activity, not the capital being cycled through the operating process. (Note: Some analysts exclude only excess cash, not typical operational cash balance.)',
+    id: 'Kas umumnya dikeluarkan dari perhitungan working capital (terutama saat menghitung Free Cash Flow). Alasannya, kas dianggap sebagai hasil akhir dari operasi, bukan modal yang sedang terikat dalam proses operasi. (Catatan: Beberapa analis hanya mengeluarkan excess cash atau kas berlebih, namun secara umum, total kas yang dikeluarkan.)',
+  },
+  'wc.trivia.excludeCA.stInvest.term': { en: 'Short-term Investments / Marketable Securities', id: 'Investasi Jangka Pendek / Surat Berharga (Short-term Investments / Marketable Securities)' },
+  'wc.trivia.excludeCA.stInvest.desc': {
+    en: 'Deposits, mutual funds, and stocks held to earn returns are investment decisions, not part of the core operating business.',
+    id: 'Ini adalah keputusan investasi perusahaan untuk memutar uang menganggur agar mendapat return (seperti deposito, reksa dana, atau saham), bukan bagian dari operasi bisnis inti.',
+  },
+  'wc.trivia.excludeCA.nonTradeRecv.term': { en: 'Non-Trade Receivables / Related-Party Receivables', id: 'Piutang Non-Usaha / Piutang Afiliasi (Non-Trade Receivables)' },
+  'wc.trivia.excludeCA.nonTradeRecv.desc': {
+    en: 'For example, temporary loans to employees, directors, or affiliated companies. These are financing activities, not results from selling products or services.',
+    id: 'Misalnya, pinjaman sementara yang diberikan perusahaan kepada karyawan, direksi, atau perusahaan afiliasi. Ini adalah aktivitas pendanaan, bukan hasil dari penjualan produk/jasa.',
+  },
+  'wc.trivia.excludeCA.derivative.term': { en: 'Derivative Financial Assets', id: 'Aset Keuangan Derivatif (Derivative Financial Assets)' },
+  'wc.trivia.excludeCA.derivative.desc': {
+    en: 'Hedging instruments (e.g. forward contracts) whose nature leans toward financial risk management, not operational activity.',
+    id: 'Instrumen lindung nilai (seperti forward contract) yang sifatnya lebih ke manajemen risiko keuangan, bukan operasi inti.',
+  },
+
+  // Negative List — Current Liabilities
+  'wc.trivia.excludeCL.heading': {
+    en: '2. Current Liabilities that are NOT part of Working Capital',
+    id: '2. Kewajiban Lancar yang TIDAK Termasuk Working Capital',
+  },
+  'wc.trivia.excludeCL.intro': {
+    en: 'Excluded current liabilities are interest-bearing debt — they relate to the capital structure or financing decisions, not to supplier obligations or operating expenses.',
+    id: 'Kewajiban lancar yang dikeluarkan adalah utang-utang yang menanggung bunga (interest-bearing debt) yang berkaitan dengan struktur modal atau keputusan pendanaan, bukan kewajiban kepada supplier atau beban operasi.',
+  },
+  'wc.trivia.excludeCL.stBank.term': { en: 'Short-Term Bank Loans / Overdrafts', id: 'Utang Bank Jangka Pendek / Cerukan (Short-Term Bank Loans / Overdrafts)' },
+  'wc.trivia.excludeCL.stBank.desc': {
+    en: 'Pure financing activity, not the result of daily operational transactions.',
+    id: 'Ini murni aktivitas pendanaan (financing), bukan hasil dari transaksi operasional harian.',
+  },
+  'wc.trivia.excludeCL.currentPortion.term': { en: 'Current Portion of Long-Term Debt', id: 'Bagian Lancar atas Utang Jangka Panjang (Current Portion of Long-Term Debt)' },
+  'wc.trivia.excludeCL.currentPortion.desc': {
+    en: 'Long-term debt maturing within one year. Like bank debt, this belongs to capital structure.',
+    id: 'Utang jangka panjang yang akan jatuh tempo dalam satu tahun ke depan. Sama seperti utang bank, ini adalah bagian dari struktur modal (capital structure).',
+  },
+  'wc.trivia.excludeCL.interestPayable.term': { en: 'Interest Payable', id: 'Utang Bunga (Interest Payable)' },
+  'wc.trivia.excludeCL.interestPayable.desc': {
+    en: 'Interest arises from the decision to borrow (financing). Since the principal does not count in working capital, interest does not either.',
+    id: 'Bunga muncul akibat perusahaan mengambil utang (keputusan pendanaan). Karena pokok utangnya tidak masuk working capital, maka utang bunganya pun tidak masuk.',
+  },
+  'wc.trivia.excludeCL.dividendsPayable.term': { en: 'Dividends Payable', id: 'Utang Dividen (Dividends Payable)' },
+  'wc.trivia.excludeCL.dividendsPayable.desc': {
+    en: 'A wealth-distribution decision to shareholders, not an operational invoice.',
+    id: 'Kewajiban perusahaan kepada pemegang saham atas laba yang dibagikan. Ini adalah keputusan distribusi kekayaan, bukan tagihan operasional.',
+  },
+
+  // Positive List — what IS included
+  'wc.trivia.include.heading': {
+    en: 'Positive List (IS part of Working Capital)',
+    id: 'Positive List (Yang TERMASUK dalam Working Capital)',
+  },
+  'wc.trivia.include.intro': {
+    en: 'Assuming the items above are excluded, the main components that ARE part of Operating Working Capital (genuinely operational current items) are:',
+    id: 'Dengan mengasumsikan item di atas dikeluarkan, maka komponen utama yang termasuk ke dalam Operating Working Capital (yang murni berputar di urat nadi bisnis harian) adalah:',
+  },
+  'wc.trivia.include.ca.heading': {
+    en: 'Operating Current Asset Components',
+    id: 'Komponen Aset Lancar Operasional',
+  },
+  'wc.trivia.include.ca.ar.term': { en: 'Trade / Account Receivables', id: 'Piutang Usaha (Trade / Account Receivables)' },
+  'wc.trivia.include.ca.ar.desc': {
+    en: 'Claims against customers from core sales.',
+    id: 'Tagihan kepada pelanggan dari penjualan inti.',
+  },
+  'wc.trivia.include.ca.inventory.term': { en: 'Inventory', id: 'Persediaan (Inventory)' },
+  'wc.trivia.include.ca.inventory.desc': {
+    en: 'Raw materials, work-in-process, and finished goods ready for sale.',
+    id: 'Bahan baku, barang setengah jadi, dan barang jadi yang siap dijual.',
+  },
+  'wc.trivia.include.ca.prepaid.term': { en: 'Prepaid Expenses / Advances', id: 'Uang Muka / Biaya Dibayar di Muka (Prepaid Expenses / Advances)' },
+  'wc.trivia.include.ca.prepaid.desc': {
+    en: 'Rent paid in advance, insurance prepayments, or advances for supplier raw materials.',
+    id: 'Sewa dibayar di muka, asuransi dibayar di muka, atau uang muka ke supplier bahan baku.',
+  },
+  'wc.trivia.include.cl.heading': {
+    en: 'Operating Current Liability Components',
+    id: 'Komponen Kewajiban Lancar Operasional',
+  },
+  'wc.trivia.include.cl.ap.term': { en: 'Trade / Account Payables', id: 'Utang Usaha (Trade / Account Payables)' },
+  'wc.trivia.include.cl.ap.desc': {
+    en: 'Obligations to suppliers for raw materials or merchandise.',
+    id: 'Utang kepada supplier bahan baku atau barang dagangan.',
+  },
+  'wc.trivia.include.cl.accrued.term': { en: 'Accrued Expenses', id: 'Beban yang Masih Harus Dibayar (Accrued Expenses)' },
+  'wc.trivia.include.cl.accrued.desc': {
+    en: 'Salaries, electricity/water bills, and taxes already recognized as expenses but not yet paid.',
+    id: 'Gaji karyawan, tagihan listrik/air, dan pajak yang sudah diakui sebagai beban namun belum dibayarkan.',
+  },
+  'wc.trivia.include.cl.unearned.term': { en: 'Unearned / Deferred Revenue', id: 'Pendapatan Diterima di Muka (Unearned / Deferred Revenue)' },
+  'wc.trivia.include.cl.unearned.desc': {
+    en: 'Advance receipts from customers for goods/services not yet delivered.',
+    id: 'Uang muka yang sudah diterima dari pelanggan tetapi barang/jasanya belum kita serahkan.',
   },
 
   // ═══════════════════════════════════════════════════════════════════

@@ -148,8 +148,8 @@ describe('computeProyCfsLive — account-driven WC aggregation', () => {
   it('empty bsAccounts → ΔCA and ΔCL are 0 (safe no-op)', () => {
     const emptyInput: ProyCfsInput = { ...INPUT, bsAccounts: [] }
     const r = computeProyCfsLive(emptyInput, HIST_YEAR, PROJ_YEARS)
-    expect(r[8]?.[2022]! + 0).toBe(0)
-    expect(r[9]?.[2022]! + 0).toBe(0)
+    expect((r[8]?.[2022] ?? 0) + 0).toBe(0)
+    expect((r[9]?.[2022] ?? 0) + 0).toBe(0)
   })
 
   it('respects excludedCurrentLiabilities (e.g. user excludes IBD row 31)', () => {
