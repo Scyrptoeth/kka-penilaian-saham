@@ -54,6 +54,22 @@ export interface FinancialTableProps {
   showCommonSize?: boolean
   /** Render growth columns when true. */
   showGrowth?: boolean
+  /**
+   * Render a flat "Average" column at the end of the value-columns group.
+   * Uses per-row `valueKind` so ratio rows display as e.g. 0.38, percent
+   * rows as e.g. 38,8 %, IDR rows as Rupiah. Hidden when years.length < 2.
+   */
+  showValueAverage?: boolean
+  /**
+   * Render an "Average" sub-column at the end of the Common Size group.
+   * Hidden when commonSizeYears.length < 2.
+   */
+  showCommonSizeAverage?: boolean
+  /**
+   * Render an "Average" sub-column at the end of the Growth YoY group.
+   * Hidden when growthYears.length < 1 or years.length < 2.
+   */
+  showGrowthAverage?: boolean
   /** Currency code shown in the caption, default "IDR". */
   currency?: string
   /** Optional disclaimer shown below the title. */

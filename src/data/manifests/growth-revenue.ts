@@ -30,6 +30,7 @@ export const GROWTH_REVENUE_MANIFEST: SheetManifest = {
   columns: { 2018: 'B', 2019: 'C', 2020: 'D', 2021: 'E' },
   growthColumns: { 2019: 'H', 2020: 'I', 2021: 'J' },
   derivations: [{ type: 'yoyGrowth', safe: true }],
+  showAverage: { growth: true },
   disclaimer:
     'Data demo dari workbook prototipe. Kolom growth 2019-2021 dihitung dari primitive yoyGrowth dan divalidasi cocok dengan formula Excel (H8-J9 = IF(prior=0,0,(current−prior)/prior)). Saat user mengisi data via Input Data, tampilan otomatis beralih ke mode live.',
   rows: [

@@ -35,6 +35,7 @@ export const NOPLAT_MANIFEST: SheetManifest = {
   years: [2019, 2020, 2021],
   columns: { 2019: 'C', 2020: 'D', 2021: 'E' },
   derivations: [{ type: 'yoyGrowth', safe: true }],
+  showAverage: { growth: true },
   disclaimer:
     'Data demo dari workbook prototipe. NOPLAT menggunakan konvensi pre-signed: Interest Expense ditambahkan kembali (positif), Interest Income dikurangkan (negatif). Saat user mengisi data via Input Data, tampilan otomatis beralih ke mode live.',
   rows: [

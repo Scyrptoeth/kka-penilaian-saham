@@ -220,4 +220,18 @@ export interface SheetManifest {
    *   ]
    */
   derivations?: DerivationSpec[]
+  /**
+   * Opt-in Average column rendering. Independent flags per column group
+   * so a manifest can add an average to just Growth (NOPLAT / Growth
+   * Revenue), to just values (Financial Ratio — flat column after the
+   * year values), or to both Common Size + Growth (future sheets).
+   *
+   * Visibility is further gated by actual year counts at render time:
+   * single-year views hide all Average columns per user spec.
+   */
+  showAverage?: {
+    values?: boolean
+    commonSize?: boolean
+    growth?: boolean
+  }
 }

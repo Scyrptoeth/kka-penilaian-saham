@@ -2,6 +2,7 @@
 
 import { cn } from '@/lib/utils/cn'
 import { useT } from '@/lib/i18n/useT'
+import { averageSeries } from '@/lib/calculations/derivation-helpers'
 import type {
   FinancialRow,
   FinancialTableProps,
@@ -25,6 +26,9 @@ export function FinancialTable({
   rows,
   showCommonSize = false,
   showGrowth = false,
+  showValueAverage = false,
+  showCommonSizeAverage = false,
+  showGrowthAverage = false,
   currency = 'IDR',
   disclaimer,
 }: FinancialTableProps) {
@@ -32,8 +36,23 @@ export function FinancialTable({
   const commonSizeYears = showCommonSize ? years.slice(1) : []
   const growthYears = showGrowth ? years.slice(1) : []
 
+  // Average columns: user spec — hide entirely when <2 historical years.
+  const hasMultiYear = years.length >= 2
+  const valueAvg = showValueAverage && hasMultiYear
+  const csAvg = showCommonSizeAverage && commonSizeYears.length >= 2
+  const grAvg = showGrowthAverage && growthYears.length >= 1 && hasMultiYear
+  const valueAvgExtra = valueAvg ? 1 : 0
+  const csAvgExtra = csAvg ? 1 : 0
+  const grAvgExtra = grAvg ? 1 : 0
+
   const totalCols =
-    1 + years.length + commonSizeYears.length + growthYears.length
+    1 +
+    years.length +
+    valueAvgExtra +
+    commonSizeYears.length +
+    csAvgExtra +
+    growthYears.length +
+    grAvgExtra
 
   return (
     <section aria-labelledby="financial-table-title" className="w-full">
@@ -76,10 +95,19 @@ export function FinancialTable({
                   {year}
                 </th>
               ))}
+              {valueAvg && (
+                <th
+                  key="value-avg"
+                  scope="col"
+                  className="sticky top-0 z-10 border-b border-l border-grid-strong bg-canvas-raised px-3 py-2 text-right text-[11px] font-semibold uppercase tracking-[0.08em] text-accent"
+                >
+                  {t('table.average')}
+                </th>
+              )}
               {commonSizeYears.length > 0 && (
                 <th
                   scope="colgroup"
-                  colSpan={commonSizeYears.length}
+                  colSpan={commonSizeYears.length + csAvgExtra}
                   className="sticky top-0 z-10 border-b border-l border-grid-strong bg-canvas-raised px-3 py-2 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-accent"
                 >
                   {t('table.commonSize')}
@@ -88,7 +116,7 @@ export function FinancialTable({
               {growthYears.length > 0 && (
                 <th
                   scope="colgroup"
-                  colSpan={growthYears.length}
+                  colSpan={growthYears.length + grAvgExtra}
                   className="sticky top-0 z-10 border-b border-l border-grid-strong bg-canvas-raised px-3 py-2 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-accent"
                 >
                   {t('table.growthYoY')}
@@ -108,6 +136,13 @@ export function FinancialTable({
                     className="border-b border-grid bg-canvas-raised px-3 py-1"
                   />
                 ))}
+                {valueAvg && (
+                  <th
+                    key="sub-value-avg"
+                    scope="col"
+                    className="border-b border-l border-grid bg-canvas-raised px-3 py-1"
+                  />
+                )}
                 {commonSizeYears.map((year, idx) => (
                   <th
                     key={`sub-cs-${year}`}
@@ -120,6 +155,15 @@ export function FinancialTable({
                     {year}
                   </th>
                 ))}
+                {csAvg && (
+                  <th
+                    key="sub-cs-avg"
+                    scope="col"
+                    className="border-b border-l border-grid-strong bg-canvas-raised px-3 py-1 text-right text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted"
+                  >
+                    {t('table.average')}
+                  </th>
+                )}
                 {growthYears.map((year, idx) => (
                   <th
                     key={`sub-gr-${year}`}
@@ -132,6 +176,15 @@ export function FinancialTable({
                     {year}
                   </th>
                 ))}
+                {grAvg && (
+                  <th
+                    key="sub-gr-avg"
+                    scope="col"
+                    className="border-b border-l border-grid-strong bg-canvas-raised px-3 py-1 text-right text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted"
+                  >
+                    {t('table.average')}
+                  </th>
+                )}
               </tr>
             )}
           </thead>
@@ -145,6 +198,9 @@ export function FinancialTable({
                 commonSizeYears={commonSizeYears}
                 growthYears={growthYears}
                 totalCols={totalCols}
+                valueAvg={valueAvg}
+                csAvg={csAvg}
+                grAvg={grAvg}
               />
             ))}
           </tbody>
@@ -161,6 +217,9 @@ interface TableRowProps {
   commonSizeYears: number[]
   growthYears: number[]
   totalCols: number
+  valueAvg: boolean
+  csAvg: boolean
+  grAvg: boolean
 }
 
 function TableRow({
@@ -170,6 +229,9 @@ function TableRow({
   commonSizeYears,
   growthYears,
   totalCols,
+  valueAvg,
+  csAvg,
+  grAvg,
 }: TableRowProps) {
   const type = row.type ?? 'normal'
 
@@ -234,6 +296,19 @@ function TableRow({
         />
       ))}
 
+      {valueAvg && (
+        <NumericCell
+          key="v-avg"
+          value={averageSeries(row.values, years) ?? undefined}
+          kind="value"
+          valueKind={row.valueKind ?? 'idr'}
+          rowType={type}
+          baseBg={baseBg}
+          borderLeft
+          emphasize
+        />
+      )}
+
       {commonSizeYears.map((year, idx) => (
         <NumericCell
           key={`cs-${year}`}
@@ -245,6 +320,18 @@ function TableRow({
         />
       ))}
 
+      {csAvg && (
+        <NumericCell
+          key="cs-avg"
+          value={averageSeries(row.commonSize, commonSizeYears) ?? undefined}
+          kind="percent"
+          rowType={type}
+          baseBg={baseBg}
+          borderLeft
+          emphasize
+        />
+      )}
+
       {growthYears.map((year, idx) => (
         <NumericCell
           key={`gr-${year}`}
@@ -255,6 +342,18 @@ function TableRow({
           borderLeft={idx === 0}
         />
       ))}
+
+      {grAvg && (
+        <NumericCell
+          key="gr-avg"
+          value={averageSeries(row.growth, growthYears) ?? undefined}
+          kind="percent"
+          rowType={type}
+          baseBg={baseBg}
+          borderLeft
+          emphasize
+        />
+      )}
     </tr>
   )
 }
@@ -266,6 +365,8 @@ interface NumericCellProps {
   rowType: FinancialRow['type']
   baseBg: string
   borderLeft?: boolean
+  /** Heavier left border + bold weight — used for Average columns. */
+  emphasize?: boolean
 }
 
 function NumericCell({
@@ -275,6 +376,7 @@ function NumericCell({
   rowType,
   baseBg,
   borderLeft,
+  emphasize,
 }: NumericCellProps) {
   const cellClasses = cn(
     'px-3 py-1.5 text-right font-mono tabular-nums transition-colors',
@@ -282,7 +384,8 @@ function NumericCell({
     'group-hover:bg-accent-soft/40',
     rowType === 'subtotal' && 'border-t border-grid-strong',
     rowType === 'total' && 'border-t-2 border-ink',
-    borderLeft && 'border-l border-grid',
+    borderLeft && (emphasize ? 'border-l border-grid-strong' : 'border-l border-grid'),
+    emphasize && 'font-semibold',
   )
 
   if (value === undefined || !Number.isFinite(value)) {

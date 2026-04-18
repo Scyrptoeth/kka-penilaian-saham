@@ -192,6 +192,9 @@ export function SheetPage({
         rows={rows}
         showCommonSize={showCommonSize ?? autoShowCommonSize}
         showGrowth={showGrowth ?? autoShowGrowth}
+        showValueAverage={effectiveManifest.showAverage?.values ?? false}
+        showCommonSizeAverage={effectiveManifest.showAverage?.commonSize ?? false}
+        showGrowthAverage={effectiveManifest.showAverage?.growth ?? false}
         disclaimer={isLive ? undefined : effectiveManifest.disclaimer}
       />
     </div>
