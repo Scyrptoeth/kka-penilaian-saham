@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
+import {
+  PROJECTION_YEAR_COUNT,
+  computeHistoricalYears,
+  computeProjectionYears,
+} from '@/lib/calculations/year-helpers'
 
 describe('computeHistoricalYears', () => {
   it('returns 4 ascending years ending at tahunTransaksi − 1', () => {
@@ -28,5 +32,28 @@ describe('computeHistoricalYears', () => {
     const years3 = computeHistoricalYears(2024, 3)
     expect(years4[years4.length - 1]).toBe(2023)
     expect(years3[years3.length - 1]).toBe(2023)
+  })
+})
+
+describe('computeProjectionYears', () => {
+  it('defaults to PROJECTION_YEAR_COUNT (3) when count omitted', () => {
+    expect(computeProjectionYears(2022)).toEqual([2022, 2023, 2024])
+    expect(computeProjectionYears(2022)).toHaveLength(PROJECTION_YEAR_COUNT)
+  })
+
+  it('accepts explicit count for Key Drivers 7-year horizon', () => {
+    expect(computeProjectionYears(2022, 7)).toEqual([
+      2022, 2023, 2024, 2025, 2026, 2027, 2028,
+    ])
+  })
+
+  it('returns ascending years starting from tahunTransaksi', () => {
+    expect(computeProjectionYears(2030, 5)).toEqual([
+      2030, 2031, 2032, 2033, 2034,
+    ])
+  })
+
+  it('handles count = 1 (single projection year)', () => {
+    expect(computeProjectionYears(2022, 1)).toEqual([2022])
   })
 })

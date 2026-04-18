@@ -37,10 +37,17 @@ export const PROJECTION_YEAR_COUNT = 3
 
 /**
  * Derive projection years from tahunTransaksi.
- * First projection year = tahunTransaksi, ascending.
+ * First projection year = tahunTransaksi, ascending. Optional `count`
+ * overrides the default PROJECTION_YEAR_COUNT — used by KeyDriversForm
+ * (7-year Additional Capex horizon) without widening the global constant
+ * that other PROY pages + downstream compute pipelines depend on.
  *
- *   computeProjectionYears(2022) → [2022, 2023, 2024]
+ *   computeProjectionYears(2022)    → [2022, 2023, 2024]
+ *   computeProjectionYears(2022, 7) → [2022, 2023, ..., 2028]
  */
-export function computeProjectionYears(tahunTransaksi: number): number[] {
-  return Array.from({ length: PROJECTION_YEAR_COUNT }, (_, i) => tahunTransaksi + i)
+export function computeProjectionYears(
+  tahunTransaksi: number,
+  count: number = PROJECTION_YEAR_COUNT,
+): number[] {
+  return Array.from({ length: count }, (_, i) => tahunTransaksi + i)
 }

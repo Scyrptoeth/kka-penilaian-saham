@@ -1,135 +1,79 @@
-# Plan — Session 049 Proy. P&L OpEx Merge + Common-Size Drivers
+# Plan — Session 050: Key Drivers Auto Read-Only
 
-**Branch**: `feat/session-049-proy-lr-opex-common-size`
-**Scope**: Full refactor Proy. P&L compute + display + export per user's 4-point spec (Skenario A, confirmed).
+**Branch**: `feat/session-050-kd-auto-readonly`
+**Target commit count**: 1 feature commit + 1 docs commit.
 
-## Tasks (max 10)
+## Tasks
 
-### Task 1 — Feature branch (2 min)
-```
-git checkout -b feat/session-049-proy-lr-opex-common-size
-```
-Verification: `git branch --show-current` shows new branch.
+### Task 1 — Extend `computeProjectionYears` with optional count param
+- **File**: `src/lib/calculations/year-helpers.ts`
+- **Test**: `__tests__/lib/calculations/year-helpers.test.ts` (new file)
+- **Change**: signature `computeProjectionYears(tahunTransaksi: number, count?: number): number[]` — default `PROJECTION_YEAR_COUNT`.
+- **RED**: test `computeProjectionYears(2022, 7)` returns `[2022,…,2028]`; existing `computeProjectionYears(2022)` still returns 3-year `[2022, 2023, 2024]`.
+- **GREEN**: add optional param.
 
-### Task 2 — Refactor `compute-proy-lr-live.ts` (10 min)
-File: `src/data/live/compute-proy-lr-live.ts`
+### Task 2 — TDD `buildKdAutoValues` helper
+- **File**: `src/lib/calculations/kd-auto-values.ts` (new)
+- **Test**: `__tests__/lib/calculations/kd-auto-values.test.ts` (new)
+- **Shape**:
+  ```ts
+  export interface KdAutoValuesInput {
+    isRows: Readonly<Record<number, YearKeyedSeries>>
+    histYears: readonly number[]
+    faAccounts: readonly FaAccountEntry[]
+    faRows: Readonly<Record<number, YearKeyedSeries>>
+    projYears: readonly number[]
+  }
+  export interface KdAutoValues {
+    cogsRatio: number
+    sellingExpenseRatio: number
+    gaExpenseRatio: number
+    additionalCapexByAccount: Record<number, YearKeyedSeries>
+  }
+  export function buildKdAutoValues(input: KdAutoValuesInput): KdAutoValues
+  ```
 
-Changes:
-- New `ProyLrInput` interface (remove `interestIncomeGrowth`, `interestExpenseGrowth`, `nonOpIncomeGrowth`; add `commonSize: { cogs, totalOpEx, interestIncome, interestExpense, nonOpIncome }`; replace `isLastYear.sellingOpex + gaOpex` with `isLastYear.totalOpEx`).
-- Delete `roundUp3` helper (no longer used).
-- Projection: COGS/II/IE/NOI/TotalOpEx all = `revenue × commonSize.<key>`.
-- Historical column: row 17 = `isLastYear.totalOpEx`; rows 15/16 dropped (no `set(15,...)` / `set(16,...)`).
-- Margin computations unchanged.
+### Task 3 — Wire `buildKdAutoValues` into `KeyDriversPage`
+- Replace existing `isAutoRatios` useMemo with `kdAuto = useMemo(() => buildKdAutoValues(…))`.
+- Pass `kdAuto` prop to KeyDriversForm.
 
-Verification: file typechecks via `npm run typecheck 2>&1 | tail -5`.
+### Task 4 — Refactor `KeyDriversForm`: read-only UI + mirror persist
+- Add `kdAuto?: KdAutoValues | null` prop.
+- Override displayed values for the 3 ratios + additionalCapexByAccount from `kdAuto` when present.
+- useEffect watching `kdAuto` → setState → triggers debounced persist.
+- Inputs for cogsRatio/sellingExpenseRatio/gaExpenseRatio → `readOnly` + muted + tooltip.
+- Additional Capex `<input>` cells → `readOnly` + muted + tooltip.
+- Remove `updateOpRatio` / `updateCapex` handlers or leave them dormant (not wired).
+- Add bilingual notes above Cost & Expense Ratios + Additional Capex sections.
 
-### Task 3 — Rewrite `compute-proy-lr-live.test.ts` (TDD RED→GREEN, 12 min)
-File: `__tests__/data/live/compute-proy-lr-live.test.ts`
+### Task 5 — Add bilingual i18n keys
+- `keyDrivers.autoNote.costRatios` / `keyDrivers.autoNote.additionalCapex`
+- `keyDrivers.readonly.tooltip.costRatios` / `keyDrivers.readonly.tooltip.capex`
 
-Create fresh fixture with synthetic numbers that EXERCISE each branch:
-- Revenue historical series with 2+ years → avgYoY growth computed.
-- Common size for each of 5 leaves (cogs, totalOpEx, ii, ie, noi).
-- Historical column assertions (row 17 = totalOpEx).
-- Projection column assertions for all 8 affected rows (8, 10, 11, 17, 19, 25, 29, 31, 33, 34, 36, 37, 39).
-- Explicit assertion that rows 15 + 16 are NOT in output (`expect(result[15]).toBeUndefined()`).
-- Sign convention tests (negative COGS produces negative projection).
+### Task 6 — Full verification
+- `npm run typecheck`
+- `npx vitest run` (full suite)
+- `npm run lint`
+- `npm run audit:i18n`
+- `npm run build 2>&1 | tail -25`
+- `npm run verify:phase-c`
+- Cascade test
 
-PRECISION=6 (exact compute now, no ROUNDUP).
+### Task 7 — Commit + merge + live verify
+- Commit: `feat(key-drivers): auto-populate read-only ratios + 7-yr Proy FA capex`
+- Merge fast-forward to main; push
+- `curl -s -o /dev/null -w "%{http_code}" https://penilaian-bisnis.vercel.app/input/key-drivers` → 200
 
-Verification: `npm test -- compute-proy-lr-live 2>&1 | tail -20` — all tests pass.
+### Task 8 — Session wrap-up docs
+- `history/session-050-kd-auto-readonly.md`
+- Update `progress.md`
+- Append new LESSON(s) to `lessons-learned.md`
+- Commit: `docs: session 050 wrap-up — KD auto read-only + N lessons`
 
-### Task 4 — Update `projection-pipeline.ts` caller (5 min)
-File: `src/lib/calculations/projection-pipeline.ts`
+## Definition of Done
 
-- Compute `commonSize` object via `averageSeries(historical common size series, histYears4)` for each of 5 IS rows (7, 15, 26, 27, 30) denominated by IS.6 revenue.
-- Remove old `interestIncomeGrowth / interestExpenseGrowth / nonOpIncomeGrowth` fields from input.
-- Change `isLastYear.sellingOpex + gaOpex` → `isLastYear.totalOpEx = isVal(15)`.
-
-Use a local helper (`avgCommonSizeFor(row)`) to avoid 5× duplicated loops.
-
-Verification: typecheck clean + integration tests unchanged (they use pipeline output, not input shape).
-
-### Task 5 — Update `projection/income-statement/page.tsx` (15 min)
-File: `src/app/projection/income-statement/page.tsx`
-
-Two-part change:
-- **A (compute)**: mirror Task 4 inline — compute commonSize averages, build new ProyLrInput, pass to `computeProyLrLive`.
-- **B (display)**: rewrite ROW_DEFS to new structure:
-  - Discriminated union `RowDef = { kind: 'data', row, ... } | { kind: 'subRow', id, labelKey, driver: 'revenueGrowth' | keyof CommonSize }`.
-  - Drop row 15, 16 entries.
-  - Insert 1 sub-row below row 8 (revenue-growth), row 10 (cogs-cs), row 17 (totalopex-cs), row 29 (ii-cs), row 31 (ie-cs), row 34 (noi-cs).
-- TableBody render: switch on `def.kind`. Data rows use `rows[def.row]?.[y]`. SubRows read `subRowValue(def.driver)` which returns:
-  - For 'revenueGrowth': `revenueGrowth` at projection years, undefined/'—' at historical.
-  - For common-size keys: `commonSize[key]` at projection years, '—' at historical.
-- Style sub-rows identical to Margin rows (`indent italic text-ink-muted`, `border-b border-grid`).
-
-Verification: dev server renders Proy. P&L without errors (manual check); `npm run typecheck` clean.
-
-### Task 6 — Update `projection/noplat/page.tsx` caller (3 min)
-File: `src/app/projection/noplat/page.tsx`
-
-Same compute pattern as Task 4: build `commonSize` + change `isLastYear.totalOpEx` instead of sellingOpex/gaOpex. Page only consumes proyLrRows output — no display impact.
-
-Verification: typecheck + `npm test -- proy-noplat 2>&1 | tail -10` still passes.
-
-### Task 7 — Update export `ProyLrBuilder` (5 min)
-File: `src/lib/export/sheet-builders/proy-lr.ts`
-
-- `managedRows` → `[8, 9, 10, 11, 12, 17, 19, 20, 22, 25, 26, 29, 31, 33, 34, 36, 37, 39, 40]` (drop 15 + 16).
-- Before writing managed rows, clear cells at rows 15 + 16 across all 4 columns (C/D/E/F): `ws.getCell(`${col}15`).value = 0; ws.getCell(`${col}16`).value = 0`.
-
-Verification: `npm test -- proy-lr 2>&1 | tail -10` passes (existing builder tests).
-
-### Task 8 — Add 6 i18n keys + ROW_DEFS labelKeys (3 min)
-File: `src/lib/i18n/translations.ts`
-
-Add entries:
-- `proy.revenueGrowth` EN/ID
-- `proy.cogsCommonSize` EN/ID
-- `proy.totalOpExCommonSize` EN/ID
-- `proy.interestIncomeCommonSize` EN/ID
-- `proy.interestExpenseCommonSize` EN/ID
-- `proy.nonOpIncomeCommonSize` EN/ID
-
-Verification: `npm run audit:i18n` clean; ESLint `local/no-hardcoded-ui-strings` clean.
-
-### Task 9 — Phase C whitelist + verification (10 min)
-- Run `npm run verify:phase-c 2>&1 | tail -40` — expect new divergent cells.
-- Inspect `phase-c-verification-report.md`.
-- LESSON-112 audit: `grep -rn "'PROY LR'!C10\|'PROY LR'!D10\|..." __tests__/fixtures/` — verify no live cross-sheet formulas reference divergent cells in prototipe XLSX.
-- Add to `__tests__/integration/phase-c-verification.test.ts` `KNOWN_DIVERGENT_CELLS` set.
-
-Verification: Phase C 5/5 green.
-
-### Task 10 — Full gate + commit + merge + push + verify live (15 min)
-```bash
-npm run build 2>&1 | tail -15
-npm test 2>&1 | tail -15
-npm run typecheck 2>&1 | tail -10
-npm run lint 2>&1 | tail -15
-npm run audit:i18n 2>&1 | tail -5
-npm run verify:phase-c 2>&1 | tail -10
-```
-
-Then:
-1. `git add <specific files>` + `git commit -m "feat(proy-lr): common-size projection drivers + drop Selling/G&A"`.
-2. Checkout main → `git merge feat/session-049-...` → `git push origin main`.
-3. Wait for Vercel prod deploy.
-4. `curl -s -o /dev/null -w "%{http_code}" https://penilaian-bisnis.vercel.app/` — expect 200/307.
-5. Progress marked in `progress.md` at `/update-kka-penilaian-saham` wrap-up time.
-
-## Exit Criteria
-
-All gates green:
-- Tests: ≥1328 passing (+ at least +5 new test cases for common-size drivers).
-- Build: 42 static pages.
-- Typecheck: clean.
-- Lint: clean.
-- Audit i18n: clean.
-- Phase C: 5/5.
-- Cascade: 3/3.
-- Live: 200/307 HTTP response.
-
-## Deferred
-
-- `/update-kka-penilaian-saham` Mode B wrap-up (history + lessons extract) runs after user QA confirmation.
+- [ ] All 8 tasks verified with evidence
+- [ ] Full test suite green (expected: +10 or more tests net)
+- [ ] Phase C 5/5 + cascade green
+- [ ] Live deploy HTTP 200
+- [ ] docs committed + pushed

@@ -817,6 +817,22 @@ const dict = {
   'keyDrivers.price': { en: 'Price', id: 'Harga' },
   'keyDrivers.costRatios': { en: 'Cost & Expense Ratios (% of Revenue)', id: 'Rasio Biaya (% dari Pendapatan)' },
   'keyDrivers.costRatiosHint': { en: 'Input as positive numbers. Ratios will be applied to projected revenue.', id: 'Input sebagai angka positif. Rasio akan diterapkan ke pendapatan proyeksi.' },
+  'keyDrivers.autoNote.costRatios': {
+    en: 'Values are auto-computed from INPUT DATA → Income Statement average common size. To change, update source data.',
+    id: 'Nilai dihitung otomatis dari rata-rata common size INPUT DATA → Laba Rugi. Untuk mengubah, perbarui data sumber.',
+  },
+  'keyDrivers.autoNote.additionalCapex': {
+    en: 'Values are auto-computed from PROJECTION → Proy. Fixed Asset ADDITIONS band (7-year horizon). To change, update source data.',
+    id: 'Nilai dihitung otomatis dari band PENAMBAHAN PROJECTION → Proy. Aset Tetap (horizon 7 tahun). Untuk mengubah, perbarui data sumber.',
+  },
+  'keyDrivers.readonly.tooltip.costRatios': {
+    en: 'Auto-populated from Income Statement — read only',
+    id: 'Otomatis dari Laba Rugi — hanya baca',
+  },
+  'keyDrivers.readonly.tooltip.capex': {
+    en: 'Auto-populated from Proy. Fixed Asset — read only',
+    id: 'Otomatis dari Proy. Aset Tetap — hanya baca',
+  },
   'keyDrivers.field.cogs': { en: 'COGS (% of Revenue)', id: 'HPP (% dari Pendapatan)' },
   'keyDrivers.field.sellingExp': { en: 'Selling Expense (% of Revenue)', id: 'Beban Penjualan (% dari Pendapatan)' },
   'keyDrivers.field.gaExp': { en: 'G&A Expense (% of Revenue)', id: 'Beban Umum & Admin (% dari Pendapatan)' },

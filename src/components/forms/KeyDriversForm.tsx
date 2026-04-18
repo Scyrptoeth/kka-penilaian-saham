@@ -3,10 +3,10 @@
 import { useCallback, useMemo, useState, useEffect, useRef } from 'react'
 import type { KeyDriversState } from '@/lib/store/useKkaStore'
 import { computeSalesVolumes, computeSalesPrices } from '@/lib/calculations/key-drivers'
+import type { KdAutoValues } from '@/lib/calculations/kd-auto-values'
 import { useT } from '@/lib/i18n/useT'
 import type { FaAccountEntry } from '@/data/catalogs/fixed-asset-catalog'
 import { getCatalogAccount } from '@/data/catalogs/fixed-asset-catalog'
-import type { YearKeyedSeries } from '@/types/financial'
 
 const NUM_PROJECTION_YEARS = 7
 
@@ -44,8 +44,15 @@ interface KeyDriversFormProps {
   initial: KeyDriversState | null
   baseYear: number
   onSave: (state: KeyDriversState) => void
-  /** Auto-computed ratios from IS data — used as defaults if Key Drivers not yet saved */
-  isAutoRatios?: { cogsRatio: number; opexRatio: number; taxRate: number } | null
+  /**
+   * Session 050: auto-computed read-only values for Cost & Expense Ratios
+   * + Additional Capex. Sourced from IS avg common size + Proy FA 7-year
+   * projection. When present, overrides store state + mirrors back via
+   * useEffect (LESSON-115 pattern — store stays the export source of truth).
+   */
+  kdAuto?: KdAutoValues | null
+  /** Auto-derived corporate tax rate from IS (|Tax / PBT|) — seed default only. */
+  isAutoTaxRate?: { taxRate: number } | null
   /** Session 036: FA accounts for dynamic Additional Capex rows. */
   faAccounts?: readonly FaAccountEntry[]
   /** Active language for FA account labels. */
@@ -53,19 +60,17 @@ interface KeyDriversFormProps {
 }
 
 export function KeyDriversForm({
-  initial, baseYear, onSave, isAutoRatios,
+  initial, baseYear, onSave, kdAuto, isAutoTaxRate,
   faAccounts = [], faAccountLanguage = 'en',
 }: KeyDriversFormProps) {
   const { t } = useT()
   const [state, setState] = useState<KeyDriversState>(() => {
     if (initial) return initial
     const base = defaultState()
-    // Auto-populate from IS data if Key Drivers not yet saved
-    if (isAutoRatios) {
+    if (isAutoTaxRate) {
       return {
         ...base,
-        financialDrivers: { ...base.financialDrivers, corporateTaxRate: isAutoRatios.taxRate },
-        operationalDrivers: { ...base.operationalDrivers, cogsRatio: isAutoRatios.cogsRatio, gaExpenseRatio: isAutoRatios.opexRatio },
+        financialDrivers: { ...base.financialDrivers, corporateTaxRate: isAutoTaxRate.taxRate },
       }
     }
     return base
@@ -77,12 +82,32 @@ export function KeyDriversForm({
     [baseYear],
   )
 
-  // Debounced persist
+  // Session 050 mirror pattern (LESSON-115 + LESSON-016 compliant).
+  // Instead of calling setState in an effect (rejected by React Compiler),
+  // we derive the persisted payload at save time from (state ∪ kdAuto). The
+  // auto-computed ratios + Additional Capex always win over anything the
+  // store previously held. Display layer reads from kdAuto directly, keeping
+  // local state unaware of the override — one-way flow upstream → store.
+  const mergedForPersist = useMemo<KeyDriversState>(() => {
+    if (!kdAuto) return state
+    return {
+      ...state,
+      operationalDrivers: {
+        ...state.operationalDrivers,
+        cogsRatio: kdAuto.cogsRatio,
+        sellingExpenseRatio: kdAuto.sellingExpenseRatio,
+        gaExpenseRatio: kdAuto.gaExpenseRatio,
+      },
+      additionalCapexByAccount: kdAuto.additionalCapexByAccount,
+    }
+  }, [state, kdAuto])
+
+  // Debounced persist — fires on state OR kdAuto change.
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current)
-    timerRef.current = setTimeout(() => onSave(state), 500)
+    timerRef.current = setTimeout(() => onSave(mergedForPersist), 500)
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
-  }, [state, onSave])
+  }, [mergedForPersist, onSave])
 
   const salesVols = useMemo(
     () => computeSalesVolumes(state.operationalDrivers.salesVolumeBase, state.operationalDrivers.salesVolumeIncrements),
@@ -94,17 +119,25 @@ export function KeyDriversForm({
     [state.operationalDrivers.salesPriceBase, state.operationalDrivers.salesPriceIncrements],
   )
 
-  // Session 036: per-account Additional Capex. Total per year = sum across
-  // all accounts. Accounts iterated in fixedAsset.accounts order.
+  // Session 050: Additional Capex display values come directly from kdAuto
+  // when present (read-only contract). Otherwise fall back to store values.
+  const displayCapexByAccount = kdAuto?.additionalCapexByAccount ?? state.additionalCapexByAccount
+
+  // Session 050: Cost & Expense Ratios display values from kdAuto (read-only).
+  // Selling + G&A share the same totalOpEx / 2 value — visually displayed twice.
+  const displayCogsRatio = kdAuto?.cogsRatio ?? state.operationalDrivers.cogsRatio
+  const displaySellingRatio = kdAuto?.sellingExpenseRatio ?? state.operationalDrivers.sellingExpenseRatio
+  const displayGaRatio = kdAuto?.gaExpenseRatio ?? state.operationalDrivers.gaExpenseRatio
+
   const totalCapex = useMemo<number[]>(() => {
     return projYears.map((year) => {
       let sum = 0
       for (const acct of faAccounts) {
-        sum += state.additionalCapexByAccount[acct.excelRow]?.[year] ?? 0
+        sum += displayCapexByAccount[acct.excelRow]?.[year] ?? 0
       }
       return sum
     })
-  }, [state.additionalCapexByAccount, projYears, faAccounts])
+  }, [displayCapexByAccount, projYears, faAccounts])
 
   // --- Updaters ---
   const updateFin = useCallback((key: keyof KeyDriversState['financialDrivers'], raw: string) => {
@@ -120,14 +153,6 @@ export function KeyDriversForm({
     setState(s => ({
       ...s,
       operationalDrivers: { ...s.operationalDrivers, [key]: Number.isFinite(v) ? v : 0 },
-    }))
-  }, [])
-
-  const updateOpRatio = useCallback((key: string, raw: string) => {
-    const v = parseFloat(raw)
-    setState(s => ({
-      ...s,
-      operationalDrivers: { ...s.operationalDrivers, [key]: Number.isFinite(v) ? v / 100 : 0 },
     }))
   }, [])
 
@@ -149,18 +174,10 @@ export function KeyDriversForm({
     })
   }, [])
 
-  const updateCapex = useCallback((excelRow: number, year: number, raw: string) => {
-    const v = parseFloat(raw)
-    setState((s) => {
-      const byAccount = { ...s.additionalCapexByAccount }
-      const series: YearKeyedSeries = { ...(byAccount[excelRow] ?? {}) }
-      series[year] = Number.isFinite(v) ? v : 0
-      byAccount[excelRow] = series
-      return { ...s, additionalCapexByAccount: byAccount }
-    })
-  }, [])
-
   const IDR = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 })
+
+  const readonlyCostTooltip = t('keyDrivers.readonly.tooltip.costRatios')
+  const readonlyCapexTooltip = t('keyDrivers.readonly.tooltip.capex')
 
   return (
     <div className="space-y-8">
@@ -276,22 +293,25 @@ export function KeyDriversForm({
           </table>
         </div>
 
-        {/* Cost/Expense Ratios */}
+        {/* Cost/Expense Ratios — Session 050: read-only, auto-populated from IS avg common size */}
         <h3 className="mb-2 text-sm font-medium text-ink-soft">{t('keyDrivers.costRatios')}</h3>
-        <p className="mb-3 text-xs text-ink-muted">{t('keyDrivers.costRatiosHint')}</p>
+        <p className="mb-3 text-xs italic text-ink-muted">{t('keyDrivers.autoNote.costRatios')}</p>
         <div className="grid gap-4 sm:grid-cols-3">
           {([
-            ['cogsRatio', t('keyDrivers.field.cogs')],
-            ['sellingExpenseRatio', t('keyDrivers.field.sellingExp')],
-            ['gaExpenseRatio', t('keyDrivers.field.gaExp')],
-          ] as ['cogsRatio' | 'sellingExpenseRatio' | 'gaExpenseRatio', string][]).map(([key, label]) => (
+            ['cogs', t('keyDrivers.field.cogs'), displayCogsRatio],
+            ['selling', t('keyDrivers.field.sellingExp'), displaySellingRatio],
+            ['ga', t('keyDrivers.field.gaExp'), displayGaRatio],
+          ] as [string, string, number][]).map(([key, label, value]) => (
             <div key={key}>
               <label className="mb-1 block text-sm font-medium text-ink-soft">{label}</label>
-              <div className="flex items-center gap-1">
-                <input type="number" step="0.1"
-                  className="w-full rounded border border-grid bg-canvas px-2 py-1.5 text-right font-mono text-sm tabular-nums focus-visible:ring-2 focus-visible:ring-accent"
-                  value={state.operationalDrivers[key] ? (state.operationalDrivers[key] * 100).toString() : ''}
-                  onChange={e => updateOpRatio(key, e.target.value)} placeholder="0" />
+              <div className="flex items-center gap-1" title={readonlyCostTooltip}>
+                <input type="number"
+                  readOnly
+                  aria-readonly="true"
+                  tabIndex={-1}
+                  className="w-full cursor-not-allowed rounded border border-grid bg-canvas-raised px-2 py-1.5 text-right font-mono text-sm italic tabular-nums text-ink-muted"
+                  value={value ? (value * 100).toFixed(1) : '0.0'}
+                />
                 <span className="text-sm text-ink-muted">%</span>
               </div>
             </div>
@@ -334,9 +354,10 @@ export function KeyDriversForm({
         </div>
       </section>
 
-      {/* Section 4 — Additional Capex (Session 036 dynamic per-FA-account) */}
+      {/* Section 4 — Additional Capex (Session 050: read-only, auto from Proy FA 7-yr) */}
       <section>
         <h2 className="mb-4 text-lg font-semibold text-ink">{t('keyDrivers.additionalCapex')}</h2>
+        <p className="mb-3 text-xs italic text-ink-muted">{t('keyDrivers.autoNote.additionalCapex')}</p>
         {faAccounts.length === 0 ? (
           <p className="text-sm text-ink-muted">
             {t('keyDrivers.additionalCapex.emptyState')}
@@ -358,7 +379,7 @@ export function KeyDriversForm({
                     acct.customLabel
                     ?? (getCatalogAccount(acct.catalogId)?.[faAccountLanguage === 'en' ? 'labelEn' : 'labelId'])
                     ?? acct.catalogId
-                  const series = state.additionalCapexByAccount[acct.excelRow] ?? {}
+                  const series = displayCapexByAccount[acct.excelRow] ?? {}
                   return (
                     <tr key={acct.excelRow} className="border-b border-grid">
                       <td className="px-2 py-1 text-ink">{label}</td>
@@ -367,10 +388,12 @@ export function KeyDriversForm({
                           <input
                             type="number"
                             step="1"
-                            className="w-28 rounded border border-grid bg-canvas px-1 py-1 text-right font-mono text-sm tabular-nums focus-visible:ring-2 focus-visible:ring-accent"
-                            value={series[y] || ''}
-                            onChange={(e) => updateCapex(acct.excelRow, y, e.target.value)}
-                            placeholder="0"
+                            readOnly
+                            aria-readonly="true"
+                            tabIndex={-1}
+                            title={readonlyCapexTooltip}
+                            className="w-28 cursor-not-allowed rounded border border-grid bg-canvas-raised px-1 py-1 text-right font-mono text-sm italic tabular-nums text-ink-muted"
+                            value={series[y] ? Math.round(series[y]!).toString() : '0'}
                           />
                         </td>
                       ))}
@@ -391,3 +414,4 @@ export function KeyDriversForm({
     </div>
   )
 }
+

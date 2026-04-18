@@ -5,6 +5,14 @@ import { useKkaStore, type KeyDriversState } from '@/lib/store/useKkaStore'
 import { KeyDriversForm } from '@/components/forms/KeyDriversForm'
 import { PageEmptyState } from '@/components/shared/PageEmptyState'
 import { useT } from '@/lib/i18n/useT'
+import { buildKdAutoValues } from '@/lib/calculations/kd-auto-values'
+import {
+  computeHistoricalYears,
+  computeProjectionYears,
+} from '@/lib/calculations/year-helpers'
+
+/** KD Additional Capex horizon (matches NUM_PROJECTION_YEARS in KeyDriversForm). */
+const KD_PROJECTION_YEAR_COUNT = 7
 
 export default function KeyDriversPage() {
   const { t } = useT()
@@ -21,22 +29,44 @@ export default function KeyDriversPage() {
     [setKeyDrivers],
   )
 
-  // Auto-compute ratios from IS data for the last historical year
-  const isAutoRatios = useMemo(() => {
+  // Session 050 — unified auto values for Cost & Expense Ratios + Additional
+  // Capex. Derived from IS average common size + Proy FA 7-year projection.
+  // Mirror pattern (LESSON-115): store reflects these values via KeyDriversForm
+  // useEffect, allowing export path (KeyDriversBuilder) to remain unchanged.
+  const kdAuto = useMemo(() => {
+    if (!home || !incomeStatement || !fixedAsset) return null
+    const isHistYears = computeHistoricalYears(
+      home.tahunTransaksi,
+      incomeStatement.yearCount,
+    )
+    const faHistYears = computeHistoricalYears(
+      home.tahunTransaksi,
+      fixedAsset.yearCount,
+    )
+    const projYears = computeProjectionYears(
+      home.tahunTransaksi,
+      KD_PROJECTION_YEAR_COUNT,
+    )
+    return buildKdAutoValues({
+      isRows: incomeStatement.rows,
+      isHistYears,
+      faAccounts: fixedAsset.accounts,
+      faRows: fixedAsset.rows,
+      faHistYears,
+      projYears,
+    })
+  }, [home, incomeStatement, fixedAsset])
+
+  // Auto-derived tax rate from IS (retained for corporate tax rate seed —
+  // kept here rather than inside buildKdAutoValues because tax rate is a
+  // Financial Driver and uses a different derivation base: |Tax / PBT|).
+  const isAutoTaxRate = useMemo(() => {
     if (!home || !incomeStatement?.rows) return null
     const lastYear = home.tahunTransaksi - 1
     const isRows = incomeStatement.rows
-    const revenue = isRows[6]?.[lastYear] ?? 0
-    if (revenue === 0) return null
-    // COGS ratio: |COGS / Revenue| (COGS is negative in store)
-    const cogsRatio = Math.abs((isRows[7]?.[lastYear] ?? 0) / revenue)
-    // Total OpEx ratio: |Total OpEx / Revenue| (OpEx is negative)
-    const opexTotal = isRows[15]?.[lastYear] ?? 0
-    const opexRatio = Math.abs(opexTotal / revenue)
-    // Tax rate: |Tax / PBT|
     const pbt = isRows[32]?.[lastYear] ?? 0
     const taxRate = pbt !== 0 ? Math.abs((isRows[33]?.[lastYear] ?? 0) / pbt) : 0.22
-    return { cogsRatio, opexRatio, taxRate }
+    return { taxRate }
   }, [home, incomeStatement])
 
   if (!hasHydrated) {
@@ -71,7 +101,8 @@ export default function KeyDriversPage() {
         initial={keyDrivers}
         baseYear={home.tahunTransaksi}
         onSave={handleSave}
-        isAutoRatios={isAutoRatios}
+        kdAuto={kdAuto}
+        isAutoTaxRate={isAutoTaxRate}
         faAccounts={fixedAsset?.accounts ?? []}
         faAccountLanguage={language}
       />
