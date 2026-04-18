@@ -192,11 +192,9 @@ const KEY_DRIVERS_ARRAYS: ArrayCellMapping[] = [
   { kind: 'array', storeSlice: 'keyDrivers', storeField: 'bsDrivers.accReceivableDays', excelSheet: 'KEY DRIVERS', startColumn: 'D', row: 28, length: 7 },
   { kind: 'array', storeSlice: 'keyDrivers', storeField: 'bsDrivers.inventoryDays', excelSheet: 'KEY DRIVERS', startColumn: 'D', row: 29, length: 7 },
   { kind: 'array', storeSlice: 'keyDrivers', storeField: 'bsDrivers.accPayableDays', excelSheet: 'KEY DRIVERS', startColumn: 'D', row: 30, length: 7 },
-  // Additional capex (D-J = 7 columns)
-  { kind: 'array', storeSlice: 'keyDrivers', storeField: 'additionalCapex.land', excelSheet: 'KEY DRIVERS', startColumn: 'D', row: 33, length: 7 },
-  { kind: 'array', storeSlice: 'keyDrivers', storeField: 'additionalCapex.building', excelSheet: 'KEY DRIVERS', startColumn: 'D', row: 34, length: 7 },
-  { kind: 'array', storeSlice: 'keyDrivers', storeField: 'additionalCapex.equipment', excelSheet: 'KEY DRIVERS', startColumn: 'D', row: 35, length: 7 },
-  { kind: 'array', storeSlice: 'keyDrivers', storeField: 'additionalCapex.others', excelSheet: 'KEY DRIVERS', startColumn: 'D', row: 36, length: 7 },
+  // Additional capex — Session 036 migrated to dynamic
+  // `additionalCapexByAccount` (keyed by FA excelRow). Injection handled
+  // directly by KeyDriversBuilder (not via cell-mapping).
 ]
 
 // ---------------------------------------------------------------------------

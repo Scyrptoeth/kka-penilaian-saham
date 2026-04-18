@@ -490,6 +490,10 @@ const dict = {
   'keyDrivers.field.invDays': { en: 'Inventory (days)', id: 'Persediaan (hari)' },
   'keyDrivers.field.apDays': { en: 'Acc. Payable (days)', id: 'Utang Usaha (hari)' },
   'keyDrivers.additionalCapex': { en: 'Additional Capex', id: 'Capex Tambahan' },
+  'keyDrivers.additionalCapex.emptyState': {
+    en: 'No Fixed Asset accounts yet. Add accounts on the Fixed Asset input page to enable per-account additional capex planning.',
+    id: 'Belum ada akun Fixed Asset. Tambahkan akun di halaman Input Fixed Asset untuk mengaktifkan rencana tambahan capex per akun.',
+  },
   'keyDrivers.capex.land': { en: 'Land', id: 'Tanah' },
   'keyDrivers.capex.building': { en: 'Building', id: 'Bangunan' },
   'keyDrivers.capex.equipment': { en: 'Equipment', id: 'Peralatan' },

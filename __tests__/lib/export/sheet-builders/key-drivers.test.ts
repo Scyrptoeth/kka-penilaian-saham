@@ -32,12 +32,7 @@ function makeKeyDrivers(overrides: Partial<KeyDriversState> = {}): KeyDriversSta
       inventoryDays: [40, 41, 42, 43, 44, 45, 46],
       accPayableDays: [50, 51, 52, 53, 54, 55, 56],
     },
-    additionalCapex: {
-      land: [0, 0, 0, 0, 0, 0, 0],
-      building: [100, 200, 300, 400, 500, 600, 700],
-      equipment: [0, 0, 0, 0, 0, 0, 0],
-      others: [0, 0, 0, 0, 0, 0, 0],
-    },
+    additionalCapexByAccount: {},
     ...overrides,
   } as KeyDriversState
 }
@@ -122,7 +117,10 @@ describe('KeyDriversBuilder.build — arrays', () => {
     expect(ws.getCell('J20').value).toBe(0.6)
   })
 
-  it('writes additionalCapex.building across D34..J34', () => {
+  // Session 036: additionalCapex migrated to dynamic per-account map
+  // (additionalCapexByAccount). Old 4-row static injection removed.
+  // Dedicated dynamic-account injection deferred to Session 037+.
+  it.skip('writes additionalCapex.building across D34..J34 — deprecated Session 036', () => {
     KeyDriversBuilder.build(wb, makeState({}))
     const ws = wb.getWorksheet('KEY DRIVERS')!
     expect(ws.getCell('D34').value).toBe(100)

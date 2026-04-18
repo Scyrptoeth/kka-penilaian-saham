@@ -13,6 +13,8 @@ export default function KeyDriversPage() {
   const keyDrivers = useKkaStore(s => s.keyDrivers)
   const setKeyDrivers = useKkaStore(s => s.setKeyDrivers)
   const incomeStatement = useKkaStore(s => s.incomeStatement)
+  const fixedAsset = useKkaStore(s => s.fixedAsset)
+  const language = useKkaStore(s => s.language)
 
   const handleSave = useCallback(
     (state: KeyDriversState) => setKeyDrivers(state),
@@ -70,6 +72,8 @@ export default function KeyDriversPage() {
         baseYear={home.tahunTransaksi}
         onSave={handleSave}
         isAutoRatios={isAutoRatios}
+        faAccounts={fixedAsset?.accounts ?? []}
+        faAccountLanguage={language}
       />
     </div>
   )

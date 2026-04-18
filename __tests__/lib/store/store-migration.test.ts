@@ -416,10 +416,44 @@ describe('migratePersistedState — v13 → v14 (faAdjustment → aamAdjustments
     expect(migrated.language).toBe('en')
   })
 
+  it('v15 → v16 drops old additionalCapex shape and initializes additionalCapexByAccount', () => {
+    const v15State = {
+      home: null,
+      language: 'en',
+      keyDrivers: {
+        financialDrivers: { interestRateShortTerm: 0.1 },
+        additionalCapex: {
+          land: [0, 0, 0],
+          building: [100, 200, 300],
+          equipment: [0, 50, 0],
+          others: [0, 0, 0],
+        },
+      },
+    }
+    const migrated = migratePersistedState(v15State, 15) as Record<string, unknown>
+    const kd = migrated.keyDrivers as Record<string, unknown>
+    expect(kd.additionalCapex).toBeUndefined()
+    expect(kd.additionalCapexByAccount).toEqual({})
+    // Other keyDrivers fields preserved
+    expect(kd.financialDrivers).toEqual({ interestRateShortTerm: 0.1 })
+  })
+
+  it('v15 → v16 preserves null keyDrivers', () => {
+    const v15State = { home: null, language: 'en', keyDrivers: null }
+    const migrated = migratePersistedState(v15State, 15) as Record<string, unknown>
+    expect(migrated.keyDrivers).toBeNull()
+  })
+
+  it('v15 → v16 handles missing keyDrivers field', () => {
+    const v15State = { home: null, language: 'en' }
+    const migrated = migratePersistedState(v15State, 15) as Record<string, unknown>
+    expect(migrated).not.toHaveProperty('keyDrivers.additionalCapex')
+  })
+
   it('passes future versions through unchanged', () => {
-    const v15State = { home: null, language: 'en', futureSlice: {} }
-    const migrated = migratePersistedState(v15State, 15)
-    expect(migrated).toBe(v15State)
+    const v16State = { home: null, language: 'en', futureSlice: {} }
+    const migrated = migratePersistedState(v16State, 16)
+    expect(migrated).toBe(v16State)
   })
 
   it('passes non-object payloads through unchanged', () => {

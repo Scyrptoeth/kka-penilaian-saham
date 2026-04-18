@@ -2,8 +2,11 @@
 
 import { useCallback, useMemo, useState, useEffect, useRef } from 'react'
 import type { KeyDriversState } from '@/lib/store/useKkaStore'
-import { computeSalesVolumes, computeSalesPrices, computeTotalCapex } from '@/lib/calculations/key-drivers'
+import { computeSalesVolumes, computeSalesPrices } from '@/lib/calculations/key-drivers'
 import { useT } from '@/lib/i18n/useT'
+import type { FaAccountEntry } from '@/data/catalogs/fixed-asset-catalog'
+import { getCatalogAccount } from '@/data/catalogs/fixed-asset-catalog'
+import type { YearKeyedSeries } from '@/types/financial'
 
 const NUM_PROJECTION_YEARS = 7
 
@@ -33,12 +36,7 @@ function defaultState(): KeyDriversState {
       inventoryDays: makeDefaultArray(NUM_PROJECTION_YEARS, 50),
       accPayableDays: makeDefaultArray(NUM_PROJECTION_YEARS, 90),
     },
-    additionalCapex: {
-      land: makeDefaultArray(NUM_PROJECTION_YEARS, 0),
-      building: makeDefaultArray(NUM_PROJECTION_YEARS, 0),
-      equipment: makeDefaultArray(NUM_PROJECTION_YEARS, 0),
-      others: makeDefaultArray(NUM_PROJECTION_YEARS, 0),
-    },
+    additionalCapexByAccount: {},
   }
 }
 
@@ -48,9 +46,16 @@ interface KeyDriversFormProps {
   onSave: (state: KeyDriversState) => void
   /** Auto-computed ratios from IS data — used as defaults if Key Drivers not yet saved */
   isAutoRatios?: { cogsRatio: number; opexRatio: number; taxRate: number } | null
+  /** Session 036: FA accounts for dynamic Additional Capex rows. */
+  faAccounts?: readonly FaAccountEntry[]
+  /** Active language for FA account labels. */
+  faAccountLanguage?: 'en' | 'id'
 }
 
-export function KeyDriversForm({ initial, baseYear, onSave, isAutoRatios }: KeyDriversFormProps) {
+export function KeyDriversForm({
+  initial, baseYear, onSave, isAutoRatios,
+  faAccounts = [], faAccountLanguage = 'en',
+}: KeyDriversFormProps) {
   const { t } = useT()
   const [state, setState] = useState<KeyDriversState>(() => {
     if (initial) return initial
@@ -89,15 +94,17 @@ export function KeyDriversForm({ initial, baseYear, onSave, isAutoRatios }: KeyD
     [state.operationalDrivers.salesPriceBase, state.operationalDrivers.salesPriceIncrements],
   )
 
-  const totalCapex = useMemo(
-    () => computeTotalCapex(
-      state.additionalCapex.land,
-      state.additionalCapex.building,
-      state.additionalCapex.equipment,
-      state.additionalCapex.others,
-    ),
-    [state.additionalCapex],
-  )
+  // Session 036: per-account Additional Capex. Total per year = sum across
+  // all accounts. Accounts iterated in fixedAsset.accounts order.
+  const totalCapex = useMemo<number[]>(() => {
+    return projYears.map((year) => {
+      let sum = 0
+      for (const acct of faAccounts) {
+        sum += state.additionalCapexByAccount[acct.excelRow]?.[year] ?? 0
+      }
+      return sum
+    })
+  }, [state.additionalCapexByAccount, projYears, faAccounts])
 
   // --- Updaters ---
   const updateFin = useCallback((key: keyof KeyDriversState['financialDrivers'], raw: string) => {
@@ -142,12 +149,14 @@ export function KeyDriversForm({ initial, baseYear, onSave, isAutoRatios }: KeyD
     })
   }, [])
 
-  const updateCapex = useCallback((field: keyof KeyDriversState['additionalCapex'], idx: number, raw: string) => {
+  const updateCapex = useCallback((excelRow: number, year: number, raw: string) => {
     const v = parseFloat(raw)
-    setState(s => {
-      const arr = [...s.additionalCapex[field]]
-      arr[idx] = Number.isFinite(v) ? v : 0
-      return { ...s, additionalCapex: { ...s.additionalCapex, [field]: arr } }
+    setState((s) => {
+      const byAccount = { ...s.additionalCapexByAccount }
+      const series: YearKeyedSeries = { ...(byAccount[excelRow] ?? {}) }
+      series[year] = Number.isFinite(v) ? v : 0
+      byAccount[excelRow] = series
+      return { ...s, additionalCapexByAccount: byAccount }
     })
   }, [])
 
@@ -325,46 +334,59 @@ export function KeyDriversForm({ initial, baseYear, onSave, isAutoRatios }: KeyD
         </div>
       </section>
 
-      {/* Section 4 — Additional Capex */}
+      {/* Section 4 — Additional Capex (Session 036 dynamic per-FA-account) */}
       <section>
         <h2 className="mb-4 text-lg font-semibold text-ink">{t('keyDrivers.additionalCapex')}</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-grid">
-                <th className="px-2 py-1 text-left text-ink-muted" />
-                {projYears.map(y => (
-                  <th key={y} className="px-2 py-1 text-right font-mono text-ink-muted tabular-nums">{y}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {([
-                ['land', t('keyDrivers.capex.land')],
-                ['building', t('keyDrivers.capex.building')],
-                ['equipment', t('keyDrivers.capex.equipment')],
-                ['others', t('keyDrivers.capex.others')],
-              ] as [keyof KeyDriversState['additionalCapex'], string][]).map(([field, label]) => (
-                <tr key={field} className="border-b border-grid">
-                  <td className="px-2 py-1 text-ink">{label}</td>
-                  {state.additionalCapex[field].map((v, i) => (
-                    <td key={i} className="px-2 py-1">
-                      <input type="number" step="1"
-                        className="w-28 rounded border border-grid bg-canvas px-1 py-1 text-right font-mono text-sm tabular-nums focus-visible:ring-2 focus-visible:ring-accent"
-                        value={v || ''} onChange={e => updateCapex(field, i, e.target.value)} placeholder="0" />
-                    </td>
+        {faAccounts.length === 0 ? (
+          <p className="text-sm text-ink-muted">
+            {t('keyDrivers.additionalCapex.emptyState')}
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-grid">
+                  <th className="px-2 py-1 text-left text-ink-muted" />
+                  {projYears.map((y) => (
+                    <th key={y} className="px-2 py-1 text-right font-mono text-ink-muted tabular-nums">{y}</th>
                   ))}
                 </tr>
-              ))}
-              <tr className="border-t-2 border-grid-strong bg-canvas-raised font-semibold">
-                <td className="px-2 py-1 text-ink">{t('common.total')}</td>
-                {totalCapex.map((v, i) => (
-                  <td key={i} className="px-2 py-1 text-right font-mono tabular-nums">{IDR.format(v)}</td>
-                ))}
-              </tr>
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {faAccounts.map((acct) => {
+                  const label =
+                    acct.customLabel
+                    ?? (getCatalogAccount(acct.catalogId)?.[faAccountLanguage === 'en' ? 'labelEn' : 'labelId'])
+                    ?? acct.catalogId
+                  const series = state.additionalCapexByAccount[acct.excelRow] ?? {}
+                  return (
+                    <tr key={acct.excelRow} className="border-b border-grid">
+                      <td className="px-2 py-1 text-ink">{label}</td>
+                      {projYears.map((y) => (
+                        <td key={y} className="px-2 py-1">
+                          <input
+                            type="number"
+                            step="1"
+                            className="w-28 rounded border border-grid bg-canvas px-1 py-1 text-right font-mono text-sm tabular-nums focus-visible:ring-2 focus-visible:ring-accent"
+                            value={series[y] || ''}
+                            onChange={(e) => updateCapex(acct.excelRow, y, e.target.value)}
+                            placeholder="0"
+                          />
+                        </td>
+                      ))}
+                    </tr>
+                  )
+                })}
+                <tr className="border-t-2 border-grid-strong bg-canvas-raised font-semibold">
+                  <td className="px-2 py-1 text-ink">{t('common.total')}</td>
+                  {totalCapex.map((v, i) => (
+                    <td key={i} className="px-2 py-1 text-right font-mono tabular-nums">{IDR.format(v)}</td>
+                  ))}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
     </div>
   )

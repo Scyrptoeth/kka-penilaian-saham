@@ -57,12 +57,12 @@ export interface KeyDriversState {
     inventoryDays: number[]
     accPayableDays: number[]
   }
-  additionalCapex: {
-    land: number[]
-    building: number[]
-    equipment: number[]
-    others: number[]
-  }
+  /**
+   * Session 036: replaces old 4-row `additionalCapex`. Keyed by FA
+   * excelRow (see `fixedAsset.accounts[].excelRow`). Value = YearKeyedSeries
+   * across projection years.
+   */
+  additionalCapexByAccount: Record<number, import('@/types/financial').YearKeyedSeries>
 }
 
 /** Discount Rate (CAPM) slice — separate analysis from WACC. */
@@ -169,7 +169,7 @@ interface KkaState {
 }
 
 const STORE_KEY = 'kka-penilaian-saham'
-const STORE_VERSION = 15
+const STORE_VERSION = 16
 
 /**
  * Migrate persisted state from older versions to the current schema.
@@ -484,6 +484,27 @@ export function migratePersistedState(
     state = {
       ...state,
       language: (bs?.language as string) ?? 'en',
+    }
+  }
+
+  // v15→v16: Replace hardcoded additionalCapex (4 categories) with dynamic
+  // additionalCapexByAccount (keyed by FA excelRow). Old data dropped —
+  // no lossless mapping to FA catalog accounts.
+  if (fromVersion < 16) {
+    const kd = (state as Record<string, unknown>).keyDrivers as
+      | Record<string, unknown>
+      | null
+      | undefined
+    if (kd && typeof kd === 'object') {
+      const { additionalCapex: _discarded, ...restKd } = kd
+      void _discarded
+      state = {
+        ...state,
+        keyDrivers: {
+          ...restKd,
+          additionalCapexByAccount: {},
+        } as unknown as KkaState['keyDrivers'],
+      }
     }
   }
 
