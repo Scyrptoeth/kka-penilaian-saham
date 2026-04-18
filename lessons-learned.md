@@ -623,7 +623,11 @@ untuk 3+ sesi ke depan:
 - LESSON-106 (Auto-classifier aggregation + per-row adjustments = double-count trap — drop classifier, promote subtotal to user input)
 - LESSON-107 (Extract cross-cutting required valuation inputs into dedicated page + required-gate — null sentinel, PageEmptyState at every consumer, sign-reconciliation at builder boundary)
 
-LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054, 074, 087 **TIDAK** di-promote — workflow/session-specific
+### Session 039 (Changes in Working Capital required-gate + DCF inline breakdown)
+- LESSON-108 (Account-driven aggregation replaces hardcoded row lists — system correctness > prototipe fidelity)
+- LESSON-110 (Export shared row-filter helper when historical + projection compute must share semantic)
+
+LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054, 074, 087, 109 **TIDAK** di-promote — workflow/session-specific
 insights yang general ke project lain tapi terlalu luas atau terlalu
 session-specific untuk section 8 (yang fokus KKA-specific gotchas).
 Tersimpan di lessons-learned saja.
@@ -3238,5 +3242,148 @@ the right place.
 page + 6 consumer-page PageEmptyState gates + 3 input-builder param
 additions + 3 sheet-builder upstream extensions. 1 line of user note
 per consumer (AAM bilingual, inline hyperlink). 1215 tests green.
+
+---
+
+## Session 039 — Changes in Working Capital Required-Gate + DCF Inline Breakdown
+
+### LESSON-108: Account-driven aggregation replaces hardcoded row lists — system correctness > prototipe fidelity
+
+**Kategori**: Architecture | Anti-pattern | Excel
+
+**Sesi**: session-039
+**Tanggal**: 2026-04-18
+
+**Konteks**: Compute modules that aggregate BS/IS/FA rows for subtotal-like
+calculations (ΔCA / ΔCL in CFS, Total Current Assets in FR, etc.) when
+the underlying catalog is dynamic (user-selected accounts with excelRow
+values spanning template rows 8–51, extended catalog 100+, and custom
+1000+).
+
+**Apa yang terjadi**: `computeCashFlowLiveRows` had
+`const BS_CA_ROWS = [10, 11, 12, 14]` and
+`const BS_CL_ROWS = [31, 32, 33, 34]` hardcoded. These row numbers came
+from the PT Raja Voltama prototipe workbook formula
+`(BS!D10+D11+D12+D14)*-1`. Any user with extended catalog accounts
+(excelRow ≥ 100) or custom accounts (≥ 1000) would see ΔCA and ΔCL
+render "-" / zero, because their actual accounts never matched the
+hardcoded list. The same defect existed in `computeProyCfsLive` since
+Session 036 (hardcoded PROY BS template rows 13/15/17/19 vs
+`computeProyBsLive` output keyed by user excelRow).
+
+**Root cause / insight**: Hardcoded row lists couple compute logic to
+ONE specific case study's row numbering. They are fundamentally
+incompatible with a dynamic-catalog system. The fix is NOT to maintain
+a bigger hardcoded list — it is to **iterate user accounts** from the
+store, filtered by section + user exclusion list.
+
+**Cara menerapkan di masa depan**:
+- **Grep rule**: before shipping any compute module that reads specific
+  BS/IS/FA rows, search for literal row-number arrays
+  (`[N, N, N]` or `const *_ROWS = [...]`). Each one is a latent bug
+  for dynamic catalog users.
+- **Rewrite signature to accept accounts**: `(bsAccounts,
+  excludedRows[], ...)` instead of hardcoded row constants. Iterate
+  `bsAccounts.filter(a => a.section === 'X' && !excluded.has(a.excelRow))`.
+- **Propagate exclusion list** as a top-level concern from store →
+  compute inputs → consumer pages. Store slice, pipeline input,
+  builder upstream, PageEmptyState gate — all 4 layers wire the same
+  scope.
+- **System correctness > fixture parity**: when rewriting reveals that
+  prototipe formula drift from the generalized model, **accept the
+  divergence**. Update fixture reference data in Phase C whitelist
+  (LESSON-100). Do not revert the compute.
+- **Cross-timeframe consistency**: historical compute (CFS) and
+  projection compute (PROY CFS) MUST share the exact same filter.
+  Extract shared helper (see LESSON-110).
+
+**Proven at**: session-039. Two compute rewrites
+(`computeCashFlowLiveRows` + `computeProyCfsLive`), 12 direct call-site
+migrations, +6 TDD cases for account-driven behavior. Fixed user-reported
+bug: WC rows showed "-" for most users using dynamic catalogs. 1222
+tests green. Phase C 5/5 preserved.
+
+---
+
+### LESSON-109: React Fragment inside Array.map() needs explicit `<Fragment key={...}>`
+
+**Kategori**: Framework | React | Anti-pattern
+
+**Sesi**: session-039
+**Tanggal**: 2026-04-18
+
+**Konteks**: Rendering a list where each item expands to multiple sibling
+elements (e.g. one parent row + N breakdown rows) without a wrapping
+DOM node — in TypeScript tables where `<tr>` cannot nest in `<div>`,
+fragments are the only option.
+
+**Apa yang terjadi**: Initial DCF breakdown used `<>...</>` (short
+fragment syntax) inside `array.map()`. Short fragments cannot accept a
+`key` prop. React still renders correctly in development but emits a
+warning and risks misaligned reconciliation across re-renders.
+
+**Root cause / insight**: JSX `<>` compiles to `React.Fragment` but
+with NO props path. To pass a `key`, use the explicit named form
+`<Fragment key={...}>` (or `<React.Fragment key={...}>`).
+
+**Cara menerapkan di masa depan**: Inside any `Array.map()` that
+returns a fragment of sibling elements:
+```tsx
+import { Fragment } from 'react'
+...
+{items.map((item) => (
+  <Fragment key={item.id}>
+    <tr>...</tr>
+    <tr>...</tr>
+  </Fragment>
+))}
+```
+Short fragment `<>...</>` is fine for ONE-OFF usage at return position
+(not inside map iteration).
+
+**Proven at**: session-039 DCF page Task 9. Two map loops returned
+`<Fragment key>` pattern; no key warnings at runtime.
+
+---
+
+### LESSON-110: Export shared row-filter helper when historical + projection compute must share semantic
+
+**Kategori**: Architecture | Workflow
+
+**Sesi**: session-039
+**Tanggal**: 2026-04-18
+
+**Konteks**: Pair of compute modules (one historical, one projection)
+that should apply the same row-selection rule but traditionally had
+divergent hardcoded logic. Examples: CFS vs PROY CFS for ΔCA, NOPLAT
+vs PROY NOPLAT for effective-tax-rate derivation, etc.
+
+**Apa yang terjadi**: Session 039 introduced `resolveWcRows(
+bsAccounts, section, excluded)` as an exported helper in
+`compute-cash-flow-live.ts`. Both historical CFS compute and projection
+CFS compute now call the same function with the same store-derived
+parameters. Any future tweak to the filter logic (e.g. add cash
+special-case) lives in ONE place.
+
+**Root cause / insight**: Historical and projection compute paths are
+naturally siblings that diverge silently when their row-selection is
+inlined. Divergence = production bugs where ΔCA aggregates different
+account sets in history vs projection for the same user. Extracting
+the filter removes this risk.
+
+**Cara menerapkan di masa depan**:
+- Whenever a historical compute has a `*_ROWS` pattern that will be
+  mirrored in projection compute, extract a pure `resolve*Rows(...)`
+  helper first.
+- Export the helper from the historical compute module (or a shared
+  helpers file). Projection compute imports and uses it.
+- The helper should be pure and testable in isolation — it accepts
+  the account list + filter criteria and returns a row-number array.
+  No store access, no side effects.
+
+**Proven at**: session-039. `resolveWcRows` lives in
+`src/data/live/compute-cash-flow-live.ts` and is consumed inline by
+`computeCashFlowLiveRows` + `computeProyCfsLive`. Single source of
+truth for WC aggregation semantic across timeframes.
 
 ---
