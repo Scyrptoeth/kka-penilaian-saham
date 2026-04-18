@@ -255,6 +255,10 @@ const dict = {
   'aam.title': { en: 'Adjusted Asset Method (AAM)', id: 'Adjusted Asset Method (AAM)' },
   'aam.subtitle': { en: 'Net Adjusted Asset Method — click a number in the Adjustment (D) column to edit.', id: 'Metode Penyesuaian Aset Bersih — klik angka di kolom Penyesuaian (D) untuk mengedit.' },
   'aam.editAdjustment': { en: 'Click to edit adjustment', id: 'Klik untuk edit penyesuaian' },
+  'aam.ibdRetainedLockTitle': {
+    en: 'Locked — this account is retained as Interest Bearing Debt; adjustment auto-set to −Historical so Adjusted value is 0 (excluded from NAV).',
+    id: 'Terkunci — akun ini dipertahankan sebagai Utang Berbunga; penyesuaian otomatis −Historis sehingga nilai Disesuaikan = 0 (tidak dihitung dalam NAV).',
+  },
   'aam.section.currentAssets': { en: 'CURRENT ASSETS', id: 'AKTIVA LANCAR' },
   'aam.section.nonCurrentAssets': { en: 'NON-CURRENT ASSETS', id: 'AKTIVA TIDAK LANCAR' },
   'aam.section.currentLiabilities': { en: 'CURRENT LIABILITIES', id: 'KEWAJIBAN LANCAR' },

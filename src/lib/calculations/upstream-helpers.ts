@@ -158,6 +158,53 @@ export function computeHistoricalUpstream(input: HistoricalUpstreamInput): Histo
   return { allNoplat, allCfs, allFcf, allFa, faComp, roicRows, growthRate }
 }
 
+// ── AAM IBD Auto-Adjustment Helper (Session 043 Task 3) ──
+
+export interface IbdAutoAdjustParams {
+  accounts: readonly BsAccountEntry[]
+  bsValues: Readonly<Record<number, YearKeyedSeries>>
+  lastYear: number
+  excludedCurrentLiabIbd: ReadonlySet<number>
+  excludedNonCurrentLiabIbd: ReadonlySet<number>
+}
+
+/**
+ * Session 043 Task 3 — Auto-negate column D (Penyesuaian) for liability accounts
+ * that are RETAINED as Interest Bearing Debt.
+ *
+ * Business rationale: user-curated IBD exclusion sets are the single source of
+ * truth for the IBD/non-IBD split (LESSON-119). Retained IBD accounts (those
+ * NOT excluded) represent financing obligations the user confirmed should be
+ * IBD. By convention, IBD is not counted inside Net Asset Value — it is
+ * subtracted later (NAV − IBD = Equity Value). To avoid double-counting and
+ * to match the visual contract "E = 0 for retained IBD", we auto-apply
+ * `adjustment = -historical` at the builder boundary.
+ *
+ * User aamAdjustments are still honored for ASSET and EQUITY sections; the
+ * auto-map only covers CL + NCL retained IBD rows. Auto-map wins over user
+ * input for those specific rows (locked in UI).
+ *
+ * Returns a plain Record<excelRow, adjustmentAmount> sized to the number of
+ * retained IBD liability accounts.
+ */
+export function computeIbdAutoAdjustments(
+  params: IbdAutoAdjustParams,
+): Record<number, number> {
+  const { accounts, bsValues, lastYear, excludedCurrentLiabIbd, excludedNonCurrentLiabIbd } = params
+  const out: Record<number, number> = {}
+  for (const acct of accounts) {
+    const isCl = acct.section === 'current_liabilities'
+    const isNcl = acct.section === 'non_current_liabilities'
+    if (!isCl && !isNcl) continue
+    const excluded = isCl ? excludedCurrentLiabIbd : excludedNonCurrentLiabIbd
+    if (excluded.has(acct.excelRow)) continue
+    const bsVal = bsValues[acct.excelRow]?.[lastYear] ?? 0
+    // Zero historical stays zero (avoid JavaScript's -0 sentinel).
+    out[acct.excelRow] = bsVal === 0 ? 0 : -bsVal
+  }
+  return out
+}
+
 // ── AAM Input Builder ──
 
 export interface BuildAamParams {
@@ -207,11 +254,23 @@ export function buildAamInput(params: BuildAamParams): AamInput {
     allBs,
     lastYear: ly,
     home,
-    aamAdjustments: adj,
+    aamAdjustments: userAdj,
     interestBearingDebt,
     excludedCurrentLiabIbd,
     excludedNonCurrentLiabIbd,
   } = params
+  // Session 043 Task 3: auto-compute Penyesuaian for retained IBD liabilities.
+  // Merge auto-map AFTER user adjustments — auto wins for retained IBD rows
+  // (UI locks those cells so users cannot override anyway). Non-liability
+  // sections (assets, equity) remain fully user-driven.
+  const autoAdj = computeIbdAutoAdjustments({
+    accounts,
+    bsValues: allBs,
+    lastYear: ly,
+    excludedCurrentLiabIbd: excludedCurrentLiabIbd ?? new Set(),
+    excludedNonCurrentLiabIbd: excludedNonCurrentLiabIbd ?? new Set(),
+  })
+  const adj: Record<number, number> = { ...userAdj, ...autoAdj }
   const bs = (row: number) => allBs[row]?.[ly] ?? 0
   const a = (row: number) => adj[row] ?? 0
   const adjusted = (row: number) => bs(row) + a(row)

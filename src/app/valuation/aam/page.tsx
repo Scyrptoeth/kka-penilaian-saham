@@ -7,7 +7,11 @@ import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { BALANCE_SHEET_MANIFEST } from '@/data/manifests/balance-sheet'
 import { computeAam } from '@/lib/calculations/aam-valuation'
-import { buildAamInput, computeInterestBearingDebt } from '@/lib/calculations/upstream-helpers'
+import {
+  buildAamInput,
+  computeInterestBearingDebt,
+  computeIbdAutoAdjustments,
+} from '@/lib/calculations/upstream-helpers'
 import { formatIdr, formatPercent } from '@/components/financial/format'
 import { parseFinancialInput } from '@/components/forms/parse-financial-input'
 import { PageEmptyState } from '@/components/shared/PageEmptyState'
@@ -188,7 +192,17 @@ export default function AamPage() {
       excludedNonCurrentLiabIbd: exclNCL,
     }))
 
-    return { result, allBs, ly, accounts: balanceSheet.accounts }
+    // Session 043 Task 3: auto-map for UI display — col D locked + auto-negated
+    // for CL/NCL accounts retained as IBD (i.e. NOT in exclusion set).
+    const autoAdj = computeIbdAutoAdjustments({
+      accounts: balanceSheet.accounts,
+      bsValues: allBs,
+      lastYear: ly,
+      excludedCurrentLiabIbd: exclCL,
+      excludedNonCurrentLiabIbd: exclNCL,
+    })
+
+    return { result, allBs, ly, accounts: balanceSheet.accounts, autoAdj }
   }, [hasHydrated, home, balanceSheet, aamAdjustments, interestBearingDebt])
 
   if (!hasHydrated) {
@@ -209,7 +223,7 @@ export default function AamPage() {
     )
   }
 
-  const { result: r, allBs, ly, accounts } = data
+  const { result: r, allBs, ly, accounts, autoAdj } = data
   const bs = (row: number) => allBs[row]?.[ly] ?? 0
 
   /** Get accounts belonging to given BS sections, in store order */
@@ -218,8 +232,17 @@ export default function AamPage() {
     return accounts.filter(a => sectionSet.has(a.section))
   }
 
-  /** Sum adjustments for a set of excelRows */
-  const sumAdj = (rows: number[]) => rows.reduce((s, row) => s + (aamAdjustments[row] ?? 0), 0)
+  /**
+   * Session 043 Task 3 — Effective adjustment for a single row.
+   * Auto-map (retained IBD) wins over user input; otherwise use user value.
+   */
+  const effectiveAdj = (row: number): number =>
+    Object.prototype.hasOwnProperty.call(autoAdj, row)
+      ? autoAdj[row]
+      : (aamAdjustments[row] ?? 0)
+
+  /** Sum effective adjustments (user + auto) for a set of excelRows */
+  const sumAdj = (rows: number[]) => rows.reduce((s, row) => s + effectiveAdj(row), 0)
 
   // Build list of all excelRows per section for subtotal D-column sum
   const sectionExcelRows = (section: AamSection): number[] => {
@@ -276,21 +299,28 @@ export default function AamPage() {
                       adjVal={aamAdjustments[FIXED_ASSET_NET_ROW] ?? 0}
                       onAdjCommit={handleAdjustmentCommit}
                       editTitle={t('aam.editAdjustment')}
+                      locked={false}
+                      lockedTitle=""
                     />
                   )}
 
                   {/* Dynamic account rows */}
-                  {sectionAccounts.map((acct) => (
-                    <AccountRow
-                      key={acct.excelRow}
-                      label={resolveAccountLabel(acct, language)}
-                      bsRow={acct.excelRow}
-                      bsVal={bs(acct.excelRow)}
-                      adjVal={aamAdjustments[acct.excelRow] ?? 0}
-                      onAdjCommit={handleAdjustmentCommit}
-                      editTitle={t('aam.editAdjustment')}
-                    />
-                  ))}
+                  {sectionAccounts.map((acct) => {
+                    const isAuto = Object.prototype.hasOwnProperty.call(autoAdj, acct.excelRow)
+                    return (
+                      <AccountRow
+                        key={acct.excelRow}
+                        label={resolveAccountLabel(acct, language)}
+                        bsRow={acct.excelRow}
+                        bsVal={bs(acct.excelRow)}
+                        adjVal={isAuto ? autoAdj[acct.excelRow] : (aamAdjustments[acct.excelRow] ?? 0)}
+                        onAdjCommit={handleAdjustmentCommit}
+                        editTitle={t('aam.editAdjustment')}
+                        locked={isAuto}
+                        lockedTitle={t('aam.ibdRetainedLockTitle')}
+                      />
+                    )
+                  })}
 
                   {/* Section subtotal */}
                   <tr className="border-t border-grid-strong bg-canvas-raised font-semibold">
@@ -400,7 +430,7 @@ function SectionGroup({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
-/** Single account row with editable D column */
+/** Single account row with editable D column (unless locked for retained IBD) */
 function AccountRow({
   label,
   bsRow,
@@ -408,6 +438,8 @@ function AccountRow({
   adjVal,
   onAdjCommit,
   editTitle,
+  locked,
+  lockedTitle,
 }: {
   label: string
   bsRow: number
@@ -415,16 +447,28 @@ function AccountRow({
   adjVal: number
   onAdjCommit: (bsRow: number, value: number) => void
   editTitle: string
+  locked: boolean
+  lockedTitle: string
 }) {
   return (
     <tr className="border-b border-grid">
       <td className="px-3 py-2 text-ink">{label}</td>
       <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(bsVal)}</td>
-      <AdjustmentCell
-        value={adjVal}
-        onCommit={(v) => onAdjCommit(bsRow, v)}
-        editTitle={editTitle}
-      />
+      {locked ? (
+        <td
+          className="px-3 py-2 text-right font-mono tabular-nums text-ink-muted"
+          title={lockedTitle}
+          aria-label={lockedTitle}
+        >
+          {formatIdr(adjVal)}
+        </td>
+      ) : (
+        <AdjustmentCell
+          value={adjVal}
+          onCommit={(v) => onAdjCommit(bsRow, v)}
+          editTitle={editTitle}
+        />
+      )}
       <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(bsVal + adjVal)}</td>
     </tr>
   )
