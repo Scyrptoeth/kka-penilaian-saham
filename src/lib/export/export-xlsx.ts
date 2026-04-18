@@ -66,8 +66,14 @@ export interface ExportableState {
   borrowingCapInput: BorrowingCapInputState | null
   aamAdjustments: Record<number, number>
   nilaiPengalihanDilaporkan: number
-  /** Session 038 — dedicated Interest Bearing Debt input. null = user has not filled. */
-  interestBearingDebt: number | null
+  /**
+   * Session 041 Task 5 — Interest Bearing Debt scope (account exclusion list).
+   * null = user has not confirmed scope.
+   */
+  interestBearingDebt: {
+    excludedCurrentLiabilities: number[]
+    excludedNonCurrentLiabilities: number[]
+  } | null
   /**
    * Session 039 — Working Capital scope control. Account-driven exclusion
    * list for CFS ΔCA / ΔCL aggregation. `null` = user has not confirmed
@@ -876,18 +882,17 @@ export function extendBsSectionSubtotals(
 //   2. Full Excel reactivity — user edits D105 in Excel, D6 auto-recomputes.
 //   3. Derived formulas (D8 = SUM(D6:D7), etc.) untouched and correct.
 //
-// Net-interest section (rows 500-519) is special: accounts mix `income`
-// and `expense` via `interestType` flag, so a simple contiguous SUM range
-// cannot express the signed total. We keep D26/D27 as hardcoded sentinels
-// (from DynamicIsEditor pre-computation) and still write extended rows
-// 500-519 for breakdown visibility.
+// Session 041 Task 3: the legacy single `net_interest` section (mixed-sign,
+// previously sentinelRow: null) has been split into two single-sign sections
+// (`interest_income` rows 500-519, `interest_expense` rows 520-539). Both
+// sections can now use SUM-formula sentinel replacement just like the others.
 // ---------------------------------------------------------------------------
 
 interface IsSectionInjectMap {
   section: IsSection
   extendedRowStart: number
   extendedRowEnd: number
-  /** Sentinel cell row to overwrite with SUM formula. `null` = skip (mixed-sign). */
+  /** Sentinel cell row to overwrite with SUM formula. `null` = skip. */
   sentinelRow: number | null
 }
 
@@ -897,7 +902,8 @@ const IS_SECTION_INJECT: readonly IsSectionInjectMap[] = [
   { section: 'cost',              extendedRowStart: 200, extendedRowEnd: 219, sentinelRow: 7  },
   { section: 'operating_expense', extendedRowStart: 300, extendedRowEnd: 319, sentinelRow: 15 },
   { section: 'non_operating',     extendedRowStart: 400, extendedRowEnd: 419, sentinelRow: 30 },
-  { section: 'net_interest',      extendedRowStart: 500, extendedRowEnd: 519, sentinelRow: null },
+  { section: 'interest_income',   extendedRowStart: 500, extendedRowEnd: 519, sentinelRow: 26 },
+  { section: 'interest_expense',  extendedRowStart: 520, extendedRowEnd: 539, sentinelRow: 27 },
 ] as const
 
 /**
@@ -948,9 +954,9 @@ export function injectExtendedIsAccounts(
  * to extended rows propagate automatically through derived formulas
  * and downstream sheets.
  *
- * `net_interest` is skipped (sentinelRow: null) because rows 500-519 mix
- * `income` and `expense` interestType — a simple SUM range can't express
- * the signed total. D26/D27 sentinels remain as hardcoded numbers.
+ * Session 041 Task 3: `interest_income` (rows 500-519) and
+ * `interest_expense` (rows 520-539) are now split into separate sections,
+ * each single-sign, so both use SUM-formula sentinel replacement.
  */
 export function replaceIsSectionSentinels(
   workbook: ExcelJS.Workbook,

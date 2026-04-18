@@ -1,5 +1,5 @@
 /**
- * Income Statement Account Catalog — 5 sections with bilingual accounts.
+ * Income Statement Account Catalog — 6 sections with bilingual accounts.
  *
  * Original IS leaf rows (6, 7, 12, 13, 26, 27, 30) are mapped to EXTENDED
  * excelRow ranges so the original positions become section-subtotal sentinels
@@ -10,17 +10,25 @@
  *   Sentinel row 15 = OpEx total
  *   Sentinel row 26 = Interest Income total
  *   Sentinel row 27 = Interest Expense total
- *   Sentinel row 28 = Net Interest (computed: 26 − 27)
+ *   Sentinel row 28 = Net Interest (computed: 26 + 27 — IE entered negative)
  *   Sentinel row 30 = Non-Operating total
  *
- * Rows 21 (Depreciation) and 33 (Tax) are fixed leaves — not in any section.
+ * Row 33 (Tax) is the only fixed leaf — not in any section.
+ *
+ * Session 041 Task 1: row 21 (Depreciation) is now a cross-ref read-only
+ * sentinel sourced from FA row 51 — no longer a fixed leaf.
+ *
+ * Session 041 Task 3: the legacy single `net_interest` section is split into
+ * two semantically distinct sections so each renders its own +Add dropdown
+ * with a section-appropriate PSAK 71 / IFRS 9 / IAS 23 default catalog.
  *
  * excelRow ranges per section:
  *   100-119 : Revenue
  *   200-219 : Cost (COGS)
  *   300-319 : Operating Expense
  *   400-419 : Non-Operating
- *   500-519 : Net Interest
+ *   500-519 : Interest Income     (Session 041)
+ *   520-539 : Interest Expense    (Session 041)
  *   >= 1000 : user custom accounts
  */
 
@@ -29,7 +37,8 @@ export type IsSection =
   | 'cost'
   | 'operating_expense'
   | 'non_operating'
-  | 'net_interest'
+  | 'interest_income'
+  | 'interest_expense'
 
 export interface IsCatalogAccount {
   id: string
@@ -37,15 +46,12 @@ export interface IsCatalogAccount {
   labelId: string
   section: IsSection
   excelRow: number
-  /** For net_interest accounts: determines sign in Net Interest computation */
-  interestType?: 'income' | 'expense'
 }
 
 export interface IsAccountEntry {
   catalogId: string
   excelRow: number
   section: IsSection
-  interestType?: 'income' | 'expense'
   customLabel?: string
 }
 
@@ -113,16 +119,32 @@ const NON_OPERATING_ACCOUNTS: IsCatalogAccount[] = [
 ]
 
 // ---------------------------------------------------------------------------
-// Net Interest accounts (excelRow 500-519)
+// Interest Income accounts (excelRow 500-519) — PSAK 71 / IFRS 9
+// Session 041 Task 3: split from legacy `net_interest` section.
 // ---------------------------------------------------------------------------
 
-const NET_INTEREST_ACCOUNTS: IsCatalogAccount[] = [
-  { id: 'interest_income', labelEn: 'Interest Income', labelId: 'Pendapatan Bunga', section: 'net_interest', excelRow: 500, interestType: 'income' },
-  { id: 'interest_expense', labelEn: 'Interest Expense', labelId: 'Beban Bunga', section: 'net_interest', excelRow: 501, interestType: 'expense' },
-  { id: 'bank_interest_income', labelEn: 'Bank Interest Income', labelId: 'Pendapatan Bunga Bank', section: 'net_interest', excelRow: 502, interestType: 'income' },
-  { id: 'loan_interest', labelEn: 'Loan Interest Expense', labelId: 'Beban Bunga Pinjaman', section: 'net_interest', excelRow: 503, interestType: 'expense' },
-  { id: 'bond_interest', labelEn: 'Bond Interest Expense', labelId: 'Beban Bunga Obligasi', section: 'net_interest', excelRow: 504, interestType: 'expense' },
-  { id: 'finance_charge', labelEn: 'Finance Charge', labelId: 'Beban Keuangan', section: 'net_interest', excelRow: 505, interestType: 'expense' },
+const INTEREST_INCOME_ACCOUNTS: IsCatalogAccount[] = [
+  { id: 'time_deposit_interest', labelEn: 'Time Deposit Interest Income', labelId: 'Pendapatan Bunga Deposito', section: 'interest_income', excelRow: 500 },
+  { id: 'current_account_interest', labelEn: 'Current Account Interest Income', labelId: 'Pendapatan Jasa Giro', section: 'interest_income', excelRow: 501 },
+  { id: 'loan_receivable_interest', labelEn: 'Interest Income from Loans Receivable', labelId: 'Pendapatan Bunga Pinjaman Diberikan', section: 'interest_income', excelRow: 502 },
+  { id: 'bond_interest_income', labelEn: 'Bond Interest Income', labelId: 'Pendapatan Bunga Obligasi', section: 'interest_income', excelRow: 503 },
+  { id: 'sharia_profit_sharing_income', labelEn: 'Sharia Profit-Sharing Income', labelId: 'Pendapatan Bagi Hasil Bank Syariah', section: 'interest_income', excelRow: 504 },
+  { id: 'other_interest_income', labelEn: 'Other Interest Income', labelId: 'Pendapatan Bunga Lain-lain', section: 'interest_income', excelRow: 505 },
+]
+
+// ---------------------------------------------------------------------------
+// Interest Expense accounts (excelRow 520-539) — PSAK 71 / IFRS 9 + IAS 23
+// Session 041 Task 3: split from legacy `net_interest` section.
+// ---------------------------------------------------------------------------
+
+const INTEREST_EXPENSE_ACCOUNTS: IsCatalogAccount[] = [
+  { id: 'bank_loan_interest', labelEn: 'Bank Loan Interest Expense', labelId: 'Beban Bunga Pinjaman Bank', section: 'interest_expense', excelRow: 520 },
+  { id: 'bond_interest_expense', labelEn: 'Bond Interest Expense', labelId: 'Beban Bunga Obligasi', section: 'interest_expense', excelRow: 521 },
+  { id: 'finance_lease_interest', labelEn: 'Finance Lease Interest Expense', labelId: 'Beban Bunga Sewa Pembiayaan', section: 'interest_expense', excelRow: 522 },
+  { id: 'other_loan_interest', labelEn: 'Other Loan Interest Expense', labelId: 'Beban Bunga Hutang Lainnya', section: 'interest_expense', excelRow: 523 },
+  { id: 'sharia_profit_sharing_expense', labelEn: 'Sharia Profit-Sharing Expense', labelId: 'Beban Bagi Hasil Bank Syariah', section: 'interest_expense', excelRow: 524 },
+  { id: 'loan_provision_admin_charge', labelEn: 'Loan Provision & Admin Charge', labelId: 'Beban Provisi & Administrasi Pinjaman', section: 'interest_expense', excelRow: 525 },
+  { id: 'other_interest_expense', labelEn: 'Other Interest Expense', labelId: 'Beban Bunga Lain-lain', section: 'interest_expense', excelRow: 526 },
 ]
 
 /** Full sorted catalog */
@@ -131,7 +153,8 @@ export const IS_CATALOG: IsCatalogAccount[] = [
   ...COST_ACCOUNTS,
   ...OPEX_ACCOUNTS,
   ...NON_OPERATING_ACCOUNTS,
-  ...NET_INTEREST_ACCOUNTS,
+  ...INTEREST_INCOME_ACCOUNTS,
+  ...INTEREST_EXPENSE_ACCOUNTS,
 ].sort((a, b) => a.excelRow - b.excelRow)
 
 // ---------------------------------------------------------------------------
@@ -179,16 +202,40 @@ export const IS_SENTINEL = {
   PBT: 32,
   TAX: 33,
   NET_PROFIT: 35,
+  // Session 041 Task 4: Fiscal Correction (signed user-editable leaf) and
+  // TAXABLE PROFIT (computed = PBT + KOREKSI_FISKAL). Synthetic excelRows
+  // outside the existing template range so downstream consumers (Tax row 33,
+  // NPAT row 35, KEY DRIVERS, NOPLAT) remain backward compatible — they keep
+  // referencing rows 32/33/35 without seeing a row-number shift. NPAT formula
+  // unchanged: PBT (32) + Tax (33) per LESSON-055 plain-addition convention.
+  KOREKSI_FISKAL: 600,
+  TAXABLE_PROFIT: 601,
 } as const
 
 /** All sentinel row numbers that the editor pre-computes for downstream */
 export const IS_SENTINEL_ROWS: readonly number[] = Object.values(IS_SENTINEL)
 
-/** Fixed leaf rows that live in sentinel range but are user-editable (Depreciation, Tax) */
-const IS_FIXED_LEAF_ROWS = new Set<number>([IS_SENTINEL.DEPRECIATION, IS_SENTINEL.TAX])
+/**
+ * Fixed leaf rows that live in sentinel range but are user-editable.
+ *
+ * Session 041 Task 1: Depreciation (21) is no longer in this set — it is
+ * now an FA-cross-ref read-only computed sentinel sourced from FA row 51
+ * (TOTAL_DEP_ADDITIONS), negated at the boundary by `computeDepreciationFromFa`.
+ *
+ * Session 041 Task 4: Fiscal Correction (600) is added — signed user-editable
+ * leaf. TAXABLE PROFIT (601) is NOT a fixed leaf — it is computed in the
+ * dynamic IS manifest as `PBT + KOREKSI_FISKAL` and resolved by `deriveComputedRows`.
+ */
+const IS_FIXED_LEAF_ROWS = new Set<number>([IS_SENTINEL.TAX, IS_SENTINEL.KOREKSI_FISKAL])
 
-/** Computed sentinel rows only — used by editor initializer to filter out non-leaf data.
- *  Excludes DEPRECIATION (21) and TAX (33) which are user-editable fixed leaves. */
+/**
+ * Computed sentinel rows only — used by editor initializer to filter out
+ * non-leaf data on remount.
+ *
+ * Excludes TAX (33) which is the only remaining user-editable fixed leaf in
+ * sentinel range. DEPRECIATION (21) IS included here because it is now
+ * computed from FA at persist time (Session 041 Task 1).
+ */
 export const IS_COMPUTED_SENTINEL_ROWS: readonly number[] =
   IS_SENTINEL_ROWS.filter((r) => !IS_FIXED_LEAF_ROWS.has(r))
 
@@ -198,8 +245,8 @@ export const ORIGINAL_ROW_TO_CATALOG: Record<number, string> = {
   7: 'cogs',
   12: 'other_opex',
   13: 'general_admin',
-  26: 'interest_income',
-  27: 'interest_expense',
+  26: 'time_deposit_interest',
+  27: 'bank_loan_interest',
   30: 'other_non_operating',
 }
 
@@ -209,7 +256,7 @@ export const DEFAULT_IS_ACCOUNTS: IsAccountEntry[] = [
   { catalogId: 'cogs', excelRow: 200, section: 'cost' },
   { catalogId: 'other_opex', excelRow: 300, section: 'operating_expense' },
   { catalogId: 'general_admin', excelRow: 301, section: 'operating_expense' },
-  { catalogId: 'interest_income', excelRow: 500, section: 'net_interest', interestType: 'income' },
-  { catalogId: 'interest_expense', excelRow: 501, section: 'net_interest', interestType: 'expense' },
+  { catalogId: 'time_deposit_interest', excelRow: 500, section: 'interest_income' },
+  { catalogId: 'bank_loan_interest', excelRow: 520, section: 'interest_expense' },
   { catalogId: 'other_non_operating', excelRow: 400, section: 'non_operating' },
 ]

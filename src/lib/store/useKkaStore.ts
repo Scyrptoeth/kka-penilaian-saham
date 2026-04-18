@@ -132,12 +132,26 @@ interface KkaState {
   /** Session 017 — SIMULASI POTENSI reported share transfer value (user input). Default 0. */
   nilaiPengalihanDilaporkan: number
   /**
-   * Session 038 — Interest Bearing Debt (Utang Berbunga) as a single required
-   * valuation input. Consumed by AAM, DCF, and EEM. `null` = user has not yet
-   * filled the field; consumer pages (AAM/DCF/EEM) show PageEmptyState until
-   * a numeric value (including 0) is entered via /valuation/interest-bearing-debt.
+   * Session 041 Task 5 (was Session 038) — Interest Bearing Debt scope.
+   *
+   * The legacy `number | null` shape required users to type the IBD total
+   * manually, which scaled badly with dynamic catalogs and risked
+   * double-counting against AAM per-row adjustments. The new shape mirrors
+   * the Working Capital scope page: list every Liabilities account from BS
+   * (Current + Non-Current) read-only, with a trash icon to mark accounts
+   * that are NOT IBD (e.g. Accounts Payable, Accrued Expenses, Tax
+   * Liabilities). The numeric IBD total is then derived from BS data via
+   * `computeInterestBearingDebt(state)`.
+   *
+   * `null` = user has not yet confirmed scope → AAM / DCF / EEM / CFI /
+   * Simulasi / Dashboard show PageEmptyState until user visits
+   * `/valuation/interest-bearing-debt` and clicks "Confirm Scope" (which
+   * transitions null → empty-exclusion object).
    */
-  interestBearingDebt: number | null
+  interestBearingDebt: {
+    excludedCurrentLiabilities: number[]
+    excludedNonCurrentLiabilities: number[]
+  } | null
   /**
    * Session 039 — Working Capital scope control. `excludedCurrentAssets` and
    * `excludedCurrentLiabilities` hold BS excelRow numbers that the user has
@@ -189,8 +203,16 @@ interface KkaState {
   /** Toggle global language (EN/ID) — updates root + balanceSheet, incomeStatement, fixedAsset language. */
   setGlobalLanguage: (lang: 'en' | 'id') => void
   setNilaiPengalihanDilaporkan: (v: number) => void
-  /** Session 038 — persist IBD input (null = cleared). */
-  setInterestBearingDebt: (v: number | null) => void
+  /**
+   * Session 041 Task 5 — IBD scope setters. Each operates idempotently on
+   * the current exclusion list. `confirmIbdScope` is the explicit null → object
+   * transition that unlocks the 6 consumer pages
+   * (AAM / DCF / EEM / CFI / Simulasi / Dashboard).
+   */
+  toggleExcludeCurrentLiabIbd: (excelRow: number) => void
+  toggleExcludeNonCurrentLiabIbd: (excelRow: number) => void
+  confirmIbdScope: () => void
+  resetIbdScope: () => void
   /**
    * Session 039 — WC scope setters. Each operates idempotently on the current
    * exclusion list; `confirmWcScope` is the explicit null → object transition
@@ -207,7 +229,7 @@ interface KkaState {
 }
 
 const STORE_KEY = 'kka-penilaian-saham'
-const STORE_VERSION = 18
+const STORE_VERSION = 19
 
 /**
  * Migrate persisted state from older versions to the current schema.
@@ -569,6 +591,65 @@ export function migratePersistedState(
     }
   }
 
+  // v18→v19: Session 041 — three coordinated schema changes:
+  //
+  //   Task 1: IS row 21 (Depreciation) is no longer user-editable. It now
+  //           mirrors FA row 51 (TOTAL_DEP_ADDITIONS, negated) at persist
+  //           time. Strip any pre-existing manually-entered Depreciation
+  //           values so the new FA-driven source wins on next render.
+  //
+  //   Task 3: IS section `net_interest` is split into `interest_income` and
+  //           `interest_expense`. Existing accounts are relocated to the new
+  //           sections via the legacy `interestType` discriminator (catalog
+  //           confidently knows the type for every PSAK-default account; for
+  //           custom accounts the user previously chose a default of 'expense'
+  //           per DynamicIsEditor.handleAddCustom). The `interestType` field
+  //           is then dropped from the entry.
+  //
+  //   Task 5: `interestBearingDebt` shape changes from `number | null` to
+  //           `{excludedCurrentLiabilities: number[], excludedNonCurrentLiabilities: number[]} | null`.
+  //           No lossless mapping from the legacy numeric value to an
+  //           exclusion list exists, so existing numeric values are dropped
+  //           (set null) — user re-confirms via the redesigned page.
+  if (fromVersion < 19) {
+    // — Task 1: clear IS row 21 (Depreciation) leaf data so FA wins —
+    if (state.incomeStatement && typeof state.incomeStatement === 'object') {
+      const is = state.incomeStatement as Record<string, unknown>
+      if (is.rows && typeof is.rows === 'object') {
+        const rows = { ...(is.rows as Record<string, unknown>) }
+        delete rows['21']
+        state = { ...state, incomeStatement: { ...is, rows } }
+      }
+    }
+
+    // — Task 3: relocate net_interest accounts via interestType —
+    if (state.incomeStatement && typeof state.incomeStatement === 'object') {
+      const is = state.incomeStatement as Record<string, unknown>
+      if (Array.isArray(is.accounts)) {
+        const migratedAccounts = is.accounts.map((acc: unknown) => {
+          if (!acc || typeof acc !== 'object') return acc
+          const a = acc as Record<string, unknown>
+          if (a.section !== 'net_interest') return a
+          const interestType = a.interestType
+          const newSection = interestType === 'income' ? 'interest_income' : 'interest_expense'
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { interestType: _drop, ...rest } = a
+          return { ...rest, section: newSection }
+        })
+        state = {
+          ...state,
+          incomeStatement: { ...is, accounts: migratedAccounts },
+        }
+      }
+    }
+
+    // — Task 5: drop numeric IBD, force re-confirm via new page —
+    const ibd = (state as Record<string, unknown>).interestBearingDebt
+    if (typeof ibd === 'number' || ibd === undefined) {
+      state = { ...state, interestBearingDebt: null }
+    }
+  }
+
   return state
 }
 
@@ -628,7 +709,42 @@ export const useKkaStore = create<KkaState>()(
           fixedAsset: state.fixedAsset ? { ...state.fixedAsset, language: lang } : state.fixedAsset,
         })),
       setNilaiPengalihanDilaporkan: (v) => set({ nilaiPengalihanDilaporkan: v }),
-      setInterestBearingDebt: (v) => set({ interestBearingDebt: v }),
+      toggleExcludeCurrentLiabIbd: (excelRow) =>
+        set((state) => {
+          const current = state.interestBearingDebt ?? {
+            excludedCurrentLiabilities: [],
+            excludedNonCurrentLiabilities: [],
+          }
+          const list = current.excludedCurrentLiabilities
+          const next = list.includes(excelRow)
+            ? list.filter((r) => r !== excelRow)
+            : [...list, excelRow]
+          return {
+            interestBearingDebt: { ...current, excludedCurrentLiabilities: next },
+          }
+        }),
+      toggleExcludeNonCurrentLiabIbd: (excelRow) =>
+        set((state) => {
+          const current = state.interestBearingDebt ?? {
+            excludedCurrentLiabilities: [],
+            excludedNonCurrentLiabilities: [],
+          }
+          const list = current.excludedNonCurrentLiabilities
+          const next = list.includes(excelRow)
+            ? list.filter((r) => r !== excelRow)
+            : [...list, excelRow]
+          return {
+            interestBearingDebt: { ...current, excludedNonCurrentLiabilities: next },
+          }
+        }),
+      confirmIbdScope: () =>
+        set((state) => ({
+          interestBearingDebt: state.interestBearingDebt ?? {
+            excludedCurrentLiabilities: [],
+            excludedNonCurrentLiabilities: [],
+          },
+        })),
+      resetIbdScope: () => set({ interestBearingDebt: null }),
       toggleExcludeCurrentAsset: (excelRow) =>
         set((state) => {
           const current = state.changesInWorkingCapital ?? {

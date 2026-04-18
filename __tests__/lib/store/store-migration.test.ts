@@ -351,8 +351,10 @@ describe('migratePersistedState — v12 → v13 (IS dynamic accounts)', () => {
     expect(rows['501']).toEqual({ 2020: 0.5, 2021: 1 })   // IE → 501
     expect(rows['400']).toEqual({ 2020: 2, 2021: 3 })     // Non-Op → 400
 
-    // Fixed leaves at original positions
-    expect(rows['21']).toEqual({ 2020: 4, 2021: 5 })
+    // Fixed leaves at original positions.
+    // Session 041 Task 1: row 21 (Depreciation) is now FA-driven read-only, so
+    // the v18→v19 migration clears any pre-existing leaf data. Tax (33) stays.
+    expect(rows['21']).toBeUndefined()
     expect(rows['33']).toEqual({ 2020: 5, 2021: 7 })
 
     // Sentinel subtotals at original positions (for downstream compat)
@@ -465,10 +467,13 @@ describe('migratePersistedState — v13 → v14 (faAdjustment → aamAdjustments
     expect((migrated.home as Record<string, unknown>).namaPerusahaan).toBe('PT ABC')
   })
 
-  it('v16 → v17 preserves existing interestBearingDebt if already set (idempotency)', () => {
+  it('v16 → v17 preserves existing numeric interestBearingDebt for intermediate versions (nulled at v19)', () => {
+    // Session 041: chain-migrated state (fromVersion 16) walks through v18→v19
+    // which drops the legacy numeric shape. Verify end state: numeric IBD is
+    // reconciled to null so the redesigned exclusion-list page can gate on it.
     const partialState = { home: null, language: 'en', interestBearingDebt: 5_000_000 }
     const migrated = migratePersistedState(partialState, 16) as Record<string, unknown>
-    expect(migrated.interestBearingDebt).toBe(5_000_000)
+    expect(migrated.interestBearingDebt).toBeNull()
   })
 
   it('v17 → v18 adds changesInWorkingCapital: null root-level', () => {
@@ -481,7 +486,8 @@ describe('migratePersistedState — v13 → v14 (faAdjustment → aamAdjustments
     expect(migrated.changesInWorkingCapital).toBeNull()
     // Previous slices preserved
     expect((migrated.home as Record<string, unknown>).namaPerusahaan).toBe('PT XYZ')
-    expect(migrated.interestBearingDebt).toBe(1_000_000)
+    // Session 041 v18→v19 drops the legacy numeric IBD shape.
+    expect(migrated.interestBearingDebt).toBeNull()
   })
 
   it('v17 → v18 preserves existing changesInWorkingCapital if already set (idempotency)', () => {
@@ -508,15 +514,102 @@ describe('migratePersistedState — v13 → v14 (faAdjustment → aamAdjustments
   })
 
   it('passes future versions through unchanged', () => {
+    const v19State = {
+      home: null,
+      language: 'en',
+      interestBearingDebt: null,
+      changesInWorkingCapital: null,
+      incomeStatement: null,
+      futureSlice: {},
+    }
+    const migrated = migratePersistedState(v19State, 19)
+    expect(migrated).toBe(v19State)
+  })
+
+  // Session 041 — explicit v18→v19 tests
+  it('v18 → v19 drops Depreciation row 21 from incomeStatement.rows (Task 1 — now FA-driven)', () => {
     const v18State = {
       home: null,
       language: 'en',
       interestBearingDebt: null,
       changesInWorkingCapital: null,
-      futureSlice: {},
+      incomeStatement: {
+        accounts: [],
+        yearCount: 2,
+        language: 'en',
+        rows: {
+          '21': { 2020: -1000, 2021: -1500 },
+          '33': { 2020: -500, 2021: -600 },
+          '100': { 2020: 5000, 2021: 7000 },
+        },
+      },
     }
-    const migrated = migratePersistedState(v18State, 18)
-    expect(migrated).toBe(v18State)
+    const migrated = migratePersistedState(v18State, 18) as Record<string, unknown>
+    const is = migrated.incomeStatement as Record<string, unknown>
+    const rows = is.rows as Record<string, unknown>
+    expect(rows['21']).toBeUndefined()
+    // Other rows untouched
+    expect(rows['33']).toEqual({ 2020: -500, 2021: -600 })
+    expect(rows['100']).toEqual({ 2020: 5000, 2021: 7000 })
+  })
+
+  it('v18 → v19 relocates net_interest accounts via interestType (Task 3)', () => {
+    const v18State = {
+      home: null,
+      language: 'en',
+      interestBearingDebt: null,
+      changesInWorkingCapital: null,
+      incomeStatement: {
+        accounts: [
+          { catalogId: 'interest_income', excelRow: 500, section: 'net_interest', interestType: 'income' },
+          { catalogId: 'interest_expense', excelRow: 501, section: 'net_interest', interestType: 'expense' },
+          { catalogId: 'bond_interest', excelRow: 504, section: 'net_interest', interestType: 'expense' },
+          { catalogId: 'revenue', excelRow: 100, section: 'revenue' },
+        ],
+        yearCount: 2,
+        language: 'en',
+        rows: {},
+      },
+    }
+    const migrated = migratePersistedState(v18State, 18) as Record<string, unknown>
+    const is = migrated.incomeStatement as Record<string, unknown>
+    const accounts = is.accounts as Array<Record<string, unknown>>
+    // Income accounts relocated to 'interest_income' section
+    expect(accounts[0].section).toBe('interest_income')
+    expect(accounts[0].interestType).toBeUndefined()
+    // Expense accounts relocated to 'interest_expense' section
+    expect(accounts[1].section).toBe('interest_expense')
+    expect(accounts[2].section).toBe('interest_expense')
+    expect(accounts[1].interestType).toBeUndefined()
+    expect(accounts[2].interestType).toBeUndefined()
+    // Non-net_interest accounts untouched
+    expect(accounts[3].section).toBe('revenue')
+  })
+
+  it('v18 → v19 drops legacy numeric interestBearingDebt to null (Task 5)', () => {
+    const v18State = {
+      home: null,
+      language: 'en',
+      interestBearingDebt: 7_500_000_000,
+      changesInWorkingCapital: null,
+    }
+    const migrated = migratePersistedState(v18State, 18) as Record<string, unknown>
+    expect(migrated.interestBearingDebt).toBeNull()
+  })
+
+  it('v18 → v19 preserves object-shape interestBearingDebt (Task 5 idempotency)', () => {
+    const existing = {
+      excludedCurrentLiabilities: [31, 33],
+      excludedNonCurrentLiabilities: [],
+    }
+    const v18State = {
+      home: null,
+      language: 'en',
+      interestBearingDebt: existing,
+      changesInWorkingCapital: null,
+    }
+    const migrated = migratePersistedState(v18State, 18) as Record<string, unknown>
+    expect(migrated.interestBearingDebt).toEqual(existing)
   })
 
   it('passes non-object payloads through unchanged', () => {

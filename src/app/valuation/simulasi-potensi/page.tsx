@@ -15,6 +15,7 @@ import { computeSimulasiPotensi, computeResistensiWp } from '@/lib/calculations/
 import {
   computeHistoricalUpstream,
   buildAamInput, buildDcfInput, buildEemInput, buildBorrowingCapInput,
+  computeInterestBearingDebt,
   deriveDlomRiskCategory, deriveDlocRiskCategory,
 } from '@/lib/calculations/upstream-helpers'
 import { formatIdr, formatPercent } from '@/components/financial/format'
@@ -55,8 +56,27 @@ export default function SimulasiPotensiPage() {
     const allBs = { ...bsComp, ...balanceSheet.rows }
     const ly = histYears4[histYears4.length - 1]!
 
+    // Session 041 Task 5 — derive IBD total + exclusion sets from scope.
+    const ibdAmount = computeInterestBearingDebt({
+      balanceSheetAccounts: balanceSheet.accounts,
+      balanceSheetRows: allBs,
+      interestBearingDebt,
+      year: ly,
+    })
+    const exclCL = new Set(interestBearingDebt.excludedCurrentLiabilities)
+    const exclNCL = new Set(interestBearingDebt.excludedNonCurrentLiabilities)
+
     // ── AAM (always available with BS) ──
-    const aamResult = computeAam(buildAamInput({ accounts: balanceSheet!.accounts, allBs, lastYear: ly, home, aamAdjustments, interestBearingDebt }))
+    const aamResult = computeAam(buildAamInput({
+      accounts: balanceSheet!.accounts,
+      allBs,
+      lastYear: ly,
+      home,
+      aamAdjustments,
+      interestBearingDebt: ibdAmount,
+      excludedCurrentLiabIbd: exclCL,
+      excludedNonCurrentLiabIbd: exclNCL,
+    }))
 
     const result: Record<ValuationMethod, number | null> = {
       AAM: aamResult.equityValue,
@@ -89,7 +109,7 @@ export default function SimulasiPotensiPage() {
             proyNoplatRows: pipeline.proyNoplatRows, proyFaRows: pipeline.proyFaRows,
             proyCfsRows: pipeline.proyCfsRows,
             wacc: dr.wacc, growthRate: upstream.growthRate,
-            interestBearingDebt,
+            interestBearingDebt: ibdAmount,
           }))
           result.DCF = dcfResult.equityValue100
         } catch { /* DCF may fail if wacc === growthRate */ }
@@ -101,7 +121,7 @@ export default function SimulasiPotensiPage() {
         const eemResult = computeEem(buildEemInput({
           aamResult, allBs, upstream, lastYear: ly,
           waccTangible: bcData.waccTangible, wacc: dr.wacc,
-          interestBearingDebt,
+          interestBearingDebt: ibdAmount,
         }))
         result.EEM = eemResult.equityValue100
       } catch { /* EEM may fail if wacc === 0 */ }

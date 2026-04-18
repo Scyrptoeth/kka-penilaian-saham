@@ -200,21 +200,6 @@ export function isOriginalExcelRow(excelRow: number): boolean {
 }
 
 /**
- * Interest-Bearing Debt catalog IDs — bank loans excluded from NAV
- * in AAM calculation and counted separately as IBD.
- * Custom accounts default to non-IBD (conservative).
- */
-export const IBD_CATALOG_IDS: ReadonlySet<string> = new Set([
-  'short_term_debt', // Bank Loan - Short Term (excelRow 31)
-  'long_term_debt',  // Bank Loan - Long Term (excelRow 38)
-])
-
-/** Whether an account is classified as Interest-Bearing Debt */
-export function isIbdAccount(account: BsAccountEntry): boolean {
-  return IBD_CATALOG_IDS.has(account.catalogId)
-}
-
-/**
  * Resolve display label for a BS account.
  * Custom entries use customLabel; catalog entries use language-specific label.
  */

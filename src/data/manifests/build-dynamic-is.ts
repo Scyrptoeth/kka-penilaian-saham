@@ -75,14 +75,9 @@ function sectionLeaves(
   accounts: readonly IsAccountEntry[],
   section: string,
   language: 'en' | 'id',
-  interestType?: 'income' | 'expense',
 ): ManifestRow[] {
   return accounts
-    .filter((a) => {
-      if (a.section !== section) return false
-      if (interestType && a.interestType !== interestType) return false
-      return true
-    })
+    .filter((a) => a.section === section)
     .map((a) => ({
       excelRow: a.excelRow,
       label: getLabel(a, language),
@@ -95,15 +90,8 @@ function sectionLeaves(
 function sectionExcelRows(
   accounts: readonly IsAccountEntry[],
   section: string,
-  interestType?: 'income' | 'expense',
 ): number[] {
-  return accounts
-    .filter((a) => {
-      if (a.section !== section) return false
-      if (interestType && a.interestType !== interestType) return false
-      return true
-    })
-    .map((a) => a.excelRow)
+  return accounts.filter((a) => a.section === section).map((a) => a.excelRow)
 }
 
 function buildRows(
@@ -114,8 +102,8 @@ function buildRows(
   const revRows = sectionExcelRows(accounts, 'revenue')
   const costRows = sectionExcelRows(accounts, 'cost')
   const opexRows = sectionExcelRows(accounts, 'operating_expense')
-  const iiRows = sectionExcelRows(accounts, 'net_interest', 'income')
-  const ieRows = sectionExcelRows(accounts, 'net_interest', 'expense')
+  const iiRows = sectionExcelRows(accounts, 'interest_income')
+  const ieRows = sectionExcelRows(accounts, 'interest_expense')
   const nonOpRows = sectionExcelRows(accounts, 'non_operating')
 
   const rows: ManifestRow[] = []
@@ -182,11 +170,16 @@ function buildRows(
     computedFrom: [IS_SENTINEL.GROSS_PROFIT, IS_SENTINEL.TOTAL_OPEX],
   })
 
-  // Depreciation — fixed leaf row (not part of any section)
+  // Depreciation — read-only mirror of FA "B. Depreciation → Total Additions"
+  // (FA row 51). Sign negated at the boundary by `computeDepreciationFromFa`
+  // so the IS-side value lands as an EXPENSE per LESSON-055. `cross-ref` type
+  // makes RowInputGrid render it as a non-editable formatted cell (Session 041
+  // Task 1).
   rows.push({
     excelRow: IS_SENTINEL.DEPRECIATION,
     label: t.depreciation,
     indent: 1,
+    type: 'cross-ref',
   })
 
   // EBIT = EBITDA + Depreciation (Depreciation entered negative — plain addition per Excel)
@@ -200,13 +193,18 @@ function buildRows(
   rows.push({ label: '', type: 'separator' })
 
   // ═══════════════════════════════════════════════════════════════════════
-  // NET INTEREST (two sub-groups: income + expense)
+  // NET INTEREST — two distinct sections, each with its own +Add dropdown.
+  // Session 041 Task 3: split from the legacy single net_interest section.
+  // Each +Add now offers a section-appropriate PSAK 71 / IFRS 9 / IAS 23
+  // catalog, eliminating the previous misclassification trap where income
+  // accounts ended up under the EXPENSE label.
   // ═══════════════════════════════════════════════════════════════════════
   rows.push({ label: t.netInterest, type: 'header' })
 
-  // Interest Income sub-group
+  // Interest Income section (own +Add)
   rows.push({ label: t.interestIncome, type: 'header', indent: 0 })
-  rows.push(...sectionLeaves(accounts, 'net_interest', language, 'income'))
+  rows.push(...sectionLeaves(accounts, 'interest_income', language))
+  rows.push({ label: t.addButtonLabels.interest_income, type: 'add-button', section: 'interest_income' })
   rows.push({
     excelRow: IS_SENTINEL.INTEREST_INCOME,
     label: t.totalInterestIncome,
@@ -214,18 +212,16 @@ function buildRows(
     computedFrom: iiRows,
   })
 
-  // Interest Expense sub-group
+  // Interest Expense section (own +Add)
   rows.push({ label: t.interestExpense, type: 'header', indent: 0 })
-  rows.push(...sectionLeaves(accounts, 'net_interest', language, 'expense'))
+  rows.push(...sectionLeaves(accounts, 'interest_expense', language))
+  rows.push({ label: t.addButtonLabels.interest_expense, type: 'add-button', section: 'interest_expense' })
   rows.push({
     excelRow: IS_SENTINEL.INTEREST_EXPENSE,
     label: t.totalInterestExpense,
     type: 'subtotal',
     computedFrom: ieRows,
   })
-
-  // Add-button for Net Interest (single button, shown between the two sub-groups)
-  rows.push({ label: t.addButtonLabels.net_interest, type: 'add-button', section: 'net_interest' })
 
   // Net Interest = Interest Income + Interest Expense (IE entered negative — plain addition per Excel)
   rows.push({
@@ -264,6 +260,25 @@ function buildRows(
     computedFrom: [IS_SENTINEL.EBIT, IS_SENTINEL.NET_INTEREST, IS_SENTINEL.NON_OPERATING],
   })
 
+  // Session 041 Task 4 — Fiscal Correction (signed user-editable leaf) +
+  // TAXABLE PROFIT (= PBT + Koreksi). Synthetic excelRows 600/601 keep this
+  // additive entirely above the existing Tax (33) / NPAT (35) chain so
+  // downstream NOPLAT/KEY DRIVERS row-number references stay backward
+  // compatible (Q3 — Tax remains historical user input, NPAT formula
+  // unchanged).
+  rows.push({
+    excelRow: IS_SENTINEL.KOREKSI_FISKAL,
+    label: t.koreksiFiskal,
+    indent: 1,
+  })
+
+  rows.push({
+    excelRow: IS_SENTINEL.TAXABLE_PROFIT,
+    label: t.taxableProfit,
+    type: 'subtotal',
+    computedFrom: [IS_SENTINEL.PBT, IS_SENTINEL.KOREKSI_FISKAL],
+  })
+
   // Tax — fixed leaf row
   rows.push({
     excelRow: IS_SENTINEL.TAX,
@@ -271,7 +286,10 @@ function buildRows(
     indent: 1,
   })
 
-  // Net Profit = PBT + Tax (Tax entered negative — plain addition per Excel)
+  // Net Profit = PBT + Tax (Tax entered negative — plain addition per Excel).
+  // Intentionally NOT TAXABLE_PROFIT + Tax: NPAT = book net profit; Tax row
+  // already reflects the actual cash-tax paid for the historical period
+  // (Q3 design decision).
   rows.push({
     excelRow: IS_SENTINEL.NET_PROFIT,
     label: t.netProfitAfterTax,

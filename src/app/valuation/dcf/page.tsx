@@ -6,7 +6,7 @@ import { computeDiscountRate, buildDiscountRateInput } from '@/lib/calculations/
 import { computeDcf } from '@/lib/calculations/dcf'
 import { computeShareValue } from '@/lib/calculations/share-value'
 import { computeFullProjectionPipeline } from '@/lib/calculations/projection-pipeline'
-import { computeHistoricalUpstream, buildDcfInput } from '@/lib/calculations/upstream-helpers'
+import { computeHistoricalUpstream, buildDcfInput, computeInterestBearingDebt } from '@/lib/calculations/upstream-helpers'
 import { formatIdr, formatPercent } from '@/components/financial/format'
 import { PageEmptyState } from '@/components/shared/PageEmptyState'
 import { useT } from '@/lib/i18n/useT'
@@ -47,12 +47,21 @@ export default function DcfPage() {
     // ── Discount Rate ──
     const dr = computeDiscountRate(buildDiscountRateInput(discountRateState))
 
+    // Session 041 Task 5 — IBD as a derived total (LESSON-011 sign reconciliation
+    // happens inside `buildDcfInput`).
+    const ibdAmount = computeInterestBearingDebt({
+      balanceSheetAccounts: balanceSheet.accounts,
+      balanceSheetRows: allBs,
+      interestBearingDebt,
+      year: lastHistYear,
+    })
+
     // ── DCF ──
     const dcfInput = buildDcfInput({
       upstream, allBs, lastHistYear, projYears,
       proyNoplatRows, proyFaRows, proyCfsRows,
       wacc: dr.wacc, growthRate: upstream.growthRate,
-      interestBearingDebt,
+      interestBearingDebt: ibdAmount,
     })
     const dcfResult = computeDcf(dcfInput)
 

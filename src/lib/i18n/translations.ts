@@ -296,24 +296,35 @@ const dict = {
   // ═══════════════════════════════════════════════════════════════════
   'ibd.title': { en: 'Interest Bearing Debt', id: 'Utang Berbunga' },
   'ibd.subtitle': {
-    en: 'Single required input — the total Interest Bearing Debt used by AAM, DCF, and EEM.',
-    id: 'Input wajib tunggal — total Utang Berbunga yang digunakan oleh AAM, DCF, dan EEM.',
+    en: 'Define the IBD scope: review every Liabilities account from the Balance Sheet and remove the ones that are NOT Interest Bearing Debt. The IBD total is then derived automatically from the remaining accounts.',
+    id: 'Tentukan ruang lingkup Utang Berbunga: tinjau seluruh akun Liabilitas dari Neraca dan hapus akun yang BUKAN Utang Berbunga. Total IBD akan dihitung otomatis dari akun yang tersisa.',
   },
-  'ibd.input.label': { en: 'Total Interest Bearing Debt (IDR)', id: 'Total Utang Berbunga (Rp)' },
-  'ibd.input.helper': {
-    en: 'Enter the aggregate IBD amount. Enter 0 if the company has none. Auto-saved on blur.',
-    id: 'Masukkan total Utang Berbunga. Isi 0 bila perusahaan tidak memilikinya. Tersimpan otomatis saat keluar dari field.',
+  // Session 041 Task 5 — IBD scope page (mirrors WC scope page UX).
+  'ibd.section.currentLiabilities': { en: 'Current Liabilities', id: 'Kewajiban Lancar' },
+  'ibd.section.nonCurrentLiabilities': { en: 'Non-Current Liabilities', id: 'Kewajiban Jangka Panjang' },
+  'ibd.included.label': {
+    en: 'Included in Interest Bearing Debt',
+    id: 'Termasuk dalam Utang Berbunga',
   },
-  'ibd.input.placeholder': { en: '0', id: '0' },
-  'ibd.input.clear': { en: 'Clear', id: 'Kosongkan' },
-  'ibd.state.filled': {
-    en: 'Current value saved.',
-    id: 'Nilai tersimpan.',
+  'ibd.excluded.label': { en: 'Excluded from IBD', id: 'Dikecualikan dari IBD' },
+  'ibd.excluded.count': { en: '{count} excluded', id: '{count} dikecualikan' },
+  'ibd.empty.section': {
+    en: 'No accounts in this section yet — add liability accounts on the Balance Sheet input page.',
+    id: 'Belum ada akun di bagian ini — tambahkan akun liabilitas di halaman input Neraca.',
   },
-  'ibd.state.empty': {
-    en: 'Not yet filled — AAM, DCF, and EEM pages will remain empty until you enter a value here.',
-    id: 'Belum diisi — halaman AAM, DCF, dan EEM tetap kosong sampai Anda mengisi nilai di sini.',
+  'ibd.action.exclude': { en: 'Mark as NOT Interest Bearing Debt', id: 'Tandai BUKAN Utang Berbunga' },
+  'ibd.action.include': { en: 'Restore — counts as IBD', id: 'Kembalikan — termasuk Utang Berbunga' },
+  'ibd.action.confirm': { en: 'Confirm Scope', id: 'Konfirmasi Cakupan' },
+  'ibd.action.update': { en: 'Update Scope', id: 'Perbarui Cakupan' },
+  'ibd.state.confirmed': {
+    en: 'Scope confirmed — IBD total is computed automatically from the included accounts.',
+    id: 'Cakupan terkonfirmasi — total Utang Berbunga dihitung otomatis dari akun yang termasuk.',
   },
+  'ibd.state.unconfirmed': {
+    en: 'Not yet confirmed — AAM, DCF, EEM, CFI, Tax Simulation, and Dashboard pages will remain empty until you click Confirm.',
+    id: 'Belum dikonfirmasi — halaman AAM, DCF, EEM, CFI, Simulasi Pajak, dan Dashboard akan tetap kosong sampai Anda menekan Konfirmasi.',
+  },
+  'ibd.totalLabel': { en: 'IBD Total (computed)', id: 'Total IBD (terhitung)' },
 
   // Trivia — structured content (bilingual, always-visible per user spec)
   'ibd.trivia.heading': { en: 'Trivia: Interest Bearing Debt', id: 'Trivia: Utang Berbunga' },
@@ -956,6 +967,31 @@ const dict = {
   'placeholder.valuation.area': { en: 'Valuation', id: 'Penilaian' },
   'placeholder.valuation.title': { en: 'Valuation Methods', id: 'Metode Penilaian' },
   'placeholder.valuation.description': { en: 'WACC & Discount Rate (CAPM), DCF (FCFF), AAM (Adjusted Asset Method), EEM (Excess Earning Method), Borrowing Capacity, and Dividend Discount Model. Primary output: proportion of shares valued.', id: 'WACC & Discount Rate (CAPM), DCF (FCFF), AAM (Adjusted Asset Method), EEM (Excess Earning Method), Borrowing Capacity, dan Dividend Discount Model. Output utama proporsi saham yang dinilai.' },
+
+  // ═══════════════════════════════════════════════════════════════════
+  // BS — KOREKSI FISKAL TAX-IMPACT NOTE (Session 041 Task 2)
+  //
+  // Always-visible bilingual aside rendered at the bottom of the Balance
+  // Sheet input page. Reminds the user to manually reflect the cash-tax
+  // impact of any IS Koreksi Fiskal entry on Tax Liabilities + Current
+  // Year Profit BS lines.
+  // ═══════════════════════════════════════════════════════════════════
+  'bs.koreksiFiskal.note.heading': { en: 'NOTE', id: 'CATATAN' },
+  'bs.koreksiFiskal.note.intro': {
+    en: 'Ensure you account for the tax impact of any Fiscal Correction entered on the Income Statement.',
+    id: 'Pastikan Anda memperhitungkan dampak pajak dari Koreksi Fiskal yang diinput pada Laporan Laba Rugi.',
+  },
+  // Bold emphasis is encoded as `**phrase**` (markdown-style) and rendered
+  // via a tiny parser in DynamicBsEditor — keeps strings declarative and
+  // avoids dangerouslySetInnerHTML.
+  'bs.koreksiFiskal.note.positive': {
+    en: 'When there is a **positive Fiscal Correction**, compute the tax impact (Correction Value × Tax Rate). **Add** the resulting amount to **Tax Liabilities**, and **reduce** **Current Year Profit** by the same amount.',
+    id: 'Dalam hal terdapat **Koreksi Fiskal Positif**, hitung dampak pajaknya (Nilai Koreksi × Tarif Pajak). **Tambahkan** nilai tersebut ke akun **Utang Pajak**, dan **kurangi** akun **Laba Tahun Berjalan** dengan nilai yang sama.',
+  },
+  'bs.koreksiFiskal.note.negative': {
+    en: 'Conversely, when there is a **negative Fiscal Correction**, compute the tax impact (Correction Value × Tax Rate). **Reduce** **Tax Liabilities** by that amount, and **add** the same amount to **Current Year Profit**.',
+    id: 'Sebaliknya, dalam hal terdapat **Koreksi Fiskal Negatif**, hitung dampak pajaknya (Nilai Koreksi × Tarif Pajak). **Kurangi** akun **Utang Pajak** sebesar nilai tersebut, dan **tambahkan** nilainya ke akun **Laba Tahun Berjalan**.',
+  },
 } as const
 
 export type TranslationKey = keyof typeof dict

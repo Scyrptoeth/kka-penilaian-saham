@@ -1,137 +1,306 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useKkaStore } from '@/lib/store/useKkaStore'
-import { parseFinancialInput } from '@/components/forms/parse-financial-input'
-import { formatIdr } from '@/components/financial/format'
 import { useT } from '@/lib/i18n/useT'
+import {
+  BS_CATALOG_ALL,
+  type BsAccountEntry,
+} from '@/data/catalogs/balance-sheet-catalog'
+import { computeInterestBearingDebt } from '@/lib/calculations/upstream-helpers'
+import { PageEmptyState } from '@/components/shared/PageEmptyState'
+import { formatIdr } from '@/components/financial/format'
 
 /**
- * /valuation/interest-bearing-debt — Session 038
+ * /valuation/interest-bearing-debt — Session 041 Task 5 redesign.
  *
- * Single required valuation input page. The stored `interestBearingDebt`
- * value (nullable) is read by AAM, DCF, and EEM page wrappers via
- * `buildAamInput` / `buildDcfInput` / `buildEemInput`. A `null` value keeps
- * those three downstream pages in their PageEmptyState; a numeric value
- * (including 0) unblocks them.
+ * Replaces the Session 038 single-numeric-input page with a Working-Capital-style
+ * scope editor: list every Current + Non-Current Liability account from the
+ * Balance Sheet read-only, give the user a trash icon to mark each account
+ * "NOT Interest Bearing Debt". The IBD total is then derived in real-time from
+ * the remaining (included) accounts via `computeInterestBearingDebt`.
  *
- * Rendering: single numeric input + always-visible educational trivia. All
- * content flows through `useT()` so it honours the global EN/ID toggle and
- * the light/dark theme palette auto-adapts via existing CSS vars.
+ * Store slice shape (Session 041 v18→v19 migration):
+ *   interestBearingDebt: {
+ *     excludedCurrentLiabilities: number[]      // BS excelRow list
+ *     excludedNonCurrentLiabilities: number[]
+ *   } | null                                     // null = not yet confirmed
+ *
+ * UX contract: identical to /analysis/changes-in-working-capital — local
+ * exclusion draft commits to store via "Confirm Scope" / "Update Scope".
+ * Excluded accounts appear in a collapsible section below each section with
+ * a restore icon to put them back. Trivia block (always-visible) preserved
+ * from the Session 038 design — content is unchanged, helpful for the
+ * "exclude which?" decision.
  */
 
-const NUMBER_FORMATTER = new Intl.NumberFormat('id-ID', {
-  maximumFractionDigits: 2,
-})
+type Section = 'current_liabilities' | 'non_current_liabilities'
 
-function formatDisplay(value: number): string {
-  if (value === 0) return ''
-  return NUMBER_FORMATTER.format(value)
+function resolveLabel(
+  account: BsAccountEntry,
+  language: 'en' | 'id',
+): string {
+  if (account.customLabel) return account.customLabel
+  const catalogEntry = BS_CATALOG_ALL.find((c) => c.id === account.catalogId)
+  if (!catalogEntry) return account.catalogId
+  return language === 'en' ? catalogEntry.labelEn : catalogEntry.labelId
 }
 
-function InterestBearingDebtEditor() {
+function IbdScopeEditor() {
   const { t } = useT()
-  const stored = useKkaStore((s) => s.interestBearingDebt)
-  const setStored = useKkaStore((s) => s.setInterestBearingDebt)
+  const balanceSheet = useKkaStore((s) => s.balanceSheet)
+  const storedScope = useKkaStore((s) => s.interestBearingDebt)
+  const confirmIbdScope = useKkaStore((s) => s.confirmIbdScope)
+  const setScope = useKkaStore.setState
 
-  // Local draft so typing doesn't bounce through the store on every keystroke.
-  const [draft, setDraft] = useState<string | null>(null)
+  const language: 'en' | 'id' = balanceSheet?.language ?? 'id'
+  const lastHistYear = useKkaStore((s) => s.home?.tahunTransaksi ?? new Date().getFullYear())
+  const displayYear = lastHistYear - 1
 
-  const isEditing = draft !== null
-  const display = isEditing
-    ? draft
-    : stored === null
-      ? ''
-      : formatDisplay(stored)
+  // Local exclusion draft — commits to store via "Confirm" / "Update" button.
+  const [localCL, setLocalCL] = useState<number[]>(
+    () => storedScope?.excludedCurrentLiabilities ?? [],
+  )
+  const [localNCL, setLocalNCL] = useState<number[]>(
+    () => storedScope?.excludedNonCurrentLiabilities ?? [],
+  )
 
-  const handleFocus = useCallback(() => {
-    setDraft(stored === null || stored === 0 ? '' : String(stored))
-  }, [stored])
+  const accounts = useMemo(() => balanceSheet?.accounts ?? [], [balanceSheet])
+  const clAccounts = useMemo(
+    () => accounts.filter((a) => a.section === 'current_liabilities'),
+    [accounts],
+  )
+  const nclAccounts = useMemo(
+    () => accounts.filter((a) => a.section === 'non_current_liabilities'),
+    [accounts],
+  )
 
-  const handleBlur = useCallback(() => {
-    if (draft === null) return
-    const trimmed = draft.trim()
-    if (trimmed === '') {
-      if (stored !== null) setStored(null)
-    } else {
-      const parsed = parseFinancialInput(draft)
-      if (parsed !== stored) setStored(parsed)
+  const clExcludedSet = new Set(localCL)
+  const nclExcludedSet = new Set(localNCL)
+
+  const isDirty =
+    storedScope === null ||
+    JSON.stringify([...localCL].sort()) !==
+      JSON.stringify([...(storedScope.excludedCurrentLiabilities ?? [])].sort()) ||
+    JSON.stringify([...localNCL].sort()) !==
+      JSON.stringify([...(storedScope.excludedNonCurrentLiabilities ?? [])].sort())
+
+  const toggleCL = (row: number) => {
+    setLocalCL((prev) =>
+      prev.includes(row) ? prev.filter((r) => r !== row) : [...prev, row],
+    )
+  }
+  const toggleNCL = (row: number) => {
+    setLocalNCL((prev) =>
+      prev.includes(row) ? prev.filter((r) => r !== row) : [...prev, row],
+    )
+  }
+
+  const handleConfirm = () => {
+    if (storedScope === null) {
+      confirmIbdScope()
     }
-    setDraft(null)
-  }, [draft, stored, setStored])
+    setScope({
+      interestBearingDebt: {
+        excludedCurrentLiabilities: [...localCL],
+        excludedNonCurrentLiabilities: [...localNCL],
+      },
+    })
+  }
 
-  const handleClear = useCallback(() => {
-    setDraft(null)
-    setStored(null)
-  }, [setStored])
+  // Live IBD total preview — uses the LOCAL exclusion draft (not store) so the
+  // user sees the impact of every trash-icon click before committing.
+  const ibdTotal = useMemo(() => {
+    if (!balanceSheet) return 0
+    return computeInterestBearingDebt({
+      balanceSheetAccounts: accounts,
+      balanceSheetRows: balanceSheet.rows,
+      interestBearingDebt: {
+        excludedCurrentLiabilities: localCL,
+        excludedNonCurrentLiabilities: localNCL,
+      },
+      year: displayYear,
+    })
+  }, [accounts, balanceSheet, localCL, localNCL, displayYear])
 
-  const isFilled = stored !== null
+  const confirmed = storedScope !== null
 
   return (
-    <div className="mx-auto max-w-[760px] p-6">
+    <div className="mx-auto max-w-[980px] p-6">
       <h1 className="mb-1 text-2xl font-semibold tracking-tight text-ink">
         {t('ibd.title')}
       </h1>
-      <p className="mb-8 text-sm text-ink-muted">{t('ibd.subtitle')}</p>
+      <p className="mb-6 text-sm text-ink-muted">{t('ibd.subtitle')}</p>
 
-      {/* Input field card */}
-      <section
-        aria-labelledby="ibd-input-heading"
-        className="mb-10 rounded-sm border border-grid bg-canvas-raised p-5 shadow-[0_1px_0_rgba(10,22,40,0.04)]"
-      >
-        <label
-          id="ibd-input-heading"
-          htmlFor="ibd-input"
-          className="mb-1 block text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-muted"
-        >
-          {t('ibd.input.label')}
-        </label>
-        <div className="flex items-center gap-2">
-          <input
-            id="ibd-input"
-            type="text"
-            inputMode="decimal"
-            value={display}
-            placeholder={t('ibd.input.placeholder')}
-            onFocus={handleFocus}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={handleBlur}
-            aria-describedby="ibd-input-helper"
-            className="w-full rounded-sm border border-grid bg-canvas px-3 py-2 text-right font-mono text-base tabular-nums text-ink transition-colors placeholder:text-ink-muted/60 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-          />
-          {isFilled && (
-            <button
-              type="button"
-              onClick={handleClear}
-              className="shrink-0 rounded-sm border border-dashed border-grid px-2.5 py-2 text-[11px] font-medium uppercase tracking-[0.08em] text-ink-muted transition-colors hover:border-negative hover:text-negative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-            >
-              {t('ibd.input.clear')}
-            </button>
-          )}
+      <SectionEditor
+        section="current_liabilities"
+        title={t('ibd.section.currentLiabilities')}
+        accounts={clAccounts}
+        excludedSet={clExcludedSet}
+        onToggle={toggleCL}
+        language={language}
+        displayYear={displayYear}
+      />
+
+      <div className="h-6" />
+
+      <SectionEditor
+        section="non_current_liabilities"
+        title={t('ibd.section.nonCurrentLiabilities')}
+        accounts={nclAccounts}
+        excludedSet={nclExcludedSet}
+        onToggle={toggleNCL}
+        language={language}
+        displayYear={displayYear}
+      />
+
+      <div className="sticky bottom-4 z-10 mt-8 flex flex-col gap-3 rounded-sm border border-grid bg-canvas-raised/95 p-4 shadow-[0_2px_8px_rgba(10,22,40,0.08)] backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-1">
+          <p
+            role="status"
+            className={`text-xs ${confirmed ? 'text-accent' : 'text-negative'}`}
+          >
+            {confirmed ? t('ibd.state.confirmed') : t('ibd.state.unconfirmed')}
+          </p>
+          <p className="text-[11px] uppercase tracking-[0.1em] text-ink-muted">
+            {t('ibd.totalLabel')}{' '}
+            <span className="ml-2 font-mono text-sm tabular-nums text-ink">
+              {formatIdr(ibdTotal)}
+            </span>
+          </p>
         </div>
-        <p id="ibd-input-helper" className="mt-2 text-xs text-ink-muted">
-          {t('ibd.input.helper')}
-        </p>
-        <p
-          role="status"
-          className={`mt-3 text-[12px] font-medium ${
-            isFilled ? 'text-accent' : 'text-negative'
-          }`}
+        <button
+          type="button"
+          onClick={handleConfirm}
+          disabled={confirmed && !isDirty}
+          className="rounded-sm border border-ink bg-ink px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-canvas-raised transition-colors hover:bg-transparent hover:text-ink disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-ink disabled:hover:text-canvas-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
-          {isFilled ? (
-            <>
-              {t('ibd.state.filled')}{' '}
-              <span className="font-mono tabular-nums">{formatIdr(stored ?? 0)}</span>
-            </>
-          ) : (
-            t('ibd.state.empty')
-          )}
-        </p>
-      </section>
+          {confirmed ? t('ibd.action.update') : t('ibd.action.confirm')}
+        </button>
+      </div>
 
-      {/* Trivia — always visible per user spec */}
+      <div className="h-6" />
+
       <TriviaSection />
     </div>
+  )
+}
+
+function SectionEditor({
+  section,
+  title,
+  accounts,
+  excludedSet,
+  onToggle,
+  language,
+  displayYear,
+}: {
+  section: Section
+  title: string
+  accounts: BsAccountEntry[]
+  excludedSet: Set<number>
+  onToggle: (row: number) => void
+  language: 'en' | 'id'
+  displayYear: number
+}) {
+  const { t } = useT()
+  const bsRows = useKkaStore((s) => s.balanceSheet?.rows)
+  const [excludedOpen, setExcludedOpen] = useState(false)
+
+  const included = accounts.filter((a) => !excludedSet.has(a.excelRow))
+  const excluded = accounts.filter((a) => excludedSet.has(a.excelRow))
+
+  const valueFor = (row: number): number => bsRows?.[row]?.[displayYear] ?? 0
+
+  return (
+    <section
+      aria-labelledby={`ibd-section-${section}`}
+      className="rounded-sm border border-grid bg-canvas-raised p-5 shadow-[0_1px_0_rgba(10,22,40,0.04)]"
+    >
+      <header className="mb-4 flex items-center justify-between">
+        <h2
+          id={`ibd-section-${section}`}
+          className="text-[11px] font-semibold uppercase tracking-[0.14em] text-accent"
+        >
+          {title}
+        </h2>
+        <span className="text-xs text-ink-muted">{t('ibd.included.label')}</span>
+      </header>
+
+      {accounts.length === 0 ? (
+        <p className="py-3 text-sm text-ink-muted">{t('ibd.empty.section')}</p>
+      ) : (
+        <ul className="divide-y divide-grid">
+          {included.length === 0 && (
+            <li className="py-3 text-sm text-ink-muted">—</li>
+          )}
+          {included.map((account) => (
+            <li
+              key={account.excelRow}
+              className="flex items-center gap-3 py-2.5"
+            >
+              <span className="flex-1 text-sm text-ink">
+                {resolveLabel(account, language)}
+              </span>
+              <span className="font-mono text-sm tabular-nums text-ink-soft">
+                {formatIdr(valueFor(account.excelRow))}
+              </span>
+              <button
+                type="button"
+                onClick={() => onToggle(account.excelRow)}
+                aria-label={t('ibd.action.exclude')}
+                title={t('ibd.action.exclude')}
+                className="shrink-0 rounded-sm border border-grid p-1.5 text-ink-muted transition-colors hover:border-negative hover:text-negative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              >
+                <TrashIcon />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {excluded.length > 0 && (
+        <div className="mt-4 border-t border-dashed border-grid pt-3">
+          <button
+            type="button"
+            onClick={() => setExcludedOpen((v) => !v)}
+            className="flex w-full items-center justify-between text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted transition-colors hover:text-ink"
+          >
+            <span>
+              {t('ibd.excluded.label')} ·{' '}
+              {t('ibd.excluded.count', { count: excluded.length })}
+            </span>
+            <ChevronIcon open={excludedOpen} />
+          </button>
+          {excludedOpen && (
+            <ul className="mt-3 divide-y divide-grid/70">
+              {excluded.map((account) => (
+                <li
+                  key={account.excelRow}
+                  className="flex items-center gap-3 py-2 opacity-70"
+                >
+                  <span className="flex-1 text-sm text-ink-muted line-through">
+                    {resolveLabel(account, language)}
+                  </span>
+                  <span className="font-mono text-sm tabular-nums text-ink-muted">
+                    {formatIdr(valueFor(account.excelRow))}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => onToggle(account.excelRow)}
+                    aria-label={t('ibd.action.include')}
+                    title={t('ibd.action.include')}
+                    className="shrink-0 rounded-sm border border-grid p-1.5 text-ink-muted transition-colors hover:border-accent hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                  >
+                    <RestoreIcon />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </section>
   )
 }
 
@@ -163,30 +332,12 @@ function TriviaSection() {
         {t('ibd.trivia.include.intro')}
       </p>
       <ul className="mb-8 space-y-2.5 text-sm leading-relaxed text-ink-soft">
-        <TriviaItem
-          term={t('ibd.trivia.include.bankLoans.term')}
-          desc={t('ibd.trivia.include.bankLoans.desc')}
-        />
-        <TriviaItem
-          term={t('ibd.trivia.include.bonds.term')}
-          desc={t('ibd.trivia.include.bonds.desc')}
-        />
-        <TriviaItem
-          term={t('ibd.trivia.include.notes.term')}
-          desc={t('ibd.trivia.include.notes.desc')}
-        />
-        <TriviaItem
-          term={t('ibd.trivia.include.mortgage.term')}
-          desc={t('ibd.trivia.include.mortgage.desc')}
-        />
-        <TriviaItem
-          term={t('ibd.trivia.include.lease.term')}
-          desc={t('ibd.trivia.include.lease.desc')}
-        />
-        <TriviaItem
-          term={t('ibd.trivia.include.commercialPaper.term')}
-          desc={t('ibd.trivia.include.commercialPaper.desc')}
-        />
+        <TriviaItem term={t('ibd.trivia.include.bankLoans.term')} desc={t('ibd.trivia.include.bankLoans.desc')} />
+        <TriviaItem term={t('ibd.trivia.include.bonds.term')} desc={t('ibd.trivia.include.bonds.desc')} />
+        <TriviaItem term={t('ibd.trivia.include.notes.term')} desc={t('ibd.trivia.include.notes.desc')} />
+        <TriviaItem term={t('ibd.trivia.include.mortgage.term')} desc={t('ibd.trivia.include.mortgage.desc')} />
+        <TriviaItem term={t('ibd.trivia.include.lease.term')} desc={t('ibd.trivia.include.lease.desc')} />
+        <TriviaItem term={t('ibd.trivia.include.commercialPaper.term')} desc={t('ibd.trivia.include.commercialPaper.desc')} />
       </ul>
 
       <div className="mb-4 border-t border-grid" />
@@ -198,22 +349,10 @@ function TriviaSection() {
         {t('ibd.trivia.exclude.intro')}
       </p>
       <ul className="space-y-2.5 text-sm leading-relaxed text-ink-soft">
-        <TriviaItem
-          term={t('ibd.trivia.exclude.accountsPayable.term')}
-          desc={t('ibd.trivia.exclude.accountsPayable.desc')}
-        />
-        <TriviaItem
-          term={t('ibd.trivia.exclude.accrued.term')}
-          desc={t('ibd.trivia.exclude.accrued.desc')}
-        />
-        <TriviaItem
-          term={t('ibd.trivia.exclude.unearnedRevenue.term')}
-          desc={t('ibd.trivia.exclude.unearnedRevenue.desc')}
-        />
-        <TriviaItem
-          term={t('ibd.trivia.exclude.taxesPayable.term')}
-          desc={t('ibd.trivia.exclude.taxesPayable.desc')}
-        />
+        <TriviaItem term={t('ibd.trivia.exclude.accountsPayable.term')} desc={t('ibd.trivia.exclude.accountsPayable.desc')} />
+        <TriviaItem term={t('ibd.trivia.exclude.accrued.term')} desc={t('ibd.trivia.exclude.accrued.desc')} />
+        <TriviaItem term={t('ibd.trivia.exclude.unearnedRevenue.term')} desc={t('ibd.trivia.exclude.unearnedRevenue.desc')} />
+        <TriviaItem term={t('ibd.trivia.exclude.taxesPayable.term')} desc={t('ibd.trivia.exclude.taxesPayable.desc')} />
       </ul>
     </section>
   )
@@ -232,9 +371,72 @@ function TriviaItem({ term, desc }: { term: string; desc: string }) {
   )
 }
 
+function TrashIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+      <path d="M10 11v6" />
+      <path d="M14 11v6" />
+    </svg>
+  )
+}
+
+function RestoreIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M3 12a9 9 0 1 0 3-6.7" />
+      <polyline points="3 3 3 9 9 9" />
+    </svg>
+  )
+}
+
+function ChevronIcon({ open }: { open: boolean }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={`transition-transform ${open ? 'rotate-180' : ''}`}
+      aria-hidden
+    >
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  )
+}
+
 export default function InterestBearingDebtPage() {
   const { t } = useT()
   const hasHydrated = useKkaStore((s) => s._hasHydrated)
+  const balanceSheet = useKkaStore((s) => s.balanceSheet)
 
   if (!hasHydrated) {
     return (
@@ -244,5 +446,21 @@ export default function InterestBearingDebtPage() {
     )
   }
 
-  return <InterestBearingDebtEditor />
+  if (!balanceSheet || balanceSheet.accounts.length === 0) {
+    return (
+      <PageEmptyState
+        section={t('nav.group.valuation')}
+        title={t('ibd.title')}
+        inputs={[
+          {
+            label: t('nav.item.balanceSheet'),
+            href: '/input/balance-sheet',
+            filled: !!balanceSheet && balanceSheet.accounts.length > 0,
+          },
+        ]}
+      />
+    )
+  }
+
+  return <IbdScopeEditor />
 }

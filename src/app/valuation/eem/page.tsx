@@ -13,7 +13,7 @@ import { computeCashFlowLiveRows } from '@/data/live/compute-cash-flow-live'
 import { computeDiscountRate, buildDiscountRateInput } from '@/lib/calculations/discount-rate'
 
 import { computeBorrowingCap } from '@/lib/calculations/borrowing-cap'
-import { BORROWING_PERCENT_DEFAULT, buildAamInput } from '@/lib/calculations/upstream-helpers'
+import { BORROWING_PERCENT_DEFAULT, buildAamInput, computeInterestBearingDebt } from '@/lib/calculations/upstream-helpers'
 import { computeAam } from '@/lib/calculations/aam-valuation'
 import { computeEem } from '@/lib/calculations/eem-valuation'
 import { computeShareValue } from '@/lib/calculations/share-value'
@@ -82,9 +82,28 @@ export default function EemPage() {
       costEquity: dr.ke,
     })
 
+    // Session 041 Task 5 — derive IBD total + exclusion sets from scope.
+    const ibdAmount = computeInterestBearingDebt({
+      balanceSheetAccounts: balanceSheet.accounts,
+      balanceSheetRows: allBs,
+      interestBearingDebt,
+      year: lastHistYear,
+    })
+    const exclCL = new Set(interestBearingDebt.excludedCurrentLiabilities)
+    const exclNCL = new Set(interestBearingDebt.excludedNonCurrentLiabilities)
+
     // ── AAM (for adjusted values) ──
     const proporsiSaham = computeProporsiSaham(home)
-    const aam = computeAam(buildAamInput({ accounts: balanceSheet!.accounts, allBs, lastYear: lastHistYear, home, aamAdjustments, interestBearingDebt }))
+    const aam = computeAam(buildAamInput({
+      accounts: balanceSheet!.accounts,
+      allBs,
+      lastYear: lastHistYear,
+      home,
+      aamAdjustments,
+      interestBearingDebt: ibdAmount,
+      excludedCurrentLiabIbd: exclCL,
+      excludedNonCurrentLiabIbd: exclNCL,
+    }))
 
     // ── EEM ──
     const eemResult = computeEem({
@@ -101,7 +120,7 @@ export default function EemPage() {
       historicalTotalWC: allCfs[10]?.[lastHistYear] ?? 0,
       historicalCapex: -(allFa[23]?.[lastHistYear] ?? 0),
       wacc: dr.wacc,
-      interestBearingDebt: -interestBearingDebt,
+      interestBearingDebt: -ibdAmount,
       nonOperatingAsset: bs(8),
     })
 

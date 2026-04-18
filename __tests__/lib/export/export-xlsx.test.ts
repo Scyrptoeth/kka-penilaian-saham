@@ -637,8 +637,9 @@ describe('export-xlsx (template-based)', () => {
           { catalogId: 'raw_materials', excelRow: 201, section: 'cost' as const },
           { catalogId: 'other_opex', excelRow: 300, section: 'operating_expense' as const },
           { catalogId: 'other_non_operating', excelRow: 400, section: 'non_operating' as const },
-          { catalogId: 'interest_income', excelRow: 500, section: 'net_interest' as const, interestType: 'income' as const },
-          { catalogId: 'interest_expense', excelRow: 501, section: 'net_interest' as const, interestType: 'expense' as const },
+          // Session 041 Task 3: net_interest split into separate sections.
+          { catalogId: 'time_deposit_interest', excelRow: 500, section: 'interest_income' as const },
+          { catalogId: 'bank_loan_interest', excelRow: 520, section: 'interest_expense' as const },
         ],
         yearCount: 4,
         language: 'en' as const,
@@ -650,7 +651,7 @@ describe('export-xlsx (template-based)', () => {
           300: { 2018: -50000, 2019: -55000, 2020: -60000, 2021: -65000 },
           400: { 2018: 0, 2019: 10000, 2020: 20000, 2021: 30000 },
           500: { 2018: 5000, 2019: 6000, 2020: 7000, 2021: 8000 },
-          501: { 2018: -3000, 2019: -3500, 2020: -4000, 2021: -4500 },
+          520: { 2018: -3000, 2019: -3500, 2020: -4000, 2021: -4500 },
           // Pre-computed sentinels (from DynamicIsEditor schedulePersist)
           6: { 2018: 1500000, 2019: 1650000, 2020: 1800000, 2021: 1950000 },
           7: { 2018: -500000, 2019: -550000, 2020: -600000, 2021: -650000 },
@@ -680,13 +681,13 @@ describe('export-xlsx (template-based)', () => {
         expect(is.getCell('F201').value).toBe(-130000)
       })
 
-      it('writes label + values for net_interest extended rows (section skipped in sentinel replacement only)', async () => {
+      it('writes label + values for interest_income / interest_expense extended rows (Session 041 Task 3)', async () => {
         const wb = await simulateExport(STATE_WITH_EXTENDED_IS)
         const is = wb.getWorksheet('INCOME STATEMENT')!
-        expect(is.getCell('B500').value).toBe('Interest Income')
-        expect(is.getCell('B501').value).toBe('Interest Expense')
+        expect(is.getCell('B500').value).toBe('Time Deposit Interest Income')
+        expect(is.getCell('B520').value).toBe('Bank Loan Interest Expense')
         expect(is.getCell('F500').value).toBe(8000)
-        expect(is.getCell('F501').value).toBe(-4500)
+        expect(is.getCell('F520').value).toBe(-4500)
       })
 
       it('fallback label priority: customLabel > catalog.labelEn > catalogId', async () => {
@@ -767,13 +768,13 @@ describe('export-xlsx (template-based)', () => {
         expect(formula).toBe('SUM(D400:D419)')
       })
 
-      it('keeps D26/D27 (net_interest) as hardcoded numbers — mixed-sign section cannot simple-SUM', async () => {
+      it('replaces D26/D27 with SUM formulas (Session 041 Task 3 — interest split into single-sign sections)', async () => {
         const wb = await simulateExport(STATE_WITH_EXTENDED_IS)
         const is = wb.getWorksheet('INCOME STATEMENT')!
-        expect(typeof is.getCell('D26').value).toBe('number')
-        expect(typeof is.getCell('D27').value).toBe('number')
-        expect(is.getCell('D26').value).toBe(6000)
-        expect(is.getCell('D27').value).toBe(-3500)
+        const d26 = (is.getCell('D26').value as { formula: string }).formula
+        const d27 = (is.getCell('D27').value as { formula: string }).formula
+        expect(d26).toBe('SUM(D500:D519)')
+        expect(d27).toBe('SUM(D520:D539)')
       })
 
       it('applies sentinel replacement across all 4 year columns C/D/E/F', async () => {

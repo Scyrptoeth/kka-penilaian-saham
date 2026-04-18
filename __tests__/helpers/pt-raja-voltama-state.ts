@@ -298,5 +298,17 @@ export function loadPtRajaVoltamaState(): ExportableState {
     },
     aamAdjustments: {},
     nilaiPengalihanDilaporkan: num(sim, 'E11'),
+    // Session 041 Task 5: IBD scope confirmed with empty exclusion sets — every
+    // CL/NCL account counts toward IBD (matches the legacy Session 038
+    // behaviour where the full numeric IBD was provided manually).
+    interestBearingDebt: {
+      excludedCurrentLiabilities: [],
+      excludedNonCurrentLiabilities: [],
+    },
+    // Session 039: WC scope confirmed with empty exclusion sets.
+    changesInWorkingCapital: {
+      excludedCurrentAssets: [],
+      excludedCurrentLiabilities: [],
+    },
   }
 }

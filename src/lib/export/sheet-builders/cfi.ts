@@ -2,6 +2,7 @@ import type { SheetBuilder } from './types'
 import { computeFullProjectionPipeline } from '@/lib/calculations/projection-pipeline'
 import {
   computeHistoricalUpstream, buildDcfInput, buildCfiInput,
+  computeInterestBearingDebt,
 } from '@/lib/calculations/upstream-helpers'
 import { computeDcf } from '@/lib/calculations/dcf'
 import { computeDiscountRate, buildDiscountRateInput } from '@/lib/calculations/discount-rate'
@@ -37,8 +38,6 @@ export const CfiBuilder: SheetBuilder = {
       return
     }
 
-    const ibd = state.interestBearingDebt
-
     const pipeline = computeFullProjectionPipeline({
       home: state.home,
       balanceSheet: state.balanceSheet,
@@ -62,11 +61,19 @@ export const CfiBuilder: SheetBuilder = {
 
     const dr = computeDiscountRate(buildDiscountRateInput(state.discountRate))
 
+    // Session 041 Task 5 — derive IBD numeric total from user-curated scope.
+    const ibdAmount = computeInterestBearingDebt({
+      balanceSheetAccounts: state.balanceSheet.accounts,
+      balanceSheetRows: allBs,
+      interestBearingDebt: state.interestBearingDebt,
+      year: lastHistYear,
+    })
+
     const dcf = computeDcf(buildDcfInput({
       upstream, allBs, lastHistYear, projYears,
       proyNoplatRows, proyFaRows, proyCfsRows,
       wacc: dr.wacc, growthRate: upstream.growthRate,
-      interestBearingDebt: ibd,
+      interestBearingDebt: ibdAmount,
     }))
 
     const cfi = computeCfi(buildCfiInput({

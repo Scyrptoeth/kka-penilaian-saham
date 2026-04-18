@@ -7,7 +7,7 @@ import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { BALANCE_SHEET_MANIFEST } from '@/data/manifests/balance-sheet'
 import { computeAam } from '@/lib/calculations/aam-valuation'
-import { buildAamInput } from '@/lib/calculations/upstream-helpers'
+import { buildAamInput, computeInterestBearingDebt } from '@/lib/calculations/upstream-helpers'
 import { formatIdr, formatPercent } from '@/components/financial/format'
 import { parseFinancialInput } from '@/components/forms/parse-financial-input'
 import { PageEmptyState } from '@/components/shared/PageEmptyState'
@@ -165,13 +165,27 @@ export default function AamPage() {
     const allBs = { ...bsComp, ...balanceSheet.rows }
     const ly = histYears[histYears.length - 1]!
 
+    // Session 041 Task 5: derive IBD total + exclusion sets from the user-curated
+    // scope. Same exclusion sets feed AAM CL/NCL display split (LESSON-074
+    // classifier removed) — single source of truth for both number and split.
+    const ibdAmount = computeInterestBearingDebt({
+      balanceSheetAccounts: balanceSheet.accounts,
+      balanceSheetRows: allBs,
+      interestBearingDebt,
+      year: ly,
+    })
+    const exclCL = new Set(interestBearingDebt.excludedCurrentLiabilities)
+    const exclNCL = new Set(interestBearingDebt.excludedNonCurrentLiabilities)
+
     const result = computeAam(buildAamInput({
       accounts: balanceSheet.accounts,
       allBs,
       lastYear: ly,
       home,
       aamAdjustments,
-      interestBearingDebt,
+      interestBearingDebt: ibdAmount,
+      excludedCurrentLiabIbd: exclCL,
+      excludedNonCurrentLiabIbd: exclNCL,
     }))
 
     return { result, allBs, ly, accounts: balanceSheet.accounts }

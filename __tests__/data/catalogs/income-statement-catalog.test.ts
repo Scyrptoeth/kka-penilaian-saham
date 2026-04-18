@@ -11,8 +11,11 @@ import {
 } from '@/data/catalogs/income-statement-catalog'
 
 describe('income-statement-catalog', () => {
-  it('has 41 accounts total', () => {
-    expect(IS_CATALOG).toHaveLength(41)
+  // Session 041 Task 3: net_interest split into interest_income + interest_expense.
+  // 6 income accounts (rows 500-505) + 7 expense accounts (rows 520-526) = 13
+  // (was 6 in net_interest). Plus 9 revenue + 8 cost + 12 opex + 6 non_op = 35 + 13 = 48.
+  it('has 48 accounts total (Session 041 Task 3 — interest split into 6 income + 7 expense)', () => {
+    expect(IS_CATALOG).toHaveLength(48)
   })
 
   it('all accounts have both labelEn and labelId', () => {
@@ -27,24 +30,16 @@ describe('income-statement-catalog', () => {
     expect(new Set(rows).size).toBe(rows.length)
   })
 
-  it('sections cover all 5 types', () => {
+  it('sections cover all 6 types (Session 041 Task 3)', () => {
     const sections = new Set(IS_CATALOG.map((a) => a.section))
-    expect(sections).toEqual(new Set(['revenue', 'cost', 'operating_expense', 'non_operating', 'net_interest']))
-  })
-
-  it('net_interest accounts all have interestType', () => {
-    const niAccounts = IS_CATALOG.filter((a) => a.section === 'net_interest')
-    for (const a of niAccounts) {
-      expect(a.interestType).toBeDefined()
-      expect(['income', 'expense']).toContain(a.interestType)
-    }
-  })
-
-  it('non-net_interest accounts do NOT have interestType', () => {
-    const others = IS_CATALOG.filter((a) => a.section !== 'net_interest')
-    for (const a of others) {
-      expect(a.interestType).toBeUndefined()
-    }
+    expect(sections).toEqual(new Set([
+      'revenue',
+      'cost',
+      'operating_expense',
+      'non_operating',
+      'interest_income',
+      'interest_expense',
+    ]))
   })
 
   it('getCatalogAccount returns correct item', () => {
@@ -89,13 +84,14 @@ describe('income-statement-catalog', () => {
     expect(Object.keys(ORIGINAL_ROW_TO_CATALOG)).toHaveLength(7)
   })
 
-  it('excelRow ranges do not overlap across sections', () => {
+  it('excelRow ranges do not overlap across sections (Session 041 Task 3)', () => {
     const ranges: Record<string, [number, number]> = {
       revenue: [100, 119],
       cost: [200, 219],
       operating_expense: [300, 319],
       non_operating: [400, 419],
-      net_interest: [500, 519],
+      interest_income: [500, 519],
+      interest_expense: [520, 539],
     }
     for (const a of IS_CATALOG) {
       const [lo, hi] = ranges[a.section]

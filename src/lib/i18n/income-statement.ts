@@ -46,6 +46,9 @@ export interface IsStrings {
   profitBeforeTax: string
   corporateTax: string
   netProfitAfterTax: string
+  // Session 041 Task 4 — Fiscal Correction adjustment between PBT and Tax.
+  koreksiFiskal: string
+  taxableProfit: string
 }
 
 const en: IsStrings = {
@@ -72,7 +75,8 @@ const en: IsStrings = {
     cost: '+ Add Cost Account',
     operating_expense: '+ Add Operating Expense',
     non_operating: '+ Add Non-Operating Account',
-    net_interest: '+ Add Net Interest Account',
+    interest_income: '+ Add Interest Income',
+    interest_expense: '+ Add Interest Expense',
   },
 
   revenueAndCost: 'REVENUE & COST',
@@ -94,6 +98,8 @@ const en: IsStrings = {
   profitBeforeTax: 'PROFIT BEFORE TAX',
   corporateTax: 'Corporate Tax',
   netProfitAfterTax: 'NET PROFIT AFTER TAX',
+  koreksiFiskal: 'Fiscal Correction',
+  taxableProfit: 'TAXABLE PROFIT',
 }
 
 const id: IsStrings = {
@@ -120,7 +126,8 @@ const id: IsStrings = {
     cost: '+ Tambah Akun Beban Pokok',
     operating_expense: '+ Tambah Beban Operasional',
     non_operating: '+ Tambah Akun Non-Operasional',
-    net_interest: '+ Tambah Akun Bunga',
+    interest_income: '+ Tambah Pendapatan Bunga',
+    interest_expense: '+ Tambah Beban Bunga',
   },
 
   revenueAndCost: 'PENDAPATAN & BEBAN POKOK',
@@ -142,6 +149,8 @@ const id: IsStrings = {
   profitBeforeTax: 'LABA SEBELUM PAJAK',
   corporateTax: 'Pajak Penghasilan Badan',
   netProfitAfterTax: 'LABA BERSIH SETELAH PAJAK',
+  koreksiFiskal: 'Koreksi Fiskal',
+  taxableProfit: 'LABA KENA PAJAK',
 }
 
 const translations: Record<Lang, IsStrings> = { en, id }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useRef, useEffect } from 'react'
+import React, { useState, useMemo, useRef, useEffect } from 'react'
 import { useKkaStore } from '@/lib/store/useKkaStore'
 import { buildDynamicBsManifest } from '@/data/manifests/build-dynamic-bs'
 import {
@@ -353,6 +353,9 @@ export default function DynamicBsEditor() {
         </button>
       </footer>
 
+      {/* Tax-impact reminder for IS Koreksi Fiskal entries (Session 041 Task 2) */}
+      <KoreksiFiskalNote />
+
       {/* Confirmation dialogs */}
       {showResetBS && (
         <ConfirmDialog
@@ -376,6 +379,46 @@ export default function DynamicBsEditor() {
         />
       )}
     </div>
+  )
+}
+
+/**
+ * Tiny markdown-bold renderer: splits a string on `**phrase**` markers and
+ * returns a Fragment of plain text + `<strong>` nodes. Avoids `dangerouslySetInnerHTML`
+ * while keeping i18n strings declarative (LESSON-109 — use Fragment + key in map).
+ */
+function renderBold(input: string): React.ReactNode {
+  const parts = input.split(/(\*\*[^*]+\*\*)/g)
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={i} className="font-semibold text-ink">{part.slice(2, -2)}</strong>
+    }
+    return <React.Fragment key={i}>{part}</React.Fragment>
+  })
+}
+
+function KoreksiFiskalNote() {
+  const { t } = useT()
+  return (
+    <aside
+      role="note"
+      aria-labelledby="bs-koreksi-fiskal-note-heading"
+      className="mt-4 rounded-sm border border-grid border-l-2 border-l-accent bg-canvas-raised/40 p-4 shadow-[0_1px_0_rgba(10,22,40,0.04)]"
+    >
+      <h2
+        id="bs-koreksi-fiskal-note-heading"
+        className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-accent"
+      >
+        {t('bs.koreksiFiskal.note.heading')}
+      </h2>
+      <p className="text-sm leading-relaxed text-ink-soft">
+        {t('bs.koreksiFiskal.note.intro')}
+      </p>
+      <ol className="mt-2 list-decimal space-y-2 pl-6 text-sm leading-relaxed text-ink-soft">
+        <li>{renderBold(t('bs.koreksiFiskal.note.positive'))}</li>
+        <li>{renderBold(t('bs.koreksiFiskal.note.negative'))}</li>
+      </ol>
+    </aside>
   )
 }
 

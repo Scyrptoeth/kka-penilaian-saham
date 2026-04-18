@@ -5,6 +5,7 @@ import { BALANCE_SHEET_MANIFEST } from '@/data/manifests/balance-sheet'
 import {
   computeHistoricalUpstream,
   buildAamInput, buildEemInput, buildBorrowingCapInput,
+  computeInterestBearingDebt,
 } from '@/lib/calculations/upstream-helpers'
 import { computeDiscountRate, buildDiscountRateInput } from '@/lib/calculations/discount-rate'
 import { computeAam } from '@/lib/calculations/aam-valuation'
@@ -39,8 +40,6 @@ export const EemBuilder: SheetBuilder = {
       return
     }
 
-    const ibd = state.interestBearingDebt
-
     const histYears3 = computeHistoricalYears(state.home.tahunTransaksi, 3)
     const histYears4 = computeHistoricalYears(state.home.tahunTransaksi, 4)
     const lastYear = histYears4[histYears4.length - 1]!
@@ -66,13 +65,25 @@ export const EemBuilder: SheetBuilder = {
 
     const dr = computeDiscountRate(buildDiscountRateInput(state.discountRate))
 
+    // Session 041 Task 5 — derive IBD numeric total + exclusion sets from scope.
+    const ibdAmount = computeInterestBearingDebt({
+      balanceSheetAccounts: state.balanceSheet.accounts,
+      balanceSheetRows: allBs,
+      interestBearingDebt: state.interestBearingDebt,
+      year: lastYear,
+    })
+    const exclCL = new Set(state.interestBearingDebt.excludedCurrentLiabilities)
+    const exclNCL = new Set(state.interestBearingDebt.excludedNonCurrentLiabilities)
+
     const aamResult = computeAam(buildAamInput({
       accounts: state.balanceSheet.accounts,
       allBs,
       lastYear,
       home: state.home,
       aamAdjustments: state.aamAdjustments,
-      interestBearingDebt: ibd,
+      interestBearingDebt: ibdAmount,
+      excludedCurrentLiabIbd: exclCL,
+      excludedNonCurrentLiabIbd: exclNCL,
     }))
 
     const bc = computeBorrowingCap(buildBorrowingCapInput({
@@ -82,7 +93,7 @@ export const EemBuilder: SheetBuilder = {
     const eemInput = buildEemInput({
       aamResult, allBs, upstream, lastYear,
       waccTangible: bc.waccTangible, wacc: dr.wacc,
-      interestBearingDebt: ibd,
+      interestBearingDebt: ibdAmount,
     })
     const eem = computeEem(eemInput)
 

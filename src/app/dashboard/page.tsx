@@ -20,6 +20,7 @@ import { computeProporsiSaham } from '@/lib/store/useKkaStore'
 import {
   computeHistoricalUpstream,
   buildAamInput, buildDcfInput, buildEemInput, buildBorrowingCapInput,
+  computeInterestBearingDebt,
 } from '@/lib/calculations/upstream-helpers'
 import { PageEmptyState } from '@/components/shared/PageEmptyState'
 import { useT } from '@/lib/i18n/useT'
@@ -108,9 +109,28 @@ export default function DashboardPage() {
       equity: allBs[48]?.[y] ?? 0,
     }))
 
+    // Session 041 Task 5 — derive IBD total + exclusion sets from scope.
+    const ibdAmount = computeInterestBearingDebt({
+      balanceSheetAccounts: balanceSheet.accounts,
+      balanceSheetRows: allBs,
+      interestBearingDebt,
+      year: ly,
+    })
+    const exclCL = new Set(interestBearingDebt.excludedCurrentLiabilities)
+    const exclNCL = new Set(interestBearingDebt.excludedNonCurrentLiabilities)
+
     // ── Chart 3: Valuation Comparison ──
     const valuationData: Array<{ method: string; perShare: number }> = []
-    const aamResult = computeAam(buildAamInput({ accounts: balanceSheet!.accounts, allBs, lastYear: ly, home, aamAdjustments, interestBearingDebt }))
+    const aamResult = computeAam(buildAamInput({
+      accounts: balanceSheet!.accounts,
+      allBs,
+      lastYear: ly,
+      home,
+      aamAdjustments,
+      interestBearingDebt: ibdAmount,
+      excludedCurrentLiabIbd: exclCL,
+      excludedNonCurrentLiabIbd: exclNCL,
+    }))
     // AAM ends at Market Value Portion (session 022). Per-share divides that
     // portion by the proportional share count (jumlahSahamBeredar × proporsiSaham).
     valuationData.push({
@@ -142,7 +162,7 @@ export default function DashboardPage() {
           proyNoplatRows: pipeline.proyNoplatRows, proyFaRows: pipeline.proyFaRows,
           proyCfsRows: pipeline.proyCfsRows,
           wacc: dr.wacc, growthRate: upstream.growthRate,
-          interestBearingDebt,
+          interestBearingDebt: ibdAmount,
         }))
 
         const svDcf = computeShareValue({
@@ -157,7 +177,7 @@ export default function DashboardPage() {
         const eemResult = computeEem(buildEemInput({
           aamResult, allBs, upstream, lastYear: ly,
           waccTangible: bcData.waccTangible, wacc: dr.wacc,
-          interestBearingDebt,
+          interestBearingDebt: ibdAmount,
         }))
         const svEem = computeShareValue({
           equityValue100: eemResult.equityValue100,

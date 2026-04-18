@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { useKkaStore } from '@/lib/store/useKkaStore'
 import { buildDynamicIsManifest } from '@/data/manifests/build-dynamic-is'
 import {
@@ -14,6 +14,7 @@ import {
 } from '@/data/catalogs/income-statement-catalog'
 import { RowInputGrid } from './RowInputGrid'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
+import { computeDepreciationFromFa } from '@/lib/calculations/derive-depreciation'
 import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
 import { ratioOfBase, yoyChangeSafe } from '@/lib/calculations/helpers'
 import type { YearKeyedSeries } from '@/types/financial'
@@ -33,6 +34,7 @@ import { useT } from '@/lib/i18n/useT'
 export default function DynamicIsEditor() {
   const home = useKkaStore((s) => s.home)
   const incomeStatement = useKkaStore((s) => s.incomeStatement)
+  const fixedAsset = useKkaStore((s) => s.fixedAsset)
   const setIncomeStatement = useKkaStore((s) => s.setIncomeStatement)
   const resetIncomeStatement = useKkaStore((s) => s.resetIncomeStatement)
   const resetAll = useKkaStore((s) => s.resetAll)
@@ -83,9 +85,13 @@ export default function DynamicIsEditor() {
       // Build manifest and compute sentinels for downstream compat
       const manifest = buildDynamicIsManifest(nextAccounts, lang, nextYearCount, tahunTransaksi)
       const yrs = computeHistoricalYears(tahunTransaksi, nextYearCount)
-      const computed = deriveComputedRows(manifest.rows, nextRows, yrs)
+      // Inject Depreciation cross-ref from latest FA store BEFORE deriving
+      // sentinels so EBIT/PBT/NPAT chain resolves correctly (LESSON-058).
+      const dep = computeDepreciationFromFa(useKkaStore.getState().fixedAsset?.rows)
+      const computed = deriveComputedRows(manifest.rows, { ...nextRows, ...dep }, yrs)
 
-      // Merge sentinel values into store rows
+      // Merge sentinel values into store rows. Depreciation (21) is included
+      // because it is now a computed sentinel (Session 041 Task 1).
       const sentinels: Record<number, YearKeyedSeries> = {}
       for (const r of IS_SENTINEL_ROWS) {
         if (computed[r]) sentinels[r] = computed[r]
@@ -111,10 +117,29 @@ export default function DynamicIsEditor() {
     [accounts, language, yearCount, tahunTransaksi],
   )
 
-  const computedValues = useMemo(
-    () => deriveComputedRows(dynamicManifest.rows, localRows, years),
-    [dynamicManifest.rows, localRows, years],
+  // Cross-ref: FA "B. Depreciation → Total Additions" (FA row 51) → IS row 21,
+  // sign negated at the boundary (LESSON-011). Read-only at the UI level via
+  // manifest type 'cross-ref'.
+  const depCrossRef = useMemo(
+    () => computeDepreciationFromFa(fixedAsset?.rows),
+    [fixedAsset?.rows],
   )
+
+  const computedValues = useMemo(
+    () => deriveComputedRows(dynamicManifest.rows, { ...localRows, ...depCrossRef }, years),
+    [dynamicManifest.rows, localRows, depCrossRef, years],
+  )
+
+  // Re-persist IS sentinels when the FA Depreciation Total Additions changes
+  // (e.g. user edits FA page) so downstream pages see correct EBIT/PBT/NPAT.
+  // Mirrors LESSON-058 BS-from-FA pattern.
+  const prevDepRef = useRef(depCrossRef)
+  useEffect(() => {
+    if (prevDepRef.current === depCrossRef) return
+    prevDepRef.current = depCrossRef
+    if (accounts.length === 0) return
+    schedulePersist(accounts, localRows, yearCount)
+  })
 
   // Derivation columns: Common Size (% of Revenue) + Growth YoY
   const allValues = useMemo(
@@ -180,7 +205,6 @@ export default function DynamicIsEditor() {
       catalogId: catalogAccount.id,
       excelRow: catalogAccount.excelRow,
       section: catalogAccount.section,
-      ...(catalogAccount.interestType && { interestType: catalogAccount.interestType }),
     }
     setAccounts((prev) => {
       const next = [...prev, entry]
@@ -191,15 +215,11 @@ export default function DynamicIsEditor() {
 
   function handleAddCustom(section: string, label: string) {
     const excelRow = generateCustomExcelRow(accounts)
-    // Determine interestType for net_interest custom accounts
-    // Default to 'expense' for custom net_interest accounts
-    const interestType = section === 'net_interest' ? 'expense' as const : undefined
     const entry: IsAccountEntry = {
       catalogId: `custom_${Date.now()}`,
       excelRow,
       section: section as IsSection,
       customLabel: label,
-      ...(interestType && { interestType }),
     }
     setAccounts((prev) => {
       const next = [...prev, entry]

@@ -10,7 +10,6 @@
 
 import type { HomeInputs, YearKeyedSeries } from '@/types'
 import type { BsAccountEntry } from '@/data/catalogs/balance-sheet-catalog'
-import { isIbdAccount } from '@/data/catalogs/balance-sheet-catalog'
 import type { AamInput } from '@/lib/calculations/aam-valuation'
 import type { DcfInput } from '@/lib/calculations/dcf'
 import type { BorrowingCapInput } from '@/lib/calculations/borrowing-cap'
@@ -32,6 +31,47 @@ import { computeProporsiSaham } from '@/lib/store/useKkaStore'
 
 /** Default borrowing percentage for fixed assets (E7 in Borrowing Cap sheet). */
 export const BORROWING_PERCENT_DEFAULT = 0.7
+
+// ── IBD Scope Helper (Session 041 Task 5) ──
+
+/**
+ * Compute the user-curated Interest Bearing Debt total at a given year by
+ * iterating BS Current + Non-Current Liabilities accounts and skipping
+ * those the user marked NON-IBD on `/valuation/interest-bearing-debt`.
+ *
+ * Returns 0 when:
+ *   - `interestBearingDebt` slice is null (user has not confirmed scope)
+ *   - balanceSheet slice is null
+ *   - all liability accounts are excluded
+ *
+ * Result is POSITIVE per the AAM/DCF/EEM convention — sign reconciliation
+ * lives at builder boundaries (DCF/EEM negate internally per LESSON-011).
+ */
+export function computeInterestBearingDebt(input: {
+  balanceSheetAccounts: readonly BsAccountEntry[]
+  balanceSheetRows: Record<number, YearKeyedSeries>
+  interestBearingDebt: {
+    excludedCurrentLiabilities: number[]
+    excludedNonCurrentLiabilities: number[]
+  } | null
+  year: number
+}): number {
+  const { balanceSheetAccounts, balanceSheetRows, interestBearingDebt, year } = input
+  if (interestBearingDebt === null) return 0
+  const exclCL = new Set(interestBearingDebt.excludedCurrentLiabilities)
+  const exclNCL = new Set(interestBearingDebt.excludedNonCurrentLiabilities)
+  let total = 0
+  for (const acct of balanceSheetAccounts) {
+    if (acct.section === 'current_liabilities') {
+      if (exclCL.has(acct.excelRow)) continue
+      total += balanceSheetRows[acct.excelRow]?.[year] ?? 0
+    } else if (acct.section === 'non_current_liabilities') {
+      if (exclNCL.has(acct.excelRow)) continue
+      total += balanceSheetRows[acct.excelRow]?.[year] ?? 0
+    }
+  }
+  return total
+}
 
 // ── Historical Upstream Chain ──
 
@@ -127,14 +167,30 @@ export interface BuildAamParams {
   home: HomeInputs
   aamAdjustments: Record<number, number>
   /**
-   * Session 038: user-entered total Interest Bearing Debt (POSITIVE
-   * amount). Sourced from `/valuation/interest-bearing-debt` page.
-   * Replaces the previous classifier-based auto-aggregation via
-   * `isIbdAccount()` — see AAM page note that instructs users to apply
-   * negative adjustments (column D) on IBD liability accounts so NAV
-   * math does not double-count.
+   * Session 041 Task 5: user-curated Interest Bearing Debt scope.
+   * Sourced from `/valuation/interest-bearing-debt` page (mirror of WC
+   * scope page UX). The numeric IBD total is derived via
+   * `computeInterestBearingDebt(state)`; downstream builders accept the
+   * derived number as a positive amount and reconcile sign at the boundary
+   * (DCF/EEM negate internally per LESSON-011).
+   *
+   * Replaces both:
+   *   - The Session 038 manual numeric input (`number | null`)
+   *   - The legacy `isIbdAccount()` classifier-based auto-aggregation
+   *
+   * AAM CL/NCL display split is now also driven by this exclusion set —
+   * `excludedXxx` accounts are treated as NON-IBD (user opted them out),
+   * remaining liability accounts within the scope are treated as IBD.
    */
   interestBearingDebt: number
+  /**
+   * Session 041 Task 5: BS row sets the user marked as NON-IBD (i.e. user
+   * opted these accounts out of the IBD scope on the dedicated page).
+   * Empty default = no exclusions yet (every CL / NCL account counted as
+   * IBD until user trims the list).
+   */
+  excludedCurrentLiabIbd?: ReadonlySet<number>
+  excludedNonCurrentLiabIbd?: ReadonlySet<number>
 }
 
 /**
@@ -146,13 +202,26 @@ export interface BuildAamParams {
  * always included as special non-current asset from BS sentinel.
  */
 export function buildAamInput(params: BuildAamParams): AamInput {
-  const { accounts, allBs, lastYear: ly, home, aamAdjustments: adj, interestBearingDebt } = params
+  const {
+    accounts,
+    allBs,
+    lastYear: ly,
+    home,
+    aamAdjustments: adj,
+    interestBearingDebt,
+    excludedCurrentLiabIbd,
+    excludedNonCurrentLiabIbd,
+  } = params
   const bs = (row: number) => allBs[row]?.[ly] ?? 0
   const a = (row: number) => adj[row] ?? 0
   const adjusted = (row: number) => bs(row) + a(row)
   const totalAdjustments = Object.values(adj).reduce((sum, v) => sum + v, 0)
 
-  // Aggregate per section from dynamic accounts
+  // Aggregate per section from dynamic accounts.
+  // Session 041 Task 5: CL/NCL split is driven by the user-curated IBD
+  // exclusion set (LESSON-074 isIbdAccount classifier removed). An account
+  // appearing in the exclusion set means the user marked it NOT IBD on the
+  // dedicated /valuation/interest-bearing-debt page.
   let totalCurrentAssets = 0
   let otherNonCurrentAssets = 0
   let intangibleAssets = 0
@@ -161,6 +230,9 @@ export function buildAamInput(params: BuildAamParams): AamInput {
   let nonIbdNCL = 0
   let ibdNCL = 0
   let totalEquity = 0
+
+  const exclCL = excludedCurrentLiabIbd
+  const exclNCL = excludedNonCurrentLiabIbd
 
   for (const acct of accounts) {
     const val = adjusted(acct.excelRow)
@@ -175,12 +247,12 @@ export function buildAamInput(params: BuildAamParams): AamInput {
         intangibleAssets += val
         break
       case 'current_liabilities':
-        if (isIbdAccount(acct)) ibdCL += val
-        else nonIbdCL += val
+        if (exclCL?.has(acct.excelRow)) nonIbdCL += val
+        else ibdCL += val
         break
       case 'non_current_liabilities':
-        if (isIbdAccount(acct)) ibdNCL += val
-        else nonIbdNCL += val
+        if (exclNCL?.has(acct.excelRow)) nonIbdNCL += val
+        else ibdNCL += val
         break
       case 'equity':
         totalEquity += val
@@ -197,11 +269,9 @@ export function buildAamInput(params: BuildAamParams): AamInput {
   const totalCurrentLiabilities = nonIbdCL + ibdCL
   const totalNonCurrentLiabilities = nonIbdNCL + ibdNCL
 
-  // Session 038: IBD is now a dedicated user input from the store
-  // (POSITIVE amount). Classifier-based auto-aggregation is retained only
-  // for the CL/NCL split so AAM page subtotals (non-IBD vs IBD categories)
-  // continue to display — the split has no effect on NAV math when the
-  // user follows the workflow of zeroing IBD accounts via column D.
+  // Session 041 Task 5: IBD total comes from `computeInterestBearingDebt`,
+  // and the CL/NCL split is driven by the same exclusion set. Single source
+  // of truth for both display and NAV math — no LESSON-074 classifier drift.
 
   return {
     totalCurrentAssets,

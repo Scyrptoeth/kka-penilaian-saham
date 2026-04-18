@@ -5,7 +5,7 @@ import { useKkaStore } from '@/lib/store/useKkaStore'
 import { computeDiscountRate, buildDiscountRateInput } from '@/lib/calculations/discount-rate'
 import { computeDcf } from '@/lib/calculations/dcf'
 import { computeFullProjectionPipeline } from '@/lib/calculations/projection-pipeline'
-import { computeHistoricalUpstream, buildDcfInput, buildCfiInput } from '@/lib/calculations/upstream-helpers'
+import { computeHistoricalUpstream, buildDcfInput, buildCfiInput, computeInterestBearingDebt } from '@/lib/calculations/upstream-helpers'
 import { computeCfi } from '@/lib/calculations/cfi'
 import { formatIdr } from '@/components/financial/format'
 import { PageEmptyState } from '@/components/shared/PageEmptyState'
@@ -50,13 +50,21 @@ export default function CfiPage() {
       changesInWorkingCapital,
     })
 
+    // Session 041 Task 5 — derive IBD total from scope.
+    const ibdAmount = computeInterestBearingDebt({
+      balanceSheetAccounts: balanceSheet.accounts,
+      balanceSheetRows: allBs,
+      interestBearingDebt,
+      year: lastHistYear,
+    })
+
     // ── Projected FCF (via DCF) ──
     const dr = computeDiscountRate(buildDiscountRateInput(discountRateState))
     const dcfResult = computeDcf(buildDcfInput({
       upstream, allBs, lastHistYear, projYears,
       proyNoplatRows, proyFaRows, proyCfsRows,
       wacc: dr.wacc, growthRate: upstream.growthRate,
-      interestBearingDebt,
+      interestBearingDebt: ibdAmount,
     }))
 
     // ── CFI via centralized input builder (LESSON-046) ──
