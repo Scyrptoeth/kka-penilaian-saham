@@ -1,148 +1,54 @@
 # Progress — KKA Penilaian Saham
 
-> Latest state after Session 039 — Changes in Working Capital required-gate + DCF inline breakdown (2026-04-18)
-> Session 039 shipped on feature branch `feat/wc-scope-page-and-dcf-breakdown`; merge to main pending user review.
+> Latest state after Session 040 — Extended Injection (Proy BS / Proy FA / KEY DRIVERS) + Sign Reconciliation (2026-04-18)
+> Session 040 shipped on feature branch `feat/session-040-extended-proy-kd-injection`; merge to main pending user review (option b — langsung merge setelah local gates hijau).
 
 ## Verification Results
 ```
-Tests:     1222 / 1223 passing + 1 skipped  (102 files)
-Build:     ✅ 41 static pages, compiled cleanly (new: /analysis/changes-in-working-capital)
+Tests:     1250 / 1251 passing + 1 skipped  (102 files)
+Build:     ✅ 41 static pages, compiled cleanly
 Typecheck: ✅ tsc --noEmit clean
 Lint:      ✅ zero warnings (React Compiler compliant; local/no-hardcoded-ui-strings active)
 Audit:     ✅ 0 i18n violations (`npm run audit:i18n`)
 Phase C:   ✅ 5/5 gates green (`npm run verify:phase-c`)
 Cascade:   ✅ 3/3 (29/29 MIGRATED_SHEETS)
-Live:      https://penilaian-bisnis.vercel.app — HTTP 307 → /akses 200
-Store:     v18 (v17→v18 adds root-level changesInWorkingCapital: { excludedCA, excludedCL } | null)
+Live:      https://penilaian-bisnis.vercel.app — Session 039 deployed to production via Task #1 merge
+Store:     v18 (no schema change in Session 040)
 Registry:  29 / 29 WEBSITE_NAV_SHEETS state-driven
 ```
 
-## Session 039 (2026-04-18) — Changes in Working Capital required-gate + DCF inline breakdown
+## Session 040 (2026-04-18) — Extended Injection + Sign Reconciliation
 
-### Task 1 — Store v17→v18
-Root-level slice `changesInWorkingCapital: { excludedCurrentAssets:
-number[]; excludedCurrentLiabilities: number[] } | null`. Setters:
-`toggleExcludeCurrentAsset`, `toggleExcludeCurrentLiability`,
-`confirmWcScope` (null→empty-exclusion object), `resetWcScope`.
-Chain migration preserves existing state; +3 TDD cases.
+### Task #1 — Merge Session 039 to main
+Fast-forward merge `feat/wc-scope-page-and-dcf-breakdown` → main (56 files, +1976/-249). Pushed origin main → production deploy. Deleted feature branch local + remote. Created Session 040 branch.
 
-### Task 2 — CFS compute account-driven rewrite
-`computeCashFlowLiveRows` sheds hardcoded `BS_CA_ROWS=[10,11,12,14]`
-and `BS_CL_ROWS=[31,32,33,34]`. Now iterates user's
-`balanceSheet.accounts` filtered by section minus exclusions list
-from store. Fixed the user-reported bug: ΔCA/ΔCL rows showed "-" for
-every user with extended-catalog or custom accounts. Cash rows 8/9 no
-longer hardcoded-excluded — user decides via WC scope page. Shared
-helper `resolveWcRows` exported. +6 TDD cases. 12 callers migrated.
+### Task #2 — Proy BS Extended Injection
+`ProyBsBuilder.build()` adds a second pass: iterate `state.balanceSheet.accounts` with `excelRow ≥ 100`, write label at col B + projected values (lastHistYear + 3 projYears) at cols C/D/E/F of synthetic rows (excelRow 100-399 extended, 1000+ custom). Subtotals untouched — already include extended via `deriveComputedRows(dynamicBsManifest.computedFrom)`. Appending `+SUM(range)` would double-count. +5 TDD cases.
 
-### Task 3 — PROY CFS compute account-driven mirror
-Same rewrite applied to `computeProyCfsLive`. Additionally repaired
-pre-existing Session 036 bug where PROY CFS read PROY BS *template*
-rows 13/15/17/19 while `computeProyBsLive` outputs *user* excelRow
-keys (broken for PT Raja-equivalent users all along). Cash Ending
-now reads PROY BS rows 8+9 (user standard) rather than template rows
-9+11. 15/15 PROY CFS tests pass.
+### Task #3 — Proy FA Extended Injection
+`ProyFaBuilder.build()` adds a 7-band slot-allocation pass (rows 100-379 at 40-slot bands mirroring Session 028 FA historical). Each extended/custom account with slot index `i` writes labels + values across all 7 bands at `bandStart + i`. All-static values (diverges from Session 028 FA which uses live formulas for computed bands) matching ProyFaBuilder baseline static-write convention. Subtotals untouched (same double-count argument). +7 TDD cases.
 
-### Task 4 — Pipeline threading
-`computeFullProjectionPipeline` + `computeHistoricalUpstream` accept
-optional `changesInWorkingCapital` + `balanceSheetAccounts`. 14
-consumer files updated; 8 sheet-builders + 5 pages + 1 upstream
-helper.
+### Task #4 — KEY DRIVERS Dynamic additionalCapex Injection
+New `injectAdditionalCapexByAccount` helper in `KeyDriversBuilder`. Closes the Session 036 T8 data-loss gap (dynamic field added but no injector). Per-account row at `33 + slotIndex`, label at col B via `resolveLabel`, projection-year values at cols D-J. Clear-before-write strategy cleans prototipe residue (Tanah/Bangunan/Peralatan/Lainnya at B33-B36) when user has <4 FA accounts. Edge case: skip entirely when `accounts.length === 0` (preserves template parity for fixture edge case — PT Raja Voltama has empty accounts + populated rows). Upstream stays `['keyDrivers']`; injector internally gates on home + fixedAsset + keyDrivers. +8 TDD cases.
 
-### Task 5 — `/analysis/changes-in-working-capital` page
-New required-gate page mirroring IBD layout. Two sections (Current
-Assets + Current Liabilities), each listing user's BS accounts with
-trash icon to exclude from Operating WC scope. Collapsible
-"Dikecualikan" section per section with restore icon. Sticky
-"Konfirmasi Cakupan" / "Perbarui Cakupan" button at bottom transitions
-store slice from null → object. Trivia block bilingual EN/ID
-(intro + 4 negative-CA + 4 negative-CL + positive lists CA 3 + CL 3),
-light + dark mode compliant. ~55 new i18n keys.
-
-### Task 6 — Sidebar nav
-"Changes in Working Capital" / "Perubahan Modal Kerja" inserted in
-ANALYSIS group immediately above "Cash Flow Statement" — WC scope is
-a prerequisite for correct CFS ΔWC.
-
-### Task 7 — Required-gate 9 consumer pages
-PageEmptyState gate on: CFS, FCF, Financial Ratio, DCF, EEM, CFI,
-Simulasi Potensi, Dashboard, Proy CFS. All render PageEmptyState
-when `changesInWorkingCapital === null`, with an input entry pointing
-to the WC scope page. Consistent with IBD gating (Session 038).
-
-### Task 8 — Export pipeline
-`UpstreamSlice` union + `ExportableState` extended with
-`'changesInWorkingCapital'`. `isPopulated` special-cases non-null
-check. 9 sheet-builder upstream arrays extended. 8 metadata test
-assertions updated. Phase C 5/5 preserved.
-
-### Task 9 — DCF inline breakdown
-`/valuation/dcf/page.tsx` exposes `dcfInput` alongside `dcfResult` in
-data memo. Three sections get permanent inline breakdown rows (style
-`pl-12`, `text-ink-muted`, `text-sm`, monospace, no formulas shown):
-1. FCF per year (4 × 5 components): NOPLAT + Dep + ΔCA + ΔCL − CapEx
-2. Total PV of FCF (3 rows): PV of FCF per projected year
-3. Equity Value (100%) (4 rows BEFORE headline): EV − IBD + Surplus
-   Cash + Idle Non-Op Asset
-
-Zero new calc logic — pure UI addition. +10 i18n keys.
+### Task #5 — KD Ratio Sign Reconciliation
+`reconcileRatioSigns` helper runs after `writeScalars + writeArrays`, negates D20/D23/D24 + E-J expansions via `value === 0 ? 0 : -Math.abs(value)`. Store stays POSITIVE (LESSON-011); export boundary flips to NEGATIVE matching template + live PROY LR formulas (`=D8*'KEY DRIVERS'!D23` etc.) so projected expenses evaluate with correct signs when user reopens exported file. Previous whitelist (21 entries) hid a FUNCTIONAL bug, not cosmetic gap — removed from KNOWN_DIVERGENT_CELLS. 2 pre-existing tests updated. +8 TDD cases.
 
 ### Lessons extracted (3)
-- **LESSON-108** (promoted): Account-driven aggregation replaces
-  hardcoded row lists — system correctness > prototipe fidelity.
-  Core architectural principle for dynamic-catalog compute.
-- **LESSON-109** (local): React Fragment inside Array.map() needs
-  explicit `<Fragment key={...}>` — short fragment `<>` can't accept
-  key prop.
-- **LESSON-110** (promoted): Export shared row-filter helper
-  (`resolveWcRows`) when historical + projection compute must share
-  semantic. Prevents silent divergence.
+- **LESSON-111** (promoted): Injection patterns don't transplant between LIVE-formula subtotals (append SUM) and STATIC-value subtotals (leaf-only). Arithmetic contract of destination cell decides the pattern.
+- **LESSON-112** (promoted): Phase C whitelist can hide FUNCTIONAL bugs when template has live formulas referencing the whitelisted cell. Grep fixtures for live references before accepting a whitelist entry.
+- **LESSON-113** (local): Per-account export injectors must explicitly decide `accounts.length === 0` behavior — clear-always vs preserve-template. Document the choice in an inline comment.
 
-### User preference saved to memory
-`/memory/feedback_system_over_prototype.md` — explicit durable
-preference: "prioritize system calculation correctness over 100%
-value-match with Excel prototipe workbook". Reinforces LESSON-029.
+## Sessions 037–039 Recap
 
-## Sessions 037–038 Status — Average Columns + IBD Dedicated Page COMPLETE
-
-### Session 037 (2026-04-18) — Average / Rata-Rata columns
-Ship "Average" sub-column / column across 6 pages with uniform
-leading-zero-skip semantics:
-- **Input BS / Input IS / Input FA**: extra sub-column in Common Size
-  group + Growth YoY group.
-- **Analysis → Rasio Keuangan**: flat column after year values
-  (per-row `valueKind` honored).
-- **Analysis → NOPLAT / Growth Revenue**: sub-column in Pertumbuhan
-  YoY group.
-- Hidden when `historicalYearCount === 1`.
-- Formula per user spec: skip leading null/zero entries; middle/trailing
-  null counted as 0.
-- New helpers `computeAverage` + `averageSeries` in
-  `src/lib/calculations/derivation-helpers.ts` (+12 TDD cases).
-- +1 i18n key `table.average`. +1 lesson (LESSON-105, promoted).
+### Session 039 (2026-04-18) — Changes in Working Capital + DCF inline breakdown
+Store v17→v18, new `/analysis/changes-in-working-capital` page, account-driven CFS/PROY CFS rewrite (drops hardcoded `BS_CA_ROWS`/`BS_CL_ROWS`), 9 consumer pages PageEmptyState-gated, DCF inline breakdown rows (FCF components + PV per year + Equity Value derivation). 53 files, 3 lessons (LESSON-108/109/110). **Merged to main in Session 040 Task #1.**
 
 ### Session 038 (2026-04-18) — Interest Bearing Debt dedicated page
-Extract IBD into a standalone required valuation input:
-- New page `/valuation/interest-bearing-debt` with numeric input +
-  always-visible bilingual trivia (2 intro + 6 IBD components + 4
-  Non-IBD components).
-- Store v16→v17: root-level `interestBearingDebt: number | null`
-  (+2 migration TDD cases).
-- AAM page: IBD row now displays from store (read-only); bilingual
-  cross-reference note with inline `<Link>` below TOTAL LIABILITIES &
-  EQUITY.
-- 6 consumer pages (AAM/DCF/EEM/CFI/Simulasi/Dashboard):
-  PageEmptyState gate when IBD is null.
-- Classifier-based `interestBearingDebtHistorical` removed from
-  `buildAamInput`; `buildDcfInput`/`buildEemInput` drop `BS!F31+F38`
-  shortcut. All three accept explicit `interestBearingDebt: number`
-  param; builders reconcile sign at the boundary.
-- Export pipeline: `ExportableState` + `UpstreamSlice` extended;
-  DCF/EEM/CFI builders gate on non-null IBD.
-- Sidebar nav: "Interest Bearing Debt" / "Utang Berbunga" inserted
-  between Borrowing Cap and DCF.
-- ~30 new i18n keys (nav + page + trivia + AAM note).
-- +2 lessons (LESSON-106 + LESSON-107, both promoted).
+Store v16→v17, `/valuation/interest-bearing-debt` required-gate page with always-visible bilingual trivia, 6 consumer pages PageEmptyState-gated, AAM cross-ref note with hyperlink, 3 input-builders refactored (IBD as explicit param, sign at boundary). 51 files, 2 lessons (LESSON-106/107).
+
+### Session 037 (2026-04-18) — Average columns
+`computeAverage` + `averageSeries` helpers in derivation-helpers, 3 Input editors (BS/IS/FA) + 3 Analysis manifests (FR/NOPLAT/GR) opt-in, leading-zero-skip semantics per user spec, hidden when year count < 2. 15 files, 1 lesson (LESSON-105).
 
 ## Delivered (cumulative)
 
@@ -153,102 +59,45 @@ Extract IBD into a standalone required valuation input:
 - Comprehensive i18n: ~530+ keys, `useT()` hook, root-level `language`
 - Triple-layer i18n enforcement: `audit-i18n.mjs` + ESLint rule + `pretest`
 - State-driven export (Sessions 030–035) — 29/29 registry, V1 pruned, Phase C state-parity
-- Shared `computeCommonSize` + `computeGrowthYoY` + `computeAverage` + `averageSeries` helpers for derivation columns
+- Shared derivation helpers: `computeCommonSize` + `computeGrowthYoY` + `computeAverage` + `averageSeries`
 - Generic `CatalogAccount` + `ManifestRow.section: string` for multi-sheet catalogs
 - Sentinel pre-computation across BS, IS, FA editors
 - IS sign convention: expenses negative, formulas plain addition
 - Universal auto-save: 500ms debounce; no SIMPAN buttons
-- PageEmptyState universal (now also gates on `interestBearingDebt` + `changesInWorkingCapital`)
-- **Account-driven WC aggregation** (Session 039) — CFS + PROY CFS iterate `balanceSheet.accounts` filtered by section minus user exclusions; replaces hardcoded row lists (LESSON-108). Exported `resolveWcRows` helper shared historical + projection (LESSON-110).
+- PageEmptyState universal (gates on `interestBearingDebt` + `changesInWorkingCapital`)
+- Account-driven WC aggregation (Session 039 LESSON-108) with shared `resolveWcRows` helper
 - AAM section-based input, IBD classification (display split only; value from dedicated page)
-- Export pipeline: template-based .xlsx, 3,084 formulas preserved, BS/IS/FA extended-catalog native injection, sanitizer pipeline (zero Excel repair dialogs)
+- **Export pipeline extended-account coverage** (Session 040): BS / IS / FA historical + **PROY BS** + **PROY FA** + **KEY DRIVERS Additional Capex** now preserve user's extended-catalog and custom accounts end-to-end. Sign convention reconciled at export boundary for KD ratios (LESSON-011 adapter pattern applied).
 
 ### Pages (41 total prerendered)
-- **Input**: HOME · Balance Sheet (dynamic 84) · Income Statement (dynamic 41) · Fixed Asset (dynamic 20) · Key Drivers (dynamic Additional Capex per FA account) · Acc Payables
+- **Input**: HOME · Balance Sheet (dynamic 84) · Income Statement (dynamic 41) · Fixed Asset (dynamic 20) · Key Drivers (dynamic Additional Capex per FA account, **export preserved**) · Acc Payables
 - **Historical** (hidden from sidebar): BS, IS, Cash Flow, Fixed Asset
-- **Analysis**: Financial Ratio (18/18 + Average) · FCF · NOPLAT (+ Average in YoY) · Growth Revenue (+ Average in YoY) · ROIC · Growth Rate · **Changes in Working Capital (NEW — required gate)** · Cash Flow Statement
-- **Projection**: Proy. L/R · Proy. FA (dynamic, NV-only proj) · Proy. BS (Full Simple Growth) · Proy. NOPLAT · Proy. CFS
+- **Analysis**: Financial Ratio (18/18 + Average) · FCF · NOPLAT (+ Average in YoY) · Growth Revenue (+ Average in YoY) · ROIC · Growth Rate · Changes in Working Capital · Cash Flow Statement
+- **Projection**: Proy. L/R · **Proy. FA (dynamic + extended)** · **Proy. BS (Full Simple Growth + extended)** · Proy. NOPLAT · Proy. CFS
 - **Valuation**: DLOM · DLOC (PFC) · WACC · Discount Rate · Borrowing Cap · Interest Bearing Debt · DCF (with inline breakdown rows) · AAM (with cross-ref note) · EEM · CFI · Simulasi Potensi
 - **Dashboard**: 4 Recharts charts
 
-### Recent Sessions Deliverables
-
-#### Session 039 (2026-04-18) — Changes in Working Capital required-gate + DCF inline breakdown
-- Store v17→v18 + root-level `changesInWorkingCapital` slice
-- New page `/analysis/changes-in-working-capital` + bilingual trivia
-- `computeCashFlowLiveRows` + `computeProyCfsLive` rewritten account-driven (drops hardcoded BS_CA_ROWS / BS_CL_ROWS)
-- 9 consumer pages required-gated via PageEmptyState
-- DCF page inline breakdown: FCF components + PV per year + Equity Value (100%) derivation
-- 53 files changed, +1482 / −228 (branch `feat/wc-scope-page-and-dcf-breakdown`, 9 commits, merge-to-main pending)
-- 3 lessons (LESSON-108, LESSON-109, LESSON-110)
-
-#### Session 038 (2026-04-18) — IBD dedicated page + required gating
-- Store v16→v17 + root-level slice + setter
-- New page + bilingual trivia (2 intro + 6 IBD + 4 Non-IBD)
-- 6 consumer pages PageEmptyState gated
-- AAM cross-ref note with hyperlink
-- 3 input-builders refactored (IBD as explicit param, sign at boundary)
-- 3 sheet-builders upstream extended
-- 51 files changed, +560 / −72
-- 2 lessons (LESSON-106, LESSON-107)
-
-#### Session 037 (2026-04-18) — Average columns across 6 pages
-- `computeAverage` + `averageSeries` helpers in derivation-helpers
-- 3 dynamic editors (BS/IS/FA) + 3 analysis manifests (FR/NOPLAT/GR) opt-in
-- Uniform leading-zero-skip semantics per user spec
-- Hidden when year count < 2
-- 15 files changed, +339 / −7
-- 1 lesson (LESSON-105)
-
-#### Session 036 (2026-04-18) — Dynamic Account Interoperability
-- Proy BS Full Simple Growth + Proy FA per-account NV growth
-- Input FA Common Size + Growth YoY feature parity
-- Store v15→v16 + dynamic KD Additional Capex per FA account
-- Row translation for Proy BS/FA export builders
-- 2 lessons (LESSON-103, LESSON-104)
-
 ## Next Session Priorities
 
-### Session 040 — Merge + Extended-Account Support for PROY Sheets + KD Export
+### Session 041 — AAM Extended + LESSON-108 Audit
 
-1. **Merge `feat/wc-scope-page-and-dcf-breakdown` to main** — after user
-   reviews Vercel preview. Then delete feature branch.
-2. **Proy BS extended injection** — extended (excelRow ≥ 100) + custom
-   (≥ 1000) BS accounts currently silently skipped at export. Mirror
-   Session 025 BS extended pattern (native row injection + subtotal
-   append).
-3. **Proy FA extended injection** — same pattern, mirror Session 028
-   FA 7-band slot allocation.
-4. **KEY DRIVERS dynamic `additionalCapexByAccount` injection** — build
-   dedicated injector in KeyDriversBuilder (cell-mapping entries were
-   removed in Session 036 T8).
-5. **Sign convention reconciliation** — 21 whitelisted KD
-   cogsRatio/sellingExpenseRatio/gaExpenseRatio cells (deferred from
-   Session 035).
-6. **Optional cleanup**: drop `isIbdAccount()` classifier from AAM CL/NCL
-   display split (now that IBD is user-input, CL/NCL split has no
-   calc effect — only visual subtotals).
-7. **LESSON-108 grep audit** — scan other compute modules for hardcoded
-   row-number lists (`const *_ROWS = [\d, \d, \d]` pattern). Any
-   remaining latent bugs for dynamic-catalog users. Candidates:
-   `computeNoplatLiveRows`, `computeFcfLiveRows`, FR ratios, ROIC.
-8. **RESUME page** — final side-by-side summary of AAM / DCF / EEM
-   per share.
+1. **Merge `feat/session-040-extended-proy-kd-injection` to main** — Task #6 wrap-up step; performed directly after local gates green per user option (b).
+2. **AAM extended-account native injection** — mirror Session 031 AAM builder with extended row range, honoring per-row Penyesuaian (`aamAdjustments`). Currently only baseline accounts reach the AAM sheet; extended accounts ≥ 100 are silently skipped via `BS_ROW_TO_AAM_D_ROW` lookup miss.
+3. **LESSON-108 grep audit** — scan `computeNoplatLiveRows`, `computeFcfLiveRows`, FR ratios, ROIC for remaining hardcoded row-number lists (`const *_ROWS = [N, N, N]` pattern). Any remaining latent bugs for dynamic-catalog users.
+4. **AccPayables extended catalog** — complete the 4th dynamic catalog (BS/IS/FA done).
+5. **Upload parser (.xlsx → store)** — reverse of export, reuses cell-mapping + needs `Math.abs` on KD ratios per Session 040 sign boundary (LESSON-112 implication).
+6. **RESUME page** — final side-by-side summary of AAM / DCF / EEM per share.
 
-### Session 040+ Backlog
+### Session 041+ Backlog
 
-- **AAM extended-account native injection** (excelRow ≥ 100) —
-  deferred since Session 031
-- **AccPayables extended catalog** — 4th input sheet pattern completion
-- **Upload parser** (.xlsx → store) — reverse of export
+- **Dashboard polish** — projected FCF chart with new NV-growth model from Session 036
+- **Cleanup `isIbdAccount` classifier** from AAM CL/NCL display split (calc-inert after Session 038)
 - **Multi-case management** (multiple companies in one localStorage)
-- **Dashboard polish** — projected FCF chart with new NV model
 - **Cloud sync / multi-device**
 
 ## Latest Sessions
+- [Session 040](history/session-040-extended-injection-sign-reconciliation.md) (2026-04-18): Extended Injection (Proy BS/FA/KD) + KD Sign Reconciliation — 4 builder commits + Session 039 merge, 7 production files, 1228→1250 tests (+28), 3 lessons
 - [Session 039](history/session-039-wc-scope-and-dcf-breakdown.md) (2026-04-18): Changes in Working Capital required-gate + DCF inline breakdown — store v17→v18, new page + trivia, account-driven CFS/PROY CFS, 9 consumer gates, DCF breakdown rows, 53 files, 3 lessons
 - [Session 038](history/session-038-ibd-field.md) (2026-04-18): Interest Bearing Debt dedicated page — store v16→v17, new page + trivia, 6 consumer gates, AAM cross-ref note, 3 input-builders refactored, 51 files, 2 lessons
 - [Session 037](history/session-037-average-columns.md) (2026-04-18): Average columns — computeAverage + averageSeries helpers, 3 Input editors + 3 Analysis manifests, leading-zero-skip semantics, 15 files, 1 lesson
 - [Session 036](history/session-036-dynamic-projection.md) (2026-04-18): Dynamic Account Interoperability — Proy BS Full Simple Growth, Proy FA per-account NV growth, Input FA CS+Growth, KD Additional Capex dynamic, store v15→v16, row translation export, 2 lessons
-- [Session 035](history/session-035-legacy-cleanup-v2-promotion.md) (2026-04-18): T8-T10 Closure — V1 body pruned, Phase C state-parity rewrite, 4 lessons
-- [Session 034](history/session-034-proy-valuation-dashboard-builders.md) (2026-04-17): T7 PROY/Valuation/Dashboard — 9 SheetBuilders, cascade 20→29, 4 lessons

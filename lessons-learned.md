@@ -3387,3 +3387,77 @@ the filter removes this risk.
 truth for WC aggregation semantic across timeframes.
 
 ---
+
+## Session 040 — Extended Injection (Proy BS/FA/KD) + Sign Reconciliation
+
+### LESSON-111: Injection patterns don't transplant between LIVE-formula subtotals and STATIC-value subtotals
+
+**Kategori**: Excel | Anti-pattern | Export
+**Sesi**: session-040
+**Tanggal**: 2026-04-18
+
+**Konteks**: Extending an "extended-account injection" pattern from sheet X to sheet Y where both have per-section subtotals but the subtotals are produced differently.
+
+**Apa yang terjadi**: Session 025 (BS) and Session 028 (FA historical) established a 2-step extended-injection pattern: (1) write extended leaf values at synthetic rows, (2) append `+SUM(<col>{start}:<col>{end})` to that section's subtotal formula per year column. The subtotal cell already contains a live Excel formula (e.g. `=SUM(D8:D14)`); appending extends it. Session 040 needed the same capability for PROY BS and PROY FA. Direct transplant would have double-counted: those sheets write STATIC COMPUTED VALUES at subtotals (from `computeProyBsLive` / `computeProyFixedAssetsLive`), and those static values ALREADY sum extended contributions via `deriveComputedRows + dynamicManifest.computedFrom` (BS) or per-band iteration over `accounts` (FA). Appending `+SUM(extendedRange)` to the cell would add the extended values a second time.
+
+**Root cause / insight**: The "inject extended + append SUM" pattern depends on subtotals being LIVE FORMULAS that evaluate at Excel open time. When a builder writes the subtotal as a literal precomputed number (typical of projection / computed-analysis sheets), there is no formula to extend — and the precomputed value already reflects extended contributions. The decision to "append SUM or not" is determined by the **arithmetic contract of the destination cell**, not by the sheet's topological similarity.
+
+**Cara menerapkan di masa depan**: Before transplanting an injection pattern across sheet types, classify the destination subtotal:
+
+1. **LIVE formula subtotal** (template has `=SUM(...)` or similar expression): use native-row + SUM-append pattern. LESSON-067 BS or LESSON-078 FA band pattern.
+2. **STATIC precomputed value subtotal** (builder writes a literal number): use leaf-only injection. Extended accounts write to synthetic rows for visibility + auditability; subtotal cell is NOT modified. Verify the precomputed value already aggregates extended contributions (via `deriveComputedRows` consuming a dynamic manifest, OR direct per-account summation in the compute module).
+3. **Sentinel-overlap subtotal** (pre-computed at persist time via DynamicEditor sentinel, overwritten by both leaf editors and the sentinel): use Approach δ from LESSON-077 — replace sentinel with live `=SUM(extendedRange)` formula.
+
+Red flag when writing a new extended injector: running the existing unit tests passes but Phase C / integration shows doubled subtotals → you're appending SUM to a cell that already has the sum.
+
+**Proven at**: session-040. ProyBsBuilder + ProyFaBuilder use leaf-only injection (no subtotal modification) across 12 new TDD cases + Phase C 5/5. Same decision documented in inline comments citing the double-count analysis.
+
+---
+
+### LESSON-112: Phase C whitelist can hide FUNCTIONAL bugs when template has live formulas referencing the whitelisted cell
+
+**Kategori**: Testing | Anti-pattern | Excel | Export
+**Sesi**: session-040
+**Tanggal**: 2026-04-18
+
+**Konteks**: Adding or reviewing a `KNOWN_DIVERGENT_CELLS` entry in `__tests__/integration/phase-c-verification.test.ts` for a cell that differs between exported workbook and template fixture.
+
+**Apa yang terjadi**: Session 035 whitelisted 21 KD ratio cells (D20/E20/.../J20 + same for rows 23/24) with the rationale "store stores ratios POSITIVE per LESSON-011; template was saved NEGATIVE for display convention; functional equivalence via compute chain". The whitelist made Phase C pass. Session 040 discovered that the "display convention" framing was wrong: PROY LR template has LIVE FORMULAS `=ROUNDUP('KEY DRIVERS'!D20 * D8, 3)`, `=D8*'KEY DRIVERS'!D23`, `=D8*'KEY DRIVERS'!D24`. When a user OPENS the exported workbook in Excel, these formulas recompute `positive_ratio × positive_revenue = positive_expense` — wrong sign, violating LESSON-055 IS convention and cascading to wrong projected NPAT. Phase C masked this because it compares CACHED VALUES only: template's cached D9 (computed when template was saved with negative D20) and exported D9 (also cached from pre-save since ExcelJS doesn't recompute) match. Cached equality ≠ runtime equality.
+
+**Root cause / insight**: A whitelist entry is a claim that "this cell's divergence is cosmetic, not functional". That claim is only true if NO other cell's live formula references the whitelisted cell. Phase C's comparison engine reads cell values (including cached formula results), not formula evaluation at reopen time. Live references to the whitelisted cell propagate the wrong value through the dependent formulas once Excel recomputes.
+
+**Cara menerapkan di masa depan**: Before accepting a `KNOWN_DIVERGENT_CELLS` entry:
+
+1. `grep -r "'SHEETNAME'!ADDR\|SHEETNAME!ADDR" __tests__/fixtures/*.json` for the divergent cell address.
+2. If any fixture shows a live formula referencing it: the divergence IS functional. Reconcile via export-boundary adapter (LESSON-011 pattern) — transform the value when crossing the export boundary. Do NOT whitelist.
+3. If no fixture shows a reference: the divergence is likely cosmetic (label casing, type coercion, empty-string-vs-null). Whitelist with a comment citing the grep result proving no consumers exist.
+4. When adding a new Phase C whitelist entry, document the grep you ran and the specific references you verified to be absent. Future sessions will thank you when the fixture changes.
+
+Red flag for existing whitelist entries: when a session touches the compute or export of a dependent downstream sheet, re-run the grep on all existing whitelist entries that sit upstream of that sheet.
+
+**Proven at**: session-040. 21 KD whitelist entries closed via `reconcileRatioSigns` helper in KeyDriversBuilder (LESSON-011 pattern at export boundary). Store stays positive (web display + compute unchanged); Excel export writes negative; PROY LR formulas recompute correctly on user reopen. Phase C 5/5 green without the whitelist.
+
+---
+
+### LESSON-113: Per-account export injectors must explicitly decide `accounts.length === 0` behavior
+
+**Kategori**: Testing | Export | Anti-pattern
+**Sesi**: session-040
+**Tanggal**: 2026-04-18
+
+**Konteks**: Building a dynamic per-account injector for an export sheet that originally had a fixed number of template rows.
+
+**Apa yang terjadi**: Task #4 implemented `injectAdditionalCapexByAccount` in KeyDriversBuilder with a clear-before-write loop that zeroed rows 33..max(36, 32+N) to avoid prototipe residue bleeding when the user has fewer than 4 FA accounts. Phase C regressed on 18 cells because PT Raja Voltama fixture has `fixedAsset.accounts: []` (fixture adapter doesn't populate accounts, only `rows`). With `accounts.length === 0`, the clear-loop still ran and wiped out the template's prototipe capex labels + values (B33 "Land", B34 "Building", B35 "Equipment", B36 "Others", D35:J35 = 1000, D36:J36 = 500). Fix: skip the entire injector (return early) when `accounts.length === 0`, preserving template residue for the fixture.
+
+**Root cause / insight**: A dynamic injector's correctness depends on whether the input domain model contains data. For real users with populated accounts, clearing template residue is correct (prevents stale labels leaking). For fixtures or partially-migrated data where accounts is empty but rows may be populated, aggressive clearing destroys legitimate template values. The behavior at `accounts.length === 0` is a domain-level decision: either (a) the injector is the source of truth (clear always), or (b) the template is the fallback (skip when empty). Choice depends on whether the user's workflow ever produces `accounts.length === 0` with legitimate export expectation.
+
+**Cara menerapkan di masa depan**: When adding a per-account export injector, write an explicit test for `accounts.length === 0`. Decide between:
+
+1. **Injector-as-source-of-truth**: clear always, even with 0 accounts. Use when the injector fully owns the export range (typical for state-driven builders that `clearSheetCompletely` via orchestrator).
+2. **Template-as-fallback**: skip injection when `accounts.length === 0`. Use when the template has legitimate pre-filled content that should survive if the user hasn't populated the account list yet (typical for KD, which has other scalars + arrays that stay populated even when FA is empty).
+
+Document the decision in an inline comment at the early-return. Test both branches (empty accounts + populated accounts) to prevent regression when future refactors assume the opposite.
+
+**Proven at**: session-040. `injectAdditionalCapexByAccount` uses template-as-fallback branch (early return on empty accounts) with explicit comment + TDD coverage. Phase C 5/5 green on PT Raja Voltama fixture which has `fixedAsset.accounts: []`.
+
+---
