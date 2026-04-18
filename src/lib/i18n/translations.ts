@@ -764,6 +764,32 @@ const dict = {
   'dashboard.legend.totalEquity': { en: 'Total Equity', id: 'Total Ekuitas' },
 
   // ═══════════════════════════════════════════════════════════════════
+  // RESUME PAGE (Session 042 Task 5) — AAM / DCF / EEM side-by-side summary
+  // ═══════════════════════════════════════════════════════════════════
+  'nav.item.resume': { en: 'Summary', id: 'Resume Penilaian' },
+  'resume.section': { en: 'FINAL SUMMARY', id: 'RINGKASAN AKHIR' },
+  'resume.title': { en: 'Valuation Summary', id: 'Resume Penilaian' },
+  'resume.subtitle': { en: 'Side-by-side comparison of AAM, DCF, and EEM valuation results.', id: 'Perbandingan hasil penilaian AAM, DCF, dan EEM secara berdampingan.' },
+  'resume.table.heading': { en: 'Valuation Comparison', id: 'Perbandingan Penilaian' },
+  'resume.table.metric': { en: 'Metric', id: 'Metrik' },
+  'resume.table.equity100': { en: 'Equity Value (100%)', id: 'Nilai Ekuitas (100%)' },
+  'resume.table.equityPortion': { en: 'Equity Value (Proporsi Saham)', id: 'Nilai Ekuitas (Proporsi Saham)' },
+  'resume.table.perShare': { en: 'Per-Share Value', id: 'Nilai Per Saham' },
+  'resume.metodologi.heading': { en: 'Methodology', id: 'Metodologi' },
+  'resume.metodologi.aam.title': { en: 'Adjusted Asset Method', id: 'Metode Penyesuaian Aset Bersih' },
+  'resume.metodologi.aam.body': { en: 'Revalues balance sheet line items using fair value adjustments and Interest Bearing Debt classification, then derives equity value from Net Asset Value minus IBD.', id: 'Melakukan penyesuaian pos-pos neraca berbasis nilai wajar serta klasifikasi Utang Berbunga, lalu menurunkan nilai ekuitas dari Nilai Aset Bersih dikurangi IBD.' },
+  'resume.metodologi.dcf.title': { en: 'Discounted Cash Flow', id: 'Arus Kas Terdiskonto' },
+  'resume.metodologi.dcf.body': { en: 'Projects future free cash flows using Key Drivers assumptions, then discounts to present value using WACC and applies terminal value via Gordon Growth.', id: 'Memproyeksikan arus kas bebas masa depan dari asumsi Key Drivers, lalu mendiskontokan ke nilai sekarang memakai WACC dengan nilai terminal Gordon Growth.' },
+  'resume.metodologi.eem.title': { en: 'Excess Earning Method', id: 'Metode Kelebihan Pendapatan' },
+  'resume.metodologi.eem.body': { en: 'Combines tangible assets valued at replacement cost with intangible value derived from excess earnings capitalized at WACC, then adjusts for IBD to reach equity value.', id: 'Menggabungkan aset berwujud pada biaya penggantian dengan nilai tak berwujud dari kelebihan pendapatan yang dikapitalisasi pada WACC, lalu menyesuaikan dengan IBD untuk mencapai nilai ekuitas.' },
+  'resume.rekomendasi.heading': { en: 'Value Range Recommendation', id: 'Rekomendasi Kisaran Nilai' },
+  'resume.rekomendasi.intro': { en: 'Per-share values across the three approved methods define an indicative range. The appraiser exercises professional judgment to select the appropriate point value per PMK-79 guidelines.', id: 'Nilai per saham dari ketiga metode yang diakui membentuk kisaran indikatif. Penilai menggunakan pertimbangan profesional untuk memilih nilai titik yang tepat berdasarkan PMK-79.' },
+  'resume.rekomendasi.min': { en: 'Minimum', id: 'Minimum' },
+  'resume.rekomendasi.midpoint': { en: 'Midpoint', id: 'Nilai Tengah' },
+  'resume.rekomendasi.max': { en: 'Maximum', id: 'Maksimum' },
+  'resume.rekomendasi.disclaimer': { en: 'The midpoint is purely informational; final value depends on case-specific judgement of reliability, method applicability, and data quality.', id: 'Nilai tengah bersifat informatif; nilai akhir tergantung pertimbangan spesifik atas reliabilitas, kesesuaian metode, dan kualitas data.' },
+
+  // ═══════════════════════════════════════════════════════════════════
   // KEY DRIVERS PAGE
   // ═══════════════════════════════════════════════════════════════════
   'keyDrivers.pageTitle': { en: 'Key Drivers — Projection Assumptions', id: 'Key Drivers — Asumsi Proyeksi' },

@@ -78,6 +78,9 @@ export const NAV_TREE: NavGroup[] = [
   },
   {
     label: 'nav.group.summary',
-    items: [{ label: 'nav.item.dashboard', href: '/dashboard' }],
+    items: [
+      { label: 'nav.item.dashboard', href: '/dashboard' },
+      { label: 'nav.item.resume', href: '/dashboard/resume' },
+    ],
   },
 ]
