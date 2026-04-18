@@ -27,7 +27,7 @@ export function SidebarHeader() {
         <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden />
         {t('sidebar.privacyBadge')}
       </div>
-      <div className="mt-3 flex items-center gap-2">
+      <div className="mt-3 flex items-center gap-4">
         <ThemeToggle />
         <LanguageToggle />
       </div>
