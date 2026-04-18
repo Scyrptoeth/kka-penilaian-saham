@@ -96,6 +96,13 @@ export default function DynamicIsEditor() {
       for (const r of IS_SENTINEL_ROWS) {
         if (computed[r]) sentinels[r] = computed[r]
       }
+      // Session 043 fix: row 21 has type 'cross-ref' without `computedFrom`,
+      // so deriveComputedRows skips it even though the value was provided via
+      // the spread. Inject it explicitly from the dep object so downstream
+      // consumers (EBIT chain, NOPLAT, FR ratios, export) see it in the store.
+      if (dep[IS_SENTINEL.DEPRECIATION]) {
+        sentinels[IS_SENTINEL.DEPRECIATION] = dep[IS_SENTINEL.DEPRECIATION]
+      }
 
       setIncomeStatement({
         accounts: nextAccounts,
@@ -126,7 +133,14 @@ export default function DynamicIsEditor() {
   )
 
   const computedValues = useMemo(
-    () => deriveComputedRows(dynamicManifest.rows, { ...localRows, ...depCrossRef }, years),
+    () => {
+      // Session 043 fix: row 21 (Depreciation) has type 'cross-ref' without
+      // `computedFrom`, so deriveComputedRows skips it. Merge depCrossRef
+      // so RowInputGrid (which reads computedValues for non-editable cells)
+      // can render row 21. Derived subtotals (EBIT, PBT, NPAT) overwrite last.
+      const bare = deriveComputedRows(dynamicManifest.rows, { ...localRows, ...depCrossRef }, years)
+      return { ...depCrossRef, ...bare }
+    },
     [dynamicManifest.rows, localRows, depCrossRef, years],
   )
 
