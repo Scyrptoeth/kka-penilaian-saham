@@ -112,3 +112,17 @@ export const FCF_MANIFEST: SheetManifest = {
     },
   ],
 }
+
+/**
+ * FCF semantic row constants — consumers (Dashboard, RESUME) reference
+ * FCF_ROW.FREE_CASH_FLOW instead of magic 20.
+ */
+export const FCF_ROW = {
+  NOPLAT: 6,
+  DEPRECIATION: 8,
+  GROSS_CASH_FLOW: 9,
+  TOTAL_WC_CHANGE: 14,
+  CAPEX: 16,
+  GROSS_INVESTMENT: 18,
+  FREE_CASH_FLOW: 20,
+} as const

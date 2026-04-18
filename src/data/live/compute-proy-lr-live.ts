@@ -34,6 +34,29 @@
 import type { YearKeyedSeries } from '@/types/financial'
 import type { KeyDriversState } from '@/lib/store/useKkaStore'
 
+/**
+ * PROY LR semantic row constants — re-exported so consumers (Dashboard,
+ * DCF breakdown, RESUME page) reference names instead of raw integers
+ * that drift silently when the projection model evolves.
+ */
+export const PROY_LR_ROW = {
+  REVENUE: 8,
+  REVENUE_GROWTH: 9,
+  COGS: 10,
+  GROSS_PROFIT: 11,
+  EBITDA: 19,
+  DEPRECIATION: 22,
+  EBIT: 25,
+  INTEREST_INCOME: 29,
+  INTEREST_EXPENSE: 31,
+  OTHER_INCOME_TOTAL: 33,
+  NON_OP_INCOME: 34,
+  PBT: 36,
+  TAX: 37,
+  NET_PROFIT: 39,
+  NPM: 40,
+} as const
+
 /** Excel ROUNDUP(value, 3) — round away from zero to 3 decimal places. */
 function roundUp3(value: number): number {
   if (value >= 0) {

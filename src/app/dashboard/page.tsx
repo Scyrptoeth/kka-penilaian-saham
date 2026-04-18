@@ -22,6 +22,11 @@ import {
   buildAamInput, buildDcfInput, buildEemInput, buildBorrowingCapInput,
   computeInterestBearingDebt,
 } from '@/lib/calculations/upstream-helpers'
+import {
+  buildBsCompositionSeries,
+  buildRevenueNetIncomeSeries,
+  buildFcfSeries,
+} from '@/lib/dashboard/data-builder'
 import { PageEmptyState } from '@/components/shared/PageEmptyState'
 import { useT } from '@/lib/i18n/useT'
 
@@ -79,35 +84,34 @@ export default function DashboardPage() {
     const proporsiSaham = computeProporsiSaham(home)
 
     // ── Chart 1: Revenue & Net Income ──
-    const revenueData = histYears4.map(y => ({
-      year: String(y),
-      revenue: isRows[6]?.[y] ?? 0,
-      netIncome: isRows[35]?.[y] ?? 0,
-      type: 'hist',
-    }))
-
-    if (keyDrivers && fixedAsset) {
-      const pipeline = computeFullProjectionPipeline({
-        home, balanceSheet, incomeStatement, fixedAsset, keyDrivers,
-        changesInWorkingCapital,
-      })
-      for (const y of pipeline.projYears) {
-        revenueData.push({
-          year: String(y),
-          revenue: pipeline.proyLrRows[6]?.[y] ?? 0,
-          netIncome: pipeline.proyLrRows[39]?.[y] ?? 0,
-          type: 'proj',
-        })
-      }
-    }
+    // Session 043 Task 4: use semantic IS_SENTINEL + PROY_LR_ROW constants
+    // via buildRevenueNetIncomeSeries — prevents the old hardcoded-6/35/39
+    // drift bug (PROY LR row layout differs from historical IS: LESSON-103).
+    const projection = keyDrivers && fixedAsset
+      ? (() => {
+          const pipeline = computeFullProjectionPipeline({
+            home, balanceSheet, incomeStatement, fixedAsset, keyDrivers,
+            changesInWorkingCapital,
+          })
+          return { proyLrRows: pipeline.proyLrRows, projYears: pipeline.projYears }
+        })()
+      : undefined
+    const revenueData = buildRevenueNetIncomeSeries({
+      incomeStatementRows: isRows,
+      histYears: histYears4,
+      projection,
+    })
 
     // ── Chart 2: BS Composition ──
-    const bsData = histYears4.map(y => ({
-      year: String(y),
-      assets: allBs[26]?.[y] ?? 0,
-      liabilities: allBs[40]?.[y] ?? 0,
-      equity: allBs[48]?.[y] ?? 0,
-    }))
+    // Session 043 Task 4: account-driven aggregation (LESSON-108) —
+    // previously used hardcoded rows 26/40/48 which were wrong for every
+    // user (correct sentinels are 27/41/49 but even those fail when user's
+    // dynamic catalog hasn't persisted sentinels yet).
+    const bsData = buildBsCompositionSeries({
+      accounts: balanceSheet.accounts,
+      allBs,
+      histYears: histYears4,
+    })
 
     // Session 041 Task 5 — derive IBD total + exclusion sets from scope.
     const ibdAmount = computeInterestBearingDebt({
@@ -189,11 +193,8 @@ export default function DashboardPage() {
     }
 
     // ── Chart 4: FCF Trend (reuse upstream — no duplicate computation) ──
-    const fcfData = histYears3.map(y => ({
-      year: String(y),
-      fcf: upstream.allFcf[20]?.[y] ?? 0,
-      type: 'hist',
-    }))
+    // Session 043 Task 4: use FCF_ROW.FREE_CASH_FLOW constant via builder.
+    const fcfData = buildFcfSeries({ allFcf: upstream.allFcf, histYears: histYears3 })
 
     return { revenueData, bsData, valuationData, fcfData }
   }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, keyDrivers, discountRateState, bcInput, aamAdjustments, interestBearingDebt, changesInWorkingCapital])

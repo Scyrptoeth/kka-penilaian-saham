@@ -217,16 +217,22 @@ export function resolveAccountLabel(
  * BS sentinel rows — subtotals/totals that downstream consumers need.
  * Pre-computed at persist time to include extended catalog accounts that
  * the static BALANCE_SHEET_MANIFEST's computedFrom arrays don't reference.
+ *
+ * Session 043: named constants exported so consumers (Dashboard, FR, etc.)
+ * reference semantic positions rather than magic numbers. Prevents silent
+ * drift when the underlying template renumbers (LESSON-108 prevention).
  */
-export const BS_SENTINEL_ROWS: readonly number[] = [
-  16,  // Total Current Assets
-  22,  // Fixed Assets, Net
-  25,  // Total Non-Current Assets
-  27,  // TOTAL ASSETS
-  35,  // Total Current Liabilities
-  40,  // Total Non-Current Liabilities
-  41,  // TOTAL LIABILITIES
-  48,  // Retained Earnings subtotal
-  49,  // Shareholders' Equity
-  51,  // TOTAL LIABILITIES & EQUITY
-]
+export const BS_SUBTOTAL = {
+  TOTAL_CURRENT_ASSETS: 16,
+  FIXED_ASSETS_NET: 22,
+  TOTAL_NON_CURRENT_ASSETS: 25,
+  TOTAL_ASSETS: 27,
+  TOTAL_CURRENT_LIABILITIES: 35,
+  TOTAL_NON_CURRENT_LIABILITIES: 40,
+  TOTAL_LIABILITIES: 41,
+  RETAINED_EARNINGS_SUBTOTAL: 48,
+  TOTAL_EQUITY: 49,
+  TOTAL_LIABILITIES_AND_EQUITY: 51,
+} as const
+
+export const BS_SENTINEL_ROWS: readonly number[] = Object.values(BS_SUBTOTAL)
