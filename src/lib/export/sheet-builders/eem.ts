@@ -54,12 +54,14 @@ export const EemBuilder: SheetBuilder = {
 
     const upstream = computeHistoricalUpstream({
       balanceSheetRows: state.balanceSheet.rows,
+      balanceSheetAccounts: state.balanceSheet.accounts,
       incomeStatementRows: state.incomeStatement.rows,
       fixedAssetRows: state.fixedAsset.rows,
       accPayablesRows: state.accPayables?.rows ?? null,
       allBs,
       histYears3,
       histYears4,
+      changesInWorkingCapital: state.changesInWorkingCapital,
     })
 
     const dr = computeDiscountRate(buildDiscountRateInput(state.discountRate))

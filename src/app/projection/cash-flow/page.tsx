@@ -38,6 +38,7 @@ export default function ProyCashFlowPage() {
   const incomeStatement = useKkaStore(s => s.incomeStatement)
   const fixedAsset = useKkaStore(s => s.fixedAsset)
   const keyDrivers = useKkaStore(s => s.keyDrivers)
+  const changesInWorkingCapital = useKkaStore(s => s.changesInWorkingCapital)
   const hasHydrated = useKkaStore(s => s._hasHydrated)
 
   const data = useMemo(() => {
@@ -45,10 +46,11 @@ export default function ProyCashFlowPage() {
 
     const pipeline = computeFullProjectionPipeline({
       home, balanceSheet, incomeStatement, fixedAsset, keyDrivers,
+      changesInWorkingCapital,
     })
 
     return { rows: pipeline.proyCfsRows, years: pipeline.projYears }
-  }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, keyDrivers])
+  }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, keyDrivers, changesInWorkingCapital])
 
   if (!hasHydrated) {
     return <div className="mx-auto max-w-[1100px] p-6 text-sm text-ink-muted">{t('common.loadingData')}</div>

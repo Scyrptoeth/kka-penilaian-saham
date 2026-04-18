@@ -90,6 +90,7 @@ export const DashboardBuilder: SheetBuilder = {
         incomeStatement: state.incomeStatement,
         fixedAsset: state.fixedAsset,
         keyDrivers: state.keyDrivers,
+      changesInWorkingCapital: state.changesInWorkingCapital,
       })
       const proyLrRows = pipeline.proyLrRows
       const proyBsRows = pipeline.proyBsRows

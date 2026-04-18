@@ -36,6 +36,7 @@ export default function SimulasiPotensiPage() {
   const nilaiPengalihanDilaporkan = useKkaStore(s => s.nilaiPengalihanDilaporkan)
   const setNilaiPengalihanDilaporkan = useKkaStore(s => s.setNilaiPengalihanDilaporkan)
   const interestBearingDebt = useKkaStore(s => s.interestBearingDebt)
+  const changesInWorkingCapital = useKkaStore(s => s.changesInWorkingCapital)
   const hasHydrated = useKkaStore(s => s._hasHydrated)
 
   const [method, setMethod] = useState<ValuationMethod>('AAM')
@@ -67,10 +68,12 @@ export default function SimulasiPotensiPage() {
     if (incomeStatement && discountRateState) {
       const upstream = computeHistoricalUpstream({
         balanceSheetRows: balanceSheet.rows,
+        balanceSheetAccounts: balanceSheet.accounts,
         incomeStatementRows: incomeStatement.rows,
         fixedAssetRows: fixedAsset?.rows ?? null,
         accPayablesRows: null,
         allBs, histYears3, histYears4,
+        changesInWorkingCapital,
       })
       const dr = computeDiscountRate(buildDiscountRateInput(discountRateState))
 
@@ -79,6 +82,7 @@ export default function SimulasiPotensiPage() {
         try {
           const pipeline = computeFullProjectionPipeline({
             home, balanceSheet, incomeStatement, fixedAsset, keyDrivers,
+            changesInWorkingCapital,
           })
           const dcfResult = computeDcf(buildDcfInput({
             upstream, allBs, lastHistYear: pipeline.lastHistYear, projYears: pipeline.projYears,
@@ -104,7 +108,7 @@ export default function SimulasiPotensiPage() {
     }
 
     return result
-  }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, keyDrivers, discountRateState, bcInput, aamAdjustments, interestBearingDebt])
+  }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, keyDrivers, discountRateState, bcInput, aamAdjustments, interestBearingDebt, changesInWorkingCapital])
 
   // Derive risk categories from actual DLOM/DLOC percentages (not hardcoded!)
   const dlomRisk = home ? deriveDlomRiskCategory(home.dlomPercent) : 'Moderat'

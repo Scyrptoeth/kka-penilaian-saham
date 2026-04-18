@@ -31,6 +31,7 @@ export const ProyNoplatBuilder: SheetBuilder = {
       incomeStatement: state.incomeStatement,
       fixedAsset: state.fixedAsset,
       keyDrivers: state.keyDrivers,
+      changesInWorkingCapital: state.changesInWorkingCapital,
     })
 
     const { proyNoplatRows, lastHistYear, projYears } = pipeline

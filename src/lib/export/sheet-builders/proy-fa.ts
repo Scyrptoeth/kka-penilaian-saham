@@ -84,6 +84,7 @@ export const ProyFaBuilder: SheetBuilder = {
       incomeStatement: state.incomeStatement,
       fixedAsset: state.fixedAsset,
       keyDrivers: state.keyDrivers,
+      changesInWorkingCapital: state.changesInWorkingCapital,
     })
 
     const { proyFaRows, lastHistYear, projYears } = pipeline

@@ -81,6 +81,7 @@ export const ProyBsBuilder: SheetBuilder = {
       incomeStatement: state.incomeStatement,
       fixedAsset: state.fixedAsset,
       keyDrivers: state.keyDrivers,
+      changesInWorkingCapital: state.changesInWorkingCapital,
     })
 
     const { proyBsRows, lastHistYear, projYears } = pipeline

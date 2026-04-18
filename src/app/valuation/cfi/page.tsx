@@ -27,6 +27,7 @@ export default function CfiPage() {
   const keyDrivers = useKkaStore(s => s.keyDrivers)
   const discountRateState = useKkaStore(s => s.discountRate)
   const interestBearingDebt = useKkaStore(s => s.interestBearingDebt)
+  const changesInWorkingCapital = useKkaStore(s => s.changesInWorkingCapital)
   const hasHydrated = useKkaStore(s => s._hasHydrated)
 
   const data = useMemo(() => {
@@ -34,16 +35,19 @@ export default function CfiPage() {
 
     const pipeline = computeFullProjectionPipeline({
       home, balanceSheet, incomeStatement, fixedAsset, keyDrivers,
+      changesInWorkingCapital,
     })
     const { allBs, proyNoplatRows, proyFaRows, proyCfsRows, histYears3, histYears4, projYears, lastHistYear } = pipeline
 
     // ── Historical upstream (shared helper) ──
     const upstream = computeHistoricalUpstream({
       balanceSheetRows: balanceSheet.rows,
+      balanceSheetAccounts: balanceSheet.accounts,
       incomeStatementRows: incomeStatement.rows,
       fixedAssetRows: fixedAsset?.rows ?? null,
       accPayablesRows: null,
       allBs, histYears3, histYears4,
+      changesInWorkingCapital,
     })
 
     // ── Projected FCF (via DCF) ──
@@ -64,7 +68,7 @@ export default function CfiPage() {
     }))
     const allYears = [...histYears3, ...projYears]
     return { cfiResult, histYears3, projYears, allYears }
-  }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, keyDrivers, discountRateState, interestBearingDebt])
+  }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, keyDrivers, discountRateState, interestBearingDebt, changesInWorkingCapital])
 
   if (!hasHydrated) {
     return <div className="mx-auto max-w-[1100px] p-6 text-sm text-ink-muted">{t('common.loadingData')}</div>

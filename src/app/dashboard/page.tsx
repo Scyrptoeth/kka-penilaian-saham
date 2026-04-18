@@ -63,6 +63,7 @@ export default function DashboardPage() {
   const bcInput = useKkaStore(s => s.borrowingCapInput)
   const aamAdjustments = useKkaStore(s => s.aamAdjustments)
   const interestBearingDebt = useKkaStore(s => s.interestBearingDebt)
+  const changesInWorkingCapital = useKkaStore(s => s.changesInWorkingCapital)
   const hasHydrated = useKkaStore(s => s._hasHydrated)
 
   const data = useMemo(() => {
@@ -87,6 +88,7 @@ export default function DashboardPage() {
     if (keyDrivers && fixedAsset) {
       const pipeline = computeFullProjectionPipeline({
         home, balanceSheet, incomeStatement, fixedAsset, keyDrivers,
+        changesInWorkingCapital,
       })
       for (const y of pipeline.projYears) {
         revenueData.push({
@@ -119,10 +121,12 @@ export default function DashboardPage() {
     // ── Historical upstream (computed once, reused for DCF + EEM + FCF chart) ──
     const upstream = computeHistoricalUpstream({
       balanceSheetRows: balanceSheet.rows,
+      balanceSheetAccounts: balanceSheet.accounts,
       incomeStatementRows: incomeStatement.rows,
       fixedAssetRows: fixedAsset?.rows ?? null,
       accPayablesRows: null,
       allBs, histYears3, histYears4,
+      changesInWorkingCapital,
     })
 
     // DCF + EEM if data available
@@ -172,7 +176,7 @@ export default function DashboardPage() {
     }))
 
     return { revenueData, bsData, valuationData, fcfData }
-  }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, keyDrivers, discountRateState, bcInput, aamAdjustments, interestBearingDebt])
+  }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, keyDrivers, discountRateState, bcInput, aamAdjustments, interestBearingDebt, changesInWorkingCapital])
 
   if (!hasHydrated) {
     return <div className="mx-auto max-w-[1200px] p-6 text-sm text-ink-muted">{t('common.loadingData')}</div>
