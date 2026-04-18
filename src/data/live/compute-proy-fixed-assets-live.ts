@@ -1,5 +1,5 @@
 /**
- * PROY Fixed Assets — Roll-forward projection model (Session 045 + 046).
+ * PROY Fixed Assets — Roll-forward projection model (Session 045 + 046 + 047).
  *
  * For each user-selected FA account, the 7 bands project as follows:
  *
@@ -12,10 +12,17 @@
  *
  *   - Dep bands mirror Acq with their own Dep Additions growth, EXCEPT
  *     when Net Value[Y-1] ≤ 0 (asset fully depreciated / disposed) —
- *     then Dep Additions[Y] = 0 (Session 046 stopping rule). Net can't
- *     go further negative from depreciation once the asset is done.
+ *     then Dep Additions[Y] = 0 (Session 046 stopping rule).
  *
- *   - Net Value[Y] = Acq Ending[Y] - Dep Ending[Y].
+ *   - Net Value[Y] = Acq Ending[Y] - Dep Ending[Y], with Session 047
+ *     clamping rule for PROJECTION years:
+ *       * If prev Net ≤ 0 (asset disposed) → Net forced 0 (sticky —
+ *         book value cannot revive even if Acq grows while Dep is frozen;
+ *         negative book values are nonsensical in accounting).
+ *       * Otherwise Net = max(0, raw) — clamp the first year raw would
+ *         go below 0.
+ *     Historical year is NOT clamped — user's ground truth data
+ *     preserved as-is (Opsi A).
  *
  * Session 046 seed fix: Historical End values (ACQ_ENDING / DEP_ENDING)
  * are NOT persisted by DynamicFaEditor pre-Session 046, so reading
@@ -153,7 +160,13 @@ export function computeProyFixedAssetsLive(
         : (depAddSeries[prevYear] ?? 0) * (1 + depGrowth)
       const thisDepEnd = thisDepBeg + thisDepAdd
 
-      const thisNet = thisAcqEnd - thisDepEnd
+      // Session 047 clamp + sticky rule for PROJECTION years.
+      // - assetDone (prev Net ≤ 0) → Net forced 0 (sticky — book value can't
+      //   revive even if Acq continues to grow while Dep is frozen).
+      // - Else: clamp raw negative to 0 the first year it would go below 0.
+      // Historical year is NOT clamped (see netAtHist above).
+      const rawNet = thisAcqEnd - thisDepEnd
+      const thisNet = assetDone ? 0 : Math.max(0, rawNet)
 
       acqBegSeries[projYear] = thisAcqBeg
       acqAddSeries[projYear] = thisAcqAdd

@@ -230,6 +230,69 @@ describe('computeProyFixedAssetsLive — roll-forward model (Session 045)', () =
     expect(result[8 + FA_OFFSET.DEP_ENDING]?.[2024]).toBeCloseTo(100, PRECISION)
   })
 
+  it('clamps projected Net Value to 0 when raw computation goes negative and stays 0 (Session 047)', () => {
+    // Acq flat (Beg 100, Add 0) — Acq End stays at 100 across projection.
+    // Dep Beg 60, Dep Add 20 historically → Dep grows 20/yr (0 growth from 1-hist-year).
+    // Year 2021: Acq End 100, Dep End 80, Net 20 (positive, no clamp)
+    // Year 2022: Acq End 100, Dep End 100, raw Net 0 → thisNet 0
+    // Year 2023: prev=0 → assetDone, Dep Add=0. thisNet forced 0 via sticky.
+    const faRows: Record<number, YearKeyedSeries> = {
+      [8 + FA_OFFSET.ACQ_BEGINNING]: { 2021: 100 },
+      [8 + FA_OFFSET.ACQ_ADDITIONS]: { 2021: 0 },
+      [8 + FA_OFFSET.DEP_BEGINNING]: { 2021: 60 },
+      [8 + FA_OFFSET.DEP_ADDITIONS]: { 2021: 20 },
+    }
+    const input: ProyFaInput = { accounts: land, faRows, historicalYears: [2021] }
+    const result = computeProyFixedAssetsLive(input, [...PROJ_YEARS])
+
+    expect(result[8 + FA_OFFSET.NET_VALUE]?.[2021]).toBeCloseTo(20, PRECISION)
+    expect(result[8 + FA_OFFSET.NET_VALUE]?.[2022]).toBeCloseTo(0, PRECISION)
+    expect(result[8 + FA_OFFSET.NET_VALUE]?.[2023]).toBeCloseTo(0, PRECISION)
+    expect(result[8 + FA_OFFSET.NET_VALUE]?.[2024]).toBeCloseTo(0, PRECISION)
+  })
+
+  it('sticks Net at 0 even when Acq continues to grow after disposal (Session 047)', () => {
+    // Acq grows, Dep grows faster. Raw Net goes negative year 2022 → clamp to 0.
+    // Year 2023+: Dep Add=0 (halted), Acq Add continues. Raw math could swing positive again.
+    // Sticky rule: once 0, stays 0 forever.
+    const faRows: Record<number, YearKeyedSeries> = {
+      [8 + FA_OFFSET.ACQ_BEGINNING]: { 2019: 100, 2020: 110, 2021: 120 },
+      [8 + FA_OFFSET.ACQ_ADDITIONS]: { 2019: 10, 2020: 10, 2021: 10 },
+      [8 + FA_OFFSET.DEP_BEGINNING]: { 2019: 50, 2020: 75, 2021: 105 },
+      [8 + FA_OFFSET.DEP_ADDITIONS]: { 2019: 25, 2020: 30, 2021: 36 },
+    }
+    const input: ProyFaInput = { accounts: land, faRows, historicalYears: [...HIST_YEARS] }
+    const result = computeProyFixedAssetsLive(input, [...PROJ_YEARS])
+
+    // Year 2022: raw Net negative → clamp to 0
+    expect(result[8 + FA_OFFSET.NET_VALUE]?.[2022]).toBeCloseTo(0, PRECISION)
+    // Year 2023: Dep Add=0 (halted). Acq Add continues → raw could be negative or positive;
+    // sticky forces Net=0 regardless.
+    expect(result[8 + FA_OFFSET.NET_VALUE]?.[2023]).toBeCloseTo(0, PRECISION)
+    expect(result[8 + FA_OFFSET.DEP_ADDITIONS]?.[2023]).toBeCloseTo(0, PRECISION)
+    expect(result[8 + FA_OFFSET.NET_VALUE]?.[2024]).toBeCloseTo(0, PRECISION)
+  })
+
+  it('preserves negative historical Net Value — Opsi A does not clamp historical (Session 047)', () => {
+    // Edge case: user-entered data with Dep > Acq in historical → Net negative.
+    // Rule: historical preserved as-is (ground truth), only projection years clamp.
+    const faRows: Record<number, YearKeyedSeries> = {
+      [8 + FA_OFFSET.ACQ_BEGINNING]: { 2021: 100 },
+      [8 + FA_OFFSET.ACQ_ADDITIONS]: { 2021: 0 },
+      [8 + FA_OFFSET.DEP_BEGINNING]: { 2021: 90 },
+      [8 + FA_OFFSET.DEP_ADDITIONS]: { 2021: 50 },
+      // Historical: Acq End 100, Dep End 140 → Net = -40 (preserve)
+    }
+    const input: ProyFaInput = { accounts: land, faRows, historicalYears: [2021] }
+    const result = computeProyFixedAssetsLive(input, [...PROJ_YEARS])
+
+    // Historical preserved, even if negative
+    expect(result[8 + FA_OFFSET.NET_VALUE]?.[2021]).toBeCloseTo(-40, PRECISION)
+    // Projection: prev=-40 → assetDone → Net forced 0
+    expect(result[8 + FA_OFFSET.NET_VALUE]?.[2022]).toBeCloseTo(0, PRECISION)
+    expect(result[8 + FA_OFFSET.NET_VALUE]?.[2023]).toBeCloseTo(0, PRECISION)
+  })
+
   it('handles extended accounts (excelRow >= 100) via same roll-forward', () => {
     const ext: readonly FaAccountEntry[] = [
       { catalogId: 'lab_equip', excelRow: 100, section: 'fixed_asset' },
