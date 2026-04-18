@@ -3,6 +3,8 @@ import ExcelJS from 'exceljs'
 import { KeyDriversBuilder } from '@/lib/export/sheet-builders/key-drivers'
 import type { ExportableState } from '@/lib/export/export-xlsx'
 import type { KeyDriversState } from '@/lib/store/useKkaStore'
+import type { FixedAssetInputState } from '@/data/live/types'
+import type { HomeInputs } from '@/types/financial'
 
 function makeWorkbook(): ExcelJS.Workbook {
   const wb = new ExcelJS.Workbook()
@@ -142,5 +144,136 @@ describe('KeyDriversBuilder.build — edge cases', () => {
     KeyDriversBuilder.build(wb, state)
     const second = wb.getWorksheet('KEY DRIVERS')!.getCell('C8').value
     expect(second).toBe(first)
+  })
+})
+
+// Session 040 Task #4 — Additional Capex dynamic per-FA-account injection.
+describe('KeyDriversBuilder.build — additionalCapexByAccount (Session 040)', () => {
+  function makeHome(over: Partial<HomeInputs> = {}): HomeInputs {
+    return {
+      namaPerusahaan: 'X', npwp: '99.999.999.9-999.000', namaSubjekPajak: 'Y',
+      npwpSubjekPajak: '', jenisSubjekPajak: 'badan', jenisPerusahaan: 'tertutup',
+      objekPenilaian: 'saham', jenisInformasiPeralihan: 'jualBeli',
+      jumlahSahamBeredar: 1000, jumlahSahamYangDinilai: 500,
+      nilaiNominalPerSaham: 1, tahunTransaksi: 2022,
+      proporsiSaham: 0.5, dlomPercent: 0, dlocPercent: 0,
+      ...over,
+    } as HomeInputs
+  }
+
+  function makeFa(language: 'en' | 'id' = 'en'): FixedAssetInputState {
+    return {
+      accounts: [
+        { catalogId: 'land', excelRow: 8, section: 'fixed_asset' },
+        { catalogId: 'building', excelRow: 9, section: 'fixed_asset' },
+        { catalogId: 'computer_equipment', excelRow: 100, section: 'fixed_asset' },
+        { catalogId: 'custom_1000', excelRow: 1000, section: 'fixed_asset', customLabel: 'Proprietary Rig' },
+      ],
+      yearCount: 3, language, rows: {},
+    }
+  }
+
+  function seedCapexTemplate(wb: ExcelJS.Workbook): void {
+    // Simulate template with residual labels at B33-B36 from the prototipe.
+    const ws = wb.getWorksheet('KEY DRIVERS')!
+    for (let r = 33; r <= 36; r++) {
+      ws.getCell(`B${r}`).value = 'PROTOTIPE_RESIDUE'
+    }
+  }
+
+  it('writes first FA account label at B33 (en)', () => {
+    const wb = makeWorkbook()
+    seedCapexTemplate(wb)
+    KeyDriversBuilder.build(wb, makeState({ home: makeHome(), fixedAsset: makeFa('en') }))
+    const ws = wb.getWorksheet('KEY DRIVERS')!
+    expect(ws.getCell('B33').value).toBe('Land')
+  })
+
+  it('writes all accounts sequentially at rows 33-36 (4 accounts)', () => {
+    const wb = makeWorkbook()
+    seedCapexTemplate(wb)
+    KeyDriversBuilder.build(wb, makeState({ home: makeHome(), fixedAsset: makeFa('en') }))
+    const ws = wb.getWorksheet('KEY DRIVERS')!
+    expect(ws.getCell('B33').value).toBe('Land')
+    expect(ws.getCell('B34').value).toBe('Building')
+    expect(ws.getCell('B35').value).toBe('Computer Equipment')
+    expect(ws.getCell('B36').value).toBe('Proprietary Rig')
+  })
+
+  it('writes capex values at D/E/F for each account (3 projection years)', () => {
+    const wb = makeWorkbook()
+    const kd = makeKeyDrivers({
+      additionalCapexByAccount: {
+        8:    { 2022: 100, 2023: 110, 2024: 121 },  // Land
+        9:    { 2022: 200, 2023: 220, 2024: 242 },  // Building
+        100:  { 2022: 50,  2023: 55,  2024: 60 },   // Computer Equipment
+        1000: { 2022: 300, 2023: 330, 2024: 363 },  // Custom
+      },
+    })
+    KeyDriversBuilder.build(wb, makeState({ home: makeHome(), fixedAsset: makeFa('en'), keyDrivers: kd }))
+    const ws = wb.getWorksheet('KEY DRIVERS')!
+    // Row 33 Land: D33=100 (2022), E33=110 (2023), F33=121 (2024)
+    expect(ws.getCell('D33').value).toBe(100)
+    expect(ws.getCell('E33').value).toBe(110)
+    expect(ws.getCell('F33').value).toBe(121)
+    // Row 36 custom
+    expect(ws.getCell('D36').value).toBe(300)
+    expect(ws.getCell('F36').value).toBe(363)
+  })
+
+  it('honors language=id for FA label lookup', () => {
+    const wb = makeWorkbook()
+    KeyDriversBuilder.build(wb, makeState({ home: makeHome(), fixedAsset: makeFa('id') }))
+    const ws = wb.getWorksheet('KEY DRIVERS')!
+    expect(ws.getCell('B33').value).toBe('Tanah')
+    expect(ws.getCell('B34').value).toBe('Bangunan')
+    expect(ws.getCell('B35').value).toBe('Peralatan Komputer')
+  })
+
+  it('account with empty capex series writes label only (no values)', () => {
+    const wb = makeWorkbook()
+    const kd = makeKeyDrivers({ additionalCapexByAccount: {} }) // no data
+    KeyDriversBuilder.build(wb, makeState({ home: makeHome(), fixedAsset: makeFa('en'), keyDrivers: kd }))
+    const ws = wb.getWorksheet('KEY DRIVERS')!
+    expect(ws.getCell('B33').value).toBe('Land')
+    for (const col of ['D', 'E', 'F']) {
+      expect(ws.getCell(`${col}33`).value == null).toBe(true)
+    }
+  })
+
+  it('clears prototipe-residue labels at unused rows 35-36 when user has only 2 accounts', () => {
+    const wb = makeWorkbook()
+    seedCapexTemplate(wb)
+    const fa2Acc: FixedAssetInputState = {
+      accounts: [
+        { catalogId: 'land', excelRow: 8, section: 'fixed_asset' },
+        { catalogId: 'building', excelRow: 9, section: 'fixed_asset' },
+      ],
+      yearCount: 3, language: 'en', rows: {},
+    }
+    KeyDriversBuilder.build(wb, makeState({ home: makeHome(), fixedAsset: fa2Acc }))
+    const ws = wb.getWorksheet('KEY DRIVERS')!
+    expect(ws.getCell('B33').value).toBe('Land')
+    expect(ws.getCell('B34').value).toBe('Building')
+    // Rows 35-36: prototipe residue must be cleared
+    expect(ws.getCell('B35').value == null).toBe(true)
+    expect(ws.getCell('B36').value == null).toBe(true)
+  })
+
+  it('skips capex injection entirely when home=null (upstream missing)', () => {
+    const wb = makeWorkbook()
+    seedCapexTemplate(wb)
+    KeyDriversBuilder.build(wb, makeState({ home: null, fixedAsset: makeFa('en') }))
+    const ws = wb.getWorksheet('KEY DRIVERS')!
+    // No injection → template residue remains untouched
+    expect(ws.getCell('B33').value).toBe('PROTOTIPE_RESIDUE')
+  })
+
+  it('skips capex injection when fixedAsset=null', () => {
+    const wb = makeWorkbook()
+    seedCapexTemplate(wb)
+    KeyDriversBuilder.build(wb, makeState({ home: makeHome(), fixedAsset: null }))
+    const ws = wb.getWorksheet('KEY DRIVERS')!
+    expect(ws.getCell('B33').value).toBe('PROTOTIPE_RESIDUE')
   })
 })
