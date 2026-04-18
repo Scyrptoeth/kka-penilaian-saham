@@ -904,6 +904,14 @@ const dict = {
   'proy.netProfit': { en: 'Net Profit After Tax', id: 'Laba Bersih Setelah Pajak' },
   'proy.netMargin': { en: 'Net Profit Margin', id: 'Margin Laba Bersih' },
 
+  // Session 049 — Proy P&L common-size / growth sub-row drivers (display info)
+  'proy.revenueGrowth': { en: 'Revenue Growth', id: 'Pertumbuhan Pendapatan' },
+  'proy.cogsCommonSize': { en: 'COGS (% of Revenue)', id: 'HPP (% Pendapatan)' },
+  'proy.totalOpExCommonSize': { en: 'Total OpEx (% of Revenue)', id: 'Total Beban Operasi (% Pendapatan)' },
+  'proy.interestIncomeCommonSize': { en: 'Interest Income (% of Revenue)', id: 'Pendapatan Bunga (% Pendapatan)' },
+  'proy.interestExpenseCommonSize': { en: 'Interest Expense (% of Revenue)', id: 'Beban Bunga (% Pendapatan)' },
+  'proy.nonOpIncomeCommonSize': { en: 'Non-Op Income (% of Revenue)', id: 'Pendapatan Non-Operasi (% Pendapatan)' },
+
   // Proy FA specific
   'proyFA.acquisitionCost': { en: 'Acquisition Cost', id: 'Harga Perolehan' },
   'proyFA.accDepreciation': { en: 'Depreciation', id: 'Penyusutan' },

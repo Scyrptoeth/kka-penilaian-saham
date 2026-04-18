@@ -1,115 +1,233 @@
-# Design — Session 042: IS Tax Adjustment Export + AAM Extended Injection + LESSON-108 Audit + AP Dynamic Catalog + RESUME Page
+# Design — Session 049 Proy. P&L Refactor (OpEx Merge + Common-Size Projection Drivers)
 
-**Session**: 042
-**Date**: 2026-04-18
-**Scope**: Close 5 deferred priorities from progress.md Session 041 backlog. Agresif full-scope single session.
+**Session**: 049
+**Date**: 2026-04-19
+**Scope**: Refactor PROJECTION > Proy. P&L untuk (a) hapus Selling/Others OpEx + General & Admin, pertahankan Total OpEx dengan driver baru (Revenue × avgCommonSize IS.15); (b) ubah driver proyeksi COGS/II/IE/NOI dari ratio-KD / prev-YoY menjadi (Revenue × avgCommonSize IS.<row>); (c) tampilkan baris info growth/common-size di bawah tiap akun leaf sebagai informasi driver yang digunakan compute.
 
 ---
 
 ## 1. Problem Statement
 
-Session 041 introduced synthetic sentinel rows 600 (KOREKSI_FISKAL) + 601 (TAXABLE_PROFIT) and redesigned IBD scope. Remaining gaps:
+Current Proy. P&L memakai 3 ratio dari Key Drivers (`cogsRatio`, `sellingExpenseRatio`, `gaExpenseRatio`) untuk proyeksi COGS + dua OpEx, dan avgYoY-growth historis untuk Interest Income/Expense/Non-Op Income. Itu menghasilkan proyeksi yang:
 
-1. **Synthetic rows 600/601 not exported** — website stores them at persist time but `exportToXlsx` does not write to IS sheet. User opens exported XLSX missing tax adjustment data.
-2. **AAM drops extended BS accounts** — `AamBuilder` only writes `BS_ROW_TO_AAM_D_ROW` mapped rows; extended catalog accounts (excelRow ≥ 100) with per-row `aamAdjustments` never reach the AAM sheet.
-3. **Hardcoded row arrays in compute modules** — `computeNoplatLiveRows` / `computeFcfLiveRows` / FR / ROIC may still have `const *_ROWS = [N, N, N]` patterns that silently fail for extended catalog users (LESSON-108).
-4. **AccPayables still static** — 4th dynamic catalog missing. Users cannot add custom bank loan schedules.
-5. **No RESUME page** — no single view comparing AAM / DCF / EEM per-share results side-by-side.
+- Tergantung pada dua input Key Drivers (Selling + G&A) yang tidak digunakan konsumer lain.
+- Menyisakan 2 baris OpEx di Proy. P&L yang (i) membingungkan karena IS pakai convention satu Total OpEx tunggal, (ii) tidak mencerminkan diversity category OpEx user sesungguhnya (yang di-kelola dinamis di IS catalog).
+- Tidak menunjukkan driver proyeksi apa yang dipakai — pengguna harus menebak dari Key Drivers.
+
+User meminta:
+1. Proy. P&L hanya punya satu baris Total OpEx, di-drive dari Revenue × average common size dari IS!Total OpEx (excl. Depreciation).
+2. Driver proyeksi COGS / Interest Income / Interest Expense / Non-Op Income juga di-ubah ke Revenue × avgCommonSize pattern (konsisten dengan Total OpEx). Revenue tetap avgYoY growth.
+3. Tampilkan baris info "growth" di bawah tiap akun leaf di Proy. P&L yang EKSPLISIT menunjukkan nilai driver proyeksi — transparency.
+
+---
 
 ## 2. Scope
 
-### In Scope (5 tasks, full agresif)
+### In scope
+- Refactor `computeProyLrLive` signature + logic.
+- Update Proy. P&L page ROW_DEFS: hapus Selling/G&A, tambah 6 display sub-rows.
+- Update 3 caller: `projection-pipeline.ts` + `projection/income-statement/page.tsx` + `projection/noplat/page.tsx`.
+- Update export `ProyLrBuilder.managedRows` + clear template rows 15+16 cells.
+- Add 6 i18n keys for common-size sub-row labels.
+- Rewrite `compute-proy-lr-live.test.ts` fixtures to new compute expectations.
+- Phase C whitelist maintenance — identify + document divergent cells.
 
-1. **IS Tax Adjustment Export** — new `tax_adjustment` section in `IS_SECTION_INJECT`. Row 600 = static value (user leaf). Row 601 = live formula `=<col>32+<col>600` with cached pre-computed value. Placement at synthetic IS rows 600/601 (beyond legacy 1-69). No sentinel to replace — downstream Tax/NPAT formulas unchanged per LESSON-116.
-
-2. **AAM Extended Injection** — Opsi B: formula hybrid. Per-section synthetic row ranges in AAM sheet. For each extended BS account: write label (col B), BS value (col C, static), adjustment (col D, from `aamAdjustments`), adjusted value (col E, **live formula** `=C+D`). Section subtotals extended via `+SUM(<col>{start}:<col>{end})` append — mirror Session 025 BS pattern (LESSON-067).
-
-3. **LESSON-108 Grep Audit** — scan 4 compute modules for hardcoded row lists. Refactor to account-driven iteration when found (mirror Session 039 `resolveWcRows` pattern).
-
-4. **AccPayables Dynamic Catalog (Opsi B + 5a=A/5b=A/5c=A)** — multi-schedule FA-band style:
-   - **2 fixed sections**: Short-Term Bank Loan Schedules + Long-Term Bank Loan Schedules (matches current template)
-   - **3 bands per schedule**: Beginning Balance, Addition, Ending Balance
-   - **Ending = computed formula**: Excel live formula `=<col>{begRow}+<col>{addRow}` per schedule per year (Reduction is implicit as negative Addition, keeps template simple)
-   - User can add N schedules within each section; default catalog seeds 1 ST + 1 LT schedule
-   - Full dynamic-catalog treatment: catalog file, DynamicApEditor, sentinel pre-compute, extended injection in export
-
-5. **RESUME Page (6a=B + 6b=B + 6c=A)** — `/dashboard/resume`:
-   - Route inside existing "Ringkasan" sidebar group (below Dashboard)
-   - Content: 3-column table (AAM vs DCF vs EEM) with rows Equity Value 100% / Equity Value Proporsi Saham / Per-Share Value + "Metodologi" section (1 paragraf per metode) + "Rekomendasi Nilai" (neutral midpoint/range statement)
-   - Pure display via existing `build*Input` + `compute*` — no new calc
-   - Required-gate via PageEmptyState on `home/interestBearingDebt/changesInWorkingCapital === null`
-
-### Out of Scope
-
-- **Upload parser (.xlsx → store)** — reverse direction, deferred to Session 043+ (needs IBD scope adapter discussion)
-- **Multi-case management** (multi-company localStorage)
-- **Dashboard polish** (projected FCF chart with Session 036 NV-growth model)
-- **AP reduction as separate band** — folded into Addition via signed input
-- **RESUME weighted average / range calculator** — YAGNI; user can infer from table
-- **AP schedule-level custom labels beyond default "Bank Loan Schedule N"** — user rename later if needed
+### Out of scope
+- Removing `cogsRatio` / `sellingExpenseRatio` / `gaExpenseRatio` from Key Drivers store (Q2=B: retain).
+- Changing Key Drivers UI input fields (kept, dead data documented).
+- Migrating store schema (v20 unchanged).
+- Excel template structural change (rows 15/16 cells overwritten with 0; formula at row 17 overridden by explicit write).
 
 ---
 
-## 3. Key Technical Decisions
+## 3. Compute Contract
 
-### D1 — TAXABLE PROFIT as live formula (Opsi C)
-Cell E601 written as `{ formula: '=E32+E600', result: preComputedValue }`. ExcelJS standard pattern. User edit E600 in Excel → E601 recomputes. Consistent with Session 028 IS sentinel reactivity. Tax (row 33) + NPAT (row 35) formulas UNCHANGED per LESSON-116.
+### New `ProyLrInput` shape
 
-### D2 — AAM extended per-section row ranges
-Reserve synthetic AAM row ranges per section (grep AAM template for unused blocks). Example allocation:
-- Current Assets extended: rows 100-139 (40 slots)
-- Non-Current Assets extended: rows 140-179
-- IBD extended: rows 180-219
-- Non-IBD CL extended: rows 220-259
-- Non-IBD NCL extended: rows 260-299
-- Equity extended: rows 300-339
-
-Actual ranges verified at implementation time (Task 2a grep). Subtotal SUM appends per section. Extended account routing: `section === 'current_assets'` → current assets range; `section === 'current_liabilities' && !excludedCurrentLiabIbd.has(row)` → IBD range (else Non-IBD CL); same split for NCL. Drives same exclusion set as LESSON-119.
-
-### D3 — LESSON-108 audit discovery-first
-Phase 1: grep each of 4 files for `const \w+_ROWS\s*=\s*\[` pattern. Report findings. Refactor only actual hits using account-driven iteration. If zero hits, document as "audit clean" lesson. Saves rewriting modules that already comply.
-
-### D4 — AP catalog schedule model
-Each schedule is one "account" in the catalog with 3 synthetic bands (Beg/Addition/End rows). Mirror FA_BAND pattern:
+```ts
+export interface ProyLrInput {
+  keyDrivers: KeyDriversState  // only taxRate consumed
+  revenueGrowth: number
+  /**
+   * Average common size (as decimal, e.g. -0.12 for 12% of Revenue) for each
+   * leaf IS row whose projection is driven by Revenue × avg common size.
+   * Sign preserved: expenses stored negative → common size negative → projected
+   * expense negative (LESSON-055 convention).
+   */
+  commonSize: {
+    cogs: number          // avg (IS.7 / IS.6)
+    totalOpEx: number     // avg (IS.15 / IS.6)
+    interestIncome: number // avg (IS.26 / IS.6)
+    interestExpense: number // avg (IS.27 / IS.6)
+    nonOpIncome: number   // avg (IS.30 / IS.6)
+  }
+  isLastYear: {
+    revenue: number
+    cogs: number
+    grossProfit: number
+    totalOpEx: number      // IS.15[histYear] (was: sellingOpex + gaOpex split)
+    depreciation: number   // FA-negated
+    interestIncome: number
+    interestExpense: number
+    nonOpIncome: number
+    tax: number
+  }
+  proyFaDepreciation: YearKeyedSeries
+}
 ```
-ST_BEG      rows 100-139
-ST_ADDITION rows 140-179
-ST_END      rows 180-219   (formula band)
-LT_BEG      rows 220-259
-LT_ADDITION rows 260-299
-LT_END      rows 300-339   (formula band)
+
+### Projection formulas
+
 ```
-Schedule index in filtered accounts → slot index within band. Ending row formula `=<col>{beg_row}+<col>{add_row}` per year column. Section subtotals in AP template (if any) extended via `+SUM` — verify template at implementation.
+Revenue[t]        = Revenue[t-1] × (1 + revenueGrowth)
+COGS[t]           = Revenue[t] × commonSize.cogs          // no ROUNDUP
+Gross Profit[t]   = Revenue[t] + COGS[t]
+Total OpEx[t]     = Revenue[t] × commonSize.totalOpEx
+EBITDA[t]         = Gross Profit[t] + Total OpEx[t]
+Depreciation[t]   = -proyFaDepreciation[t]
+EBIT[t]           = EBITDA[t] + Depreciation[t]
+Interest Inc[t]   = Revenue[t] × commonSize.interestIncome
+Interest Exp[t]   = Revenue[t] × commonSize.interestExpense
+Other Income[t]   = Interest Inc[t] + Interest Exp[t]
+Non-Op Income[t]  = Revenue[t] × commonSize.nonOpIncome
+PBT[t]            = EBIT[t] + Other Income[t] + Non-Op Income[t]
+Tax[t]            = -taxRate × PBT[t]
+Net Profit[t]     = PBT[t] + Tax[t]
+```
 
-### D5 — RESUME page pure display
-`useMemo` gates on required state; call `build*Input` + `compute*` inside memos. No new calc helpers. i18n via useT() throughout (ESLint `local/no-hardcoded-ui-strings` enforced). Copy "Metodologi" content from existing AAM/DCF/EEM page trivia if exists, else write 1-paragraf bilingual EN/ID per metode. "Rekomendasi Nilai" = neutral text listing 3 values + "user exercises professional judgment per PMK-79".
+### Historical column (year = histYear)
 
-### D6 — Store migration v19 → v20
-Three coordinated changes in single migration:
-- **AP slice schema**: old fixed-6-field shape → new `{ shortTermSchedules: ApSchedule[], longTermSchedules: ApSchedule[] }`. Migrate old values into first default schedule of each type (preserves data).
-- No IBD/WC changes (Session 041 already did those).
-- Schema version bump 19→20.
+```
+row 8 Revenue       = isLastYear.revenue
+row 10 COGS         = isLastYear.cogs
+row 11 Gross Profit = isLastYear.grossProfit
+row 17 Total OpEx   = isLastYear.totalOpEx        // NEW: sebelumnya 0
+row 19 EBITDA       = grossProfit + totalOpEx
+row 22 Depreciation = isLastYear.depreciation
+row 25 EBIT         = ebitda + depreciation
+row 29 Int Income   = isLastYear.interestIncome
+row 31 Int Expense  = isLastYear.interestExpense
+row 33 Other Income = interestIncome + interestExpense
+row 34 Non-Op Inc   = isLastYear.nonOpIncome
+row 36 PBT          = ebit + otherIncome + nonOpInc
+row 37 Tax          = isLastYear.tax
+row 39 Net Profit   = pbt + tax
 
-### D7 — Feature branch naming
-`feat/session-042-is-tax-export-aam-extended-ap-dynamic-resume` (long but descriptive per git-workflow; Vercel auto-preview gets matching subdomain)
+Margin/growth rows (display helpers):
+row 9 Revenue Growth = revenueGrowth (at histYear column only, as info)
+row 12 GP Margin     = grossProfit / revenue
+row 20 EBITDA Margin = ebitda / revenue
+row 26 EBIT Margin   = ebit / revenue
+row 40 Net Margin    = netProfit / revenue
+```
+
+Rows 15, 16 are NEVER written (dropped from output).
 
 ---
 
-## 4. Success Criteria
+## 4. Display Contract (ROW_DEFS)
 
-- Tests 1261 → ~1320+ (60+ new test cases expected)
-- Build ✅, typecheck ✅, lint ✅, audit:i18n ✅, Phase C 5/5 ✅, cascade 3/3 ✅
-- Live deploy HTTP 200
-- Export XLSX opens cleanly (no repair dialog) — regression check Session 026
-- Store v19 → v20 migration tested end-to-end
-- Zero hardcoded UI strings (triple-layer gate)
+```ts
+// Numeric row → looked up in rows[r][year]
+// String id rows → looked up in commonSizeDisplay / growthDisplay
+type RowDef =
+  | { kind: 'idr' | 'percent', row: number, labelKey: TK, bold?: bool, indent?: bool }
+  | { kind: 'sub-growth', id: string, labelKey: TK }   // Revenue YoY growth row
+  | { kind: 'sub-common-size', id: string, labelKey: TK, driverKey: keyof CommonSize }
 
-## 5. Risk Register
+ORDER (top→bottom):
+  8 Revenue (idr, bold)
+    → sub-growth 'revenue-growth'
+  10 COGS (idr)
+    → sub-common-size 'cogs-cs'
+  11 Gross Profit (idr, bold)
+  12 GP Margin (percent, indent)
+  17 Total OpEx (idr)
+    → sub-common-size 'total-opex-cs'
+  19 EBITDA (idr, bold)
+  20 EBITDA Margin (percent, indent)
+  22 Depreciation (idr)
+  25 EBIT (idr, bold)
+  26 EBIT Margin (percent, indent)
+  29 Interest Income (idr)
+    → sub-common-size 'ii-cs'
+  31 Interest Expense (idr)
+    → sub-common-size 'ie-cs'
+  33 Other Income (idr)
+  34 Non-Op Income (idr)
+    → sub-common-size 'noi-cs'
+  36 PBT (idr, bold)
+  37 Tax (idr)
+  39 Net Profit (idr, bold)
+  40 Net Margin (percent, indent)
+```
 
-| Risk | Mitigation |
-|------|-----------|
-| **Context window exhaustion mid-session** | Commit per task; ship partial via progress.md if running out. Task 4 (AP) is highest risk. |
-| **AAM template subtotal row numbers unknown** | Grep template at Task 2 implementation; write ranges based on what's unused. |
-| **AP template layout unknown** | Same — grep at Task 4. Fall back to current row pattern (10/11/14 + 19/20/23) if template simple. |
-| **LESSON-108 audit reveals cascading refactor** | If NOPLAT/FCF actually have hardcoded rows, refactor quickly via `resolveXxxRows` helper; if complex, document + defer to Session 043. |
-| **RESUME page design ambiguity** | Fallback to minimal 3-column table if Metodologi content research runs long. |
+Display rendering rule for sub-rows:
+- Style: italic, muted, indent (same as Margin rows).
+- Historical column (year 0): render "—".
+- Projection columns (year > 0): render the driver value as percent (e.g. `-12.1%` for common size cogs).
+- 'sub-growth' uses `revenueGrowth` prop; 'sub-common-size' uses `commonSize[driverKey]`.
+
+---
+
+## 5. i18n New Keys (~6)
+
+```
+'proy.revenueGrowth':         EN: 'Revenue Growth',             ID: 'Pertumbuhan Pendapatan'
+'proy.cogsCommonSize':        EN: 'COGS (% of Revenue)',        ID: 'HPP (% Pendapatan)'
+'proy.totalOpExCommonSize':   EN: 'Total OpEx (% of Revenue)',  ID: 'Total Beban Operasi (% Pendapatan)'
+'proy.interestIncomeCommonSize': EN: 'Interest Income (% of Revenue)', ID: 'Pendapatan Bunga (% Pendapatan)'
+'proy.interestExpenseCommonSize': EN: 'Interest Expense (% of Revenue)', ID: 'Beban Bunga (% Pendapatan)'
+'proy.nonOpIncomeCommonSize': EN: 'Non-Op Income (% of Revenue)', ID: 'Pendapatan Non-Operasi (% Pendapatan)'
+```
+
+---
+
+## 6. Export Contract
+
+```ts
+ProyLrBuilder.managedRows = [
+  8, 9, 10, 11, 12, 17, 19, 20, 22, 25, 26,
+  29, 31, 33, 34, 36, 37, 39, 40,
+]
+// Rows 15, 16 DROPPED.
+```
+
+Pre-write clear step: for `col in [C, D, E, F]`, set `ws.getCell(`${col}15`).value = 0` and `${col}16` = 0. Prevents template residue.
+
+Template formula at `row 17` (if any, e.g. `=SUM(C15:C16)`) → overridden by builder explicit write of projected common-size value. Clean.
+
+---
+
+## 7. Phase C Impact
+
+Expected divergent cells vs prototipe fixture:
+- PROY_LR!C15, C16, D15, D16, E15, E16, F15, F16 → now 0 (was Selling/G&A values).
+- PROY_LR!C17 → now populated (was blank).
+- PROY_LR!D10, E10, F10 → new common-size-driven values (was cogsRatio × Revenue + ROUNDUP).
+- PROY_LR!D17, E17, F17 → new common-size-driven values (was Selling + G&A sum).
+- PROY_LR!D29, E29, F29 → new common-size-driven (was prev × (1+growth)).
+- PROY_LR!D31, E31, F31 → new common-size-driven.
+- PROY_LR!D34, E34, F34 → new common-size-driven.
+- Downstream: PROY_NOPLAT / PROY_CFS rows that depend on Proy LR will drift — expected.
+
+Mitigation: add entries to `phase-c-verification.test.ts` KNOWN_DIVERGENT_CELLS for these. No cross-sheet live formulas reference these cells (grep-verified in Phase C process per LESSON-112).
+
+---
+
+## 8. Out of Scope / Deferred
+
+- Key Drivers UI/form cleanup (cogsRatio/sellingRatio/gaRatio kept as dead fields).
+- Store migration v20→v21 (none needed).
+- Excel template restructuring.
+- Tax rate driver change (keeps Key Drivers `corporateTaxRate`).
+- Growth row in HISTORICAL column (per Q4: projection years only).
+
+---
+
+## 9. Risk Mitigation
+
+1. **Phase C whitelist drift** — guarded by LESSON-112 grep audit; computed + test.
+2. **Downstream NOPLAT/CFS changes** — they consume row 17 (Total OpEx) and row 22 (Dep). Row 17 semantics unchanged (still negative, represents same concept). Row 22 unchanged. So no compute-logic change downstream.
+3. **Existing user data** — Key Drivers store retained → no migration required; existing localStorage backward-compatible.
+4. **Test fixture rewrite** — current fixture uses ROUNDUP(3) PRECISION=3. New compute is exact, use PRECISION=6.

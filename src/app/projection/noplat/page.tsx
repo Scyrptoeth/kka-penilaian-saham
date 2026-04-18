@@ -10,7 +10,8 @@ import { FIXED_ASSET_MANIFEST } from '@/data/manifests/fixed-asset'
 import { computeProyFixedAssetsLive } from '@/data/live/compute-proy-fixed-assets-live'
 import { computeProyLrLive, type ProyLrInput } from '@/data/live/compute-proy-lr-live'
 import { computeProyNoplatLive, type ProyNoplatInput } from '@/data/live/compute-proy-noplat-live'
-import { computeAvgGrowth } from '@/lib/calculations/helpers'
+import { computeAvgGrowth, ratioOfBase } from '@/lib/calculations/helpers'
+import { computeAverage } from '@/lib/calculations/derivation-helpers'
 import { formatIdr } from '@/components/financial/format'
 import { PageEmptyState } from '@/components/shared/PageEmptyState'
 
@@ -55,20 +56,30 @@ export default function ProyNoplatPage() {
       proyFaDepreciation = proyFa[51] ?? {}
     }
 
-    // Compute PROY LR
+    // Compute PROY LR (Session 049 — common-size drivers)
     const isRows = incomeStatement.rows
     const isVal = (row: number) => isRows[row]?.[histYear] ?? 0
-    const isAvgGrowth = (row: number) => computeAvgGrowth(isRows[row] ?? {})
+    const histYears4 = computeHistoricalYears(home.tahunTransaksi, 4)
+    const avgCommonSizeFor = (row: number): number => {
+      const ratios = histYears4.map((y) =>
+        ratioOfBase(isRows[row]?.[y] ?? 0, isRows[6]?.[y] ?? 0),
+      )
+      return computeAverage(ratios) ?? 0
+    }
 
     const lrInput: ProyLrInput = {
       keyDrivers,
-      revenueGrowth: isAvgGrowth(6),
-      interestIncomeGrowth: isAvgGrowth(26),
-      interestExpenseGrowth: isAvgGrowth(27),
-      nonOpIncomeGrowth: isAvgGrowth(30),
+      revenueGrowth: computeAvgGrowth(isRows[6] ?? {}),
+      commonSize: {
+        cogs: avgCommonSizeFor(7),
+        totalOpEx: avgCommonSizeFor(15),
+        interestIncome: avgCommonSizeFor(26),
+        interestExpense: avgCommonSizeFor(27),
+        nonOpIncome: avgCommonSizeFor(30),
+      },
       isLastYear: {
         revenue: isVal(6), cogs: isVal(7), grossProfit: isVal(8),
-        sellingOpex: isVal(12), gaOpex: isVal(13),
+        totalOpEx: isVal(15),
         depreciation: -(isVal(21) ?? 0),
         interestIncome: isVal(26), interestExpense: isVal(27),
         nonOpIncome: isVal(30), tax: isVal(33),

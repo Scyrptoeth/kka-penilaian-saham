@@ -8,32 +8,66 @@ import { computeHistoricalYears, computeProjectionYears } from '@/lib/calculatio
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { FIXED_ASSET_MANIFEST } from '@/data/manifests/fixed-asset'
 import { computeProyFixedAssetsLive } from '@/data/live/compute-proy-fixed-assets-live'
-import { computeProyLrLive, type ProyLrInput } from '@/data/live/compute-proy-lr-live'
-import { computeAvgGrowth } from '@/lib/calculations/helpers'
+import {
+  computeProyLrLive,
+  type ProyLrInput,
+  type ProyLrCommonSize,
+} from '@/data/live/compute-proy-lr-live'
+import { computeAvgGrowth, ratioOfBase } from '@/lib/calculations/helpers'
+import { computeAverage } from '@/lib/calculations/derivation-helpers'
 import { formatIdr, formatPercent } from '@/components/financial/format'
 import { PageEmptyState } from '@/components/shared/PageEmptyState'
 
-const ROW_DEFS: { row: number; labelKey: TranslationKey; kind: 'idr' | 'percent'; bold?: boolean; indent?: boolean }[] = [
-  { row: 8, labelKey: 'proy.revenue', kind: 'idr', bold: true },
-  { row: 10, labelKey: 'proy.cogs', kind: 'idr' },
-  { row: 11, labelKey: 'proy.grossProfit', kind: 'idr', bold: true },
-  { row: 12, labelKey: 'proy.grossMargin', kind: 'percent', indent: true },
-  { row: 15, labelKey: 'proy.sellingOpEx', kind: 'idr' },
-  { row: 16, labelKey: 'proy.gaAdmin', kind: 'idr' },
-  { row: 17, labelKey: 'proy.totalOpEx', kind: 'idr' },
-  { row: 19, labelKey: 'proy.ebitda', kind: 'idr', bold: true },
-  { row: 20, labelKey: 'proy.ebitdaMargin', kind: 'percent', indent: true },
-  { row: 22, labelKey: 'proy.depreciation', kind: 'idr' },
-  { row: 25, labelKey: 'proy.ebit', kind: 'idr', bold: true },
-  { row: 26, labelKey: 'proy.ebitMargin', kind: 'percent', indent: true },
-  { row: 29, labelKey: 'proy.interestIncome', kind: 'idr' },
-  { row: 31, labelKey: 'proy.interestExpense', kind: 'idr' },
-  { row: 33, labelKey: 'proy.otherIncome', kind: 'idr' },
-  { row: 34, labelKey: 'proy.nonOpIncome', kind: 'idr' },
-  { row: 36, labelKey: 'proy.pbt', kind: 'idr', bold: true },
-  { row: 37, labelKey: 'proy.tax', kind: 'idr' },
-  { row: 39, labelKey: 'proy.netProfit', kind: 'idr', bold: true },
-  { row: 40, labelKey: 'proy.netMargin', kind: 'percent', indent: true },
+/**
+ * ROW_DEFS discriminated union:
+ * - `data`: renders values from computed `rows[row][year]` (idr or percent).
+ * - `subGrowth`: Revenue YoY growth sub-row (displays `revenueGrowth` driver).
+ * - `subCommonSize`: % of Revenue sub-row (displays `commonSize[driverKey]`).
+ *
+ * Sub-rows render only at projection years; historical column shows "—".
+ */
+type RowDef =
+  | {
+      kind: 'data'
+      row: number
+      labelKey: TranslationKey
+      valueKind: 'idr' | 'percent'
+      bold?: boolean
+      indent?: boolean
+    }
+  | { kind: 'subGrowth'; id: 'revenue-growth'; labelKey: TranslationKey }
+  | {
+      kind: 'subCommonSize'
+      id: string
+      labelKey: TranslationKey
+      driverKey: keyof ProyLrCommonSize
+    }
+
+const ROW_DEFS: readonly RowDef[] = [
+  { kind: 'data', row: 8, labelKey: 'proy.revenue', valueKind: 'idr', bold: true },
+  { kind: 'subGrowth', id: 'revenue-growth', labelKey: 'proy.revenueGrowth' },
+  { kind: 'data', row: 10, labelKey: 'proy.cogs', valueKind: 'idr' },
+  { kind: 'subCommonSize', id: 'cogs-cs', labelKey: 'proy.cogsCommonSize', driverKey: 'cogs' },
+  { kind: 'data', row: 11, labelKey: 'proy.grossProfit', valueKind: 'idr', bold: true },
+  { kind: 'data', row: 12, labelKey: 'proy.grossMargin', valueKind: 'percent', indent: true },
+  { kind: 'data', row: 17, labelKey: 'proy.totalOpEx', valueKind: 'idr' },
+  { kind: 'subCommonSize', id: 'total-opex-cs', labelKey: 'proy.totalOpExCommonSize', driverKey: 'totalOpEx' },
+  { kind: 'data', row: 19, labelKey: 'proy.ebitda', valueKind: 'idr', bold: true },
+  { kind: 'data', row: 20, labelKey: 'proy.ebitdaMargin', valueKind: 'percent', indent: true },
+  { kind: 'data', row: 22, labelKey: 'proy.depreciation', valueKind: 'idr' },
+  { kind: 'data', row: 25, labelKey: 'proy.ebit', valueKind: 'idr', bold: true },
+  { kind: 'data', row: 26, labelKey: 'proy.ebitMargin', valueKind: 'percent', indent: true },
+  { kind: 'data', row: 29, labelKey: 'proy.interestIncome', valueKind: 'idr' },
+  { kind: 'subCommonSize', id: 'ii-cs', labelKey: 'proy.interestIncomeCommonSize', driverKey: 'interestIncome' },
+  { kind: 'data', row: 31, labelKey: 'proy.interestExpense', valueKind: 'idr' },
+  { kind: 'subCommonSize', id: 'ie-cs', labelKey: 'proy.interestExpenseCommonSize', driverKey: 'interestExpense' },
+  { kind: 'data', row: 33, labelKey: 'proy.otherIncome', valueKind: 'idr' },
+  { kind: 'data', row: 34, labelKey: 'proy.nonOpIncome', valueKind: 'idr' },
+  { kind: 'subCommonSize', id: 'noi-cs', labelKey: 'proy.nonOpIncomeCommonSize', driverKey: 'nonOpIncome' },
+  { kind: 'data', row: 36, labelKey: 'proy.pbt', valueKind: 'idr', bold: true },
+  { kind: 'data', row: 37, labelKey: 'proy.tax', valueKind: 'idr' },
+  { kind: 'data', row: 39, labelKey: 'proy.netProfit', valueKind: 'idr', bold: true },
+  { kind: 'data', row: 40, labelKey: 'proy.netMargin', valueKind: 'percent', indent: true },
 ]
 
 export default function ProyIncomeStatementPage() {
@@ -48,8 +82,9 @@ export default function ProyIncomeStatementPage() {
     if (!hasHydrated || !home || !incomeStatement || !keyDrivers) return null
 
     const faYears = computeHistoricalYears(home.tahunTransaksi, 3)
+    const histYears4 = computeHistoricalYears(home.tahunTransaksi, 4)
     const projYears = computeProjectionYears(home.tahunTransaksi)
-    const histYear = home.tahunTransaksi - 1 // last historical year
+    const histYear = home.tahunTransaksi - 1
 
     // PROY FA for depreciation (if FA data available)
     let proyFaDepreciation: Record<number, number> = {}
@@ -60,30 +95,41 @@ export default function ProyIncomeStatementPage() {
         { accounts: fixedAsset.accounts, faRows: allFa, historicalYears: faYears },
         projYears,
       )
-      // Row 51 = Total Depreciation Additions
       proyFaDepreciation = proyFa[51] ?? {}
     }
 
-    // IS last historical year values
+    // IS values for adapter
     const isRows = incomeStatement.rows
     const isVal = (row: number) => isRows[row]?.[histYear] ?? 0
 
-    // Compute IS average growth rates from user's historical data (not hardcoded)
-    const isAvgGrowth = (row: number) => computeAvgGrowth(isRows[row] ?? {})
+    // Average common size driver per leaf (LESSON-105 pattern).
+    const avgCommonSizeFor = (row: number): number => {
+      const ratios = histYears4.map((y) =>
+        ratioOfBase(isRows[row]?.[y] ?? 0, isRows[6]?.[y] ?? 0),
+      )
+      return computeAverage(ratios) ?? 0
+    }
+
+    const commonSize: ProyLrCommonSize = {
+      cogs: avgCommonSizeFor(7),
+      totalOpEx: avgCommonSizeFor(15),
+      interestIncome: avgCommonSizeFor(26),
+      interestExpense: avgCommonSizeFor(27),
+      nonOpIncome: avgCommonSizeFor(30),
+    }
+
+    const revenueGrowth = computeAvgGrowth(isRows[6] ?? {})
 
     const input: ProyLrInput = {
       keyDrivers,
-      revenueGrowth: isAvgGrowth(6),
-      interestIncomeGrowth: isAvgGrowth(26),
-      interestExpenseGrowth: isAvgGrowth(27),
-      nonOpIncomeGrowth: isAvgGrowth(30),
+      revenueGrowth,
+      commonSize,
       isLastYear: {
         revenue: isVal(6),
         cogs: isVal(7),
         grossProfit: isVal(8),
-        sellingOpex: isVal(12),
-        gaOpex: isVal(13),
-        depreciation: -(isVal(21) ?? 0), // FA depreciation negated
+        totalOpEx: isVal(15),
+        depreciation: -(isVal(21) ?? 0),
         interestIncome: isVal(26),
         interestExpense: isVal(27),
         nonOpIncome: isVal(30),
@@ -93,7 +139,13 @@ export default function ProyIncomeStatementPage() {
     }
 
     const rows = computeProyLrLive(input, histYear, projYears)
-    return { rows, years: [histYear, ...projYears] }
+    return {
+      rows,
+      years: [histYear, ...projYears],
+      histYear,
+      revenueGrowth,
+      commonSize,
+    }
   }, [hasHydrated, home, incomeStatement, fixedAsset, keyDrivers])
 
   if (!hasHydrated) {
@@ -114,7 +166,7 @@ export default function ProyIncomeStatementPage() {
     )
   }
 
-  const { rows, years } = data
+  const { rows, years, histYear, revenueGrowth, commonSize } = data
 
   return (
     <div className="mx-auto max-w-[1100px] p-6">
@@ -137,30 +189,58 @@ export default function ProyIncomeStatementPage() {
           </thead>
           <tbody>
             {ROW_DEFS.map(def => {
-              const isMargin = def.kind === 'percent'
+              if (def.kind === 'data') {
+                const isMargin = def.valueKind === 'percent'
+                return (
+                  <tr
+                    key={`data-${def.row}`}
+                    className={
+                      def.bold
+                        ? 'border-t-2 border-grid-strong bg-canvas-raised font-semibold'
+                        : 'border-b border-grid'
+                    }
+                  >
+                    <td className={`px-3 py-1.5 text-ink ${def.indent ? 'pl-8 text-ink-muted italic' : ''}`}>
+                      {t(def.labelKey)}
+                    </td>
+                    {years.map(y => {
+                      const v = rows[def.row]?.[y]
+                      if (v === undefined) return <td key={y} className="px-3 py-1.5 text-right font-mono tabular-nums">—</td>
+                      const formatted = isMargin ? formatPercent(v) : formatIdr(v)
+                      const isNeg = v < 0
+                      return (
+                        <td
+                          key={y}
+                          className={`px-3 py-1.5 text-right font-mono tabular-nums ${isNeg ? 'text-negative' : ''} ${isMargin ? 'text-ink-muted' : ''}`}
+                        >
+                          {formatted}
+                        </td>
+                      )
+                    })}
+                  </tr>
+                )
+              }
+
+              // Sub-row: growth / common-size driver — projection years only.
+              const driverValue =
+                def.kind === 'subGrowth' ? revenueGrowth : commonSize[def.driverKey]
+
               return (
-                <tr
-                  key={def.row}
-                  className={
-                    def.bold
-                      ? 'border-t-2 border-grid-strong bg-canvas-raised font-semibold'
-                      : 'border-b border-grid'
-                  }
-                >
-                  <td className={`px-3 py-1.5 text-ink ${def.indent ? 'pl-8 text-ink-muted italic' : ''}`}>
+                <tr key={`sub-${def.id}`} className="border-b border-grid">
+                  <td className="px-3 py-1.5 pl-8 text-ink-muted italic">
                     {t(def.labelKey)}
                   </td>
                   {years.map(y => {
-                    const v = rows[def.row]?.[y]
-                    if (v === undefined) return <td key={y} className="px-3 py-1.5 text-right font-mono tabular-nums">—</td>
-                    const formatted = isMargin ? formatPercent(v) : formatIdr(v)
-                    const isNeg = v < 0
+                    if (y === histYear) {
+                      return <td key={y} className="px-3 py-1.5 text-right font-mono text-ink-muted tabular-nums">—</td>
+                    }
+                    const isNeg = driverValue < 0
                     return (
                       <td
                         key={y}
-                        className={`px-3 py-1.5 text-right font-mono tabular-nums ${isNeg ? 'text-negative' : ''} ${isMargin ? 'text-ink-muted' : ''}`}
+                        className={`px-3 py-1.5 text-right font-mono text-ink-muted tabular-nums ${isNeg ? 'text-negative' : ''}`}
                       >
-                        {formatted}
+                        {formatPercent(driverValue)}
                       </td>
                     )
                   })}

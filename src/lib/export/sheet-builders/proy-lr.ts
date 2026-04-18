@@ -53,10 +53,19 @@ export const ProyLrBuilder: SheetBuilder = {
       ['F', projYears[2] ?? 0],
     ]
 
+    // Session 049 — Selling/Others OpEx (row 15) + General & Admin (row 16)
+    // merged into Total OpEx (row 17) driven by avg common size. Rows 15+16
+    // are no longer written; explicitly clear any template residue values
+    // first so exported XLSX doesn't leak obsolete projections.
     const managedRows = [
-      8, 9, 10, 11, 12, 15, 16, 17, 19, 20, 22, 25, 26,
+      8, 9, 10, 11, 12, 17, 19, 20, 22, 25, 26,
       29, 31, 33, 34, 36, 37, 39, 40,
     ]
+
+    for (const [col] of cols) {
+      ws.getCell(`${col}15`).value = 0
+      ws.getCell(`${col}16`).value = 0
+    }
 
     for (const [col, year] of cols) {
       if (!year) continue
