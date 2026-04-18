@@ -4,38 +4,48 @@ import { useMemo } from 'react'
 import { useKkaStore } from '@/lib/store/useKkaStore'
 import { useT } from '@/lib/i18n/useT'
 import { computeHistoricalYears, computeProjectionYears } from '@/lib/calculations/year-helpers'
-import { computeProyFixedAssetsLive, type ProyFaInput } from '@/data/live/compute-proy-fixed-assets-live'
+import {
+  computeProyFixedAssetsLive,
+  computeFaAdditionsGrowths,
+  type ProyFaInput,
+} from '@/data/live/compute-proy-fixed-assets-live'
 import { FA_OFFSET, FA_SUBTOTAL, getCatalogAccount, type FaAccountEntry } from '@/data/catalogs/fixed-asset-catalog'
-import { computeAvgGrowth, yoyChangeSafe } from '@/lib/calculations/helpers'
+import { yoyChangeSafe } from '@/lib/calculations/helpers'
 import { formatIdr, formatPercent } from '@/components/financial/format'
 import { PageEmptyState } from '@/components/shared/PageEmptyState'
 
 /**
- * Session 036 — PROY FIXED ASSET (per-account Net Value growth).
+ * Session 045 — PROY FIXED ASSET (roll-forward model).
  *
- * Every account from `fixedAsset.accounts` renders across 7 bands
- * (Acq Begin/Add/End, Dep Begin/Add/End, Net Value) read-only.
+ * Each account projects its 7 bands as:
+ *   Acq Add[Y+1] = Acq Add[Y] × (1 + acqAddGrowth)
+ *   Acq Beg[Y+1] = Acq End[Y]  (identity)
+ *   Acq End[Y]   = Acq Beg[Y] + Acq Add[Y]
+ *   (Dep mirrors with its own depAddGrowth)
+ *   Net Value[Y] = Acq End[Y] - Dep End[Y]
  *
- * Display semantics:
- *   - Historical year: all 7 bands show values.
- *   - Projection years: only NET VALUE band shows values (projected
- *     via per-account avg YoY growth of NET VALUE). Acq/Dep bands
- *     show "—" for projection years (but are computed internally
- *     for PROY LR / NOPLAT / CFS cascade).
- *   - Below each NET VALUE row, a Growth row shows per-account
- *     historical (col 1) + avg (proj cols) growth rate.
+ * Growth sub-row is shown ONLY below Acq Additions and Dep Additions bands
+ * (the two inputs driving projection). Historical year shows actual YoY;
+ * projection years show the avg growth rate that will be applied.
+ * Net Value band no longer carries a Growth sub-row — it's derived, not driven.
  */
+
+type BandLabelKey =
+  | 'proyFA.beginning'
+  | 'proyFA.additions'
+  | 'proyFA.ending'
+  | ''
+
+type GrowthSource = 'acq' | 'dep' | null
 
 interface BandDef {
   titleKey: 'proyFA.acquisitionCost' | 'proyFA.accDepreciation' | 'proyFA.netValue'
   sections: Array<{
-    labelKey: 'proyFA.beginning' | 'proyFA.additions' | 'proyFA.ending' | ''
+    labelKey: BandLabelKey
     offset: number
     totalRow: number
-    /** Whether projection values are DISPLAYED. Net Value = yes; others = no */
-    displayProjection: boolean
-    /** Whether this row gets a Growth sub-row (Net Value only) */
-    showGrowthRow: boolean
+    /** Growth sub-row source (acq/dep band growth), null = no growth row */
+    growthSource: GrowthSource
   }>
 }
 
@@ -43,23 +53,23 @@ const BANDS: readonly BandDef[] = [
   {
     titleKey: 'proyFA.acquisitionCost',
     sections: [
-      { labelKey: 'proyFA.beginning', offset: FA_OFFSET.ACQ_BEGINNING, totalRow: FA_SUBTOTAL.TOTAL_ACQ_BEGINNING, displayProjection: false, showGrowthRow: false },
-      { labelKey: 'proyFA.additions', offset: FA_OFFSET.ACQ_ADDITIONS, totalRow: FA_SUBTOTAL.TOTAL_ACQ_ADDITIONS, displayProjection: false, showGrowthRow: false },
-      { labelKey: 'proyFA.ending',    offset: FA_OFFSET.ACQ_ENDING,    totalRow: FA_SUBTOTAL.TOTAL_ACQ_ENDING,    displayProjection: false, showGrowthRow: false },
+      { labelKey: 'proyFA.beginning', offset: FA_OFFSET.ACQ_BEGINNING, totalRow: FA_SUBTOTAL.TOTAL_ACQ_BEGINNING, growthSource: null },
+      { labelKey: 'proyFA.additions', offset: FA_OFFSET.ACQ_ADDITIONS, totalRow: FA_SUBTOTAL.TOTAL_ACQ_ADDITIONS, growthSource: 'acq' },
+      { labelKey: 'proyFA.ending',    offset: FA_OFFSET.ACQ_ENDING,    totalRow: FA_SUBTOTAL.TOTAL_ACQ_ENDING,    growthSource: null },
     ],
   },
   {
     titleKey: 'proyFA.accDepreciation',
     sections: [
-      { labelKey: 'proyFA.beginning', offset: FA_OFFSET.DEP_BEGINNING, totalRow: FA_SUBTOTAL.TOTAL_DEP_BEGINNING, displayProjection: false, showGrowthRow: false },
-      { labelKey: 'proyFA.additions', offset: FA_OFFSET.DEP_ADDITIONS, totalRow: FA_SUBTOTAL.TOTAL_DEP_ADDITIONS, displayProjection: false, showGrowthRow: false },
-      { labelKey: 'proyFA.ending',    offset: FA_OFFSET.DEP_ENDING,    totalRow: FA_SUBTOTAL.TOTAL_DEP_ENDING,    displayProjection: false, showGrowthRow: false },
+      { labelKey: 'proyFA.beginning', offset: FA_OFFSET.DEP_BEGINNING, totalRow: FA_SUBTOTAL.TOTAL_DEP_BEGINNING, growthSource: null },
+      { labelKey: 'proyFA.additions', offset: FA_OFFSET.DEP_ADDITIONS, totalRow: FA_SUBTOTAL.TOTAL_DEP_ADDITIONS, growthSource: 'dep' },
+      { labelKey: 'proyFA.ending',    offset: FA_OFFSET.DEP_ENDING,    totalRow: FA_SUBTOTAL.TOTAL_DEP_ENDING,    growthSource: null },
     ],
   },
   {
     titleKey: 'proyFA.netValue',
     sections: [
-      { labelKey: '', offset: FA_OFFSET.NET_VALUE, totalRow: FA_SUBTOTAL.TOTAL_NET_VALUE, displayProjection: true, showGrowthRow: true },
+      { labelKey: '', offset: FA_OFFSET.NET_VALUE, totalRow: FA_SUBTOTAL.TOTAL_NET_VALUE, growthSource: null },
     ],
   },
 ] as const
@@ -87,18 +97,13 @@ export default function ProyFixedAssetPage() {
       accounts: fixedAsset.accounts,
       faRows: fixedAsset.rows,
       historicalYears,
-      // historicalYears argument: `ProyFaInput` signature uses `historicalYears`
     }
     const rows = computeProyFixedAssetsLive(input, projYears)
 
-    // Per-account Net Value avg growth (for Growth sub-row display)
-    const avgGrowth: Record<number, number> = {}
-    for (const acct of fixedAsset.accounts) {
-      const netSeries = fixedAsset.rows[acct.excelRow + FA_OFFSET.NET_VALUE] ?? {}
-      avgGrowth[acct.excelRow] = computeAvgGrowth(netSeries)
-    }
+    // Session 045: per-account growth for Acq Additions + Dep Additions
+    const growths = computeFaAdditionsGrowths(fixedAsset.accounts, fixedAsset.rows)
 
-    return { rows, histYear, projYears, avgGrowth, accounts: fixedAsset.accounts }
+    return { rows, histYear, projYears, growths, accounts: fixedAsset.accounts }
   }, [hasHydrated, home, fixedAsset])
 
   if (!hasHydrated) {
@@ -121,7 +126,7 @@ export default function ProyFixedAssetPage() {
     )
   }
 
-  const { rows, histYear, projYears, avgGrowth, accounts } = data
+  const { rows, histYear, projYears, growths, accounts } = data
   const yearCols = [histYear, ...projYears]
 
   return (
@@ -149,16 +154,12 @@ export default function ProyFixedAssetPage() {
                 )}
                 <tbody>
                   {accounts.map((acct) => renderAccountRow(
-                    acct, section, rows, yearCols, histYear, language, avgGrowth, t,
+                    acct, section, rows, yearCols, histYear, language, growths, t,
                   ))}
                   <tr className="border-t-2 border-grid-strong bg-canvas-raised font-semibold">
                     <td className="px-2 py-1.5 text-ink">{t('common.total')}</td>
-                    {yearCols.map((y, i) => {
+                    {yearCols.map((y) => {
                       const v = rows[section.totalRow]?.[y]
-                      // Hide projection totals for bands that don't display projection
-                      if (i > 0 && !section.displayProjection) {
-                        return <td key={y} className="px-2 py-1.5 text-right font-mono tabular-nums text-ink-muted">—</td>
-                      }
                       if (v === undefined) {
                         return <td key={y} className="px-2 py-1.5 text-right font-mono tabular-nums text-ink-muted">—</td>
                       }
@@ -181,12 +182,12 @@ export default function ProyFixedAssetPage() {
 
 function renderAccountRow(
   acct: FaAccountEntry,
-  section: BandDef['sections'][number],
+  section: { labelKey: BandLabelKey; offset: number; totalRow: number; growthSource: GrowthSource },
   rows: Record<number, import('@/types/financial').YearKeyedSeries>,
   yearCols: readonly number[],
   histYear: number,
   language: 'en' | 'id',
-  avgGrowth: Record<number, number>,
+  growths: { acqAdd: Record<number, number>; depAdd: Record<number, number> },
   t: ReturnType<typeof useT>['t'],
 ): React.ReactNode {
   const rowKey = acct.excelRow + section.offset
@@ -196,11 +197,7 @@ function renderAccountRow(
   const valueRow = (
     <tr key={`v-${rowKey}`} className="border-b border-grid">
       <td className="px-2 py-1 text-ink">{label}</td>
-      {yearCols.map((y, i) => {
-        // Hide projection values for non-Net-Value bands
-        if (i > 0 && !section.displayProjection) {
-          return <td key={y} className="px-2 py-1 text-right font-mono tabular-nums text-ink-muted">—</td>
-        }
+      {yearCols.map((y) => {
         const v = series[y]
         if (v === undefined) {
           return <td key={y} className="px-2 py-1 text-right font-mono tabular-nums text-ink-muted">—</td>
@@ -214,10 +211,14 @@ function renderAccountRow(
     </tr>
   )
 
-  if (!section.showGrowthRow) return valueRow
+  if (section.growthSource === null) return valueRow
 
-  // Growth sub-row (Net Value only)
-  const growth = avgGrowth[acct.excelRow] ?? 0
+  // Growth sub-row — only for Acq Additions + Dep Additions bands (Session 045)
+  const growth =
+    section.growthSource === 'acq'
+      ? growths.acqAdd[acct.excelRow] ?? 0
+      : growths.depAdd[acct.excelRow] ?? 0
+
   const growthRow = (
     <tr key={`g-${rowKey}`} className="border-b border-grid">
       <td className="px-2 py-1 pl-8 text-xs italic text-ink-muted">{t('proyBS.row.growth')}</td>
