@@ -48,7 +48,10 @@ export default function ProyNoplatPage() {
     if (fixedAsset) {
       const faComp = deriveComputedRows(FIXED_ASSET_MANIFEST.rows, fixedAsset.rows, faYears)
       const allFa = { ...fixedAsset.rows, ...faComp }
-      const proyFa = computeProyFixedAssetsLive(allFa, faYears, projYears)
+      const proyFa = computeProyFixedAssetsLive(
+        { accounts: fixedAsset.accounts, faRows: allFa, historicalYears: faYears },
+        projYears,
+      )
       proyFaDepreciation = proyFa[51] ?? {}
     }
 

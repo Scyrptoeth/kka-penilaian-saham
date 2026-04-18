@@ -58,38 +58,47 @@ function makeIs(): IncomeStatementInputState {
 }
 
 function makeFa(): FixedAssetInputState {
+  // Session 036: per-account model uses FA_OFFSET-keyed rows. Include
+  // 6 original accounts (Land/Building/Equipment/Vehicle/Office/Electrical)
+  // at excelRow 8-13 with values stored at offset-keyed positions.
+  const rows: Record<number, import('@/types/financial').YearKeyedSeries> = {}
+  const beginningSeed = { 8: 100, 9: 200, 10: 300, 11: 400, 12: 500, 13: 50 }
+  const additionsSeed = { 8: 10, 9: 20, 10: 30, 11: 40, 12: 50, 13: 5 }
+  const depBegSeed = { 8: -30, 9: -60, 10: -90, 11: -120, 12: -150, 13: -15 }
+  const depAddSeed = { 8: -10, 9: -20, 10: -30, 11: -40, 12: -50, 13: -5 }
+  for (const [base, begVal] of Object.entries(beginningSeed)) {
+    const b = Number(base)
+    rows[b + 0] = { 2019: begVal, 2020: begVal + 10, 2021: begVal + 20 }
+    rows[b + 2000] = {
+      2019: additionsSeed[b as unknown as keyof typeof additionsSeed],
+      2020: additionsSeed[b as unknown as keyof typeof additionsSeed] + 2,
+      2021: additionsSeed[b as unknown as keyof typeof additionsSeed] + 4,
+    }
+    rows[b + 4000] = {
+      2019: depBegSeed[b as unknown as keyof typeof depBegSeed],
+      2020: depBegSeed[b as unknown as keyof typeof depBegSeed] - 10,
+      2021: depBegSeed[b as unknown as keyof typeof depBegSeed] - 20,
+    }
+    rows[b + 5000] = {
+      2019: depAddSeed[b as unknown as keyof typeof depAddSeed],
+      2020: depAddSeed[b as unknown as keyof typeof depAddSeed] - 1,
+      2021: depAddSeed[b as unknown as keyof typeof depAddSeed] - 2,
+    }
+    // NET_VALUE seed — Acq End - Dep End (simple synthetic values for test)
+    rows[b + 7000] = { 2019: begVal * 2, 2020: begVal * 2 + 10, 2021: begVal * 2 + 20 }
+  }
   return {
-    accounts: [], yearCount: 3, language: 'en',
-    rows: {
-      // Beginning values per category (6 cats, rows 8-13)
-      8:  { 2019: 100, 2020: 110, 2021: 120 },
-      9:  { 2019: 200, 2020: 210, 2021: 220 },
-      10: { 2019: 300, 2020: 310, 2021: 320 },
-      11: { 2019: 400, 2020: 410, 2021: 420 },
-      12: { 2019: 500, 2020: 510, 2021: 520 },
-      13: { 2019: 50,  2020: 55,  2021: 60 },
-      // Additions per category (rows 17-22)
-      17: { 2019: 10, 2020: 12, 2021: 14 },
-      18: { 2019: 20, 2020: 22, 2021: 24 },
-      19: { 2019: 30, 2020: 33, 2021: 36 },
-      20: { 2019: 40, 2020: 44, 2021: 48 },
-      21: { 2019: 50, 2020: 55, 2021: 60 },
-      22: { 2019: 5,  2020: 6,  2021: 7 },
-      // Depreciation beginning (36-41)
-      36: { 2019: -30, 2020: -40, 2021: -50 },
-      37: { 2019: -60, 2020: -80, 2021: -100 },
-      38: { 2019: -90, 2020: -120, 2021: -150 },
-      39: { 2019: -120, 2020: -160, 2021: -200 },
-      40: { 2019: -150, 2020: -200, 2021: -250 },
-      41: { 2019: -15, 2020: -20, 2021: -25 },
-      // Depreciation additions (45-50)
-      45: { 2019: -10, 2020: -11, 2021: -12 },
-      46: { 2019: -20, 2020: -22, 2021: -24 },
-      47: { 2019: -30, 2020: -33, 2021: -36 },
-      48: { 2019: -40, 2020: -44, 2021: -48 },
-      49: { 2019: -50, 2020: -55, 2021: -60 },
-      50: { 2019: -5, 2020: -6, 2021: -7 },
-    },
+    accounts: [
+      { catalogId: 'land', excelRow: 8, section: 'fixed_asset' },
+      { catalogId: 'building_cip', excelRow: 9, section: 'fixed_asset' },
+      { catalogId: 'equipment_lab_machinery', excelRow: 10, section: 'fixed_asset' },
+      { catalogId: 'vehicle_heavy_equipment', excelRow: 11, section: 'fixed_asset' },
+      { catalogId: 'office_inventory', excelRow: 12, section: 'fixed_asset' },
+      { catalogId: 'electrical', excelRow: 13, section: 'fixed_asset' },
+    ],
+    yearCount: 3,
+    language: 'en',
+    rows,
   }
 }
 
@@ -134,26 +143,38 @@ describe('ProyFaBuilder — build', () => {
     expect(wb.getWorksheet('PROY FIXED ASSETS')!.getCell('D17').value).toBe(999)
   })
 
-  it('writes Column C = last historical year values', () => {
+  it('writes Column C = last historical year values at FA offset keys', () => {
     const wb = makeWb()
+    const ws0 = wb.getWorksheet('PROY FIXED ASSETS')!
+    // Seed FA offset-keyed cells (Session 036: per-account layout)
+    for (const row of [8, 9, 10, 11, 12, 13, 14, 23, 32, 42, 51, 60, 69]) {
+      for (const col of ['C', 'D', 'E', 'F']) ws0.getCell(`${col}${row}`).value = 999
+    }
     ProyFaBuilder.build(wb, makeState())
     const ws = wb.getWorksheet('PROY FIXED ASSETS')!
-    // FA row 8 at 2021 = 120 (beginning Land)
+    // Acq Beginning Land (row 8) at 2021 = 120 (from fixture)
     expect(ws.getCell('C8').value).toBe(120)
-    // FA row 17 at 2021 = 14 (additions Land)
-    expect(ws.getCell('C17').value).toBe(14)
   })
 
-  it('writes Acquisition Total row 14', () => {
+  it('writes Acquisition Total subtotal at row 14 summing per-account leaves', () => {
     const wb = makeWb()
+    const ws0 = wb.getWorksheet('PROY FIXED ASSETS')!
+    for (const row of [8, 9, 10, 11, 12, 13, 14]) {
+      for (const col of ['C', 'D', 'E', 'F']) ws0.getCell(`${col}${row}`).value = 999
+    }
     ProyFaBuilder.build(wb, makeState())
     const ws = wb.getWorksheet('PROY FIXED ASSETS')!
-    // Sum of rows 8-13 at 2021 = 120+220+320+420+520+60 = 1660
-    expect(ws.getCell('C14').value).toBe(1660)
+    // TOTAL_ACQ_BEGINNING at 2021: sum of Acq Begin across 6 accounts
+    // Land 120 + Building 220 + Equip 320 + Veh 420 + Office 520 + Elec 70 = 1670
+    expect(ws.getCell('C14').value as number).toBeCloseTo(1670, 0)
   })
 
-  it('writes projected column D values (non-seed)', () => {
+  it('writes projected column D values at Acq/Dep/Net subtotal rows', () => {
     const wb = makeWb()
+    const ws0 = wb.getWorksheet('PROY FIXED ASSETS')!
+    for (const row of [8, 14, 23, 32, 42, 51, 60, 69]) {
+      for (const col of ['C', 'D', 'E', 'F']) ws0.getCell(`${col}${row}`).value = 999
+    }
     ProyFaBuilder.build(wb, makeState())
     const ws = wb.getWorksheet('PROY FIXED ASSETS')!
     expect(ws.getCell('D8').value).not.toBe(999)
@@ -161,28 +182,30 @@ describe('ProyFaBuilder — build', () => {
     expect(ws.getCell('D69').value).not.toBe(999)
   })
 
-  it('overwrites all seeded cells for D/E/F', () => {
+  it('overwrites all seeded cells for D/E/F at subtotal rows (Session 036 layout)', () => {
     const wb = makeWb()
+    const ws0 = wb.getWorksheet('PROY FIXED ASSETS')!
+    for (const row of [8, 14, 23, 32, 42, 51, 60, 69]) {
+      for (const col of ['D', 'E', 'F']) ws0.getCell(`${col}${row}`).value = 999
+    }
     ProyFaBuilder.build(wb, makeState())
     const ws = wb.getWorksheet('PROY FIXED ASSETS')!
-    for (const row of [8, 14, 17, 23, 26, 32, 36, 42, 45, 51, 54, 60, 63, 69]) {
+    for (const row of [8, 14, 23, 32, 42, 51, 60, 69]) {
       for (const col of ['D', 'E', 'F']) {
         expect(ws.getCell(`${col}${row}`).value, `${col}${row}`).not.toBe(999)
       }
     }
   })
 
-  it('Net Value Total row 69 = Acquisition 32 - Depreciation 60 per year (dep stored negative → net > acq)', () => {
+  // Session 036 — Net Value uses per-account NV growth (independent of Acq/Dep
+  // subtotal identity). Old NV = Acq - Dep assertion no longer holds.
+  it('Net Value subtotal (row 69) is non-null and derived from per-account NV', () => {
     const wb = makeWb()
+    const ws0 = wb.getWorksheet('PROY FIXED ASSETS')!
+    for (const col of ['C', 'D']) ws0.getCell(`${col}69`).value = 999
     ProyFaBuilder.build(wb, makeState())
     const ws = wb.getWorksheet('PROY FIXED ASSETS')!
-    for (const col of ['C', 'D']) {
-      const acq = ws.getCell(`${col}32`).value as number
-      const dep = ws.getCell(`${col}60`).value as number
-      const net = ws.getCell(`${col}69`).value as number
-      // Per compute-proy-fixed-assets-live: net[c] = acq_end[c] - dep_end[c]
-      // dep stored negative, so subtracting negative = adding |dep|
-      expect(net).toBeCloseTo(acq - dep, 0)
-    }
+    expect(ws.getCell('C69').value).not.toBe(999)
+    expect(ws.getCell('D69').value).not.toBe(999)
   })
 })

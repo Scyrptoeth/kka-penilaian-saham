@@ -81,7 +81,10 @@ export function computeFullProjectionPipeline(
   if (fixedAsset) {
     faComp = deriveComputedRows(FIXED_ASSET_MANIFEST.rows, fixedAsset.rows, histYears3)
     const allFa = { ...faComp, ...fixedAsset.rows }
-    proyFaRows = computeProyFixedAssetsLive(allFa, histYears3, projYears)
+    proyFaRows = computeProyFixedAssetsLive(
+      { accounts: fixedAsset.accounts, faRows: allFa, historicalYears: histYears3 },
+      projYears,
+    )
   }
 
   // ── Step 2: PROY LR ──
