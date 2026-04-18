@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { Fragment, useMemo } from 'react'
 import { useKkaStore } from '@/lib/store/useKkaStore'
 import { useT } from '@/lib/i18n/useT'
 import { computeHistoricalYears, computeProjectionYears } from '@/lib/calculations/year-helpers'
@@ -15,41 +15,44 @@ import { formatIdr, formatPercent } from '@/components/financial/format'
 import { PageEmptyState } from '@/components/shared/PageEmptyState'
 
 /**
- * Session 045 — PROY FIXED ASSET (roll-forward model).
+ * Session 046 — PROY FIXED ASSET (unified column alignment).
  *
- * Each account projects its 7 bands as:
- *   Acq Add[Y+1] = Acq Add[Y] × (1 + acqAddGrowth)
- *   Acq Beg[Y+1] = Acq End[Y]  (identity)
- *   Acq End[Y]   = Acq Beg[Y] + Acq Add[Y]
- *   (Dep mirrors with its own depAddGrowth)
- *   Net Value[Y] = Acq End[Y] - Dep End[Y]
+ * Three tables — Acquisition Cost, Depreciation, Net Value Fixed Assets —
+ * each using `table-fixed` + `<colgroup>` with identical width percentages
+ * so year columns align across every category. Acq + Dep contain three
+ * sub-sections each (Beginning / Additions / Ending) rendered as
+ * `<tr>` sub-header rows inside the same table, guaranteeing column
+ * alignment within a category as well.
  *
- * Growth sub-row is shown ONLY below Acq Additions and Dep Additions bands
- * (the two inputs driving projection). Historical year shows actual YoY;
- * projection years show the avg growth rate that will be applied.
- * Net Value band no longer carries a Growth sub-row — it's derived, not driven.
+ * Compute model unchanged from Session 045 — roll-forward per band with
+ * per-account Additions growth; Session 046 added:
+ *   1. Self-healing seed: derive End[histYear] = Beg+Add when store
+ *      lacks persisted Ending.
+ *   2. Stopping rule: Net Value ≤ 0 → halt Dep Additions (asset disposed).
+ *
+ * Growth sub-row is rendered ONLY below Acq Additions and Dep Additions
+ * bands (the two inputs driving projection).
  */
-
-type BandLabelKey =
-  | 'proyFA.beginning'
-  | 'proyFA.additions'
-  | 'proyFA.ending'
-  | ''
 
 type GrowthSource = 'acq' | 'dep' | null
 
-interface BandDef {
-  titleKey: 'proyFA.acquisitionCost' | 'proyFA.accDepreciation' | 'proyFA.netValue'
-  sections: Array<{
-    labelKey: BandLabelKey
-    offset: number
-    totalRow: number
-    /** Growth sub-row source (acq/dep band growth), null = no growth row */
-    growthSource: GrowthSource
-  }>
+interface BandSection {
+  labelKey: 'proyFA.beginning' | 'proyFA.additions' | 'proyFA.ending'
+  offset: number
+  totalRow: number
+  /** Growth sub-row source (acq/dep band growth), null = no growth row */
+  growthSource: GrowthSource
 }
 
-const BANDS: readonly BandDef[] = [
+interface CategoryDef {
+  titleKey: 'proyFA.acquisitionCost' | 'proyFA.accDepreciation' | 'proyFA.netValue'
+  sections: BandSection[] | null
+  /** When `sections` is null, use this offset + totalRow for the single band (Net Value). */
+  singleOffset?: number
+  singleTotalRow?: number
+}
+
+const CATEGORIES: readonly CategoryDef[] = [
   {
     titleKey: 'proyFA.acquisitionCost',
     sections: [
@@ -68,9 +71,9 @@ const BANDS: readonly BandDef[] = [
   },
   {
     titleKey: 'proyFA.netValue',
-    sections: [
-      { labelKey: '', offset: FA_OFFSET.NET_VALUE, totalRow: FA_SUBTOTAL.TOTAL_NET_VALUE, growthSource: null },
-    ],
+    sections: null,
+    singleOffset: FA_OFFSET.NET_VALUE,
+    singleTotalRow: FA_SUBTOTAL.TOTAL_NET_VALUE,
   },
 ] as const
 
@@ -99,8 +102,6 @@ export default function ProyFixedAssetPage() {
       historicalYears,
     }
     const rows = computeProyFixedAssetsLive(input, projYears)
-
-    // Session 045: per-account growth for Acq Additions + Dep Additions
     const growths = computeFaAdditionsGrowths(fixedAsset.accounts, fixedAsset.rows)
 
     return { rows, histYear, projYears, growths, accounts: fixedAsset.accounts }
@@ -128,6 +129,9 @@ export default function ProyFixedAssetPage() {
 
   const { rows, histYear, projYears, growths, accounts } = data
   const yearCols = [histYear, ...projYears]
+  // Column widths: 40% for label, remainder evenly split across year columns.
+  // Using percentages keeps alignment identical across every category table.
+  const yearColWidth = `${60 / yearCols.length}%`
 
   return (
     <div className="mx-auto max-w-[1100px] p-6">
@@ -135,44 +139,57 @@ export default function ProyFixedAssetPage() {
       <p className="mb-6 text-sm text-ink-muted">{t('proyFA.subtitle')}</p>
 
       <div className="overflow-x-auto">
-        {BANDS.map((band) => (
-          <div key={band.titleKey} className="mb-6">
-            <h2 className="mb-2 text-base font-semibold text-ink">{t(band.titleKey)}</h2>
-            {band.sections.map((section) => (
-              <table key={`${band.titleKey}-${section.offset}`} className="mb-4 w-full border-collapse text-sm">
-                {section.labelKey && (
-                  <thead>
-                    <tr className="border-b border-grid">
-                      <th className="px-2 py-1 text-left text-ink-muted">{t(section.labelKey)}</th>
-                      {yearCols.map((y) => (
-                        <th key={y} className="px-2 py-1 text-right font-mono text-ink-muted tabular-nums">
-                          {y}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                )}
-                <tbody>
-                  {accounts.map((acct) => renderAccountRow(
-                    acct, section, rows, yearCols, histYear, language, growths, t,
+        {CATEGORIES.map((cat) => (
+          <div key={cat.titleKey} className="mb-8">
+            <h2 className="mb-2 text-base font-semibold text-ink">{t(cat.titleKey)}</h2>
+            <table className="w-full table-fixed border-collapse text-sm">
+              <colgroup>
+                <col style={{ width: '40%' }} />
+                {yearCols.map((y) => <col key={y} style={{ width: yearColWidth }} />)}
+              </colgroup>
+              <thead>
+                <tr className="border-b-2 border-grid-strong">
+                  <th className="px-2 py-1 text-left text-ink-muted">&nbsp;</th>
+                  {yearCols.map((y) => (
+                    <th key={y} className="px-2 py-1 text-right font-mono text-ink-muted tabular-nums">
+                      {y}
+                    </th>
                   ))}
-                  <tr className="border-t-2 border-grid-strong bg-canvas-raised font-semibold">
-                    <td className="px-2 py-1.5 text-ink">{t('common.total')}</td>
-                    {yearCols.map((y) => {
-                      const v = rows[section.totalRow]?.[y]
-                      if (v === undefined) {
-                        return <td key={y} className="px-2 py-1.5 text-right font-mono tabular-nums text-ink-muted">—</td>
-                      }
-                      return (
-                        <td key={y} className={`px-2 py-1.5 text-right font-mono tabular-nums ${v < 0 ? 'text-negative' : ''}`}>
-                          {formatIdr(v)}
-                        </td>
-                      )
-                    })}
-                  </tr>
-                </tbody>
-              </table>
-            ))}
+                </tr>
+              </thead>
+              <tbody>
+                {cat.sections
+                  ? cat.sections.map((section, idx) => (
+                      <Fragment key={`${cat.titleKey}-${section.offset}`}>
+                        <SubSectionHeaderRow
+                          labelKey={section.labelKey}
+                          t={t}
+                          colSpan={yearCols.length + 1}
+                          isFirst={idx === 0}
+                        />
+                        {accounts.map((acct) => renderAccountRows(
+                          acct, section, rows, yearCols, histYear, language, growths, t,
+                        ))}
+                        <TotalRow totalRow={section.totalRow} rows={rows} yearCols={yearCols} t={t} />
+                      </Fragment>
+                    ))
+                  : (
+                    <>
+                      {accounts.map((acct) => renderAccountRows(
+                        acct,
+                        {
+                          labelKey: 'proyFA.ending', // unused (growthSource=null)
+                          offset: cat.singleOffset!,
+                          totalRow: cat.singleTotalRow!,
+                          growthSource: null,
+                        },
+                        rows, yearCols, histYear, language, growths, t,
+                      ))}
+                      <TotalRow totalRow={cat.singleTotalRow!} rows={rows} yearCols={yearCols} t={t} />
+                    </>
+                  )}
+              </tbody>
+            </table>
           </div>
         ))}
       </div>
@@ -180,9 +197,52 @@ export default function ProyFixedAssetPage() {
   )
 }
 
-function renderAccountRow(
+function SubSectionHeaderRow({
+  labelKey, t, colSpan, isFirst,
+}: {
+  labelKey: BandSection['labelKey']
+  t: ReturnType<typeof useT>['t']
+  colSpan: number
+  isFirst: boolean
+}) {
+  return (
+    <tr className={isFirst ? '' : 'border-t-2 border-grid-strong'}>
+      <td colSpan={colSpan} className="bg-canvas-raised px-2 py-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-ink-muted">
+        {t(labelKey)}
+      </td>
+    </tr>
+  )
+}
+
+function TotalRow({
+  totalRow, rows, yearCols, t,
+}: {
+  totalRow: number
+  rows: Record<number, import('@/types/financial').YearKeyedSeries>
+  yearCols: readonly number[]
+  t: ReturnType<typeof useT>['t']
+}) {
+  return (
+    <tr className="border-t border-grid bg-canvas-raised font-semibold">
+      <td className="px-2 py-1.5 text-ink">{t('common.total')}</td>
+      {yearCols.map((y) => {
+        const v = rows[totalRow]?.[y]
+        if (v === undefined) {
+          return <td key={y} className="px-2 py-1.5 text-right font-mono tabular-nums text-ink-muted">—</td>
+        }
+        return (
+          <td key={y} className={`px-2 py-1.5 text-right font-mono tabular-nums ${v < 0 ? 'text-negative' : ''}`}>
+            {formatIdr(v)}
+          </td>
+        )
+      })}
+    </tr>
+  )
+}
+
+function renderAccountRows(
   acct: FaAccountEntry,
-  section: { labelKey: BandLabelKey; offset: number; totalRow: number; growthSource: GrowthSource },
+  section: BandSection,
   rows: Record<number, import('@/types/financial').YearKeyedSeries>,
   yearCols: readonly number[],
   histYear: number,
@@ -246,5 +306,10 @@ function renderAccountRow(
     </tr>
   )
 
-  return [valueRow, growthRow]
+  return (
+    <Fragment key={`vg-${rowKey}`}>
+      {valueRow}
+      {growthRow}
+    </Fragment>
+  )
 }
