@@ -105,10 +105,16 @@ const dict = {
   'theme.loading': { en: 'Display Mode', id: 'Mode Tampilan' },
   'theme.switchToDark': { en: 'Click to switch to Dark Mode', id: 'Klik untuk Ganti ke Dark Mode' },
   'theme.switchToLight': { en: 'Click to switch to Light Mode', id: 'Klik untuk Ganti ke Light Mode' },
+  'theme.ariaLoading': { en: 'Theme toggle — loading', id: 'Toggle tema — memuat' },
+  'theme.ariaCurrentLight': { en: 'Light mode active. Click to switch to dark mode.', id: 'Mode terang aktif. Klik untuk ganti ke mode gelap.' },
+  'theme.ariaCurrentDark': { en: 'Dark mode active. Click to switch to light mode.', id: 'Mode gelap aktif. Klik untuk ganti ke mode terang.' },
 
   'lang.loading': { en: 'Language', id: 'Bahasa' },
   'lang.switchToId': { en: 'EN — Click for Bahasa Indonesia', id: 'EN — Klik untuk Bahasa Indonesia' },
   'lang.switchToEn': { en: 'ID — Click for English', id: 'ID — Klik untuk English' },
+  'lang.ariaLoading': { en: 'Language toggle — loading', id: 'Toggle bahasa — memuat' },
+  'lang.ariaCurrentEn': { en: 'English active. Click to switch to Bahasa Indonesia.', id: 'Bahasa Inggris aktif. Klik untuk ganti ke Bahasa Indonesia.' },
+  'lang.ariaCurrentId': { en: 'Bahasa Indonesia active. Click to switch to English.', id: 'Bahasa Indonesia aktif. Klik untuk ganti ke Bahasa Inggris.' },
 
   'mobile.openMenu': { en: 'Open navigation menu', id: 'Buka menu navigasi' },
   'mobile.closeMenu': { en: 'Close menu', id: 'Tutup menu' },
