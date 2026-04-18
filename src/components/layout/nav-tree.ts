@@ -46,6 +46,7 @@ export const NAV_TREE: NavGroup[] = [
       { label: 'nav.item.growthRevenue', href: '/analysis/growth-revenue' },
       { label: 'nav.item.roic', href: '/analysis/roic' },
       { label: 'nav.item.growthRate', href: '/analysis/growth-rate' },
+      { label: 'nav.item.changesInWorkingCapital', href: '/analysis/changes-in-working-capital' },
       { label: 'nav.item.cashFlowStatement', href: '/analysis/cash-flow-statement' },
     ],
   },
