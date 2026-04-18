@@ -612,6 +612,10 @@ untuk 3+ sesi ke depan:
 - LESSON-101 (Fixture-to-state adapter must mirror persist-time sentinel pre-computation — load ALL numeric year-col cells, not just leafRows)
 - LESSON-102 (JSDOM Blob binary round-trip is broken for ExcelJS buffers — bypass blob in test helpers, use writeBuffer directly)
 
+### Session 036 (Dynamic Account Interoperability — Proy BS + Input FA CS/Growth + Proy FA + KD Additional Capex)
+- LESSON-103 (Template row translation is a narrow adapter between compute conventions and template conventions — lives in export builder, not compute)
+- LESSON-104 (When rewriting a calc module signature, grep ALL callers before claiming GREEN — typecheck + test + form + cell-mapping)
+
 LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054, 074, 087 **TIDAK** di-promote — workflow/session-specific
 insights yang general ke project lain tapi terlalu luas atau terlalu
 session-specific untuk section 8 (yang fokus KKA-specific gotchas).
@@ -2953,5 +2957,107 @@ Trying to gate all three with a single strict assertion conflates them and produ
 4. Pattern: extract the non-blob-dependent steps (fetch + load + build + sanitize + strip + writeBuffer) into a test-reachable shape, even if it means calling `runSheetBuilders` + pipeline helpers manually in the test. The unit coverage of individual helpers already guarantees correctness.
 
 **Proven at**: session-035 (Phase C `exportPtRajaVoltamaWorkbook` bypasses Blob; pipeline reconstructed inline; 5/5 gates green).
+
+---
+
+## Session 036 — Dynamic Account Interoperability (Proy BS / Input FA / Proy FA / KD Additional Capex)
+
+### LESSON-103: Template row translation is a narrow adapter between compute conventions and template conventions
+
+**Kategori**: Excel | Export | Anti-pattern
+**Sesi**: session-036
+**Tanggal**: 2026-04-18
+
+**Konteks**: When refactoring compute modules to match input-sheet
+conventions (Input BS rows 8/16/27/35/49/51; FA offset keys
+2000/3000/4000/5000/6000/7000), the prototipe template for PROY sheets
+retains a DIFFERENT row numbering (9/13/17/21/33/45/55/60/62 for BS;
+8/17/26/36/45/54/63 for FA original accounts).
+
+**Apa yang terjadi**: Session 036 Full Simple Growth + per-account
+Net Value growth rewrite emitted output keyed by Input conventions. Old
+export builders iterated `Object.keys(output)` and wrote directly
+— which meant output at Input BS row 8 went to template cell C8
+(empty), template cell C9 (Cash on Hands label) stayed blank.
+
+**Root cause / insight**: The mismatch between compute-layer
+conventions and template-layer conventions is INHERENT when templates
+predate the dynamic-input refactor. Trying to align them in compute
+forces the compute to carry template-specific knowledge (anti-pattern
+LESSON-019 — manifest-specific knobs leaking into compute). Trying to
+align in template means rewriting the Excel file (massive churn).
+
+**Cara menerapkan di masa depan**:
+- **The translation layer belongs in the EXPORT BUILDER**, not in
+  compute or the template.
+- Define a simple `Record<inputKey, templateRow>` map per builder.
+- Builder iterates compute output, looks up target template row,
+  skips unmapped keys (extended accounts, custom accounts — these
+  require dedicated extended injection).
+- Document the mapping with inline comments stating source column /
+  semantic (e.g. `8: 9, // Cash on Hands`).
+- For multi-band sheets (FA 7 bands), use a delta function instead
+  of enumerating every combination: `templateRow = base + delta[offset]`.
+- Subtotals that map 1:1 (same row number on both sheets) don't need
+  entries — use a set-membership check + direct write.
+- **Extended/custom accounts (excelRow >= 100 or >= 1000)** are out
+  of scope for the translation layer; they need a separate extended
+  injection pass (mirror Session 025 BS / Session 028 IS+FA pattern).
+
+**Proven at**: session-036 (ProyBsBuilder `INPUT_BS_TO_PROY_BS_TEMPLATE`
++ ProyFaBuilder `FA_OFFSET_TO_TEMPLATE_DELTA` + `isOriginalFaRow`
+guard; Phase C 5/5 green).
+
+### LESSON-104: When rewriting a calc module signature, grep ALL callers before claiming GREEN
+
+**Kategori**: Workflow | TypeScript | Anti-pattern
+**Sesi**: session-036
+**Tanggal**: 2026-04-18
+
+**Konteks**: `computeProyBsLive` was consumed by 3 paths
+(projection-pipeline.ts, proy-bs page, compute-proy-bs-live tests).
+`computeProyFixedAssetsLive` was consumed by 4 paths (pipeline + 3
+pages). Store slice `additionalCapex` was consumed by KeyDriversForm
++ cell-mapping + export tests.
+
+**Apa yang terjadi**: Changed compute signatures. Test file alone
+compiling is not enough — the TypeScript error cascade revealed
+callers I hadn't anticipated (projection-pipeline builds dynamic
+manifest, 2 secondary pages independently invoke FA compute, KD form
+had complex 4-row layout intertwined with cell-mapping static entries).
+Some catches were easy (just update the call signature); others
+required wider context (rewriting form section, removing cell-mapping
+entries).
+
+**Root cause / insight**: Calc modules are often called in MORE
+places than the direct consumer. Data flows through:
+- The primary page consuming the module
+- Secondary pages that independently invoke for cross-sheet needs
+  (e.g. PROY LR page reads PROY FA Dep Additions)
+- The full projection pipeline (computeFullProjectionPipeline)
+- Store slices that expose compute inputs
+- Cell-mapping entries for export
+- Builder tests that mock ExportableState
+- Full-pipeline integration tests (Phase C)
+
+**Cara menerapkan di masa depan**:
+- Before claiming a compute module rewrite GREEN, run:
+  ```bash
+  grep -rn "<ModuleName>\|<TypeName>" src __tests__
+  ```
+  and manually verify each caller is updated.
+- `npm run typecheck` catches signature mismatches but NOT semantic
+  regressions (like whether a fixture makes sense in the new model).
+- `npm test -- --run` then catches most semantic issues, but test
+  fixtures may need updating along with production code.
+- Tests that were written AGAINST old behavior and remain "valid-looking"
+  after signature change are a trap — migrate them explicitly, don't
+  just make them compile.
+- When a test is no longer meaningful in the new model (e.g. Proy FA
+  "Net Value = Acq - Dep" identity broke when NV has independent
+  growth), document the break with `it.skip` + TODO + session pointer.
+
+**Proven at**: session-036 (8 callers of FA compute + 3 callers of BS
+compute + 4 test fixtures updated; 1201 tests pass + 1 doc-skip).
 
 ---
