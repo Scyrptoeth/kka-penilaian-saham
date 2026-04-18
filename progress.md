@@ -1,10 +1,10 @@
 # Progress — KKA Penilaian Saham
 
-> Latest state after Session 044 — Dropdown Auto-Flip + Toggle Polish (2026-04-18)
+> Latest state after Session 045 — Proy FA Roll-Forward + Dividers + Equity (100%) Label (2026-04-19)
 
 ## Verification Results
 ```
-Tests:     1322 / 1322 passing + 1 skipped  (109 files; +6 net since Session 043)
+Tests:     1323 / 1323 passing + 1 skipped  (109 files; +1 net since Session 044)
 Build:     ✅ 42 static pages
 Typecheck: ✅ tsc --noEmit clean
 Lint:      ✅ zero warnings
@@ -14,38 +14,42 @@ Cascade:   ✅ 29/29 MIGRATED_SHEETS
 Live:      https://penilaian-bisnis.vercel.app
 Store:     v20 (unchanged this session)
 Registry:  29 / 29 WEBSITE_NAV_SHEETS state-driven
-Branch:    main — Session 044 merged (fast-forward) + pushed; Vercel prod deploy triggered
+Branch:    main — Session 045 merged (fast-forward) + pushed; Vercel prod deploy triggered
 ```
 
-## Session 044 (2026-04-18) — 3 user-reported UI polish items
+## Session 045 (2026-04-19) — 3 user-reported items
 
-### Task 1 & 2 — Dropdown auto-flip for BS + IS +Tambah Akun
-- New hook `useAutoFlipPosition` in `src/lib/hooks/useAutoFlipPosition.ts` — `useSyncExternalStore + rAF` pattern (LESSON-126 promoted, LESSON-016 compliant)
-- Extracted `AddAccountRow` component from RowInputGrid main `.map()` loop (LESSON-127) — hosts the triggerRef
-- `InlineDropdown` takes `triggerRef` + applies conditional `top-full mt-1` vs `bottom-full mb-1` placement
-- Propagates for free to BS / IS / FA editors (all delegate to RowInputGrid)
-- 4 TDD cases: ample-space, near-bottom-flip, limited-above, null-ref SSR default
+### Task 1 — AAM Equity Value (100%) + IBD negative display
+- `aam.equityValue` i18n updated to "Equity Value (100%)" / "Nilai Ekuitas (100%)"
+- AAM page IBD row now renders `formatIdr(-r.interestBearingDebt)` with `text-negative` class — symmetric with DLOM/DLOC subtractive rows. Formula unchanged (mathematically identical to `NAV - IBD`).
 
-### Task 3a — ThemeToggle active icon inside thumb
-- Root cause: Session 043 thumb covered the track-side active icon in CSS stacking order
-- Fix: active icon now renders INSIDE the thumb (symmetric with LanguageToggle flag-in-thumb pattern)
-- Inactive icon remains on track at `opacity-60` as muted indicator
-- 2 TDD cases using `vi.mock('next-themes')` for deterministic jsdom control (LESSON-128)
+### Task 2 — Thicker section dividers in FR + DCF
+- `FinancialTable.tsx` header rows: `border-t` → `border-t-2` (affects all SheetPage consumers including Financial Ratio)
+- DCF page breakdown group separators: `border-b border-grid` → `border-b-2 border-grid-strong` (4 occurrences across historical FCF, projected FCF, PV FCF breakdown)
 
-### Task 3b — Sidebar toggle gap
-- `SidebarHeader.tsx`: `gap-2` (8px) → `gap-4` (16px). Trivial CSS change
+### Tasks 3-12 — Proy FA roll-forward model
+- Rewrote `computeProyFixedAssetsLive` with proper accounting roll-forward:
+  - `Acq Add[Y+1] = Acq Add[Y] × (1 + acqAddGrowth)` — growth from historical Acq Additions YoY
+  - `Acq Beg[Y+1] = Acq End[Y]` — roll-forward identity
+  - `Acq End[Y] = Acq Beg[Y] + Acq Add[Y]` — derived sum
+  - Dep bands mirror Acq with their own `depAddGrowth`
+  - `Net Value[Y] = Acq End[Y] - Dep End[Y]` — derived
+- New exported `computeFaAdditionsGrowths(accounts, faRows) → { acqAdd, depAdd }` helper
+- Proy FA page: growth sub-row moved from Net Value band (derived, wrong) to Acq Additions + Dep Additions bands (inputs, correct). All 7 bands now display projected values.
+- 9 TDD cases (rewrote 8 + added 1 helper test)
+- 1-historical-year → carry-forward (growth=0 default)
 
 ### Lessons extracted (3)
-- **LESSON-126** [PROMOTED]: `useSyncExternalStore + rAF` is the React Compiler-compliant alternative to `useLayoutEffect + setState` for DOM-measurement-driven state. Generalizes for any floating-UI / measurement hook.
-- **LESSON-127** [local]: `useRef` inside `.map()` is invalid — extract component with stable `key` when per-iteration refs are needed
-- **LESSON-128** [local]: Mock `useTheme` directly in jsdom tests — `next-themes` `forcedTheme` prop doesn't propagate `resolvedTheme` reliably
+- **LESSON-129** [PROMOTED]: Roll-forward projection model with per-band Additions growth — preserves Beginning+Additions=Ending identity. Generalizes to any multi-band flow/stock schedule (Fixed Asset, Working Capital, Debt Maturity, Inventory).
+- **LESSON-130** [local]: Display subtractive rows with negative sign + text-negative class for visual consistency in valuation chains
+- **LESSON-131** [local]: When styling "thicker divider" spans multiple pages, inspect both shared FinancialTable AND custom page tables (DCF, AAM, EEM) — separate styling infrastructure
 
 ## Latest Sessions
-- [Session 044](history/session-044-dropdown-autoflip-toggle-polish.md) (2026-04-18): Dropdown Auto-Flip + ThemeToggle icon-on-thumb + Sidebar gap — 3 tasks, 6 files, +254/-37 LOC, +6 tests, 3 lessons (1 promoted). Merged to main, Vercel prod deploy live.
+- [Session 045](history/session-045-proy-fa-rollforward-dividers-equity-label.md) (2026-04-19): Proy FA Roll-Forward + Dividers + Equity (100%) — 3 concerns (12 user points), 7 files, +331/-247 LOC, +1 net test, 3 lessons (1 promoted). Merged to main, Vercel prod deploy live.
+- [Session 044](history/session-044-dropdown-autoflip-toggle-polish.md) (2026-04-18): Dropdown Auto-Flip + ThemeToggle icon-on-thumb + Sidebar gap — 3 tasks, 6 files, +254/-37 LOC, +6 tests, 3 lessons (1 promoted).
 - [Session 043](history/session-043-toggles-depreciation-aam-ibd-dashboard.md) (2026-04-18): Sidebar Toggles Redesign + Depreciation Bug + AAM IBD Auto-Negate + Dashboard Account-Driven — 4 tasks, 16 files, +1157/-139 LOC, +28 tests, 4 lessons (3 promoted).
-- [Session 042](history/session-042-tax-export-aam-ext-ap-dynamic-resume.md) (2026-04-18): IS Tax Export (600/601) + AAM Extended Injection + LESSON-108 Audit + AP Dynamic Catalog + RESUME Page — store v19→v20
+- [Session 042](history/session-042-tax-export-aam-ext-ap-dynamic-resume.md) (2026-04-18): IS Tax Export (600/601) + AAM Extended Injection + LESSON-108 Audit + AP Dynamic Catalog + RESUME Page
 - [Session 041](history/session-041-is-revamp-bs-note-ibd-redesign.md) (2026-04-18): IS Revamp + BS Koreksi Fiskal note + IBD scope-page redesign
-- [Session 040](history/session-040-extended-injection-sign-reconciliation.md) (2026-04-18): Extended Injection (Proy BS/FA/KD) + KD Sign Reconciliation
 
 ## Delivered (cumulative highlights)
 
@@ -58,36 +62,26 @@ Branch:    main — Session 044 merged (fast-forward) + pushed; Vercel prod depl
 - State-driven export (Sessions 030–035) — 29/29 registry, V1 pruned
 - Shared derivation helpers + generic `CatalogAccount` + 4 dynamic catalogs (BS/IS/FA/AP)
 - Sentinel pre-computation across all 4 editors
-- Account-driven WC aggregation with shared `resolveWcRows` helper
-- AAM section-based input + IBD classification driven by user-curated exclusion sets
-- AAM retained IBD auto-negate at builder boundary (Session 043)
-- IS Koreksi Fiskal + TAXABLE PROFIT synthetic rows 600/601 (exported in Session 042)
-- Export pipeline extended-account coverage: BS + IS + FA + PROY BS + PROY FA + KEY DRIVERS Additional Capex + AAM extended + AP schedules
-- Dashboard data-builder module (Session 043) — pure functions with TDD, account-driven + semantic constants pattern
-- IBD scope-editor page; changesInWorkingCapital scope page
-- **Session 044**: `useAutoFlipPosition` hook in `src/lib/hooks/` (first entry) — reusable floating-UI placement decision via `useSyncExternalStore + rAF`, compliant with React Compiler `set-state-in-effect` rule.
+- **Session 045 Proy FA roll-forward model** — proper accounting-identity-preserving projections (`computeProyFixedAssetsLive` + `computeFaAdditionsGrowths` helpers); per-band Additions growth replaces Session 036 NV-growth shortcut.
+- `useAutoFlipPosition` hook (Session 044) — reusable floating-UI placement
 
 ### Pages (42 total prerendered)
-- **Input**: HOME · Balance Sheet (dynamic 84) · Income Statement (dynamic 48) · Fixed Asset (dynamic 20) · Key Drivers · Acc Payables (dynamic schedules) · **all +Tambah Akun dropdowns now auto-flip above trigger when space below is insufficient (Session 044)**
+- **Input**: HOME · Balance Sheet (dynamic 84) · Income Statement (dynamic 48) · Fixed Asset (dynamic 20) · Key Drivers · Acc Payables (dynamic schedules) · all +Tambah Akun dropdowns auto-flip
 - **Historical** (hidden from sidebar): BS, IS, Cash Flow, Fixed Asset
-- **Analysis**: Financial Ratio · FCF · NOPLAT · Growth Revenue · ROIC · Growth Rate · Changes in Working Capital · Cash Flow Statement
-- **Projection**: Proy. L/R · Proy. FA · Proy. BS · Proy. NOPLAT · Proy. CFS
-- **Valuation**: DLOM · DLOC (PFC) · WACC · Discount Rate · Borrowing Cap · Interest Bearing Debt · DCF · AAM · EEM · CFI · Simulasi Potensi
+- **Analysis**: Financial Ratio (thicker section dividers, Session 045) · FCF · NOPLAT · Growth Revenue · ROIC · Growth Rate · Changes in Working Capital · Cash Flow Statement
+- **Projection**: Proy. L/R · **Proy. FA (roll-forward: Acq Add + Dep Add Growth sub-rows, all bands show projected values)** · Proy. BS · Proy. NOPLAT · Proy. CFS
+- **Valuation**: DLOM · DLOC (PFC) · WACC · Discount Rate · Borrowing Cap · Interest Bearing Debt · **DCF (thicker breakdown separators, Session 045)** · **AAM (Equity Value (100%) label + IBD negative display)** · EEM · CFI · Simulasi Potensi
 - **Summary**: Dashboard · RESUME
-
-### UI (Session 044 refinements on Session 043 redesign)
-- 3 sidebar toggles: ThemeToggle (active icon INSIDE thumb — Session 044 fix) + LanguageToggle (pill-switch with flag thumb) + LogoutButton (pill with icon + inverse hover)
-- All toggles use `role="switch" aria-checked` + bilingual adaptive aria-labels
-- Icon-dominant design; theme + language toggles now 16px apart (was 8px)
-- Auto-flipping dropdowns on all dynamic-catalog input pages
 
 ## Next Session Priorities
 
-### Session 045+ Backlog
+### Session 046+ Backlog
 
-1. **Upload parser (.xlsx → store)** — reverse of export; requires IBD scope adapter (Session 041) + AP schedule shape adapter (Session 042 v20); discuss: null-on-upload force re-confirm vs trust mode preserving uploaded structure
-2. **Dashboard polish** — projected FCF chart via new builder composition (Session 036 NV-growth model); possibly WACC trend + Simulasi Potensi tax projection
-3. **Auto-flip hook generalization** — the `useAutoFlipPosition` hook can be reused for future floating UI (tooltips, date-pickers, autocomplete menus) to avoid re-deriving placement logic per component
+1. **User QA + merge confirmation** — 3 fixes need visual validation (AAM label + IBD negative; FR/DCF thicker dividers; Proy FA growth under Additions)
+2. **Upload parser (.xlsx → store)** — highest-priority backlog item. Reverse of export. Requires IBD scope adapter + AP schedule shape adapter
+3. **Dashboard polish** — projected FCF chart via new builder composition (Session 036 NV-growth model now gone — use Session 045 roll-forward model for projection chart data)
 4. **Multi-case management** (multiple companies in one localStorage)
 5. **Cloud sync / multi-device**
 6. **Audit trail / change history**
+
+Note on Phase C + cascade: PROY FA projection values may diverge from PT Raja Voltama fixture in future sessions that assert cell-by-cell parity. Current Phase C stays green because PROY sheets live in coverage-invariant set (Session 035 LESSON-100). If future work adds strict PROY parity, update KNOWN_DIVERGENT_CELLS per LESSON-112 pattern (grep fixtures for live formula refs first).

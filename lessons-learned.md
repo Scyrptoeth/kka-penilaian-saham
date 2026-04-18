@@ -646,7 +646,10 @@ untuk 3+ sesi ke depan:
 ### Session 044 (Dropdown auto-flip + ThemeToggle icon-on-thumb + sidebar gap)
 - LESSON-126 (useSyncExternalStore with rAF in subscribe is the React-Compiler-compliant way to measure DOM on mount — replaces useLayoutEffect + setState)
 
-LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054, 074, 087, 109, 113, 117, 120, 121, 125, 127, 128 **TIDAK** di-promote — workflow/session-specific
+### Session 045 (Proy FA roll-forward + dividers + Equity (100%) label)
+- LESSON-129 (Roll-forward projection model beats aggregate-growth shortcut for multi-band schedules — preserves Beginning+Additions=Ending identity)
+
+LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054, 074, 087, 109, 113, 117, 120, 121, 125, 127, 128, 130, 131 **TIDAK** di-promote — workflow/session-specific
 insights yang general ke project lain tapi terlalu luas atau terlalu
 session-specific untuk section 8 (yang fokus KKA-specific gotchas).
 Tersimpan di lessons-learned saja.
@@ -3816,3 +3819,89 @@ it('renders dark variant', () => {
 Skip `ThemeProvider` + `forcedTheme` in unit tests. Reserve `ThemeProvider` for integration tests where theme switching via `setTheme()` is part of the behavior under test — and even then, mock matchMedia + localStorage first.
 
 **Proven at**: session-044 (2026-04-18). `__tests__/components/layout/theme-toggle-icon-on-thumb.test.tsx` — 2 deterministic tests for sun-in-thumb and moon-in-thumb rendering.
+
+---
+
+## Session 045 — Proy FA Roll-Forward + Dividers + Equity (100%) Label
+
+### LESSON-129: Roll-forward projection model beats aggregate-growth shortcut for Fixed Asset projections
+
+**Kategori**: Excel | Workflow
+**Sesi**: session-045
+**Tanggal**: 2026-04-19
+
+**Konteks**: Projecting Fixed Asset bands (Acq Beginning / Additions / Ending, Dep Beginning / Additions / Ending, Net Value) into future years.
+
+**Apa yang terjadi**: Session 036 shortcut applied a single NET VALUE growth rate uniformly to all 7 bands of each account. Quick to implement but **broke the roll-forward identity**: `Acq Ending[Y] = Acq Beginning[Y] + Acq Additions[Y]` no longer held, because each band grew independently. Also conflated two distinct growth signals (Acq CapEx growth vs Dep Expense growth) into one.
+
+Session 045 user feedback: replace with proper accounting roll-forward.
+
+**Root cause / insight**: Fixed Asset is a **flow + stock** system:
+
+- **Stock carryover**: Beginning[Y+1] = Ending[Y] (identity, not growth).
+- **Flow projection**: Additions[Y+1] = Additions[Y] × (1 + growth) — ONLY the cash-in flow is growth-driven.
+- **Derived sum**: Ending[Y] = Beginning[Y] + Additions[Y] (sum, not growth).
+
+Shortcutting the model by applying growth to all 7 bands skips the stock/flow distinction and produces arithmetically inconsistent projections. The roll-forward takes ~30% more code but preserves every identity.
+
+**Cara menerapkan di masa depan**: For any multi-band schedule in a projection context (Fixed Asset, Working Capital, Debt Maturities, Inventory Levels) — distinguish between:
+
+- **Carried stocks** (Beginning balances) → roll from previous period's Ending. No growth parameter.
+- **Flow inputs** (Additions, Write-offs, Purchases) → project via historical growth of THAT band specifically.
+- **Derived aggregates** (Ending balances, Net Values) → computed from stock + flow, not projected.
+
+Apply `computeAvgGrowth` (leading-zero-skip) per user-curated flow input band. When only 1 historical year exists → growth = 0 → Additions carry forward (conservative default, user edits manually if needed).
+
+Growth sub-row display mirrors the model: show growth under **flow input** rows (Additions), NOT under derived aggregates (Net Value / Ending). User confusion Session 036 design: growth display under Net Value suggested Net Value was the driver — actually it was the output.
+
+**Proven at**: session-045 (2026-04-19). `src/data/live/compute-proy-fixed-assets-live.ts` rewritten. 9 TDD cases covering roll-forward identity, per-band Additions growth, 1-historical-year carry-forward, subtotals, extended catalog.
+
+---
+
+### LESSON-130: Subtractive rows in valuation display should use negative sign + text-negative — local
+
+**Kategori**: Design | Anti-pattern
+**Sesi**: session-045
+**Tanggal**: 2026-04-19
+
+**Konteks**: Valuation chains frequently subtract one value from another (Equity = NAV − IBD, Market Value = Equity − DLOM discount, EV − Net Debt, etc.). Display style decision: store positive, render negative?
+
+**Apa yang terjadi**: AAM page showed Interest Bearing Debt as positive (`301.193.090`) alongside DLOM / DLOC rows which displayed negative (`(4.675.704.120)` with text-negative). User flagged inconsistency — all three are subtractive operations in the valuation chain but only two were visually signaled as such.
+
+**Root cause / insight**: **Visual consistency for same-class operations** builds trust in a financial display. If subtracting DLOM deserves a negative sign to show "this reduces the total", subtracting IBD deserves the same signal. Positive-display for one subtractive row amongst a group of negative-display peers invites the reader to double-take.
+
+**Cara menerapkan di masa depan**: When a row in a valuation table contributes to a subtotal via subtraction:
+
+- **Display sign**: render `formatIdr(-value)` (or ensure the value is stored negative at the display layer).
+- **Color class**: add `text-negative` alongside the value.
+- **Semantic**: the underlying calc can keep positive convention — only the display is reconciled.
+
+Don't mix sign conventions within the same vertical grouping. If DLOM/DLOC use negative-display + text-negative, IBD/Debt adjustments/Deductions do too.
+
+**Proven at**: session-045 (2026-04-19). `src/app/valuation/aam/page.tsx` line 389 — IBD row display reconciled. AAM table now visually consistent across all 3 subtractive rows.
+
+---
+
+### LESSON-131: When styling "thicker divider" spans multiple pages, inspect both the shared component AND custom page tables — local
+
+**Kategori**: Design | Workflow
+**Sesi**: session-045
+**Tanggal**: 2026-04-19
+
+**Konteks**: User requested thicker section dividers across multiple pages (Financial Ratio, DCF). First instinct: one component fix covers all.
+
+**Apa yang terjadi**: `FinancialTable.tsx` (shared component used by SheetPage for Financial Ratio et al) has its own section-header row styling. DCF page uses a **custom HTML table** (different structure, breakdown rows indented) with its own section row styling. They don't share infrastructure — one fix doesn't cover both.
+
+**Root cause / insight**: Our codebase has two kinds of financial tables:
+- **Shared FinancialTable**: consumed via SheetPage + manifest (FR, NOPLAT, ROIC, FCF, etc). Styling changes propagate to all consumers.
+- **Custom page tables**: DCF, AAM, CFI, EEM — each has bespoke HTML because their row semantics (breakdowns, adjustments, chain format) don't fit the manifest abstraction.
+
+A cross-page styling request must touch **both** surfaces. Grepping for `border-t-2 border-grid-strong` reveals which pages already have the target pattern — apply consistently to pages that don't.
+
+**Cara menerapkan di masa depan**: For any cross-page visual consistency request:
+
+1. Check if the page uses FinancialTable (via SheetPage) — if yes, change FinancialTable.
+2. Grep the `src/app/` for custom tables that style section transitions — apply same pattern.
+3. Avoid introducing a 3rd section-header styling variant — reuse `border-t-2 border-grid-strong bg-grid` (FR) or `border-t-2 border-grid-strong` (DCF section headers) as baseline.
+
+**Proven at**: session-045 (2026-04-19). FinancialTable + DCF both updated. FR + DCF + other SheetPage consumers now share thicker divider styling.
