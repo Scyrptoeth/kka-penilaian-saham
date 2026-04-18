@@ -191,6 +191,13 @@ interface KkaState {
   setDiscountRate: (dr: DiscountRateState) => void
   setBorrowingCapInput: (bc: BorrowingCapInputState) => void
   setKeyDrivers: (kd: KeyDriversState) => void
+  /**
+   * Session 051 — set/clear an equity projection override at a single
+   * (excelRow, year) cell. Pass `value = null` to clear (cell reverts to
+   * historical default). Per-cell independent: editing 2022 does not touch
+   * 2023 or 2024 entries for the same row.
+   */
+  setEquityProjectionOverride: (excelRow: number, year: number, value: number | null) => void
   resetBalanceSheet: () => void
   resetIncomeStatement: () => void
   resetFixedAsset: () => void
@@ -229,7 +236,7 @@ interface KkaState {
 }
 
 const STORE_KEY = 'kka-penilaian-saham'
-const STORE_VERSION = 20
+const STORE_VERSION = 21
 
 /**
  * Migrate persisted state from older versions to the current schema.
@@ -706,6 +713,21 @@ export function migratePersistedState(
     }
   }
 
+  // v20 → v21: Session 051 added `balanceSheet.equityProjectionOverrides`
+  //           for per-(equity row, projection year) user-edited values on
+  //           Proy BS. Idempotent — preserves any object already present.
+  if (fromVersion < 21) {
+    if (state.balanceSheet && typeof state.balanceSheet === 'object') {
+      const bs = state.balanceSheet as Record<string, unknown>
+      if (!('equityProjectionOverrides' in bs)) {
+        state = {
+          ...state,
+          balanceSheet: { ...bs, equityProjectionOverrides: {} },
+        }
+      }
+    }
+  }
+
   return state
 }
 
@@ -748,6 +770,29 @@ export const useKkaStore = create<KkaState>()(
       setDiscountRate: (discountRate) => set({ discountRate }),
       setBorrowingCapInput: (borrowingCapInput) => set({ borrowingCapInput }),
       setKeyDrivers: (keyDrivers) => set({ keyDrivers }),
+      setEquityProjectionOverride: (excelRow, year, value) =>
+        set((state) => {
+          if (!state.balanceSheet) return state
+          const current = state.balanceSheet.equityProjectionOverrides ?? {}
+          const rowOverrides = { ...(current[excelRow] ?? {}) }
+          if (value === null) {
+            delete rowOverrides[year]
+          } else {
+            rowOverrides[year] = value
+          }
+          const next = { ...current }
+          if (Object.keys(rowOverrides).length === 0) {
+            delete next[excelRow]
+          } else {
+            next[excelRow] = rowOverrides
+          }
+          return {
+            balanceSheet: {
+              ...state.balanceSheet,
+              equityProjectionOverrides: next,
+            },
+          }
+        }),
       resetBalanceSheet: () => set({ balanceSheet: null }),
       resetIncomeStatement: () => set({ incomeStatement: null }),
       resetFixedAsset: () => set({ fixedAsset: null }),

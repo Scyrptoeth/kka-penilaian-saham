@@ -313,6 +313,83 @@ describe('computeProyFixedAssetsLive — roll-forward model (Session 045)', () =
     expect(result[100 + FA_OFFSET.ACQ_BEGINNING]?.[2022]).toBe(550)
     expect(result[100 + FA_OFFSET.ACQ_ENDING]?.[2022]).toBe(600)
   })
+
+  // ─── Session 051: Additions seed fallback ───
+  describe('Session 051 Additions seed fallback', () => {
+    it('falls back to last non-zero historical when histYear Additions entry is undefined', () => {
+      // User entered Acq Additions for 2019 + 2020 but left 2021 blank.
+      // Growth 100% (200 vs 100). Without fallback, seed = 0 → stalls at 0.
+      const faRows: Record<number, YearKeyedSeries> = {
+        [8 + FA_OFFSET.ACQ_BEGINNING]: { 2019: 1000, 2020: 1100, 2021: 1300 },
+        [8 + FA_OFFSET.ACQ_ADDITIONS]: { 2019: 100, 2020: 200 }, // 2021 undefined
+        [8 + FA_OFFSET.ACQ_ENDING]:    { 2019: 1100, 2020: 1300, 2021: 1300 },
+        [8 + FA_OFFSET.DEP_BEGINNING]: { 2019: 0, 2020: 0, 2021: 0 },
+        [8 + FA_OFFSET.DEP_ADDITIONS]: { 2019: 0, 2020: 0, 2021: 0 },
+        [8 + FA_OFFSET.DEP_ENDING]:    { 2019: 0, 2020: 0, 2021: 0 },
+        [8 + FA_OFFSET.NET_VALUE]:     { 2019: 1100, 2020: 1300, 2021: 1300 },
+      }
+      const input: ProyFaInput = { accounts: land, faRows, historicalYears: [...HIST_YEARS] }
+      const result = computeProyFixedAssetsLive(input, [...PROJ_YEARS])
+
+      // Seed = last non-zero historical = 200 (from 2020).
+      // Growth = avg YoY of [100, 200] = 100%.
+      // Proj 2022 = 200 × (1 + 1.0) = 400
+      expect(result[8 + FA_OFFSET.ACQ_ADDITIONS]?.[2022]).toBeCloseTo(400, PRECISION)
+      expect(result[8 + FA_OFFSET.ACQ_ADDITIONS]?.[2023]).toBeCloseTo(800, PRECISION)
+    })
+
+    it('respects explicit zero at histYear (user intent — no acquisition that year)', () => {
+      // User typed 0 explicitly for 2021 Acq Additions — should NOT fallback.
+      const faRows: Record<number, YearKeyedSeries> = {
+        [8 + FA_OFFSET.ACQ_BEGINNING]: { 2019: 1000, 2020: 1100, 2021: 1300 },
+        [8 + FA_OFFSET.ACQ_ADDITIONS]: { 2019: 100, 2020: 200, 2021: 0 }, // explicit 0
+        [8 + FA_OFFSET.ACQ_ENDING]:    { 2019: 1100, 2020: 1300, 2021: 1300 },
+        [8 + FA_OFFSET.DEP_BEGINNING]: { 2019: 0, 2020: 0, 2021: 0 },
+        [8 + FA_OFFSET.DEP_ADDITIONS]: { 2019: 0, 2020: 0, 2021: 0 },
+        [8 + FA_OFFSET.DEP_ENDING]:    { 2019: 0, 2020: 0, 2021: 0 },
+        [8 + FA_OFFSET.NET_VALUE]:     { 2019: 1100, 2020: 1300, 2021: 1300 },
+      }
+      const input: ProyFaInput = { accounts: land, faRows, historicalYears: [...HIST_YEARS] }
+      const result = computeProyFixedAssetsLive(input, [...PROJ_YEARS])
+
+      // Seed 0 × any growth = 0 (respecting user intent)
+      expect(result[8 + FA_OFFSET.ACQ_ADDITIONS]?.[2022]).toBe(0)
+      expect(result[8 + FA_OFFSET.ACQ_ADDITIONS]?.[2023]).toBe(0)
+    })
+
+    it('applies same fallback to Dep Additions seed', () => {
+      // Dep Add: 2019=10, 2020=15, 2021 undefined
+      const faRows: Record<number, YearKeyedSeries> = {
+        [8 + FA_OFFSET.ACQ_BEGINNING]: { 2019: 1000, 2020: 1100, 2021: 1300 },
+        [8 + FA_OFFSET.ACQ_ADDITIONS]: { 2019: 100, 2020: 200, 2021: 300 },
+        [8 + FA_OFFSET.ACQ_ENDING]:    { 2019: 1100, 2020: 1300, 2021: 1600 },
+        [8 + FA_OFFSET.DEP_BEGINNING]: { 2019: 0, 2020: 10, 2021: 25 },
+        [8 + FA_OFFSET.DEP_ADDITIONS]: { 2019: 10, 2020: 15 }, // 2021 undefined
+        [8 + FA_OFFSET.DEP_ENDING]:    { 2019: 10, 2020: 25, 2021: 25 },
+        [8 + FA_OFFSET.NET_VALUE]:     { 2019: 1090, 2020: 1275, 2021: 1575 },
+      }
+      const input: ProyFaInput = { accounts: land, faRows, historicalYears: [...HIST_YEARS] }
+      const result = computeProyFixedAssetsLive(input, [...PROJ_YEARS])
+
+      // Dep Add seed = last non-zero hist = 15 (from 2020). Growth 50% → proj 2022 = 22.5
+      expect(result[8 + FA_OFFSET.DEP_ADDITIONS]?.[2022]).toBeCloseTo(15 * 1.5, PRECISION)
+    })
+
+    it('returns 0 when no historical Additions data at all', () => {
+      const faRows: Record<number, YearKeyedSeries> = {
+        [8 + FA_OFFSET.ACQ_BEGINNING]: { 2021: 1000 },
+        // ACQ_ADDITIONS completely missing — no fallback available
+        [8 + FA_OFFSET.ACQ_ENDING]:    { 2021: 1000 },
+        [8 + FA_OFFSET.DEP_BEGINNING]: { 2021: 0 },
+        [8 + FA_OFFSET.DEP_ENDING]:    { 2021: 0 },
+        [8 + FA_OFFSET.NET_VALUE]:     { 2021: 1000 },
+      }
+      const input: ProyFaInput = { accounts: land, faRows, historicalYears: [2021] }
+      const result = computeProyFixedAssetsLive(input, [...PROJ_YEARS])
+
+      expect(result[8 + FA_OFFSET.ACQ_ADDITIONS]?.[2022]).toBe(0)
+    })
+  })
 })
 
 describe('computeFaAdditionsGrowths', () => {

@@ -248,4 +248,159 @@ describe('computeProyBsLive — Full Simple Growth model', () => {
     expect(result[8]?.[2022]).toBeCloseTo(133.1, PRECISION)
     expect(result[8]?.[2023]).toBeUndefined()
   })
+
+  // ─── Session 051: strict growth on sparse-historical leaves ───
+  describe('Session 051 strict-average growth for sparse-historical leaves', () => {
+    it('sparse asset leaf (single trailing value) projects flat (× 1.0)', () => {
+      // Setara Kas with ONLY 2021 = 635M — strictAvgGrowth returns null
+      const sparseAccounts: readonly BsAccountEntry[] = [
+        { catalogId: 'setara_kas', excelRow: 100, section: 'current_assets' },
+      ] as const
+      const sparseManifest: readonly ManifestRow[] = [
+        { excelRow: 100, label: 'Setara Kas', type: 'normal' },
+      ] as const
+      const bsRows: Record<number, YearKeyedSeries> = {
+        100: { 2021: 635_077_549 },
+      }
+      const input: ProyBsInput = {
+        accounts: sparseAccounts,
+        bsRows,
+        historicalYears: [...historicalYears],
+        manifestRows: sparseManifest,
+      }
+      const result = computeProyBsLive(input, [...projYears])
+      // Flat — no extrapolation from single observation
+      expect(result[100]?.[2022]).toBe(635_077_549)
+      expect(result[100]?.[2023]).toBe(635_077_549)
+      expect(result[100]?.[2024]).toBe(635_077_549)
+    })
+
+    it('sparse liability leaf (2 trailing values → 1 real YoY obs) projects flat', () => {
+      // Hutang PPh Pasal 21/2021 with 2020=48115 + 2021=81022 — 1 real YoY, null under strict
+      const sparseAccounts: readonly BsAccountEntry[] = [
+        { catalogId: 'hutang_pph_21', excelRow: 200, section: 'current_liabilities' },
+      ] as const
+      const sparseManifest: readonly ManifestRow[] = [
+        { excelRow: 200, label: 'Hutang PPh Pasal 21/2021', type: 'normal' },
+      ] as const
+      const bsRows: Record<number, YearKeyedSeries> = {
+        200: { 2020: 48_115, 2021: 81_022 },
+      }
+      const input: ProyBsInput = {
+        accounts: sparseAccounts,
+        bsRows,
+        historicalYears: [...historicalYears],
+        manifestRows: sparseManifest,
+      }
+      const result = computeProyBsLive(input, [...projYears])
+      // 1 real YoY < 2 required → null → flat at 81022
+      expect(result[200]?.[2022]).toBe(81_022)
+      expect(result[200]?.[2023]).toBe(81_022)
+    })
+
+    it('strict-average matches mean of real YoY observations', () => {
+      // 2019: 100, 2020: 200, 2021: 300 → 2 real obs (1.0, 0.5) → avg = 0.75
+      const richAccounts: readonly BsAccountEntry[] = [
+        { catalogId: 'rich', excelRow: 9, section: 'current_assets' },
+      ] as const
+      const richManifest: readonly ManifestRow[] = [
+        { excelRow: 9, label: 'Rich', type: 'normal' },
+      ] as const
+      const bsRows: Record<number, YearKeyedSeries> = {
+        9: { 2019: 100, 2020: 200, 2021: 300 },
+      }
+      const input: ProyBsInput = {
+        accounts: richAccounts,
+        bsRows,
+        historicalYears: [...historicalYears],
+        manifestRows: richManifest,
+      }
+      const result = computeProyBsLive(input, [2022])
+      expect(result[9]?.[2022]).toBeCloseTo(300 * 1.75, PRECISION)
+    })
+  })
+
+  // ─── Session 051: equity section flat-default + per-cell overrides ───
+  describe('Session 051 equity section flat-default + per-cell overrides', () => {
+    it('equity leaf without override uses historical last-year value at every projection year', () => {
+      const bsRows: Record<number, YearKeyedSeries> = {
+        8: { 2019: 100, 2020: 110, 2021: 121 },
+        10: { 2019: 1000, 2020: 1200, 2021: 1440 },
+        31: { 2019: 500, 2020: 450, 2021: 405 },
+        43: { 2019: 3_000, 2020: 4_000, 2021: 5_280_000_000 }, // varying → would have growth under old model
+      }
+      const input: ProyBsInput = {
+        accounts, bsRows, historicalYears: [...historicalYears], manifestRows: [...manifestRows],
+      }
+      const result = computeProyBsLive(input, [...projYears])
+      // Flat at 2021 value — no growth multiplier
+      expect(result[43]?.[2022]).toBe(5_280_000_000)
+      expect(result[43]?.[2023]).toBe(5_280_000_000)
+      expect(result[43]?.[2024]).toBe(5_280_000_000)
+    })
+
+    it('equity override at a specific year wins over historical default', () => {
+      const bsRows: Record<number, YearKeyedSeries> = {
+        8: { 2019: 100, 2020: 110, 2021: 121 },
+        10: { 2019: 1000, 2020: 1200, 2021: 1440 },
+        31: { 2019: 500, 2020: 450, 2021: 405 },
+        43: { 2019: 2000, 2020: 2000, 2021: 2000 },
+      }
+      const equityOverrides: Record<number, YearKeyedSeries> = {
+        43: { 2023: 9_999 }, // only 2023 overridden; 2022/2024 should stay at default
+      }
+      const input: ProyBsInput = {
+        accounts,
+        bsRows,
+        historicalYears: [...historicalYears],
+        manifestRows: [...manifestRows],
+        equityOverrides,
+      }
+      const result = computeProyBsLive(input, [...projYears])
+      // Per-cell INDEPENDENT: edit 2023 does NOT touch 2022 or 2024
+      expect(result[43]?.[2022]).toBe(2_000) // default (historical 2021)
+      expect(result[43]?.[2023]).toBe(9_999) // override
+      expect(result[43]?.[2024]).toBe(2_000) // default (historical 2021, not override cascade)
+    })
+
+    it('equity override for excelRow without historical data uses override at that cell, default 0 elsewhere', () => {
+      // New equity account (no historical). Only 2022 overridden.
+      const extAccounts: readonly BsAccountEntry[] = [
+        { catalogId: 'new_equity', excelRow: 300, section: 'equity' },
+      ] as const
+      const extManifest: readonly ManifestRow[] = [
+        { excelRow: 300, label: 'Treasury Stock', type: 'normal' },
+      ] as const
+      const bsRows: Record<number, YearKeyedSeries> = {}
+      const equityOverrides: Record<number, YearKeyedSeries> = {
+        300: { 2022: 1_234 },
+      }
+      const input: ProyBsInput = {
+        accounts: extAccounts,
+        bsRows,
+        historicalYears: [...historicalYears],
+        manifestRows: extManifest,
+        equityOverrides,
+      }
+      const result = computeProyBsLive(input, [...projYears])
+      expect(result[300]?.[2022]).toBe(1_234)
+      expect(result[300]?.[2023]).toBe(0) // default fallback (no historical)
+      expect(result[300]?.[2024]).toBe(0)
+    })
+
+    it('backward-compat: omitting equityOverrides behaves same as empty map', () => {
+      const bsRows: Record<number, YearKeyedSeries> = {
+        8: { 2019: 100, 2020: 110, 2021: 121 },
+        10: { 2019: 1000, 2020: 1200, 2021: 1440 },
+        31: { 2019: 500, 2020: 450, 2021: 405 },
+        43: { 2019: 2000, 2020: 2000, 2021: 2000 },
+      }
+      const input: ProyBsInput = {
+        accounts, bsRows, historicalYears: [...historicalYears], manifestRows: [...manifestRows],
+      }
+      const result = computeProyBsLive(input, [...projYears])
+      expect(result[43]?.[2022]).toBe(2000)
+      expect(result[43]?.[2024]).toBe(2000)
+    })
+  })
 })

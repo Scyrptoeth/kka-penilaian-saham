@@ -671,4 +671,46 @@ describe('migratePersistedState — v13 → v14 (faAdjustment → aamAdjustments
     const ap = migrated.accPayables as Record<string, unknown>
     expect((ap.schedules as unknown[]).length).toBe(1)
   })
+
+  // Session 051 — v20 → v21: add balanceSheet.equityProjectionOverrides (empty object).
+  it('v20 → v21 initializes equityProjectionOverrides on existing balanceSheet', () => {
+    const v20State = {
+      home: null,
+      language: 'en',
+      balanceSheet: {
+        accounts: [],
+        yearCount: 4,
+        language: 'en',
+        rows: { 8: { 2021: 100 } },
+      },
+    }
+    const migrated = migratePersistedState(v20State, 20) as Record<string, unknown>
+    const bs = migrated.balanceSheet as Record<string, unknown>
+    expect(bs.equityProjectionOverrides).toEqual({})
+    expect(bs.rows).toEqual({ 8: { 2021: 100 } })
+  })
+
+  it('v20 → v21 leaves null balanceSheet as null', () => {
+    const v20State = { home: null, language: 'en', balanceSheet: null }
+    const migrated = migratePersistedState(v20State, 20) as Record<string, unknown>
+    expect(migrated.balanceSheet).toBeNull()
+  })
+
+  it('v20 → v21 preserves existing equityProjectionOverrides if already present (idempotent)', () => {
+    const existing = { 42: { 2022: 5_000_000 } }
+    const v20State = {
+      home: null,
+      language: 'en',
+      balanceSheet: {
+        accounts: [],
+        yearCount: 4,
+        language: 'en',
+        rows: {},
+        equityProjectionOverrides: existing,
+      },
+    }
+    const migrated = migratePersistedState(v20State, 20) as Record<string, unknown>
+    const bs = migrated.balanceSheet as Record<string, unknown>
+    expect(bs.equityProjectionOverrides).toEqual(existing)
+  })
 })

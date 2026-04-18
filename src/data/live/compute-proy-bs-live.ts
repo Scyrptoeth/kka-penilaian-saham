@@ -1,18 +1,30 @@
 /**
- * PROY BALANCE SHEET — Full Simple Growth projection (Session 036).
+ * PROY BALANCE SHEET — Session 051 semantics.
  *
- * Per-account historical-growth model: every leaf from
- * `balanceSheet.accounts` projects via:
- *   value[N] = value[N-1] × (1 + computeAvgGrowth(historicalSeries))
+ * Two projection modes based on account section:
+ *
+ * 1. **Equity accounts** (`section === 'equity'`) — flat-default, editable.
+ *    No growth applied. Projection cells default to historical last-year
+ *    value. User-supplied overrides in
+ *    `balanceSheet.equityProjectionOverrides[excelRow][year]` replace the
+ *    default on a PER-CELL basis (edit 2022 does NOT cascade to 2023/2024).
+ *
+ * 2. **All other leaves** (assets, liabilities) — strict-average growth.
+ *    `value[N] = value[N-1] × (1 + strictAvgGrowth)`
+ *    where `strictAvgGrowth = averageYoYStrict(series, historicalYears)`.
+ *    When strict-growth returns null (sparse-historical account with
+ *    fewer than 2 real YoY observations), growth falls back to 0 → flat
+ *    projection. Matches the INPUT BS Average Growth YoY column exactly
+ *    (single source of truth — LESSON-139 driver-display sync).
  *
  * Subtotals + totals derive from leaves via `deriveComputedRows`
  * (consuming the dynamic BS manifest's `computedFrom` declarations).
  *
  * Balance Control row (63) = TOTAL ASSETS (33) − Total L&E (62). This
- * does NOT reconcile by design in the Full Simple Growth model — each
- * leaf is projected independently so there is no accounting identity
- * that forces assets = liabilities + equity in projection years. The
- * row is kept as a diagnostic.
+ * does NOT reconcile by design in this model — each leaf is projected
+ * independently and equity is flat, so there is no accounting identity
+ * that forces A = L + E in projection years. The row is kept as a
+ * diagnostic.
  *
  * Decoupling vs Session 035 and earlier:
  * - No FA cross-reference (row 25/26 no longer consume PROY FA rows
@@ -22,15 +34,12 @@
  * - No Proy LR Net Profit cascade into Current Profit (row 47).
  * - No special-case handling for Cash in Banks, AR adjustments,
  *   Intangible growth, Equity carry-forward, Bank Loan IFERROR.
- *
- * Rationale: simpler, more transparent, makes each projection
- * deterministic from historical data.
  */
 
 import type { YearKeyedSeries } from '@/types/financial'
 import type { BsAccountEntry } from '@/data/catalogs/balance-sheet-catalog'
 import type { ManifestRow } from '@/data/manifests/types'
-import { computeAvgGrowth } from '@/lib/calculations/helpers'
+import { averageYoYStrict } from '@/lib/calculations/derivation-helpers'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 
 // Re-export for backward compat with older imports.
@@ -52,42 +61,57 @@ export interface ProyBsInput {
   historicalYears: readonly number[]
   /** Dynamic BS manifest rows — source of `computedFrom` for subtotals/totals. */
   manifestRows: readonly ManifestRow[]
+  /**
+   * Session 051 — per-(equity row, projection year) user overrides. Values
+   * here REPLACE the default (historical last-year value) for the matching
+   * cell. Entries absent from this map → cell uses the default.
+   * Optional for backward-compat with callers that haven't wired the slice;
+   * empty object / undefined behave identically.
+   */
+  equityOverrides?: Readonly<Record<number, YearKeyedSeries>>
 }
 
 /**
- * Project every leaf account uniformly via average historical growth,
+ * Project every leaf account per Session 051 semantics (see module doc),
  * then derive subtotals + totals from the projected leaves via
  * `deriveComputedRows`.
- *
- * @param input See ProyBsInput
- * @param projYears Projection years (ascending)
- * @returns Record keyed by excelRow → YearKeyedSeries covering histYear +
- *   projYears. Includes leaves, subtotals, totals, and Balance Control.
  */
 export function computeProyBsLive(
   input: ProyBsInput,
   projYears: readonly number[],
 ): Record<number, YearKeyedSeries> {
-  const { accounts, bsRows, historicalYears, manifestRows } = input
+  const { accounts, bsRows, historicalYears, manifestRows, equityOverrides } = input
   if (historicalYears.length === 0) return {}
   const histYear = historicalYears[historicalYears.length - 1]!
 
   const allYears = [histYear, ...projYears]
 
-  // 1. Project each leaf: prev × (1 + avgGrowth)
+  // 1. Project each leaf
   const projectedLeaves: Record<number, YearKeyedSeries> = {}
   for (const acct of accounts) {
     const historicalSeries = bsRows[acct.excelRow] ?? {}
-    const avgGrowth = computeAvgGrowth(historicalSeries)
-    const out: YearKeyedSeries = {}
     const seedVal = historicalSeries[histYear] ?? 0
-    out[histYear] = seedVal
-    let prev = seedVal
-    for (const year of projYears) {
-      const next = prev * (1 + avgGrowth)
-      out[year] = next
-      prev = next
+    const out: YearKeyedSeries = { [histYear]: seedVal }
+
+    if (acct.section === 'equity') {
+      // Equity: no growth. Default = historical last year; apply override per cell.
+      const overrideSeries = equityOverrides?.[acct.excelRow]
+      for (const year of projYears) {
+        const override = overrideSeries?.[year]
+        out[year] = override ?? seedVal
+      }
+    } else {
+      // Assets / liabilities: strict-average growth with flat fallback.
+      const strictGrowth = averageYoYStrict(historicalSeries, historicalYears)
+      const growth = strictGrowth ?? 0
+      let prev = seedVal
+      for (const year of projYears) {
+        const next = prev * (1 + growth)
+        out[year] = next
+        prev = next
+      }
     }
+
     projectedLeaves[acct.excelRow] = out
   }
 

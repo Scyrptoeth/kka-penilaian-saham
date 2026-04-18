@@ -28,6 +28,19 @@ export interface BalanceSheetInputState {
   language: 'en' | 'id'
   /** excelRow → { year → value }. BACKWARD-COMPATIBLE — shape unchanged. */
   rows: Record<number, YearKeyedSeries>
+  /**
+   * Session 051 — per-(equity account, projection year) value overrides.
+   *
+   * Equity accounts in Proy BS default to historical last-year value for
+   * every projection year. User may edit any cell to override. Edits are
+   * PER-CELL INDEPENDENT — editing 2022 does NOT cascade to 2023/2024;
+   * each cell stores its own override or inherits the default.
+   *
+   * Empty record = no overrides (all equity cells show historical default).
+   * Clearing a cell (value set to null via setter) removes the entry and
+   * the cell reverts to the historical default.
+   */
+  equityProjectionOverrides: Record<number, YearKeyedSeries>
 }
 
 export interface IncomeStatementInputState {

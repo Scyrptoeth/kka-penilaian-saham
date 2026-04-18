@@ -14,7 +14,7 @@ import {
 import { RowInputGrid } from './RowInputGrid'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
-import { computeCommonSize, computeGrowthYoY } from '@/lib/calculations/derivation-helpers'
+import { computeCommonSize, computeGrowthYoY, averageYoYStrict } from '@/lib/calculations/derivation-helpers'
 import type { YearKeyedSeries } from '@/types/financial'
 import { getBsStrings } from '@/lib/i18n/balance-sheet'
 import { useT } from '@/lib/i18n/useT'
@@ -109,7 +109,15 @@ export default function DynamicBsEditor() {
       for (const r of BS_SENTINEL_ROWS) {
         if (computed[r]) sentinels[r] = computed[r]
       }
-      setBalanceSheet({ accounts: nextAccounts, yearCount: nextYearCount, language: lang, rows: { ...nextRows, ...sentinels } })
+      // Preserve existing equityProjectionOverrides across persist cycles
+      const prevEquityOverrides = useKkaStore.getState().balanceSheet?.equityProjectionOverrides ?? {}
+      setBalanceSheet({
+        accounts: nextAccounts,
+        yearCount: nextYearCount,
+        language: lang,
+        rows: { ...nextRows, ...sentinels },
+        equityProjectionOverrides: prevEquityOverrides,
+      })
     }, 500)
   }
 
@@ -167,6 +175,15 @@ export default function DynamicBsEditor() {
   )
 
   const growthYears = useMemo(() => years.length >= 2 ? years.slice(1) : [], [years])
+
+  // Session 051 — strict-average resolver for Growth YoY Average column.
+  // Returns null for sparse-historical accounts (< 2 real YoY observations),
+  // which RowInputGrid renders as "—". Matches Proy BS projection behavior
+  // (driver-display sync per LESSON-139).
+  const growthAverageResolver = useMemo(
+    () => (excelRow: number) => averageYoYStrict(allValues[excelRow], years),
+    [allValues, years],
+  )
 
   // Existing account IDs for filtering dropdowns
   const existingIds = useMemo(() => new Set(accounts.map((a) => a.catalogId)), [accounts])
@@ -332,6 +349,7 @@ export default function DynamicBsEditor() {
         growthYears={growthYears}
         showCommonSizeAverage={years.length >= 2}
         showGrowthAverage={years.length >= 2}
+        growthAverageResolver={growthAverageResolver}
       />
 
       {/* Footer: RESET + auto-save indicator */}

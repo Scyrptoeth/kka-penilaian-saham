@@ -128,3 +128,49 @@ export function averageSeries(
   if (!series) return null
   return computeAverage(years.map((y) => series[y] ?? null))
 }
+
+/**
+ * Strict average of year-over-year growth observations derived from a
+ * year-keyed value series across `historicalYears`.
+ *
+ * Rules (Session 051 — per user spec Q1=A):
+ *   1. Iterate consecutive-year pairs in `historicalYears`.
+ *   2. A pair is a "real observation" when BOTH values are defined
+ *      (`!= null`) AND prev is non-zero AND prev is finite.
+ *   3. If fewer than 2 real observations → return null (caller renders
+ *      "—" and projects flat × 1.0).
+ *   4. Else → arithmetic mean of the real YoY ratios (curr - prev)/prev.
+ *
+ * This is the canonical growth-average helper used by BOTH the INPUT
+ * Balance Sheet "Average Growth YoY" column AND the Proy Balance Sheet
+ * projection multiplier. Single source of truth guarantees the displayed
+ * number always equals the projection driver (LESSON-139 driver-display
+ * sync applied across INPUT ↔ projection pairing).
+ *
+ * Sparse-historical accounts (e.g. manual-entry rows where user only
+ * filled 1-2 trailing years) now correctly produce null instead of
+ * extrapolating from a single YoY observation.
+ *
+ * Examples:
+ *   averageYoYStrict({ 2021: 81022 }, [2018, 2019, 2020, 2021])  → null (0 real obs)
+ *   averageYoYStrict({ 2020: 48115, 2021: 81022 }, [...])        → null (1 real obs)
+ *   averageYoYStrict({ 2019: 100, 2020: 200, 2021: 300 }, [...]) → 0.75 (2 real obs)
+ */
+export function averageYoYStrict(
+  series: YearKeyedSeries | undefined,
+  historicalYears: readonly number[],
+): number | null {
+  if (!series || historicalYears.length < 2) return null
+  const realObs: number[] = []
+  for (let i = 1; i < historicalYears.length; i++) {
+    const prev = series[historicalYears[i - 1]!]
+    const curr = series[historicalYears[i]!]
+    if (prev == null || curr == null) continue
+    if (prev === 0 || !isFinite(prev)) continue
+    realObs.push((curr - prev) / prev)
+  }
+  if (realObs.length < 2) return null
+  let sum = 0
+  for (const v of realObs) sum += v
+  return sum / realObs.length
+}

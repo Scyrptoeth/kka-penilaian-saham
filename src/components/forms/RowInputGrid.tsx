@@ -51,6 +51,15 @@ interface RowInputGridProps {
    * `growthYears.length < 1` (no YoY data to average).
    */
   showGrowthAverage?: boolean
+  /**
+   * Session 051 — optional resolver for the Growth YoY Average column.
+   * When provided, it REPLACES the default `averageSeries(growth[row], growthYears)`
+   * computation. Callers use this to inject strict semantics (e.g.
+   * `averageYoYStrict(rawValueSeries, historicalYears)`) that treat
+   * sparse-historical accounts as null/"—" instead of averaging a single
+   * trailing observation. Returning null renders "—" in the Average cell.
+   */
+  growthAverageResolver?: (excelRow: number) => number | null
 }
 
 export function RowInputGrid({
@@ -75,6 +84,7 @@ export function RowInputGrid({
   growthYears = [],
   showCommonSizeAverage = false,
   showGrowthAverage = false,
+  growthAverageResolver,
 }: RowInputGridProps) {
   const { t } = useT()
   const resolvedLineItemHeader = lineItemHeader ?? t('table.lineItemHeader')
@@ -310,7 +320,9 @@ export function RowInputGrid({
                   )
                 })}
                 {grAvg && (() => {
-                  const avg = averageSeries(growth?.[excelRow], growthYears)
+                  const avg = growthAverageResolver
+                    ? growthAverageResolver(excelRow)
+                    : averageSeries(growth?.[excelRow], growthYears)
                   return (
                     <td key={`gr-avg-${excelRow}`} className={cn(
                       'border-l border-grid-strong px-2 py-1.5 text-right font-mono text-[12px] font-semibold tabular-nums',
@@ -506,7 +518,7 @@ function TrashIcon() {
   )
 }
 
-interface NumericInputProps {
+export interface NumericInputProps {
   value: number
   ariaLabel: string
   onCommit: (value: number) => void
@@ -521,7 +533,7 @@ function formatDisplay(value: number): string {
   return NUMBER_FORMATTER.format(value)
 }
 
-function NumericInput({ value, ariaLabel, onCommit }: NumericInputProps) {
+export function NumericInput({ value, ariaLabel, onCommit }: NumericInputProps) {
   const [draft, setDraft] = useState<string | null>(null)
 
   const isEditing = draft !== null
