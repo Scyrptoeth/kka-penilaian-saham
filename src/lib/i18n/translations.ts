@@ -579,6 +579,16 @@ const dict = {
   'dcf.discountFactorYearRow': { en: 'Discount Factor ({year})', id: 'Faktor Diskon ({year})' },
   'dcf.dlomWithPercentRow': { en: 'DLOM ({pct})', id: 'DLOM ({pct})' },
   'dcf.marketValuePortionRow': { en: 'Market Value ({pct} Equity)', id: 'Nilai Pasar ({pct} Ekuitas)' },
+  // Inline breakdown (Session 039) — no formulas shown, only component labels + values
+  'dcf.break.noplat': { en: 'NOPLAT', id: 'NOPLAT' },
+  'dcf.break.depreciation': { en: 'Add: Depreciation', id: 'Ditambah: Depresiasi' },
+  'dcf.break.changesCA': { en: '(Increase) Decrease in Current Assets', id: '(Kenaikan) Penurunan Aset Lancar' },
+  'dcf.break.changesCL': { en: 'Increase (Decrease) in Current Liabilities', id: 'Kenaikan (Penurunan) Kewajiban Lancar' },
+  'dcf.break.capex': { en: 'Less: Capital Expenditures', id: 'Dikurangi: Belanja Modal' },
+  'dcf.break.pvFcfYearRow': { en: 'PV of FCF ({year})', id: 'PV dari FCF ({year})' },
+  'dcf.break.ibdRow': { en: 'Less: Interest Bearing Debt', id: 'Dikurangi: Utang Berbunga' },
+  'dcf.break.surplusCash': { en: 'Add: Surplus Asset Cash', id: 'Ditambah: Kas Surplus' },
+  'dcf.break.idleNonOp': { en: 'Add: Idle Non-Operating Asset', id: 'Ditambah: Aset Non-Operasional Idle' },
 
   // ═══════════════════════════════════════════════════════════════════
   // EEM PAGE

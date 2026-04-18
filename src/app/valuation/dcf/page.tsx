@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { Fragment, useMemo } from 'react'
 import { useKkaStore, computeProporsiSaham } from '@/lib/store/useKkaStore'
 import { computeDiscountRate, buildDiscountRateInput } from '@/lib/calculations/discount-rate'
 import { computeDcf } from '@/lib/calculations/dcf'
@@ -48,12 +48,13 @@ export default function DcfPage() {
     const dr = computeDiscountRate(buildDiscountRateInput(discountRateState))
 
     // ── DCF ──
-    const dcfResult = computeDcf(buildDcfInput({
+    const dcfInput = buildDcfInput({
       upstream, allBs, lastHistYear, projYears,
       proyNoplatRows, proyFaRows, proyCfsRows,
       wacc: dr.wacc, growthRate: upstream.growthRate,
       interestBearingDebt,
-    }))
+    })
+    const dcfResult = computeDcf(dcfInput)
 
     // ── Share Value ──
     const proporsiSaham = computeProporsiSaham(home)
@@ -65,7 +66,7 @@ export default function DcfPage() {
       jumlahSahamBeredar: home.jumlahSahamBeredar,
     })
 
-    return { dcfResult, shareValue, projYears, lastHistYear, dr, growthRate: upstream.growthRate, proporsiSaham, home }
+    return { dcfInput, dcfResult, shareValue, projYears, lastHistYear, dr, growthRate: upstream.growthRate, proporsiSaham, home }
   }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, keyDrivers, discountRateState, interestBearingDebt, changesInWorkingCapital])
 
   if (!hasHydrated) {
@@ -90,7 +91,30 @@ export default function DcfPage() {
     )
   }
 
-  const { dcfResult: r, shareValue: sv, projYears } = data
+  const { dcfInput: di, dcfResult: r, shareValue: sv, projYears } = data
+
+  // FCF component tuple per year: [NOPLAT, Dep, ΔCA, ΔCL, CapEx]
+  // Values are already pre-signed per Excel convention (CapEx negative, etc.)
+  const fcfBreakdown = (
+    yearIndex: number | null, // null = historical row
+  ): Array<{ labelKey: 'dcf.break.noplat' | 'dcf.break.depreciation' | 'dcf.break.changesCA' | 'dcf.break.changesCL' | 'dcf.break.capex'; value: number }> => {
+    if (yearIndex === null) {
+      return [
+        { labelKey: 'dcf.break.noplat', value: di.historicalNoplat },
+        { labelKey: 'dcf.break.depreciation', value: di.historicalDepreciation },
+        { labelKey: 'dcf.break.changesCA', value: di.historicalChangesCA },
+        { labelKey: 'dcf.break.changesCL', value: di.historicalChangesCL },
+        { labelKey: 'dcf.break.capex', value: di.historicalCapex },
+      ]
+    }
+    return [
+      { labelKey: 'dcf.break.noplat', value: di.projectedNoplat[yearIndex] ?? 0 },
+      { labelKey: 'dcf.break.depreciation', value: di.projectedDepreciation[yearIndex] ?? 0 },
+      { labelKey: 'dcf.break.changesCA', value: di.projectedChangesCA[yearIndex] ?? 0 },
+      { labelKey: 'dcf.break.changesCL', value: di.projectedChangesCL[yearIndex] ?? 0 },
+      { labelKey: 'dcf.break.capex', value: di.projectedCapex[yearIndex] ?? 0 },
+    ]
+  }
 
   return (
     <div className="mx-auto max-w-[1100px] p-6">
@@ -108,15 +132,33 @@ export default function DcfPage() {
           <tbody>
             {/* FCF */}
             <tr className="border-t-2 border-grid-strong"><td colSpan={2} className="px-3 pt-3 pb-1 text-xs font-semibold tracking-wide text-ink-muted uppercase">{t('dcf.section.fcf')}</td></tr>
-            <tr className="border-b border-grid">
+            {/* FCF (historical) — headline then breakdown */}
+            <tr>
               <td className="px-3 py-2 text-ink">{t('dcf.fcfYearRow', { year: data.lastHistYear })}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(r.historicalFcf)}</td>
             </tr>
-            {r.projectedFcf.map((v, i) => (
-              <tr key={projYears[i]} className="border-b border-grid">
-                <td className="px-3 py-2 text-ink">{t('dcf.fcfYearRow', { year: projYears[i] })}</td>
-                <td className={`px-3 py-2 text-right font-mono tabular-nums ${v < 0 ? 'text-negative' : ''}`}>{formatIdr(v)}</td>
+            {fcfBreakdown(null).map((b, i) => (
+              <tr key={`hist-break-${i}`}>
+                <td className="px-3 py-1 pl-12 text-sm text-ink-muted">{t(b.labelKey)}</td>
+                <td className={`px-3 py-1 text-right font-mono text-sm tabular-nums ${b.value < 0 ? 'text-negative' : 'text-ink-muted'}`}>{formatIdr(b.value)}</td>
               </tr>
+            ))}
+            <tr><td colSpan={2} className="border-b border-grid" /></tr>
+            {/* FCF (projected) — headline then breakdown per year */}
+            {r.projectedFcf.map((v, i) => (
+              <Fragment key={`proj-${projYears[i]}`}>
+                <tr>
+                  <td className="px-3 py-2 text-ink">{t('dcf.fcfYearRow', { year: projYears[i] })}</td>
+                  <td className={`px-3 py-2 text-right font-mono tabular-nums ${v < 0 ? 'text-negative' : ''}`}>{formatIdr(v)}</td>
+                </tr>
+                {fcfBreakdown(i).map((b, j) => (
+                  <tr key={`proj-break-${projYears[i]}-${j}`}>
+                    <td className="px-3 py-1 pl-12 text-sm text-ink-muted">{t(b.labelKey)}</td>
+                    <td className={`px-3 py-1 text-right font-mono text-sm tabular-nums ${b.value < 0 ? 'text-negative' : 'text-ink-muted'}`}>{formatIdr(b.value)}</td>
+                  </tr>
+                ))}
+                <tr><td colSpan={2} className="border-b border-grid" /></tr>
+              </Fragment>
             ))}
 
             {/* Discounting */}
@@ -135,6 +177,14 @@ export default function DcfPage() {
               <td className="px-3 py-2 text-ink">{t('dcf.totalPvFcf')}</td>
               <td className={`px-3 py-2 text-right font-mono tabular-nums ${r.totalPvFcf < 0 ? 'text-negative' : ''}`}>{formatIdr(r.totalPvFcf)}</td>
             </tr>
+            {/* Breakdown: PV of FCF per projected year */}
+            {r.pvFcf.map((pv, i) => (
+              <tr key={`pv-break-${i}`}>
+                <td className="px-3 py-1 pl-12 text-sm text-ink-muted">{t('dcf.break.pvFcfYearRow', { year: projYears[i] })}</td>
+                <td className={`px-3 py-1 text-right font-mono text-sm tabular-nums ${pv < 0 ? 'text-negative' : 'text-ink-muted'}`}>{formatIdr(pv)}</td>
+              </tr>
+            ))}
+            <tr><td colSpan={2} className="border-b border-grid" /></tr>
 
             {/* Terminal Value */}
             <tr className="border-t-2 border-grid-strong"><td colSpan={2} className="px-3 pt-3 pb-1 text-xs font-semibold tracking-wide text-ink-muted uppercase">{t('dcf.section.terminalValue')}</td></tr>
@@ -157,6 +207,23 @@ export default function DcfPage() {
 
             {/* Equity → Share Value */}
             <tr className="border-t-2 border-grid-strong"><td colSpan={2} className="px-3 pt-3 pb-1 text-xs font-semibold tracking-wide text-ink-muted uppercase">{t('dcf.section.equityShare')}</td></tr>
+            {/* Breakdown: EV − IBD + Surplus Cash + Idle Non-Op = Equity Value (100%) */}
+            <tr>
+              <td className="px-3 py-1 pl-12 text-sm text-ink-muted">{t('dcf.enterpriseValue')}</td>
+              <td className={`px-3 py-1 text-right font-mono text-sm tabular-nums ${r.enterpriseValue < 0 ? 'text-negative' : 'text-ink-muted'}`}>{formatIdr(r.enterpriseValue)}</td>
+            </tr>
+            <tr>
+              <td className="px-3 py-1 pl-12 text-sm text-ink-muted">{t('dcf.break.ibdRow')}</td>
+              <td className={`px-3 py-1 text-right font-mono text-sm tabular-nums ${di.interestBearingDebt < 0 ? 'text-negative' : 'text-ink-muted'}`}>{formatIdr(di.interestBearingDebt)}</td>
+            </tr>
+            <tr>
+              <td className="px-3 py-1 pl-12 text-sm text-ink-muted">{t('dcf.break.surplusCash')}</td>
+              <td className={`px-3 py-1 text-right font-mono text-sm tabular-nums ${di.excessCash < 0 ? 'text-negative' : 'text-ink-muted'}`}>{formatIdr(di.excessCash)}</td>
+            </tr>
+            <tr>
+              <td className="px-3 py-1 pl-12 text-sm text-ink-muted">{t('dcf.break.idleNonOp')}</td>
+              <td className={`px-3 py-1 text-right font-mono text-sm tabular-nums ${di.idleAsset < 0 ? 'text-negative' : 'text-ink-muted'}`}>{formatIdr(di.idleAsset)}</td>
+            </tr>
             <tr className="border-b border-grid">
               <td className="px-3 py-2 text-ink">{t('dcf.equityValue100')}</td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(r.equityValue100)}</td>
