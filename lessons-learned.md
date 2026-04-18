@@ -649,7 +649,12 @@ untuk 3+ sesi ke depan:
 ### Session 045 (Proy FA roll-forward + dividers + Equity (100%) label)
 - LESSON-129 (Roll-forward projection model beats aggregate-growth shortcut for multi-band schedules — preserves Beginning+Additions=Ending identity)
 
-LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054, 074, 087, 109, 113, 117, 120, 121, 125, 127, 128, 130, 131 **TIDAK** di-promote — workflow/session-specific
+### Session 046 (Proy FA alignment + roll-forward seed fix + Net≤0 stopping rule)
+- LESSON-132 (Sentinel persistence must cover ALL manifest-computed rows — generalizes LESSON-056/058 from subtotals to per-account Ending/Net Value)
+- LESSON-133 (Compute-side self-healing fallback complements sentinel persist — Opsi 2C defense in depth)
+- LESSON-135 (Audit old test fixtures for realistic semantic consistency when adding state-dependent compute rules)
+
+LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054, 074, 087, 109, 113, 117, 120, 121, 125, 127, 128, 130, 131, 134, 136 **TIDAK** di-promote — workflow/session-specific
 insights yang general ke project lain tapi terlalu luas atau terlalu
 session-specific untuk section 8 (yang fokus KKA-specific gotchas).
 Tersimpan di lessons-learned saja.
@@ -3905,3 +3910,140 @@ A cross-page styling request must touch **both** surfaces. Grepping for `border-
 3. Avoid introducing a 3rd section-header styling variant — reuse `border-t-2 border-grid-strong bg-grid` (FR) or `border-t-2 border-grid-strong` (DCF section headers) as baseline.
 
 **Proven at**: session-045 (2026-04-19). FinancialTable + DCF both updated. FR + DCF + other SheetPage consumers now share thicker divider styling.
+
+---
+
+## Session 046 — Proy FA Alignment + Roll-forward Seed Fix
+
+### LESSON-132: Sentinel persistence must cover ALL manifest-computed rows downstream consumers read
+
+**Kategori**: Framework | Anti-pattern | Workflow
+**Sesi**: session-046
+**Tanggal**: 2026-04-19
+
+**Konteks**: Dynamic editors (DynamicFaEditor, DynamicBsEditor, DynamicIsEditor, AP) pre-compute "sentinel" values at persist time so downstream consumers — which read `store.<slice>.rows[row][year]` — find values where they expect them. Pre-Session 046 the FA editor persisted only `FA_SENTINEL_ROWS` (7 SUBTOTAL rows) + `FA_LEGACY_OFFSET` mapped rows. Per-account computed rows (ACQ_ENDING / DEP_ENDING / NET_VALUE — defined in manifest with `computedFrom`) were never written to store.
+
+**Apa yang terjadi**: `compute-proy-fixed-assets-live.ts` read `faRows[excelRow + FA_OFFSET.ACQ_ENDING][histYear]` expecting a value → got `undefined` → fallback to 0 → first projected Beginning seeded at 0 → undercount cascade across all projection years. Same silent bug latent in any other consumer that reads per-account End/Net (FCF adapter, cascade export, Dashboard data-builder) — the fix had to extend sentinel coverage, not just patch the one compute function.
+
+**Root cause / insight**: LESSON-056/058 established the sentinel pattern ("persist derived rows that downstream references") but limited scope to subtotals + legacy-mapped leaves. The invariant is actually stronger: **any manifest row with `computedFrom` that downstream consumers read from store MUST be persisted**, full stop. Dropping per-account computed rows because "they're just derivable" is the same class of bug as dropping subtotals "because they're just sums".
+
+**Cara menerapkan di masa depan**: When introducing a manifest row with `computedFrom` in a dynamic-catalog editor (BS / IS / FA / AP / future catalogs):
+1. Grep `src/` for `<slice>.rows[...<offset or computed row>...]` — any compute consumer = downstream that expects this row in store.
+2. If ≥ 1 consumer exists, extend `computeXxxSentinels` to collect the computed row for each account × each historical year.
+3. Add integration test that round-trips: persist via editor → read from store → downstream compute produces expected value.
+4. Don't rely on "compute can always derive it" — some consumers (export pipeline, Phase C) do NOT re-run deriveComputedRows; they cell-lookup the store shape directly.
+
+**Proven at**: session-046 (2026-04-19). `src/components/forms/DynamicFaEditor.tsx` `computeFaSentinels` Step 5 now persists `acct.excelRow + {ACQ_ENDING, DEP_ENDING, NET_VALUE}` for each account. Downstream (Proy FA compute, NOPLAT FA adapter, FCF, export) reads correct values.
+
+---
+
+### LESSON-133: Compute-side self-healing fallback complements sentinel persist (Opsi 2C defense in depth)
+
+**Kategori**: Framework | Workflow
+**Sesi**: session-046
+**Tanggal**: 2026-04-19
+
+**Konteks**: When a sentinel gap is discovered mid-project (e.g. Session 046 Bug B), existing user localStorage retains the old schema. A sentinel-persist fix only self-heals on NEXT edit (save cycle). Between now and the user's next edit, all downstream compute is still wrong unless compute also self-heals.
+
+**Apa yang terjadi**: Session 046 Bug B fix had two viable strategies:
+- **Opsi 2A (compute-only)**: derive `endAtHist = Beg + Add` at compute seed time. Zero store/editor changes. Self-heals without re-save.
+- **Opsi 2B (sentinel-only)**: extend `computeFaSentinels` to persist End rows. Other consumers also benefit (export, NOPLAT). But requires user to re-save once to heal.
+- **Opsi 2C (both)**: defense in depth — compute falls back to derivation when store lacks the row, AND editor persists on next save so the next compute call reads the correct store.
+
+Chose 2C. Rationale: compute fallback is ~2 lines of `?? (beg + add)`, zero cost. Sentinel persist benefits ALL consumers, not just compute. Together they eliminate the "user must re-save" gap.
+
+**Root cause / insight**: Seeding compute state from store reads is a **trust** decision — it assumes store has the shape compute expects. When that trust is violated (here, by an editor that skipped certain rows), either (a) fix editor and force re-save, or (b) make compute defensive. (a) is cleaner long-term but (b) handles the legacy data gap. Do both. Compute fallback is one-line insurance; sentinel persist is the architectural fix.
+
+**Cara menerapkan di masa depan**: When discovering a sentinel gap that has leaked into production:
+1. **Compute fallback first** (Opsi 2A) — ship a self-healing compute that derives from raw leaves (usually Beg + Add, or manifest `computedFrom` spec). Zero user disruption.
+2. **Sentinel persist second** (Opsi 2B) — extend the editor to persist the previously-missing rows going forward.
+3. Apply both in the same PR — defense in depth. The fallback covers existing data; the persist fixes future data.
+4. Don't just pick one: Opsi 2A alone leaves other consumers (export, Phase C) broken; Opsi 2B alone leaves existing-user data silently wrong until next save.
+
+**Proven at**: session-046 (2026-04-19). `src/data/live/compute-proy-fixed-assets-live.ts` seeds via `endAtHist = endHist[histYear] ?? (begHist + addHist)` — falls back to derivation. `src/components/forms/DynamicFaEditor.tsx` persists per-account End/Net on next save. Both in the single fix commit.
+
+---
+
+### LESSON-134: Asset disposal stopping rule in roll-forward — halt Dep Additions when Net Value ≤ 0
+
+**Kategori**: Excel | Design
+**Sesi**: session-046
+**Tanggal**: 2026-04-19
+
+**Konteks**: Fixed Asset roll-forward projection (Session 045 model) uses per-band Additions growth, applied indefinitely across projection years. No inherent termination condition: if Dep growth outpaces Acq growth, Net Value eventually goes negative → mathematical inconsistency because "asset worth less than zero" is not a valid accounting state.
+
+**Apa yang terjadi**: User mid-session instruction: "jika Net Value Fixed Asset sebuah akun telah mencapai 0 atau minus pada tahun sebelumnya, tidak perlu lagi diperhitungkan depreciation-nya pada tahun berikutnya" (asset fully depreciated / disposed → stop depreciation). Added stopping rule: `if Net[Y-1] ≤ 0 then Dep Add[Y] = 0` for that account.
+
+**Root cause / insight**: Roll-forward projections are bounded by the real-world semantic they model. A fixed asset's depreciation halts when book value = 0 (fully depreciated) or when the asset is disposed. Without the stopping rule, projection math drives Net to increasingly negative values forever, producing nonsensical deprecation schedules that cascade into wrong NOPLAT / FCF / DCF valuations. Acq Additions continues normally because user said ONLY depreciation stops — asset can still receive capital additions post-disposal (e.g. replacement asset bookkeeping).
+
+**Cara menerapkan di masa depan**: Any multi-band roll-forward projection with derived subtotals should encode its termination boundary:
+- **Fixed Asset**: Net[Y-1] ≤ 0 → halt Dep Add. Test with scenario "Dep growth > Acq growth → Net hits 0 at year Y → frozen thereafter".
+- **Debt Maturity**: principal[Y-1] ≤ 0 → halt Payment[Y] (loan paid off).
+- **Inventory**: stock[Y-1] ≤ 0 → halt Sale[Y] (stockout).
+- **Working Capital**: if balance going negative → constrain at 0 unless overdraft is modeled.
+
+Write a dedicated TDD case for the boundary condition — it's easy to forget and almost never covered by "happy path" tests.
+
+**Proven at**: session-046 (2026-04-19). `src/data/live/compute-proy-fixed-assets-live.ts` — `const assetDone = prevNet <= 0; thisDepAdd = assetDone ? 0 : ...`. One new TDD case: Dep growth zero + Net reaches 0 → Dep Add[Y≥disposal] = 0, Dep End frozen at last active value.
+
+---
+
+### LESSON-135: Audit old test fixtures for realistic semantic coherence when adding state-dependent compute rules
+
+**Kategori**: Testing | Anti-pattern | Workflow
+**Sesi**: session-046
+**Tanggal**: 2026-04-19
+
+**Konteks**: Adding a new compute rule that reads its own OUTPUT as a control variable (e.g. "if prev Net ≤ 0 then halt Dep Add") makes previously-inert fixture values suddenly meaningful. Old tests may have set "convenience values" (e.g. NET_VALUE = 0 to isolate Dep math) that weren't mathematically consistent with the fixture's Acq/Dep but didn't fail because no previous rule read NET_VALUE.
+
+**Apa yang terjadi**: Session 045 test "rolls Depreciation bands with their own Additions growth" set `ACQ_ENDING: 0, DEP_ENDING: 30, NET_VALUE: 0` — mathematically inconsistent (true Net = 0 - 30 = -30), but OK under the old model which only used Net as an output. Session 046 added `prevNet ≤ 0 → assetDone = true → Dep Add = 0`, and the old fixture's Net=0 suddenly triggered the stop rule → Dep Additions went to 0 instead of 10.1714 → test failed even though the new rule worked correctly.
+
+**Root cause / insight**: Tests verify behaviour by pinning specific inputs → specific outputs. Fixture values that are "convenient" (e.g. "just put 0 for the field we don't care about") can coexist with the implementation only as long as NO rule reads that field. Adding a new rule that DOES read the field turns old fixtures into test traps that look like regressions but are really fixture unrealism.
+
+**Cara menerapkan di masa depan**: Before introducing a compute rule that reads its own OUTPUT as a control variable:
+1. Grep `__tests__/**/*.test.ts` for fixtures that set the relevant output field (here: NET_VALUE).
+2. Verify each fixture's values are **internally consistent** (e.g. Net == Acq End − Dep End). If not, either (a) update fixture values to be consistent (prefer realistic positive Net), or (b) document as-skipped with `it.skip` + TODO.
+3. Re-run full test suite after the new rule to catch any hidden inconsistent fixture.
+4. If an old fixture existed to test an ISOLATED behaviour (e.g. "pure Dep growth, ignore Acq"), adjust Acq values to a realistic setup that preserves the test's original INTENT under the new rule (e.g. "Acq large enough that Net stays positive").
+
+**Proven at**: session-046 (2026-04-19). Session 045 "rolls Depreciation bands" fixture updated: `Acq 1000 flat` instead of `Acq 0` → Net stays positive (985/978/970) → stopping rule dormant → Dep growth math isolated as originally intended. Test passes, intent preserved.
+
+---
+
+### LESSON-136: Unified `<table>` + colSpan sub-section header rows + table-fixed colgroup for multi-band financial display — local
+
+**Kategori**: Design
+**Sesi**: session-046
+**Tanggal**: 2026-04-19
+
+**Konteks**: Multi-band financial displays (Proy FA: Beg/Add/End × Acq/Dep + Net Value) render multiple conceptual sub-sections within one logical category. Two tempting but flawed patterns:
+- **N separate `<table>` per band** (pre-046 Proy FA) → CSS auto-width per table → columns misalign when cell content varies between bands (long numbers vs "–").
+- **Collapsing the hierarchy** → loses semantic structure readers need to parse the table.
+
+**Apa yang terjadi**: User flagged misaligned year columns across Beg / Add / End bands in Acquisition Cost section. Each band was its own `<table>`; Beginning had long IDR values, Additions had short "–", Ending had "–" — auto-widths chose different pixel sizes per table.
+
+**Root cause / insight**: CSS table layout algorithm sizes columns per-table based on content. Any number of separate tables cannot share column widths without explicit coordination (fixed widths, shared colgroup, or flex wrapper). `<table class="w-full">` alone uses `table-auto` which is content-driven. Solution: one `<table>` per CATEGORY (Acq, Dep, Net) with sub-section headers as `<tr><td colspan>` rows. `table-fixed` + `<colgroup>` with percentage widths guarantees column alignment.
+
+**Cara menerapkan di masa depan**: For any financial display with hierarchical structure (category → sub-sections → per-account rows → total):
+```tsx
+<table className="w-full table-fixed border-collapse">
+  <colgroup>
+    <col style={{ width: '40%' }} />  {/* label column */}
+    {years.map((y) => <col key={y} style={{ width: `${60 / years.length}%` }} />)}
+  </colgroup>
+  <thead><tr>{/* year headers */}</tr></thead>
+  <tbody>
+    {/* Sub-section 1: "Beginning" */}
+    <tr><td colSpan={years.length + 1} className="...section-header...">Beginning</td></tr>
+    {accounts.map(renderAccountRow)}
+    <tr>{/* Total */}</tr>
+    {/* Sub-section 2: "Additions" */}
+    <tr><td colSpan={years.length + 1}>Additions</td></tr>
+    ...
+  </tbody>
+</table>
+```
+Key properties: `table-fixed` + `<colgroup>` make columns independent of content width. Percentages (not px) keep responsiveness. Sub-section header rows with `colSpan={years.length + 1}` span the full width without breaking the colgroup.
+
+**Proven at**: session-046 (2026-04-19). `src/app/projection/fixed-asset/page.tsx` — 3 tables (Acq Cost, Depreciation, Net Value) each with identical colgroup; Acq + Dep each contain 3 sub-sections via colSpan header rows. Year columns now align within AND across categories.
+
