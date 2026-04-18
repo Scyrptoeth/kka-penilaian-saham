@@ -265,7 +265,7 @@ function TableRow({
   return (
     <tr
       className={cn(
-        'group transition-colors hover:bg-accent-soft/40',
+        'group border-b border-grid transition-colors hover:bg-accent-soft/40',
         isSubtotal && 'font-semibold',
         isTotal && 'font-bold bg-canvas-raised',
       )}
