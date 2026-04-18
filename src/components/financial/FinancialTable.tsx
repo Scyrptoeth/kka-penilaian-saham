@@ -249,7 +249,7 @@ function TableRow({
         <th
           scope="row"
           colSpan={totalCols}
-          className="sticky left-0 border-t border-grid-strong bg-grid px-3 py-1.5 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-ink-soft"
+          className="sticky left-0 border-t-2 border-grid-strong bg-grid px-3 py-1.5 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-ink-soft"
         >
           {row.label}
         </th>

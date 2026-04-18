@@ -152,7 +152,7 @@ export default function DcfPage() {
                 <td className={`px-3 py-1 text-right font-mono text-sm tabular-nums ${b.value < 0 ? 'text-negative' : 'text-ink-muted'}`}>{formatIdr(b.value)}</td>
               </tr>
             ))}
-            <tr><td colSpan={2} className="border-b border-grid" /></tr>
+            <tr><td colSpan={2} className="border-b-2 border-grid-strong" /></tr>
             {/* FCF (projected) — headline then breakdown per year */}
             {r.projectedFcf.map((v, i) => (
               <Fragment key={`proj-${projYears[i]}`}>
@@ -166,7 +166,7 @@ export default function DcfPage() {
                     <td className={`px-3 py-1 text-right font-mono text-sm tabular-nums ${b.value < 0 ? 'text-negative' : 'text-ink-muted'}`}>{formatIdr(b.value)}</td>
                   </tr>
                 ))}
-                <tr><td colSpan={2} className="border-b border-grid" /></tr>
+                <tr><td colSpan={2} className="border-b-2 border-grid-strong" /></tr>
               </Fragment>
             ))}
 
@@ -193,7 +193,7 @@ export default function DcfPage() {
                 <td className={`px-3 py-1 text-right font-mono text-sm tabular-nums ${pv < 0 ? 'text-negative' : 'text-ink-muted'}`}>{formatIdr(pv)}</td>
               </tr>
             ))}
-            <tr><td colSpan={2} className="border-b border-grid" /></tr>
+            <tr><td colSpan={2} className="border-b-2 border-grid-strong" /></tr>
 
             {/* Terminal Value */}
             <tr className="border-t-2 border-grid-strong"><td colSpan={2} className="px-3 pt-3 pb-1 text-xs font-semibold tracking-wide text-ink-muted uppercase">{t('dcf.section.terminalValue')}</td></tr>
