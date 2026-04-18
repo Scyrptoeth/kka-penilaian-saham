@@ -209,3 +209,101 @@ describe('ProyFaBuilder — build', () => {
     expect(ws.getCell('D69').value).not.toBe(999)
   })
 })
+
+// Session 040 — Extended + custom FA account injection (7-band slot layout)
+describe('ProyFaBuilder — extended + custom injection', () => {
+  function makeFaWithExtended(language: 'en' | 'id' = 'en'): FixedAssetInputState {
+    const baseFa = makeFa()
+    // Append one extended (excelRow 100, computer_equipment) and one custom (1000).
+    const extRows: Record<number, import('@/types/financial').YearKeyedSeries> = {
+      // Extended: computer_equipment excelRow 100
+      100:   { 2019: 50, 2020: 55, 2021: 60 },  // Acq Beg
+      2100:  { 2019: 5, 2020: 6, 2021: 7 },    // Acq Add (100 + 2000)
+      4100:  { 2019: -10, 2020: -12, 2021: -14 }, // Dep Beg
+      5100:  { 2019: -2, 2020: -3, 2021: -4 },  // Dep Add
+      7100:  { 2019: 40, 2020: 44, 2021: 49 },  // NV seed for NV growth calc
+      // Custom: excelRow 1000
+      1000:  { 2019: 200, 2020: 220, 2021: 240 },
+      3000:  { 2019: 20, 2020: 22, 2021: 24 },
+      5000:  { 2019: -20, 2020: -22, 2021: -24 },
+      6000:  { 2019: -5, 2020: -6, 2021: -7 },
+      8000:  { 2019: 180, 2020: 196, 2021: 215 }, // NV seed (1000 + 7000)
+    }
+    return {
+      ...baseFa,
+      accounts: [
+        ...baseFa.accounts,
+        { catalogId: 'computer_equipment', excelRow: 100, section: 'fixed_asset' },
+        { catalogId: 'custom_1000', excelRow: 1000, section: 'fixed_asset', customLabel: 'Custom Machinery' },
+      ],
+      rows: { ...baseFa.rows, ...extRows },
+      language,
+    }
+  }
+
+  it('writes extended account label at B100 (Acq Begin band slot 0, en)', () => {
+    const wb = makeWb()
+    ProyFaBuilder.build(wb, makeState({ fixedAsset: makeFaWithExtended('en') }))
+    const ws = wb.getWorksheet('PROY FIXED ASSETS')!
+    expect(ws.getCell('B100').value).toBe('Computer Equipment')
+  })
+
+  it('writes extended label across ALL 7 bands (100, 140, 180, 220, 260, 300, 340)', () => {
+    const wb = makeWb()
+    ProyFaBuilder.build(wb, makeState({ fixedAsset: makeFaWithExtended('en') }))
+    const ws = wb.getWorksheet('PROY FIXED ASSETS')!
+    for (const row of [100, 140, 180, 220, 260, 300, 340]) {
+      expect(ws.getCell(`B${row}`).value, `B${row}`).toBe('Computer Equipment')
+    }
+  })
+
+  it('writes extended histYear (C) value at row 100 Acq Begin band = 60', () => {
+    const wb = makeWb()
+    ProyFaBuilder.build(wb, makeState({ fixedAsset: makeFaWithExtended('en') }))
+    const ws = wb.getWorksheet('PROY FIXED ASSETS')!
+    expect(ws.getCell('C100').value).toBe(60)
+  })
+
+  it('writes projected (D/E/F) numeric values at all 7 bands for extended account', () => {
+    const wb = makeWb()
+    ProyFaBuilder.build(wb, makeState({ fixedAsset: makeFaWithExtended('en') }))
+    const ws = wb.getWorksheet('PROY FIXED ASSETS')!
+    for (const row of [100, 140, 180, 220, 260, 300, 340]) {
+      for (const col of ['D', 'E', 'F']) {
+        const val = ws.getCell(`${col}${row}`).value
+        expect(typeof val, `${col}${row}`).toBe('number')
+      }
+    }
+  })
+
+  it('writes custom account at slot 1 (row 101, 141, 181, ...) with customLabel', () => {
+    const wb = makeWb()
+    ProyFaBuilder.build(wb, makeState({ fixedAsset: makeFaWithExtended('en') }))
+    const ws = wb.getWorksheet('PROY FIXED ASSETS')!
+    // custom is second extended account → slot index 1 → Acq Begin row 101
+    expect(ws.getCell('B101').value).toBe('Custom Machinery')
+    expect(ws.getCell('C101').value).toBe(240) // 2021 Acq Beg (custom excelRow 1000)
+  })
+
+  it('honors language=id for catalog label lookup across bands', () => {
+    const wb = makeWb()
+    ProyFaBuilder.build(wb, makeState({ fixedAsset: makeFaWithExtended('id') }))
+    const ws = wb.getWorksheet('PROY FIXED ASSETS')!
+    expect(ws.getCell('B100').value).toBe('Peralatan Komputer')
+    expect(ws.getCell('B340').value).toBe('Peralatan Komputer')
+  })
+
+  it('rows 100+ stay empty when no extended/custom accounts (regression guard)', () => {
+    const wb = makeWb()
+    ProyFaBuilder.build(wb, makeState()) // baseline makeFa() = 6 original only
+    const ws = wb.getWorksheet('PROY FIXED ASSETS')!
+    // Sample rows across the 7 bands — none should have labels or values
+    for (const row of [100, 140, 180, 220, 260, 300, 340]) {
+      const b = ws.getCell(`B${row}`).value
+      expect(b == null || b === '', `B${row}`).toBe(true)
+      for (const col of ['C', 'D', 'E', 'F']) {
+        expect(ws.getCell(`${col}${row}`).value == null, `${col}${row}`).toBe(true)
+      }
+    }
+  })
+})

@@ -1,6 +1,7 @@
 import type { SheetBuilder } from './types'
 import { computeFullProjectionPipeline } from '@/lib/calculations/projection-pipeline'
-import { FA_OFFSET, FA_SUBTOTAL, isOriginalFaRow } from '@/data/catalogs/fixed-asset-catalog'
+import { FA_CATALOG, FA_OFFSET, FA_SUBTOTAL, isOriginalFaRow } from '@/data/catalogs/fixed-asset-catalog'
+import { resolveLabel } from './label-writer'
 
 const SHEET_NAME = 'PROY FIXED ASSETS'
 
@@ -29,6 +30,35 @@ const FA_OFFSET_TO_TEMPLATE_DELTA: Record<number, number> = {
 }
 
 const FA_SUBTOTAL_ROWS = new Set<number>(Object.values(FA_SUBTOTAL))
+
+/**
+ * Session 040 — 7-band synthetic row layout for extended/custom FA accounts.
+ * Mirrors the Session 028 FA historical layout. Each extended account with
+ * slot index `i` writes its band values at `BAND_ROW_START[offset] + i`.
+ *
+ * Diverges from Session 028 FA in that all bands use STATIC values (no
+ * live `=+<a>+<b>` formulas for computed bands) to match ProyFaBuilder's
+ * baseline static-write convention.
+ */
+const PROY_FA_BAND_ROW_START: Record<number, number> = {
+  [FA_OFFSET.ACQ_BEGINNING]: 100,
+  [FA_OFFSET.ACQ_ADDITIONS]: 140,
+  [FA_OFFSET.ACQ_ENDING]:    180,
+  [FA_OFFSET.DEP_BEGINNING]: 220,
+  [FA_OFFSET.DEP_ADDITIONS]: 260,
+  [FA_OFFSET.DEP_ENDING]:    300,
+  [FA_OFFSET.NET_VALUE]:     340,
+}
+
+const PROY_FA_BAND_OFFSETS: readonly number[] = [
+  FA_OFFSET.ACQ_BEGINNING,
+  FA_OFFSET.ACQ_ADDITIONS,
+  FA_OFFSET.ACQ_ENDING,
+  FA_OFFSET.DEP_BEGINNING,
+  FA_OFFSET.DEP_ADDITIONS,
+  FA_OFFSET.DEP_ENDING,
+  FA_OFFSET.NET_VALUE,
+]
 
 /**
  * Translate a computeProyFixedAssetsLive output row key to the
@@ -109,5 +139,28 @@ export const ProyFaBuilder: SheetBuilder = {
         }
       }
     }
+
+    // Session 040 — Extended (excelRow ≥ 100) + custom (≥ 1000) injection at
+    // 7-band slot layout. Subtotals (14/23/32/42/51/60/69) already include
+    // extended contributions via computeProyFixedAssetsLive, so we only
+    // write leaves + labels. No subtotal formula modification.
+    const { accounts, language } = state.fixedAsset
+    const extendedAccounts = accounts.filter((a) => a.excelRow >= 100)
+    extendedAccounts.forEach((acc, slotIndex) => {
+      const label = resolveLabel(acc, FA_CATALOG, language)
+      for (const offset of PROY_FA_BAND_OFFSETS) {
+        const row = PROY_FA_BAND_ROW_START[offset]! + slotIndex
+        ws.getCell(`B${row}`).value = label
+        const series = proyFaRows[acc.excelRow + offset]
+        if (!series) continue
+        for (const [col, year] of cols) {
+          if (!year) continue
+          const val = series[year]
+          if (val !== undefined && Number.isFinite(val)) {
+            ws.getCell(`${col}${row}`).value = val
+          }
+        }
+      }
+    })
   },
 }
