@@ -643,7 +643,10 @@ untuk 3+ sesi ke depan:
 - LESSON-123 (Auto-adjustment map at builder boundary — business logic wins over user input for specific rows; UI locks cell)
 - LESSON-124 (Semantic row constants + account-driven aggregation for display layer — extends LESSON-108 from compute to display)
 
-LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054, 074, 087, 109, 113, 117, 120, 121, 125 **TIDAK** di-promote — workflow/session-specific
+### Session 044 (Dropdown auto-flip + ThemeToggle icon-on-thumb + sidebar gap)
+- LESSON-126 (useSyncExternalStore with rAF in subscribe is the React-Compiler-compliant way to measure DOM on mount — replaces useLayoutEffect + setState)
+
+LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054, 074, 087, 109, 113, 117, 120, 121, 125, 127, 128 **TIDAK** di-promote — workflow/session-specific
 insights yang general ke project lain tapi terlalu luas atau terlalu
 session-specific untuk section 8 (yang fokus KKA-specific gotchas).
 Tersimpan di lessons-learned saja.
@@ -3693,3 +3696,123 @@ Red flag in code review: any `state.balanceSheet.rows[\d+]`, `state.incomeStatem
 Always let ESLint `jsx-a11y` catch mismatches. Don't silence the warning.
 
 **Proven at**: session-043 (2026-04-18). ThemeToggle.tsx + LanguageToggle.tsx fixed in same session. Lint clean after swap.
+
+---
+
+## Session 044 — Dropdown Auto-Flip + Toggle Polish
+
+### LESSON-126: `useSyncExternalStore` with rAF in subscribe is the React-Compiler-compliant way to measure DOM on mount
+
+**Kategori**: Framework | React | Anti-pattern
+**Sesi**: session-044
+**Tanggal**: 2026-04-18
+
+**Konteks**: You need a hook whose return value depends on DOM geometry (element rect, viewport size) — for example, a dropdown placement decision based on available space around its trigger.
+
+**Apa yang terjadi**: Initial design used `useLayoutEffect + setState` pattern — measure rect after mount, `setPlacement('top' | 'bottom')` based on result. ESLint `react-hooks/set-state-in-effect` flagged it (LESSON-016 territory). React Compiler treats any setState inside useEffect/useLayoutEffect as suspicious because it causes extra render passes and can loop.
+
+**Root cause / insight**: React Compiler's invariant: **render must be pure and deterministic w.r.t. props + state**. Setting state from an effect violates this because the effect can read mutable external data (DOM) and force an asymmetric second render. The framework-blessed API for "subscribe to external mutable data" is `useSyncExternalStore`.
+
+The catch: our "external data" (trigger rect) doesn't have native change events — we want to measure on MOUNT, not just on resize. Solution: schedule a one-shot `requestAnimationFrame(onChange)` inside `subscribe`. React then re-runs `getSnapshot` after paint, reading the trigger's now-mounted `getBoundingClientRect()`, producing the real placement. For free, we can also subscribe to `resize` + `scroll` for continuous updates while the floating element is visible.
+
+**Cara menerapkan di masa depan**: Any time a hook returns a value derived from DOM measurement of a ref'd element:
+
+```ts
+function useMyDomDerived<T extends HTMLElement>(ref: RefObject<T | null>): Value {
+  const subscribe = useCallback((onChange: () => void) => {
+    if (typeof window === 'undefined') return () => {}
+    const rafId = window.requestAnimationFrame(onChange)  // one-shot post-mount
+    window.addEventListener('resize', onChange)
+    return () => {
+      window.cancelAnimationFrame(rafId)
+      window.removeEventListener('resize', onChange)
+    }
+  }, [])
+
+  const getSnapshot = useCallback((): Value => {
+    const el = ref.current
+    if (!el || typeof window === 'undefined') return DEFAULT
+    return deriveFromRect(el.getBoundingClientRect())
+  }, [ref])
+
+  const getServerSnapshot = useCallback((): Value => DEFAULT, [])
+
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+}
+```
+
+Key gotchas:
+- `getSnapshot` must return values compared by value (primitives, strings) or stable references. Returning fresh objects each call = infinite re-render loop. Clamp to discrete values where possible.
+- `getServerSnapshot` must never throw on undefined `window` — safe default only.
+- `subscribe` returning `() => {}` for SSR is fine.
+
+**Proven at**: session-044 (2026-04-18). `src/lib/hooks/useAutoFlipPosition.ts` — dropdown placement for +Tambah Akun in BS/IS/FA editors. 4 TDD cases pass; lint clean (`react-hooks/set-state-in-effect` satisfied).
+
+---
+
+### LESSON-127: `useRef` inside `.map()` is invalid — extract a component with stable key when per-iteration refs are needed — local
+
+**Kategori**: Framework | React | Anti-pattern
+**Sesi**: session-044
+**Tanggal**: 2026-04-18
+
+**Konteks**: You have a list rendered via `.map()` and want each iteration to have its own ref to a rendered DOM element.
+
+**Apa yang terjadi**: To implement dropdown auto-flip, the +Tambah Akun button (the trigger) needs a ref that the dropdown can read on mount. First instinct was to call `useRef` inline inside the `rows.map(...)` callback. React's Rules of Hooks forbid this — hooks must run in the same order every render, but `.map()` creates variable iteration counts.
+
+**Root cause / insight**: Refs need stable identity per slot; that requires a component instance per slot. Extract the repeating block into its own component with a stable `key` prop — each instance has its own `useRef` that persists across renders.
+
+**Cara menerapkan di masa depan**: When you see yourself wanting a hook inside `.map()`, that's the signal to extract a component.
+
+```tsx
+// ❌ Hook inside map — invalid
+{items.map((item) => {
+  const ref = useRef(null)  // Rules of Hooks violation
+  return <div ref={ref}>{item.label}</div>
+})}
+
+// ✅ Extracted component — each has its own ref
+{items.map((item) => <Item key={item.id} item={item} />)}
+
+function Item({ item }: { item: ItemData }) {
+  const ref = useRef<HTMLDivElement>(null)
+  return <div ref={ref}>{item.label}</div>
+}
+```
+
+Apply the same pattern to: per-row refs for focus management, per-card IntersectionObserver targets, per-tab imperative API handles.
+
+**Proven at**: session-044 (2026-04-18). `AddAccountRow` extracted from RowInputGrid's main `.map()` loop; its `triggerRef` is passed to `InlineDropdown` for auto-flip positioning.
+
+---
+
+### LESSON-128: Mock `useTheme` directly in jsdom tests — `next-themes` `forcedTheme` prop doesn't propagate `resolvedTheme` reliably — local
+
+**Kategori**: Testing | Framework
+**Sesi**: session-044
+**Tanggal**: 2026-04-18
+
+**Konteks**: Testing a component that uses `useTheme()` from `next-themes` when you need deterministic control over the returned `resolvedTheme`.
+
+**Apa yang terjadi**: Wrapping `<ThemeToggle />` in `<ThemeProvider forcedTheme="dark">` inside a Vitest test expected `resolvedTheme === 'dark'`, but the component rendered light-mode DOM. `forcedTheme` sets the applied CSS class synchronously but `resolvedTheme` updates through an effect + localStorage subscription that doesn't always fire in jsdom. Also, `next-themes` itself requires `window.matchMedia` which jsdom omits — you need a polyfill just to instantiate `ThemeProvider`.
+
+**Root cause / insight**: `ThemeProvider` is designed for browser contexts with full DOM APIs. In jsdom it's possible to make it work (polyfill matchMedia + localStorage), but the async state propagation is fragile. A `vi.mock('next-themes')` replacing `useTheme` with a vi-controlled mock is 3 lines, deterministic, and lets each test control the theme independently.
+
+**Cara menerapkan di masa depan**: For any component test that reads `useTheme`:
+
+```tsx
+const useThemeMock = vi.fn()
+vi.mock('next-themes', () => ({
+  useTheme: () => useThemeMock(),
+}))
+
+it('renders dark variant', () => {
+  useThemeMock.mockReturnValue({ resolvedTheme: 'dark', setTheme: vi.fn() })
+  render(<MyComponent />)
+  // assertions
+})
+```
+
+Skip `ThemeProvider` + `forcedTheme` in unit tests. Reserve `ThemeProvider` for integration tests where theme switching via `setTheme()` is part of the behavior under test — and even then, mock matchMedia + localStorage first.
+
+**Proven at**: session-044 (2026-04-18). `__tests__/components/layout/theme-toggle-icon-on-thumb.test.tsx` — 2 deterministic tests for sun-in-thumb and moon-in-thumb rendering.
