@@ -45,6 +45,7 @@ import {
   FA_CATALOG,
   FA_OFFSET,
 } from '@/data/catalogs/fixed-asset-catalog'
+import { getIsStrings } from '@/lib/i18n/income-statement'
 import { runSheetBuilders } from './sheet-builders/registry'
 
 // ---------------------------------------------------------------------------
@@ -983,6 +984,75 @@ export function replaceIsSectionSentinels(
     for (const col of Object.values(grid.yearColumns)) {
       const sumFormula = `SUM(${col}${map.extendedRowStart}:${col}${map.extendedRowEnd})`
       ws.getCell(`${col}${map.sentinelRow}`).value = { formula: sumFormula }
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Session 042 Task 1 — Tax Adjustment injection (synthetic rows 600/601)
+//
+// Session 041 introduced synthetic excelRows KOREKSI_FISKAL (600) and
+// TAXABLE_PROFIT (601) between PBT (32) and Tax (33) in the website editor,
+// but the export pipeline never wrote them to the INCOME STATEMENT sheet.
+// This injector closes the gap.
+//
+//   Row 600: user-editable signed leaf (Fiscal Correction). Plain value.
+//   Row 601: computed `[PBT, KOREKSI_FISKAL]` at the website. Exported as
+//            a LIVE Excel formula `=<col>32+<col>600` with a cached
+//            pre-computed result — user edits E600 in Excel → E601 auto
+//            recomputes. Cached value lets headless viewers show the
+//            number immediately.
+//
+// Tax (33) and NPAT (35) formulas in the template are UNCHANGED — they
+// reference rows 32/33 only, never 600/601. Row 601 is display-only in
+// Excel (matches the website semantic) per LESSON-116 synthetic-row
+// rule: synthetic rows ≥ 600 preserve downstream backward compatibility.
+// ---------------------------------------------------------------------------
+
+const IS_TAX_ADJUSTMENT_LABEL_ROW = 600
+const IS_TAX_ADJUSTMENT_FORMULA_ROW = 601
+const IS_PBT_ROW = 32
+
+/**
+ * Write synthetic rows 600 (KOREKSI_FISKAL) + 601 (TAXABLE_PROFIT) to the
+ * INCOME STATEMENT sheet.
+ */
+export function injectTaxAdjustmentRows(
+  workbook: ExcelJS.Workbook,
+  state: ExportableState,
+): void {
+  if (!state.incomeStatement) return
+  const ws = workbook.getWorksheet('INCOME STATEMENT')
+  if (!ws) return
+
+  const grid = ALL_GRID_MAPPINGS.find((g) => g.excelSheet === 'INCOME STATEMENT')
+  if (!grid) return
+
+  const is = state.incomeStatement
+  const strings = getIsStrings(is.language)
+
+  // Labels (always written so template row gets human-readable identifier)
+  ws.getCell(`B${IS_TAX_ADJUSTMENT_LABEL_ROW}`).value = strings.koreksiFiskal
+  ws.getCell(`B${IS_TAX_ADJUSTMENT_FORMULA_ROW}`).value = strings.taxableProfit
+
+  // Koreksi Fiskal (600) — static value leaf
+  const koreksiRow = is.rows[IS_TAX_ADJUSTMENT_LABEL_ROW]
+  if (koreksiRow) {
+    for (const [yearStr, col] of Object.entries(grid.yearColumns)) {
+      const val = koreksiRow[Number(yearStr)]
+      if (val !== undefined && val !== null) {
+        ws.getCell(`${col}${IS_TAX_ADJUSTMENT_LABEL_ROW}`).value = val
+      }
+    }
+  }
+
+  // TAXABLE PROFIT (601) — live formula + cached value per year
+  const taxableRow = is.rows[IS_TAX_ADJUSTMENT_FORMULA_ROW] ?? {}
+  for (const [yearStr, col] of Object.entries(grid.yearColumns)) {
+    const cached = taxableRow[Number(yearStr)]
+    ws.getCell(`${col}${IS_TAX_ADJUSTMENT_FORMULA_ROW}`).value = {
+      formula: `${col}${IS_PBT_ROW}+${col}${IS_TAX_ADJUSTMENT_LABEL_ROW}`,
+      result: cached !== undefined && cached !== null ? cached : 0,
     }
   }
 }

@@ -1,75 +1,108 @@
-# Plan — Session 040: Extended Injection + Sign Reconciliation
+# Plan — Session 042
 
-**Branch**: `feat/session-040-extended-proy-kd-injection` (after Task #1 merges Session 039 to main).
+**Scope**: 5 Priorities Session 042 (IS Tax Export + AAM Extended + LESSON-108 Audit + AP Dynamic + RESUME Page)
+**Branch**: `feat/session-042-tax-export-aam-ext-ap-dynamic-resume`
+**Target**: Tests 1261 → ~1320+, all gates green, live deploy
 
-**Strategy**: serial per-task mini-cycles (brainstorm → implement → verify → commit), not a monolithic design-then-execute. Tighter feedback, cleaner commits, context-budget friendly.
+---
 
-## Task Breakdown
+## Tasks
 
-### Task #1 — Merge Session 039 to main (mechanical)
-- [x] Verify gates on `feat/wc-scope-page-and-dcf-breakdown` (tests 1222, build/TC/lint clean)
-- [x] Fetch + checkout main + pull
-- [x] Merge feature branch FF
-- [x] Push origin main (production deploy trigger)
-- [x] Delete feature branch local + remote
-- [x] Create new branch `feat/session-040-extended-proy-kd-injection`
+### Task 1 — IS Tax Adjustment Export (rows 600/601)
+- **Files**: `src/lib/export/export-xlsx.ts` (IS_SECTION_INJECT + injector helper), `__tests__/lib/export/export-xlsx.test.ts`
+- **Change**:
+  - Add entry `tax_adjustment: { extendedRowStart: 600, extendedRowEnd: 619, sentinelRow: null }` to IS_SECTION_INJECT
+  - New helper `injectTaxAdjustmentRows(worksheet, isRows, years)` — row 600: label + static value. Row 601: label + formula `=<col>32+<col>600` + cached result
+  - Wire into IncomeStatementBuilder after existing extended injection
+- **Verify**: 4 TDD cases — row 600 written, row 601 as formula, label correct, cached value matches
 
-### Task #2 — Proy BS extended injection
-- [x] Read current ProyBsBuilder + BS_SECTION_INJECT reference (export-xlsx.ts Session 025)
-- [x] Read computeProyBsLive — confirm extended accounts emitted
-- [x] Read buildDynamicBsManifest — confirm computedFrom includes extended excelRows
-- [x] Design: leaf-only injection, no subtotal append (double-count analysis)
-- [x] RED: 5 TDD tests for extended catalog + custom account + language variants
-- [x] GREEN: extend ProyBsBuilder.build() with second pass for excelRow ≥ 100
-- [x] Verify: tests 1227, typecheck/lint/build clean
-- [x] Commit: `feat(proy-bs): inject extended + custom accounts at synthetic rows`
+### Task 2a — AAM Template Probe
+- **Files**: explore only (no source changes)
+- **Change**: Grep AAM template via ExcelJS to identify: (a) current section boundaries + subtotal rows, (b) unused synthetic row ranges for extended injection
+- **Verify**: Write findings into design.md D2 update with actual row numbers
 
-### Task #3 — Proy FA extended injection
-- [x] Read current ProyFaBuilder + FA_BAND reference
-- [x] Read computeProyFixedAssetsLive — confirm extended emitted across 7 bands
-- [x] Read FA catalog — identify extended entry for test (`computer_equipment` excelRow 100)
-- [x] Design: 7-band slot layout (rows 100-379, 40 slots/band), static values (diverges Session 028)
-- [x] RED: 7 TDD tests for labels + values across bands, custom account, language, regression
-- [x] GREEN: extend ProyFaBuilder.build() with 7-band injection pass
-- [x] Verify: tests 1234, all gates green
-- [x] Commit: `feat(proy-fa): inject extended + custom accounts at 7-band slot layout`
+### Task 2b — AAM Extended Injection
+- **Files**: `src/lib/export/sheet-builders/aam.ts`, new helper `src/lib/export/aam-extended-helpers.ts`, `__tests__/lib/export/sheet-builders/aam.test.ts`
+- **Change**:
+  - `injectAamExtendedAccounts(worksheet, state)` — per-section synthetic row allocation
+  - For each extended BS account: write label (B), BS value (C static), adjustment (D from aamAdjustments), formula `=C{row}+D{row}` (E)
+  - Section routing uses Session 041 exclusion sets for CL/NCL split
+  - Extend section subtotal cells via `+SUM(<col>{start}:<col>{end})` append pattern (Session 025 BS)
+- **Verify**: 8 TDD cases — per-section placement, formula correctness, subtotal append, excluded sets routing, empty accounts no-op
 
-### Task #4 — KEY DRIVERS dynamic additionalCapex injection
-- [x] Read current KeyDriversBuilder + cell-mapping KD entries
-- [x] Read KeyDriversForm for display layout reference
-- [x] Confirm Session 036 T8 removed old cell-mapping entries
-- [x] Design: per-account row from 33, clear-before-write, skip-if-empty-accounts
-- [x] RED: 8 TDD tests for labels, values, clear residue, skip-if-null-upstream, language
-- [x] GREEN: add injectAdditionalCapexByAccount helper, wire into build()
-- [x] Handle Phase C fixture edge case: skip if accounts.length === 0
-- [x] Verify: tests 1242, all gates green + Phase C 5/5
-- [x] Commit: `feat(key-drivers): inject additionalCapexByAccount per FA account`
+### Task 3 — LESSON-108 Grep Audit
+- **Files**: 4 target modules: `src/lib/calculations/noplat-live.ts`, `src/lib/calculations/fcf-live.ts`, `src/lib/calculations/financial-ratios-live.ts`, `src/lib/calculations/roic-live.ts` (or equivalent paths)
+- **Change**:
+  - Grep each file for `const \w+_ROWS\s*=\s*\[\s*\d+` hardcoded row-array pattern
+  - For each hit: refactor to account-driven iteration via `bsAccounts.filter(a => a.section === 'X')` pattern
+  - Extract shared helper if 2+ callers share filter semantic
+  - If zero hits: record finding, no refactor
+- **Verify**: Full test suite green; new TDD cases only if refactor happened
 
-### Task #5 — KD ratio sign reconciliation
-- [x] Identify functional bug: PROY LR live formulas `=D8*KD!D23` yield positive expense when KD is exported positive — wrong after Excel reopen
-- [x] Design: reconcileRatioSigns at export boundary (LESSON-011 adapter pattern), store stays positive
-- [x] RED: 8 TDD tests for D20/D23/D24 scalar + E-J projected expansions, idempotent, zero passthrough
-- [x] GREEN: reconcileRatioSigns helper, wire after writeScalars/writeArrays
-- [x] Update 2 pre-existing tests that assumed positive export values
-- [x] Remove 21 entries from KNOWN_DIVERGENT_CELLS in phase-c-verification.test.ts
-- [x] Verify: tests 1250, all gates green + Phase C 5/5
-- [x] Commit: `feat(key-drivers): reconcile ratio sign convention at export boundary`
+### Task 4a — AP Catalog Foundation
+- **Files**: new `src/data/catalogs/acc-payables-catalog.ts`, `src/types/acc-payables.ts`, migration in `src/lib/store/useKkaStore.ts` (v19→v20)
+- **Change**:
+  - `ApSection = 'st_bank_loans' | 'lt_bank_loans'`
+  - `ApSchedule = { id: string, labelEn: string, labelId: string, section: ApSection, slotIndex: number, customLabel?: string }`
+  - `AccPayablesInputState = { schedules: ApSchedule[], rows: Record<number, YearKeyedSeries> }`
+  - Default catalog seeds 1 ST + 1 LT schedule (labels "Short-Term Bank Loan" / "Long-Term Bank Loan")
+  - Store migration v19→v20 transforms old 6-field shape into 1 ST + 1 LT schedule with data preserved
+  - Sentinel pre-compute: Ending = Beg + Addition per schedule (at persist time for downstream)
+- **Verify**: 6 TDD cases — catalog defaults, migration from v19 shape, sentinel computation, addSchedule/removeSchedule mutations
 
-### Task #6 — Session wrap-up via /update-kka-penilaian-saham Mode B
-- [ ] Invoke Mode B: verify gates, extract lessons, write history/session-040-*.md
-- [ ] Update progress.md with Session 040 delivered state
-- [ ] Append LESSONs to lessons-learned.md (target: 2-3 new)
-- [ ] Update start-kka-penilaian-saham SKILL.md section 2 + section 8 for promoted lessons
-- [ ] Commit docs
-- [ ] Merge feature branch to main (option b: langsung merge setelah local gates hijau)
-- [ ] Push origin main + delete feature branch local + remote
+### Task 4b — DynamicApEditor UI
+- **Files**: new `src/components/forms/DynamicApEditor.tsx`, rewrite `src/app/input/acc-payables/page.tsx`, i18n keys
+- **Change**:
+  - 2 fixed sections (ST + LT) each with +Add button to append new schedule
+  - Per schedule: inline rename, remove button, 3-row mini-grid (Beg editable, Addition editable, Ending read-only = formula display)
+  - Year columns from home.historicalYearCount
+  - Debounced 500ms persist, hydration gate (LESSON-034)
+- **Verify**: Page renders, schedules can be added/removed/renamed, sentinel Ending shows correctly; ~5 TDD cases via testing-library
 
-## Verification Target
+### Task 4c — AP Extended Injection Export
+- **Files**: `src/lib/export/sheet-builders/acc-payables.ts` (rewrite from Session 032 baseline), `__tests__/lib/export/sheet-builders/acc-payables.test.ts`
+- **Change**:
+  - `AP_BAND` 6-entry `{ST_BEG, ST_ADDITION, ST_END, LT_BEG, LT_ADDITION, LT_END}` with synthetic row ranges per D4
+  - Slot allocation per schedule index per section
+  - Input bands write static values; formula bands (ST_END, LT_END) write `=<col>{beg_row}+<col>{add_row}` per year
+  - Label in col B across Beg + Addition + End bands (matches FA pattern)
+  - Section subtotals (verify at implementation) extended via `+SUM` append if present
+- **Verify**: 10 TDD cases — per-band allocation, formula correctness, section routing, empty-schedules no-op, multi-schedule ordering
 
-- Tests: 1250+ passing
-- Build: 41+ static pages, zero errors
-- Typecheck: `tsc --noEmit` clean
-- Lint: zero warnings
-- Phase C: 5/5 green
-- Cascade integration: 3/3 (29/29 MIGRATED_SHEETS)
-- Audit (i18n): zero violations
+### Task 5 — RESUME Page
+- **Files**: new `src/app/dashboard/resume/page.tsx`, nav entry in `src/data/nav-tree.ts`, i18n keys (~20 new)
+- **Change**:
+  - Route `/dashboard/resume` under Ringkasan group
+  - PageEmptyState gated on required inputs (home + IBD + WC null-checks)
+  - 3-column table (AAM / DCF / EEM) × 3 rows (Equity Value 100%, Equity Value Proporsi Saham, Per-Share Value)
+  - Metodologi section: 3 cards, 1 bilingual paragraf per metode (AAM / DCF / EEM)
+  - Rekomendasi Nilai: neutral text listing 3 results + PMK-79 professional judgment reminder
+  - Pure display — uses buildAamInput/buildDcfInput/buildEemInput + compute* via useMemo
+- **Verify**: Page renders, PageEmptyState guards work, values match AAM/DCF/EEM pages individually; ~3 TDD cases
+
+### Task 6 — Final Verification + Documentation Update
+- **Files**: all
+- **Change**: Run full verification suite. Update progress.md. Ready for commit.
+- **Verify**:
+  - `npm run build 2>&1 | tail -15` → 41+ static pages (RESUME adds 1 → 42)
+  - `npm test 2>&1 | tail -15` → 1261 → ~1320+ passing
+  - `npm run typecheck` → clean
+  - `npm run lint` → clean
+  - `npm run audit:i18n` → 0 violations
+  - `npm run verify:phase-c` → 5/5 green
+  - Cascade integration → 3/3 green
+  - Open exported XLSX → zero repair dialogs
+
+---
+
+## Progress Tracking
+
+- [ ] Task 1: IS Tax Adjustment Export
+- [ ] Task 2a: AAM Template Probe
+- [ ] Task 2b: AAM Extended Injection
+- [ ] Task 3: LESSON-108 Grep Audit
+- [ ] Task 4a: AP Catalog Foundation + Migration
+- [ ] Task 4b: DynamicApEditor UI
+- [ ] Task 4c: AP Extended Injection Export
+- [ ] Task 5: RESUME Page
+- [ ] Task 6: Final Verification

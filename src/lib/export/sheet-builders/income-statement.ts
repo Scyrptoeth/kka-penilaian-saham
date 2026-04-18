@@ -3,6 +3,7 @@ import type { SheetBuilder } from './types'
 import type { ExportableState } from '@/lib/export/export-xlsx'
 import {
   injectExtendedIsAccounts,
+  injectTaxAdjustmentRows,
   replaceIsSectionSentinels,
 } from '@/lib/export/export-xlsx'
 import { ALL_GRID_MAPPINGS } from '@/lib/export/cell-mapping'
@@ -58,5 +59,6 @@ export const IncomeStatementBuilder: SheetBuilder = {
     injectExtendedIsAccounts(workbook, state)
     replaceIsSectionSentinels(workbook, state)
     writeIsLabels(ws, is.accounts, is.language)
+    injectTaxAdjustmentRows(workbook, state)
   },
 }
