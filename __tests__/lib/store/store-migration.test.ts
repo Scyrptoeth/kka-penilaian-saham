@@ -471,10 +471,52 @@ describe('migratePersistedState — v13 → v14 (faAdjustment → aamAdjustments
     expect(migrated.interestBearingDebt).toBe(5_000_000)
   })
 
+  it('v17 → v18 adds changesInWorkingCapital: null root-level', () => {
+    const v17State = {
+      home: { namaPerusahaan: 'PT XYZ' },
+      language: 'id',
+      interestBearingDebt: 1_000_000,
+    }
+    const migrated = migratePersistedState(v17State, 17) as Record<string, unknown>
+    expect(migrated.changesInWorkingCapital).toBeNull()
+    // Previous slices preserved
+    expect((migrated.home as Record<string, unknown>).namaPerusahaan).toBe('PT XYZ')
+    expect(migrated.interestBearingDebt).toBe(1_000_000)
+  })
+
+  it('v17 → v18 preserves existing changesInWorkingCapital if already set (idempotency)', () => {
+    const existing = {
+      excludedCurrentAssets: [8, 9],
+      excludedCurrentLiabilities: [31],
+    }
+    const partial = {
+      home: null,
+      language: 'en',
+      interestBearingDebt: null,
+      changesInWorkingCapital: existing,
+    }
+    const migrated = migratePersistedState(partial, 17) as Record<string, unknown>
+    expect(migrated.changesInWorkingCapital).toEqual(existing)
+  })
+
+  it('v1 → v18 chain adds changesInWorkingCapital: null alongside other slices', () => {
+    const v1State = { home: { namaPerusahaan: 'PT Legacy' } }
+    const migrated = migratePersistedState(v1State, 1) as Record<string, unknown>
+    expect(migrated.changesInWorkingCapital).toBeNull()
+    expect(migrated.interestBearingDebt).toBeNull()
+    expect((migrated.home as Record<string, unknown>).namaPerusahaan).toBe('PT Legacy')
+  })
+
   it('passes future versions through unchanged', () => {
-    const v17State = { home: null, language: 'en', interestBearingDebt: null, futureSlice: {} }
-    const migrated = migratePersistedState(v17State, 17)
-    expect(migrated).toBe(v17State)
+    const v18State = {
+      home: null,
+      language: 'en',
+      interestBearingDebt: null,
+      changesInWorkingCapital: null,
+      futureSlice: {},
+    }
+    const migrated = migratePersistedState(v18State, 18)
+    expect(migrated).toBe(v18State)
   })
 
   it('passes non-object payloads through unchanged', () => {

@@ -138,6 +138,26 @@ interface KkaState {
    * a numeric value (including 0) is entered via /valuation/interest-bearing-debt.
    */
   interestBearingDebt: number | null
+  /**
+   * Session 039 — Working Capital scope control. `excludedCurrentAssets` and
+   * `excludedCurrentLiabilities` hold BS excelRow numbers that the user has
+   * marked as "not part of Operating Working Capital" (e.g. Cash, short-term
+   * investments, IBD). `null` = user has not yet confirmed scope → consumer
+   * pages (CFS / FCF / FR / DCF / EEM / CFI / Simulasi / Dashboard / Proy CFS)
+   * show PageEmptyState until user visits `/analysis/changes-in-working-capital`
+   * and clicks "Konfirmasi Cakupan" (sets an empty-exclusion object).
+   *
+   * The live CFS compute (`computeCashFlowLiveRows`) now iterates
+   * `balanceSheet.accounts` filtered by `section` and skips accounts whose
+   * excelRow appears in the relevant exclusion list — replaces the legacy
+   * hardcoded `BS_CA_ROWS=[10,11,12,14]` / `BS_CL_ROWS=[31,32,33,34]` that
+   * missed dynamic catalog + custom-manual accounts (user-reported bug
+   * resolved 2026-04-18).
+   */
+  changesInWorkingCapital: {
+    excludedCurrentAssets: number[]
+    excludedCurrentLiabilities: number[]
+  } | null
   setHome: (home: HomeInputs) => void
   resetHome: () => void
   /**
@@ -171,6 +191,15 @@ interface KkaState {
   setNilaiPengalihanDilaporkan: (v: number) => void
   /** Session 038 — persist IBD input (null = cleared). */
   setInterestBearingDebt: (v: number | null) => void
+  /**
+   * Session 039 — WC scope setters. Each operates idempotently on the current
+   * exclusion list; `confirmWcScope` is the explicit null → object transition
+   * that unlocks the 9 consumer pages.
+   */
+  toggleExcludeCurrentAsset: (excelRow: number) => void
+  toggleExcludeCurrentLiability: (excelRow: number) => void
+  confirmWcScope: () => void
+  resetWcScope: () => void
   /** Reset ALL store slices to initial state (destructive — clears all user data). */
   resetAll: () => void
   _hasHydrated: boolean
@@ -178,7 +207,7 @@ interface KkaState {
 }
 
 const STORE_KEY = 'kka-penilaian-saham'
-const STORE_VERSION = 17
+const STORE_VERSION = 18
 
 /**
  * Migrate persisted state from older versions to the current schema.
@@ -528,6 +557,18 @@ export function migratePersistedState(
     }
   }
 
+  // v17→v18: Session 039 — add root-level `changesInWorkingCapital` slice.
+  // Required input gate: user must visit /analysis/changes-in-working-capital
+  // and click "Konfirmasi Cakupan" to transition null → empty-exclusion object
+  // before CFS/FCF/FR/DCF/EEM/CFI/Simulasi/Dashboard/Proy CFS unlock.
+  // Idempotent: if the field already exists, leave it alone.
+  if (fromVersion < 18) {
+    const current = (state as Record<string, unknown>).changesInWorkingCapital
+    if (current === undefined) {
+      state = { ...state, changesInWorkingCapital: null }
+    }
+  }
+
   return state
 }
 
@@ -549,6 +590,7 @@ export const useKkaStore = create<KkaState>()(
       aamAdjustments: {},
       nilaiPengalihanDilaporkan: 0,
       interestBearingDebt: null,
+      changesInWorkingCapital: null,
       setHome: (home) => set({ home }),
       resetHome: () => set({ home: null }),
       setDlom: (dlom) =>
@@ -587,6 +629,42 @@ export const useKkaStore = create<KkaState>()(
         })),
       setNilaiPengalihanDilaporkan: (v) => set({ nilaiPengalihanDilaporkan: v }),
       setInterestBearingDebt: (v) => set({ interestBearingDebt: v }),
+      toggleExcludeCurrentAsset: (excelRow) =>
+        set((state) => {
+          const current = state.changesInWorkingCapital ?? {
+            excludedCurrentAssets: [],
+            excludedCurrentLiabilities: [],
+          }
+          const list = current.excludedCurrentAssets
+          const next = list.includes(excelRow)
+            ? list.filter((r) => r !== excelRow)
+            : [...list, excelRow]
+          return {
+            changesInWorkingCapital: { ...current, excludedCurrentAssets: next },
+          }
+        }),
+      toggleExcludeCurrentLiability: (excelRow) =>
+        set((state) => {
+          const current = state.changesInWorkingCapital ?? {
+            excludedCurrentAssets: [],
+            excludedCurrentLiabilities: [],
+          }
+          const list = current.excludedCurrentLiabilities
+          const next = list.includes(excelRow)
+            ? list.filter((r) => r !== excelRow)
+            : [...list, excelRow]
+          return {
+            changesInWorkingCapital: { ...current, excludedCurrentLiabilities: next },
+          }
+        }),
+      confirmWcScope: () =>
+        set((state) => ({
+          changesInWorkingCapital: state.changesInWorkingCapital ?? {
+            excludedCurrentAssets: [],
+            excludedCurrentLiabilities: [],
+          },
+        })),
+      resetWcScope: () => set({ changesInWorkingCapital: null }),
       resetAll: () => set({
         language: 'en',
         home: null,
@@ -603,6 +681,7 @@ export const useKkaStore = create<KkaState>()(
         aamAdjustments: {},
         nilaiPengalihanDilaporkan: 0,
         interestBearingDebt: null,
+        changesInWorkingCapital: null,
       }),
       _hasHydrated: false,
       _setHasHydrated: (hydrated) => set({ _hasHydrated: hydrated }),
@@ -627,6 +706,7 @@ export const useKkaStore = create<KkaState>()(
         aamAdjustments: state.aamAdjustments,
         nilaiPengalihanDilaporkan: state.nilaiPengalihanDilaporkan,
         interestBearingDebt: state.interestBearingDebt,
+        changesInWorkingCapital: state.changesInWorkingCapital,
       }),
       migrate: migratePersistedState,
       onRehydrateStorage: () => (state) => {
