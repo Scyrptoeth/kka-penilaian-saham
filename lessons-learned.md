@@ -638,7 +638,12 @@ untuk 3+ sesi ke depan:
 - LESSON-118 (Store schema migration must also update Phase C fixture helpers — typecheck does not catch missing nullable fields)
 - LESSON-119 (User-curated exclusion list is single source of truth for compute AND display — never retain a heuristic classifier "for display only")
 
-LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054, 074, 087, 109, 113, 117 **TIDAK** di-promote — workflow/session-specific
+### Session 043 (Toggles redesign + Depreciation bug + AAM IBD auto-negate + Dashboard account-driven)
+- LESSON-122 (deriveComputedRows drops cross-ref rows from output — merge cross-ref into display layer AND persist sentinels)
+- LESSON-123 (Auto-adjustment map at builder boundary — business logic wins over user input for specific rows; UI locks cell)
+- LESSON-124 (Semantic row constants + account-driven aggregation for display layer — extends LESSON-108 from compute to display)
+
+LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054, 074, 087, 109, 113, 117, 120, 121, 125 **TIDAK** di-promote — workflow/session-specific
 insights yang general ke project lain tapi terlalu luas atau terlalu
 session-specific untuk section 8 (yang fokus KKA-specific gotchas).
 Tersimpan di lessons-learned saja.
@@ -3582,3 +3587,109 @@ Document the decision in an inline comment at the early-return. Test both branch
 **Proven at**: session-041 (2026-04-18). `isIbdAccount` removed from `balance-sheet-catalog.ts`. `buildAamInput` accepts optional `excludedCurrentLiabIbd` + `excludedNonCurrentLiabIbd` Sets. AAM page passes them from `state.interestBearingDebt.excludedXxx`. Same exclusion sets feed both NAV math (via `computeInterestBearingDebt`) AND display (via Set membership in `buildAamInput` switch). Tests 1261/1261 pass.
 
 ---
+
+## Session 043 — Toggles + Depreciation Bug Fix + AAM IBD Auto-Negate + Dashboard Account-Driven
+
+### LESSON-122: deriveComputedRows drops cross-ref rows from output — merge cross-ref into display layer
+
+**Kategori**: Anti-pattern | Framework
+**Sesi**: session-043
+**Tanggal**: 2026-04-18
+
+**Konteks**: ManifestRow with `type: 'cross-ref'` that carries a value sourced from another store slice (IS Depreciation ← FA Total Dep Additions, BS Fixed Asset Net ← FA Total Net Value) without declaring `computedFrom`.
+
+**Apa yang terjadi**: User reported IS "Penyusutan" row rendered as "-" dashes even after editing FA page. Wiring looked correct: `depCrossRef = computeDepreciationFromFa(faRows)` produced the right values, `{...localRows, ...depCrossRef}` was passed as INPUT to `deriveComputedRows`. Root cause: `src/lib/calculations/derive-computed-rows.ts:38` skips any row with `!row.computedFrom || row.computedFrom.length === 0`. Row 21 (DEPRECIATION) has type 'cross-ref' without `computedFrom`, so its value never reached the OUTPUT map `computedValues`. RowInputGrid reads `computedValues[21]` for cross-ref cells → always undefined → "-". DynamicBsEditor was already spread-merged correctly at the JSX level (`computedValues={{...crossRefValues, ...computedValues}}` line 317); DynamicIsEditor missed this pattern in both display AND persist paths.
+
+**Root cause / insight**: `deriveComputedRows` is a FORMULA EVALUATOR — it only emits rows it was asked to compute. Feeding a cross-ref value via spread input keeps it available as a DEPENDENCY for downstream computation (EBIT = EBITDA + DEPRECIATION works correctly) but does NOT inject it into the output. Consumers that read `computedValues` directly for non-editable display must add the cross-ref pass-through themselves.
+
+**Cara menerapkan di masa depan**: When adding a cross-ref row to any manifest-driven editor, follow this 4-step pattern:
+1. Compute cross-ref helper (e.g. `computeDepreciationFromFa`, `computeBsCrossRefValues`)
+2. Spread into INPUT of `deriveComputedRows`: `{ ...localRows, ...crossRef }` — lets dependents compute
+3. Merge into OUTPUT of `deriveComputedRows` for display: `{ ...crossRef, ...computed }` — base first, computed last, so computed wins for subtotals while cross-ref fills the gap
+4. Explicitly inject cross-ref row into persist `sentinels` object so downstream consumers (NOPLAT, FR, export) see it in store
+
+Always mirror the pattern established by DynamicBsEditor (the reference implementation). When adding a new cross-ref, grep for `{ ...<otherSlice>, ...computedValues }` to find the merge site.
+
+**Proven at**: session-043 (2026-04-18). Fix in `src/components/forms/DynamicIsEditor.tsx:128-138` (memo merge) + `src/components/forms/DynamicIsEditor.tsx:96-101` (persist sentinel inject). 4 TDD cases in `__tests__/components/forms/dynamic-is-editor-cross-ref-display.test.ts` lock regression (BUG guard + FIX display + FIX chain + FIX persist). User's depreciation flow confirmed.
+
+---
+
+### LESSON-123: Auto-adjustment map at builder boundary — business logic wins over user input for specific rows
+
+**Kategori**: Design | Framework
+**Sesi**: session-043
+**Tanggal**: 2026-04-18
+
+**Konteks**: AAM Penyesuaian column where most rows are user-editable but a specific subset (retained IBD liability accounts) must be auto-set per deterministic business rule (= -HistoricalValue) to enforce a contract (col E = 0 = not counted in NAV).
+
+**Apa yang terjadi**: User wanted retained IBD accounts to auto-zero in AAM (col E = 0) to make the "IBD not counted in NAV" contract visible. Naive approach: intercept at UI layer (pre-fill input, make read-only). But this would:
+- Require UI state management for "auto vs user" per row
+- Leave math incorrect if user manually typed different value (store would disagree with display)
+- Not propagate to export (AAM builder would still see user's aamAdjustments)
+
+Better approach: auto-map at BUILDER boundary. `buildAamInput` now computes an auto-adjustments Record for retained IBD rows, merges AFTER user adjustments so auto WINS. UI reads the auto-map and renders locked read-only cell for those rows instead of AdjustmentCell. Single source of truth: the builder.
+
+**Root cause / insight**: When UI allows user input BUT business logic mandates specific values for specific rows, the enforcement belongs at the DATA BOUNDARY (where the computation runs), not at the UI (too many code paths — direct input, debounced save, import, export). UI becomes a thin presenter: "is this row in autoMap? show locked. else show editable." User cannot bypass by typing because autoMap overrides at the only place that matters (the builder input).
+
+**Cara menerapkan di masa depan**: For any feature where user input is partially overridden by business logic:
+1. Extract a pure `compute{Concept}AutoAdjustments(params)` helper returning `Record<key, value>`
+2. In the input builder, merge auto AFTER user: `const adj = { ...userAdj, ...autoAdj }` — auto wins
+3. In the UI, export the same auto-map for rendering. Locked-row rendering reads autoMap; editable-row rendering reads userInput. Use `Object.prototype.hasOwnProperty.call(autoMap, row)` to distinguish (captures zero values).
+4. Add bilingual tooltip explaining WHY the cell is locked (business reason, not "disabled because").
+5. TDD both the helper (pure function, edge cases: empty accounts, zero historical, asset sections skipped) AND the builder integration (auto wins over user, other sections preserved).
+
+**Proven at**: session-043 (2026-04-18). New `computeIbdAutoAdjustments` helper in `src/lib/calculations/upstream-helpers.ts`. `buildAamInput` merge at line 220. AAM page renders `<td>` for locked rows vs `<AdjustmentCell>` for editable via `Object.prototype.hasOwnProperty.call(autoAdj, row)` check. 10 TDD cases in `__tests__/lib/calculations/aam-ibd-auto-adjust.test.ts` cover helper + integration. i18n key `aam.ibdRetainedLockTitle` with bilingual tooltip.
+
+---
+
+### LESSON-124: Semantic row constants + account-driven aggregation for display layer
+
+**Kategori**: Anti-pattern | Design | Framework
+**Sesi**: session-043
+**Tanggal**: 2026-04-18
+
+**Konteks**: Dashboard / summary pages that read subtotal values from store to render charts. These consumers historically used raw integer row numbers like `allBs[26]`, `isRows[6]`, `allFcf[20]`, `proyLrRows[6]` — magic numbers copied from the PT Raja Voltama prototype.
+
+**Apa yang terjadi**: User reported KOMPOSISI NERACA chart showing all-zero bars despite BS being fully populated. Investigation revealed three stacked issues: (1) Dashboard used `allBs[26]/[40]/[48]` which were WRONG for every user — correct BS sentinel positions after Session 020 dynamic-catalog refactor are 27/41/49. (2) Even with correct sentinel positions, user's extended catalog may not have triggered sentinel persist yet → `allBs[27]` could be undefined. (3) `proyLrRows[6]` was wrong by a totally different mechanism — PROY LR template stores Revenue at row 8 (not 6) because projection sheet uses its own slot layout (LESSON-103 template row translation).
+
+**Root cause / insight**: Display layer that reads subtotals via literal row numbers has TWO failure modes:
+- **Stale constant**: row numbers drift when catalog/manifest evolves; display silently renders zeros
+- **Missing sentinel**: even correct row number fails if the user's state hasn't persisted that specific subtotal row
+
+Fix requires BOTH layers:
+1. Replace literal `N` with semantic constants exported from the catalog/manifest module (e.g. `BS_SUBTOTAL.TOTAL_ASSETS`, `IS_SENTINEL.REVENUE`, `PROY_LR_ROW.REVENUE`, `FCF_ROW.FREE_CASH_FLOW`). Changes to template layout now break at ONE constant definition, not at N consumer sites.
+2. For subtotals that DO depend on user's dynamic accounts (BS composition, FR totals, etc.), use account-driven aggregation as the PRIMARY path (iterate `balanceSheet.accounts` by `section`, sum values per year). Sentinel-based reads become optional fallback, never required.
+
+This extends LESSON-108 (which was about COMPUTE modules) to the DISPLAY layer. Same principle: hardcoded row number = latent bug for dynamic-catalog users.
+
+**Cara menerapkan di masa depan**: For any display-layer code that reads subtotals from store:
+- FORBID literal integers for row access. Use `BS_SUBTOTAL.*`, `IS_SENTINEL.*`, `PROY_LR_ROW.*`, `FCF_ROW.*` constants (add new constant sets to the respective catalog/manifest file — `as const` Records).
+- For BS/IS/FA composition metrics: iterate `state.<slice>.accounts` by section + aggregate directly from `allBs[account.excelRow]`. Never trust that a specific subtotal row exists.
+- Extract pure builders (`buildBsCompositionSeries`, `buildRevenueNetIncomeSeries`, `buildFcfSeries`) into `src/lib/dashboard/data-builder.ts` (or similar) with TDD — page becomes thin composition.
+- Add regression test that locks constant values (`expect(BS_SUBTOTAL.TOTAL_ASSETS).toBe(27)`) so future silent template renumbers fail visibly instead of blanking charts.
+
+Red flag in code review: any `state.balanceSheet.rows[\d+]`, `state.incomeStatement.rows[\d+]`, `allBs[\d+]`, `allFcf[\d+]`, `proyLrRows[\d+]` pattern with a literal number — always replace with named constant or account-driven iteration.
+
+**Proven at**: session-043 (2026-04-18). New module `src/lib/dashboard/data-builder.ts` with 3 pure builders + `aggregateBsBySection`. New constants `BS_SUBTOTAL` in `src/data/catalogs/balance-sheet-catalog.ts`, `PROY_LR_ROW` in `src/data/live/compute-proy-lr-live.ts`, `FCF_ROW` in `src/data/manifests/fcf.ts`. 14 TDD cases in `__tests__/lib/dashboard/data-builder.test.ts` + extended catalog regression scenario. Dashboard page reduced to thin composition (65 LOC diff, removed 8 lines of hardcoded row access).
+
+---
+
+### LESSON-125: `role="switch"` requires `aria-checked`, not `aria-pressed` — local
+
+**Kategori**: Framework | Accessibility
+**Sesi**: session-043
+**Tanggal**: 2026-04-18
+
+**Konteks**: ARIA role attribute semantics for toggle buttons. `role="button"` pairs with `aria-pressed` (tri-state); `role="switch"` pairs with `aria-checked` (binary on/off).
+
+**Apa yang terjadi**: Built new ThemeToggle + LanguageToggle with `role="switch" aria-pressed={isDark}`. ESLint `jsx-a11y/role-supports-aria-props` warned: "The attribute aria-pressed is not supported by the role switch". Also `jsx-a11y/role-has-required-aria-props` flagged missing `aria-checked`. Fix: replace `aria-pressed` with `aria-checked`.
+
+**Root cause / insight**: WAI-ARIA spec distinguishes toggle-button (pressed) from switch (checked) semantics. Screen readers announce differently. ESLint plugin enforces the pairing.
+
+**Cara menerapkan di masa depan**: When building a boolean toggle:
+- If it feels like a "switch" (on/off state, usually visual like a slide), use `role="switch" aria-checked={value}`
+- If it feels like a "button that gets pressed", use default button semantics + `aria-pressed={value}` (no role attribute needed — `<button>` is already `role=button`)
+
+Always let ESLint `jsx-a11y` catch mismatches. Don't silence the warning.
+
+**Proven at**: session-043 (2026-04-18). ThemeToggle.tsx + LanguageToggle.tsx fixed in same session. Lint clean after swap.

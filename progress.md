@@ -1,80 +1,70 @@
 # Progress — KKA Penilaian Saham
 
-> Latest state after Session 042 — IS Tax Adjustment Export + AAM Extended Injection + LESSON-108 Audit + AP Dynamic Catalog + RESUME Page (2026-04-18)
+> Latest state after Session 043 — Sidebar Toggles Redesign + Depreciation Bug Fix + AAM IBD Auto-Negate + Dashboard Account-Driven (2026-04-18)
 
 ## Verification Results
 ```
-Tests:     1288 / 1288 passing + 1 skipped  (104 files; +27 net since Session 041)
-Build:     ✅ 42 static pages (+1 for RESUME)
+Tests:     1316 / 1316 passing + 1 skipped  (107 files; +28 net since Session 042)
+Build:     ✅ 42 static pages
 Typecheck: ✅ tsc --noEmit clean
 Lint:      ✅ zero warnings
 Audit:     ✅ 0 i18n violations (`npm run audit:i18n`)
 Phase C:   ✅ 5/5 gates green (`npm run verify:phase-c`)
 Cascade:   ✅ 29/29 MIGRATED_SHEETS
 Live:      https://penilaian-bisnis.vercel.app
-Store:     v20 (schema migration v19→v20 — accPayables schedule shape)
+Store:     v20 (unchanged this session)
 Registry:  29 / 29 WEBSITE_NAV_SHEETS state-driven
+Branch:    feat/session-043-toggles-depreciation-aam-ibd-dashboard (4 feature commits + 1 docs commit, unpushed at session close)
 ```
 
-## Session 042 (2026-04-18) — 5 coordinated backlog closures
+## Session 043 (2026-04-18) — 4 user-reported issues resolved
 
-### Task 1 — IS Tax Adjustment Export (rows 600/601)
-- New `injectTaxAdjustmentRows(workbook, state)` writes synthetic rows 600/601 to INCOME STATEMENT sheet
-- Row 600 (Koreksi Fiskal): static leaf value from store
-- Row 601 (TAXABLE PROFIT): live Excel formula `=<col>32+<col>600` with cached pre-computed result
-- Labels at B600/B601 honor state.incomeStatement.language (Fiscal Correction/TAXABLE PROFIT or ID)
-- +5 TDD cases
+### Task 1 — Icon-dominant sidebar toggles
+- **ThemeToggle** (56×28 pill switch): sun+moon icons, sliding thumb, `role=switch aria-checked`
+- **LanguageToggle** (56×28 pill switch): inline SVG flags (UK Union Jack + Indonesia), "EN"/"ID" flanks, sliding flag thumb
+- **LogoutButton** (pill): person-with-arrow-right SVG + "LOG OUT" / "KELUAR" text, inverse hover
+- SidebarHeader now renders toggles side-by-side (compact control cluster)
+- 6 new i18n aria-label keys (adaptive to 4 light/dark × EN/ID combos)
 
-### Task 2 — AAM Extended Injection (excelRow ≥ 100)
-- New `injectAamExtendedAccounts` module with per-section synthetic row bands (CA 100-119, NCA 120-139, CL-IBD 140-159, CL-nonIBD 160-179, NCL-IBD 180-199, NCL-nonIBD 200-219, Equity 220-239)
-- Per account: label B, static BS value C, adjustment D (from aamAdjustments), live formula `=C+D` at E
-- IBD vs non-IBD routing driven by Session 041 exclusion sets — same source of truth as AAM display split (LESSON-119)
-- Subtotal append pattern (+SUM) to rows 16/22/32/37/47 per Session 025 BS pattern
-- Row 51 NAV subtracts non-IBD extended ranges; Row 52 IBD adds IBD extended ranges
-- Formula cell column may differ from SUM range column (e.g. E52 formula with SUM over col C)
-- +8 TDD cases
+### Task 2 — Depreciation IS row 21 auto-populate bug
+- **Root cause** (subtle): `deriveComputedRows` skips rows without `computedFrom`. Row 21 has `type: 'cross-ref'` without `computedFrom`, so its value never reached the output map despite being in the spread INPUT.
+- **Fix**: DynamicIsEditor computedValues memo now merges `depCrossRef` into output (`{ ...depCrossRef, ...bare }`), and schedulePersist explicitly injects row 21 into persist sentinels.
+- 4 TDD cases lock regression (BUG guard + FIX display + FIX chain + FIX persist).
 
-### Task 3 — LESSON-108 Grep Audit
-- Scanned NOPLAT/FCF/FR/ROIC compute modules for hardcoded `const *_ROWS = [N, N]` patterns
-- **Audit clean** — zero violations found. Session 039 + 041 refactors were thorough.
-- Only remaining `_ROWS` patterns are legitimate exceptions:
-  - `BS_CASH_ROWS = [8, 9]` in cash-flow-live — Cash Beginning/Ending is a specific line item, not aggregation (inline comment explains)
-  - `DLOM_ANSWER_ROWS`/`DLOC_ANSWER_ROWS` — fixed questionnaire structure
-- No refactor needed
+### Task 3 — AAM IBD retained auto-negate Penyesuaian
+- New pure helper `computeIbdAutoAdjustments` in `upstream-helpers.ts` — returns `Record<excelRow, -bsValue>` for CL/NCL rows NOT in exclusion sets.
+- `buildAamInput` merges auto-map AFTER `userAdj` so auto wins for retained IBD rows.
+- AAM page: retained IBD rows render as locked `<td>` (bilingual tooltip) instead of editable `AdjustmentCell`. Col D shows -C, col E shows 0.
+- Equity section untouched — fully user-editable.
+- 10 TDD cases covering helper + builder integration + NAV end-to-end.
+- i18n key `aam.ibdRetainedLockTitle` bilingual.
 
-### Task 4 — AccPayables Dynamic Catalog (4th dynamic catalog)
-- Type refactor `AccPayablesInputState = { rows }` → `{ schedules, rows }`
-- New `ApSchedule = { id, section, slotIndex, customLabel? }`
-- 2 fixed sections: `st_bank_loans` + `lt_bank_loans`
-- 3 bands per schedule: Beginning (computed), Addition (signed leaf), Ending (computed = Beg + Add)
-- Repayment folded into signed Addition per LESSON-055 plain addition convention
-- Default seeds 1 ST + 1 LT schedule
-- Band layout: ST_BEG 9 + ext 100-139, ST_ADD 10 + 140-179, ST_END 12 + 180-219; LT_BEG 18 + 220-259, LT_ADD 19 + 260-299, LT_END 21 + 300-339
-- Store v19→v20 migration: folds old rows 11+14 into 10 (ST Addition) and 20+23 into 19 (LT Addition); drops Interest Payable data (not consumed downstream)
-- Page rewrite at `/input/acc-payables` with dynamic schedules editor (+Add/Rename/Remove per section)
-- Deterministic schedule id `${section}_slot${N}` (react-hooks/purity compliant)
-- AccPayablesBuilder iterates schedules; writes Beg static + Addition leaf + End live formula + custom labels at col B
-- +14 TDD cases (9 catalog + 3 migration + 12 builder − 10 obsolete removed; net +14)
+### Task 4 — Dashboard account-driven (LESSON-108 audit extended to display)
+- User-reported bug: KOMPOSISI NERACA chart all zeros despite BS filled.
+- **3 stacked bugs identified**: stale hardcoded `allBs[26]/[40]/[48]` (correct are 27/41/49); even correct positions may be missing for users with extended catalogs; `proyLrRows[6]` was wrong by a completely different mechanism (PROY LR stores Revenue at row 8, LESSON-103 template row translation).
+- **New module** `src/lib/dashboard/data-builder.ts` with 3 pure builders + `aggregateBsBySection`:
+  - `buildBsCompositionSeries` uses account-driven aggregation as PRIMARY path (NEVER trusts magic rows)
+  - `buildRevenueNetIncomeSeries` uses `IS_SENTINEL` + `PROY_LR_ROW` constants
+  - `buildFcfSeries` uses `FCF_ROW.FREE_CASH_FLOW` constant
+- **New semantic constants** exported from catalog/manifest modules:
+  - `BS_SUBTOTAL` in `balance-sheet-catalog.ts` (TOTAL_ASSETS=27, TOTAL_LIABILITIES=41, TOTAL_EQUITY=49, etc.)
+  - `PROY_LR_ROW` in `compute-proy-lr-live.ts` (REVENUE=8, NET_PROFIT=39, etc.)
+  - `FCF_ROW` in `fcf.ts` (FREE_CASH_FLOW=20, etc.)
+- Dashboard page reduced from 8 magic-number sites to thin builder composition.
+- 14 TDD cases including extended-catalog regression scenario + constant-value locks.
 
-### Task 5 — RESUME Page (`/dashboard/resume`)
-- Pure display page — composes `buildAamInput + buildDcfInput + buildEemInput + compute*` via useMemo
-- Zero new calc; re-uses existing upstream-helpers
-- 3-column × 3-row comparison table (AAM / DCF / EEM × Equity 100% / Equity Portion / Per-Share)
-- 3 Metodologi cards with 1 bilingual paragraf each
-- Rekomendasi Nilai section with min/midpoint/max range + PMK-79 professional judgment disclaimer
-- Required-gates via PageEmptyState on all upstream inputs
-- ~28 new i18n keys (resume.* prefix)
-
-### Lessons extracted (2, both session-specific — not promoted)
-- **LESSON-120** (local): AAM-style formula-cell vs SUM-range column decoupling — formula lives at E52 but references col C, append must address them separately
-- **LESSON-121** (local): Dynamic-catalog sentinel pattern generalizes — AP Beg/End sentinels follow same persist-time pre-compute + formula-band export as FA/BS/IS sentinels
+### Lessons extracted (4)
+- **LESSON-122** [PROMOTED]: deriveComputedRows drops cross-ref rows from output — merge cross-ref into display layer AND persist sentinels
+- **LESSON-123** [PROMOTED]: Auto-adjustment map at builder boundary — business logic wins over user input for specific rows; UI locks cell
+- **LESSON-124** [PROMOTED]: Semantic row constants + account-driven aggregation for display layer — extends LESSON-108 from compute to display
+- **LESSON-125** [local]: `role="switch"` requires `aria-checked`, not `aria-pressed`
 
 ## Latest Sessions
-- [Session 042](history/session-042-tax-export-aam-ext-ap-dynamic-resume.md) (2026-04-18): IS Tax Export (600/601) + AAM Extended Injection + LESSON-108 Audit + AP Dynamic Catalog (4th catalog) + RESUME Page — store v19→v20, 5 user tasks, ~25 files, +3383/-562 LOC, +27 tests, 2 lessons (local only). Merged to main
-- [Session 041](history/session-041-is-revamp-bs-note-ibd-redesign.md) (2026-04-18): IS Revamp + BS Koreksi Fiskal note + IBD scope-page redesign + isIbdAccount cleanup
+- [Session 043](history/session-043-toggles-depreciation-aam-ibd-dashboard.md) (2026-04-18): Sidebar Toggles Redesign + Depreciation Bug + AAM IBD Auto-Negate + Dashboard Account-Driven — 4 tasks, 16 files, +1157/-139 LOC, +28 tests, 4 lessons (3 promoted). Feature branch `feat/session-043-*` (4 commits, not yet merged/pushed).
+- [Session 042](history/session-042-tax-export-aam-ext-ap-dynamic-resume.md) (2026-04-18): IS Tax Export (600/601) + AAM Extended Injection + LESSON-108 Audit + AP Dynamic Catalog + RESUME Page — store v19→v20
+- [Session 041](history/session-041-is-revamp-bs-note-ibd-redesign.md) (2026-04-18): IS Revamp + BS Koreksi Fiskal note + IBD scope-page redesign
 - [Session 040](history/session-040-extended-injection-sign-reconciliation.md) (2026-04-18): Extended Injection (Proy BS/FA/KD) + KD Sign Reconciliation
 - [Session 039](history/session-039-wc-scope-and-dcf-breakdown.md) (2026-04-18): Changes in Working Capital required-gate + DCF inline breakdown
-- [Session 038](history/session-038-ibd-field.md) (2026-04-18): Interest Bearing Debt dedicated page (numeric input — superseded by Session 041 scope-editor redesign)
 
 ## Delivered (cumulative highlights)
 
@@ -89,24 +79,32 @@ Registry:  29 / 29 WEBSITE_NAV_SHEETS state-driven
 - Sentinel pre-computation across all 4 editors
 - Account-driven WC aggregation with shared `resolveWcRows` helper
 - AAM section-based input + IBD classification driven by user-curated exclusion sets
-- IS Koreksi Fiskal + TAXABLE PROFIT synthetic rows 600/601 (now exported in Session 042)
+- **AAM retained IBD auto-negate at builder boundary (Session 043) — single source of truth for "not counted in NAV" contract**
+- IS Koreksi Fiskal + TAXABLE PROFIT synthetic rows 600/601 (exported in Session 042)
 - Export pipeline extended-account coverage: BS + IS + FA + PROY BS + PROY FA + KEY DRIVERS Additional Capex + AAM extended + AP schedules
+- **Dashboard data-builder module (Session 043) — pure functions with TDD, account-driven + semantic constants pattern. Foundation for future chart additions.**
 - IBD scope-editor page; changesInWorkingCapital scope page
 
 ### Pages (42 total prerendered)
-- **Input**: HOME · Balance Sheet (dynamic 84) · Income Statement (dynamic 48) · Fixed Asset (dynamic 20) · Key Drivers · **Acc Payables (dynamic schedules — NEW in Session 042)**
+- **Input**: HOME · Balance Sheet (dynamic 84) · Income Statement (dynamic 48) · Fixed Asset (dynamic 20) · Key Drivers · Acc Payables (dynamic schedules)
 - **Historical** (hidden from sidebar): BS, IS, Cash Flow, Fixed Asset
 - **Analysis**: Financial Ratio · FCF · NOPLAT · Growth Revenue · ROIC · Growth Rate · Changes in Working Capital · Cash Flow Statement
 - **Projection**: Proy. L/R · Proy. FA · Proy. BS · Proy. NOPLAT · Proy. CFS
 - **Valuation**: DLOM · DLOC (PFC) · WACC · Discount Rate · Borrowing Cap · Interest Bearing Debt · DCF · AAM · EEM · CFI · Simulasi Potensi
-- **Summary**: Dashboard · **RESUME (NEW in Session 042)**
+- **Summary**: Dashboard · RESUME
+
+### UI (Session 043 redesign)
+- 3 sidebar toggles: ThemeToggle + LanguageToggle (pill-switch with flag thumb) + LogoutButton (pill with icon + inverse hover)
+- All toggles use `role="switch" aria-checked` + bilingual adaptive aria-labels
+- Icon-dominant design — text labels removed where icon is unambiguous
 
 ## Next Session Priorities
 
-### Session 043+ Backlog
+### Session 044+ Backlog
 
-1. **Upload parser (.xlsx → store)** — reverse direction. Requires IBD scope adapter (Session 041 redesign) + AP schedule shape adapter (Session 042 v20) — needs discussion with user for (a) null-on-upload force re-confirm vs (b) trust mode preserving uploaded structure
-2. **Dashboard polish** — projected FCF chart with Session 036 NV-growth model
-3. **Multi-case management** (multiple companies in one localStorage)
-4. **Cloud sync / multi-device**
-5. **Audit trail / change history**
+1. **User QA pass + merge feature branch** — before next dev work, user validates 4 Session 043 fixes visually + authorizes merge to main
+2. **Upload parser (.xlsx → store)** — reverse direction. Requires IBD scope adapter (Session 041) + AP schedule shape adapter (Session 042 v20) — discuss with user: null-on-upload force re-confirm vs trust mode preserving uploaded structure
+3. **Dashboard polish** — now easier post-Session 043 foundation. Add projected FCF chart composing a new builder (Session 036 NV-growth model). Possibly add WACC trend, Simulasi Potensi tax projection.
+4. **Multi-case management** (multiple companies in one localStorage)
+5. **Cloud sync / multi-device**
+6. **Audit trail / change history**
