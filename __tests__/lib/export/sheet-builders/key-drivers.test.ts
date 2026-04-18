@@ -86,9 +86,11 @@ describe('KeyDriversBuilder.build — scalars', () => {
     expect(wb.getWorksheet('KEY DRIVERS')!.getCell('D14').value).toBe(100000)
   })
 
-  it('writes cogsRatio scalar to D20', () => {
+  // Session 040 Task #5: cogsRatio stored positive (0.6) → written negative
+  // (-0.6) to match template + PROY LR live formula sign convention.
+  it('writes cogsRatio scalar to D20 as negated value', () => {
     KeyDriversBuilder.build(wb, makeState({}))
-    expect(wb.getWorksheet('KEY DRIVERS')!.getCell('D20').value).toBe(0.6)
+    expect(wb.getWorksheet('KEY DRIVERS')!.getCell('D20').value).toBe(-0.6)
   })
 })
 
@@ -112,11 +114,12 @@ describe('KeyDriversBuilder.build — arrays', () => {
     expect(ws.getCell('J28').value).toBe(36)
   })
 
-  it('expands cogsRatio scalar to E20..J20 via _cogsRatioProjected synthetic field', () => {
+  // Session 040 Task #5: projected ratios also negated at export boundary.
+  it('expands cogsRatio scalar to E20..J20 via _cogsRatioProjected — negated', () => {
     KeyDriversBuilder.build(wb, makeState({}))
     const ws = wb.getWorksheet('KEY DRIVERS')!
-    expect(ws.getCell('E20').value).toBe(0.6)
-    expect(ws.getCell('J20').value).toBe(0.6)
+    expect(ws.getCell('E20').value).toBe(-0.6)
+    expect(ws.getCell('J20').value).toBe(-0.6)
   })
 
   // Session 036: additionalCapex migrated to dynamic per-account map
@@ -275,5 +278,94 @@ describe('KeyDriversBuilder.build — additionalCapexByAccount (Session 040)', (
     KeyDriversBuilder.build(wb, makeState({ home: makeHome(), fixedAsset: null }))
     const ws = wb.getWorksheet('KEY DRIVERS')!
     expect(ws.getCell('B33').value).toBe('PROTOTIPE_RESIDUE')
+  })
+})
+
+// Session 040 Task #5 — Sign convention reconciliation.
+// Store keeps ratios POSITIVE (LESSON-011); Excel template + live PROY LR
+// formulas expect NEGATIVE (so `=D8*'KEY DRIVERS'!D23` yields negative
+// selling expense in Projected IS). Reconciled at the export boundary.
+describe('KeyDriversBuilder.build — ratio sign reconciliation (Session 040)', () => {
+  it('writes cogsRatio as NEGATIVE at D20', () => {
+    const wb = makeWorkbook()
+    KeyDriversBuilder.build(wb, makeState({}))
+    const ws = wb.getWorksheet('KEY DRIVERS')!
+    // Store has 0.6, export must be -0.6 to match template + PROY LR formulas
+    expect(ws.getCell('D20').value).toBe(-0.6)
+  })
+
+  it('writes sellingExpenseRatio as NEGATIVE at D23', () => {
+    const wb = makeWorkbook()
+    KeyDriversBuilder.build(wb, makeState({}))
+    const ws = wb.getWorksheet('KEY DRIVERS')!
+    expect(ws.getCell('D23').value).toBe(-0.05)
+  })
+
+  it('writes gaExpenseRatio as NEGATIVE at D24', () => {
+    const wb = makeWorkbook()
+    KeyDriversBuilder.build(wb, makeState({}))
+    const ws = wb.getWorksheet('KEY DRIVERS')!
+    expect(ws.getCell('D24').value).toBe(-0.03)
+  })
+
+  it('expands negated cogsRatio across E20-J20 (all same negative)', () => {
+    const wb = makeWorkbook()
+    KeyDriversBuilder.build(wb, makeState({}))
+    const ws = wb.getWorksheet('KEY DRIVERS')!
+    for (const col of ['E', 'F', 'G', 'H', 'I', 'J']) {
+      expect(ws.getCell(`${col}20`).value, `${col}20`).toBe(-0.6)
+    }
+  })
+
+  it('expands negated sellingExpenseRatio across E23-J23', () => {
+    const wb = makeWorkbook()
+    KeyDriversBuilder.build(wb, makeState({}))
+    const ws = wb.getWorksheet('KEY DRIVERS')!
+    for (const col of ['E', 'F', 'G', 'H', 'I', 'J']) {
+      expect(ws.getCell(`${col}23`).value, `${col}23`).toBe(-0.05)
+    }
+  })
+
+  it('expands negated gaExpenseRatio across E24-J24', () => {
+    const wb = makeWorkbook()
+    KeyDriversBuilder.build(wb, makeState({}))
+    const ws = wb.getWorksheet('KEY DRIVERS')!
+    for (const col of ['E', 'F', 'G', 'H', 'I', 'J']) {
+      expect(ws.getCell(`${col}24`).value, `${col}24`).toBe(-0.03)
+    }
+  })
+
+  it('handles already-negative input via Math.abs — idempotent', () => {
+    const wb = makeWorkbook()
+    const kd = makeKeyDrivers({
+      operationalDrivers: {
+        salesVolumeBase: 100000, salesPriceBase: 500,
+        salesVolumeIncrements: [0.05, 0.06, 0.07, 0.08, 0.09, 0.1],
+        salesPriceIncrements: [0.01, 0.02, 0.03, 0.04, 0.05, 0.06],
+        // Edge case: user somehow has negative stored (pre-convention data)
+        cogsRatio: -0.55, sellingExpenseRatio: 0.04, gaExpenseRatio: 0.02,
+      },
+    })
+    KeyDriversBuilder.build(wb, makeState({ keyDrivers: kd }))
+    const ws = wb.getWorksheet('KEY DRIVERS')!
+    // -0.55 → -0.55 (stays negative, abs normalizes first)
+    expect(ws.getCell('D20').value).toBe(-0.55)
+  })
+
+  it('handles zero ratio — stays 0 (no -0)', () => {
+    const wb = makeWorkbook()
+    const kd = makeKeyDrivers({
+      operationalDrivers: {
+        salesVolumeBase: 100000, salesPriceBase: 500,
+        salesVolumeIncrements: [0.05, 0.06, 0.07, 0.08, 0.09, 0.1],
+        salesPriceIncrements: [0.01, 0.02, 0.03, 0.04, 0.05, 0.06],
+        cogsRatio: 0, sellingExpenseRatio: 0, gaExpenseRatio: 0,
+      },
+    })
+    KeyDriversBuilder.build(wb, makeState({ keyDrivers: kd }))
+    const ws = wb.getWorksheet('KEY DRIVERS')!
+    expect(ws.getCell('D20').value).toBe(0)
+    expect(ws.getCell('D23').value).toBe(0)
+    expect(ws.getCell('D24').value).toBe(0)
   })
 })

@@ -85,18 +85,13 @@ const KNOWN_DIVERGENT_CELLS = new Set<string>([
   // to the mayoritas score otherwise.
   'DLOM!C31',
   'DLOC(PFC)!B21',
-  // Key Drivers projection ratios: store convention stores ratios as
-  // POSITIVE (LESSON-011 — compute adapters negate as needed); template
-  // was saved with Excel's display convention NEGATIVE (matching LESSON-055
-  // IS sign convention). Functional equivalence via compute chain.
-  // Documenting as a known transform gap pending a dedicated sign-convention
-  // audit (tracked for a follow-up session).
-  'KEY DRIVERS!D20', 'KEY DRIVERS!E20', 'KEY DRIVERS!F20', 'KEY DRIVERS!G20',
-  'KEY DRIVERS!H20', 'KEY DRIVERS!I20', 'KEY DRIVERS!J20',
-  'KEY DRIVERS!D23', 'KEY DRIVERS!E23', 'KEY DRIVERS!F23', 'KEY DRIVERS!G23',
-  'KEY DRIVERS!H23', 'KEY DRIVERS!I23', 'KEY DRIVERS!J23',
-  'KEY DRIVERS!D24', 'KEY DRIVERS!E24', 'KEY DRIVERS!F24', 'KEY DRIVERS!G24',
-  'KEY DRIVERS!H24', 'KEY DRIVERS!I24', 'KEY DRIVERS!J24',
+  // Session 040 Task #5: KD ratio sign reconciliation complete. The 21
+  // previously whitelisted entries (D20/E20/.../J20, same for rows 23/24)
+  // now match template exactly because KeyDriversBuilder.reconcileRatioSigns
+  // negates cogsRatio / sellingExpenseRatio / gaExpenseRatio at the export
+  // boundary (LESSON-011 adapter pattern). Store stays positive; Excel
+  // output matches NEGATIVE template convention so live PROY LR formulas
+  // evaluate correctly when user reopens the exported workbook.
   // IS growth cells for rows 27/28 (interest income/expense): template
   // carries cached `#DIV/0!` error (dividing 2019 by 2018's 0). Sanitizer
   // / flatten normalizes error objects to null — semantically equivalent

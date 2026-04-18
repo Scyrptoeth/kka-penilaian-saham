@@ -109,12 +109,57 @@ function injectAdditionalCapexByAccount(
  * Upstream: `['keyDrivers']`. Orchestrator clears the sheet when
  * state.keyDrivers is null.
  */
+/** Columns that span scalar (D) + projected array (E-J) for ratio rows. */
+const RATIO_COLUMNS: readonly string[] = ['D', 'E', 'F', 'G', 'H', 'I', 'J']
+
+/**
+ * Session 040 Task #5 — Sign convention reconciliation at export boundary.
+ *
+ * Store keeps ratios POSITIVE (LESSON-011 convention: compute adapters
+ * negate internally as needed). Excel template + live PROY LR formulas
+ * expect ratios NEGATIVE so that:
+ *   PROY LR D9  = ROUNDUP('KEY DRIVERS'!D20 * D8, 3)  // projected COGS
+ *   PROY LR D12 = D8 * 'KEY DRIVERS'!D23              // projected selling
+ *   PROY LR D13 = D8 * 'KEY DRIVERS'!D24              // projected G&A
+ * yield NEGATIVE expense results matching LESSON-055 IS sign convention.
+ *
+ * Negating here (at the export adapter layer) is the LESSON-011 pattern:
+ * store stays positive; adapter flips sign when crossing to the Excel
+ * convention boundary. Previously whitelisted as 21 known divergent cells
+ * in Phase C; this reconciliation closes the gap without breaking the
+ * store / web invariants.
+ *
+ * Zero stays zero (no `-0`) for byte-level determinism.
+ */
+function reconcileRatioSigns(
+  workbook: ExcelJS.Workbook,
+  state: ExportableState,
+): void {
+  if (!state.keyDrivers) return
+  const ws = workbook.getWorksheet(SHEET_NAME)
+  if (!ws) return
+
+  const op = state.keyDrivers.operationalDrivers
+  const rows: Array<{ row: number; value: number }> = [
+    { row: 20, value: op.cogsRatio },
+    { row: 23, value: op.sellingExpenseRatio },
+    { row: 24, value: op.gaExpenseRatio },
+  ]
+  for (const { row, value } of rows) {
+    const negated = value === 0 ? 0 : -Math.abs(value)
+    for (const col of RATIO_COLUMNS) {
+      ws.getCell(`${col}${row}`).value = negated
+    }
+  }
+}
+
 export const KeyDriversBuilder: SheetBuilder = {
   sheetName: SHEET_NAME,
   upstream: ['keyDrivers'],
   build(workbook, state) {
     writeScalarsForSheet(workbook, state, SHEET_NAME)
     writeArraysForSheet(workbook, state, SHEET_NAME)
+    reconcileRatioSigns(workbook, state)
     injectAdditionalCapexByAccount(workbook, state)
   },
 }
