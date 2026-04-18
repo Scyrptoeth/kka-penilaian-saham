@@ -1,208 +1,184 @@
-# Session 035 Plan — T8-T10: Legacy Cleanup + Phase C State-Parity Rewrite
+# Session 036 Plan — Dynamic Account Interoperability
 
-**Branch**: `feat/session-035-legacy-cleanup-v2-promotion`
-**Target**: V1 body ≤ 20 LOC + strict state-parity Phase C + zero dead code.
-
-Every task independently verifiable. Commit per task. Feature branch
-merges to main at T10 after the full verification gate passes green.
+**Branch**: `feat/session-036-dynamic-projection`
+**Target**: End-to-end per-account growth projection (Proy BS + Proy FA) + Input FA CS/Growth feature parity + Additional Capex dynamic + Export builder cascade.
+**Budget**: 6–8 hours. MVP cut at T6 (full projection working). T7–T10 extended scope (Additional Capex + export builders + Phase C reconciliation).
 
 ---
 
-## T1. Design + Plan + Branch — in progress
+## Task 1 — Scaffold + branch + design commit
 
-- [x] `design.md` rewritten for Session 035 (Phase 1 output, committed
-  as part of T1)
-- [x] `plan.md` rewritten (this file)
-- [ ] Await user approval on this plan
-- [ ] Create feature branch `feat/session-035-legacy-cleanup-v2-promotion`
-- Commit 1: `docs: session 035 design + plan — T8-T10 legacy cleanup`
+- [ ] Create `feat/session-036-dynamic-projection` from main
+- [ ] Commit design.md + plan.md
+- [ ] Verify clean: `npm test && npm run typecheck && npm run lint`
+- **Verification**: branch checked out, docs committed, all gates green on main baseline.
 
-## T2. `stripCrossSheetRefsToBlankSheets` helper + TDD
+## Task 2 — Input FA Common Size + Growth YoY columns (feature parity)
 
-**Scope**: new exported utility in `src/lib/export/export-xlsx.ts`
-(colocated with `sanitizeDanglingFormulas`). Identifies formulas whose
-cross-sheet reference targets a cleared sheet and replaces them with
-cached values.
+**Files**:
+- `src/components/forms/DynamicFaEditor.tsx` — add `commonSizeData` + `growthData` memos + props to `RowInputGrid`
 
-- [ ] RED: write `__tests__/lib/export/strip-cross-sheet-refs.test.ts`
-  with 4 cases:
-  1. formula `='BLANK SHEET'!A1` on populated sheet, blankSheets =
-     `['BLANK SHEET']`, result = cached value
-  2. formula `=BLANK_SHEET!A1` (unquoted) → also stripped
-  3. formula `='POPULATED'!A1` on populated sheet, blankSheets =
-     `['BLANK SHEET']` → untouched
-  4. clearedSheets = `[]` → identity no-op across workbook
-- [ ] GREEN: implement `stripCrossSheetRefsToBlankSheets(workbook,
-  clearedSheets)` in `src/lib/export/export-xlsx.ts`. Reuse the
-  cached-value extraction pattern from `sanitizeDanglingFormulas`
-  (error-string/error-object null guards).
-- [ ] Export from `src/lib/export/index.ts` barrel
-- [ ] Verify: `npm test -- strip-cross-sheet-refs` all green
-- Commit 2: `feat(export): stripCrossSheetRefsToBlankSheets helper`
+**TDD**:
+- [ ] RED: test that `DynamicFaEditor` passes non-empty `commonSize` + `growth` props when `fixedAsset.rows[69]` > 0
+- [ ] GREEN: implement memos mirroring DynamicBsEditor lines 159–190 (denominator = row 69)
+- [ ] Verify visually: dev server render shows CS + Growth YoY columns on Input FA
 
-## T3. Extend `runSheetBuilders` to return `{ clearedSheets }`
+**Verification**: new Vitest cases green; snapshot/render test; no regression in DynamicBsEditor/DynamicIsEditor tests.
 
-**Scope**: augment `src/lib/export/sheet-builders/registry.ts` so the
-orchestrator is the authoritative source of blanked-sheet names. No
-call-site breakage — existing callers (Phase C test, `exportToXlsx`)
-can ignore the return value.
+## Task 3 — `computeProyBsLive` rewrite (Full Simple Growth)
 
-- [ ] RED: add test in `__tests__/lib/export/sheet-builders/registry.test.ts`:
-  (a) all builders populated → `clearedSheets = []`; (b) some unpopulated
-  → `clearedSheets` contains those sheet names; (c) registry empty →
-  returns `{ clearedSheets: [] }`.
-- [ ] GREEN: change `runSheetBuilders` return type from `void` to
-  `{ clearedSheets: readonly string[] }`. Push sheet name when
-  `isPopulated(upstream, state)` is false and `clearSheetCompletely`
-  runs.
-- [ ] Update callers: `exportToXlsx` captures return (for T4),
-  Phase C test ignores it, cascade integration test updates assertions
-  where relevant.
-- [ ] Verify: `npm test -- registry` green, no other test regression
-- Commit 3: `refactor(registry): runSheetBuilders returns clearedSheets`
+**Files**:
+- `src/data/live/compute-proy-bs-live.ts` — rewrite to new signature
+- `__tests__/lib/calculations/compute-proy-bs-live.test.ts` — rewrite tests
 
-## T4. `loadPtRajaVoltamaState` fixture-to-state adapter
+**TDD**:
+- [ ] RED: write 8 tests covering (a) uniform per-account growth, (b) subtotals via computedFrom, (c) 3-year projection, (d) custom/extended accounts, (e) zero-growth handling, (f) negative-value handling, (g) missing historical years, (h) Balance Control diagnostic
+- [ ] GREEN: new signature `(input: ProyBsInput, projYears) => Record<number, YearKeyedSeries>`
+  - Iterate `input.accounts`, project each leaf
+  - Apply `deriveComputedRows` for totals
+  - Compute Balance Control = rows[33] − rows[62]
+- [ ] REFACTOR: clean legacy imports
 
-**Scope**: new test helper at `__tests__/helpers/pt-raja-voltama-state.ts`
-that reconstructs the full `ExportableState` from `__tests__/fixtures/`
-JSONs. Covers all 12 store slices + 2 root fields.
+**Verification**: 8 new tests pass; old call sites identified for Task 4.
 
-- [ ] RED: write `__tests__/helpers/pt-raja-voltama-state.test.ts`:
-  shape sanity (all 14 fields non-null/present) + spot-check 8 key
-  values (HOME namaPerusahaan, BS!C8 cash, IS!D6 revenue, FA!C8
-  acq-begin land, WACC ERP, DR tax rate, DLOM F7 answer, aamAdjustments
-  empty object)
-- [ ] GREEN: implement adapter. Per slice:
-  - `home`: read `home.json`, build `HomeInputs` object
-  - `balanceSheet`: read `balance-sheet.json`, derive rows grid +
-    accounts array using `BS_CATALOG_ALL` and leafRows from
-    `BALANCE_SHEET_GRID`
-  - `incomeStatement`, `fixedAsset`, `accPayables`: similar pattern
-  - `wacc`: read `wacc.json`, extract marketParams scalars + dynamic
-    rows for comparableCompanies + bankRates
-  - `discountRate`: scalars + bankRates
-  - `keyDrivers`: scalars + arrays per `KEY_DRIVERS_ARRAYS`
-  - `dlom`: answers object from F7..F25, jenisPerusahaan from C30,
-    kepemilikan from C31
-  - `dloc`: answers E7..E15, kepemilikan B21
-  - `borrowingCapInput`: D5, D6
-  - `aamAdjustments`: {}
-  - `nilaiPengalihanDilaporkan`: read from simulasi-potensi-aam.json E11
-- [ ] Verify: adapter test green
-- Commit 4: `test(helpers): loadPtRajaVoltamaState fixture-to-state adapter`
+## Task 4 — Proy BS page rewrite + caller updates
 
-## T5. Rewrite Phase C as strict state-parity test
+**Files**:
+- `src/app/projection/balance-sheet/page.tsx` — rewrite renderer to iterate `balanceSheet.accounts`
+- `src/app/projection/cash-flow/page.tsx` — verify CFS still works with new Proy BS signature
+- `src/lib/calculations/projection-pipeline.ts` — update if consumed
+- `src/data/live/compute-proy-bs-live.ts` — update old callers
 
-**Scope**: replace `__tests__/integration/phase-c-verification.test.ts`
-content in-place with the new state-parity shape. Same filename same
-`npm run verify:phase-c` entry-point — rewrite semantics only.
+**Tasks**:
+- [ ] Page renders dynamic rows: sections from BsSection enum, leaf rows from accounts, Growth row below each, subtotal/total rows from computedFrom
+- [ ] Labels honor `account.customLabel || catalog.labelEn || labelId` (language-aware)
+- [ ] No FA cross-ref, no PROY LR reference, no intangible special-case
 
-- [ ] Enumerate sanitizer whitelist by snapshotting template, running
-  `sanitizeDanglingFormulas` in isolation, diffing. Commit whitelist
-  as const in the test file (expected: ≤ 30 cells, mostly hidden
-  sheets + a few `#REF!` stragglers).
-- [ ] Write new Phase C test:
-  1. Load template, snapshot all WEBSITE_NAV_SHEETS
-  2. `const state = loadPtRajaVoltamaState()`
-  3. Run `exportToXlsx(state)` — full pipeline (still-V1 at this point;
-     pipeline should work because all 29 sheets registered)
-  4. Round-trip exported via writeBuffer + reload (match existing
-     pattern for serialization verification)
-  5. For each cell in templateSnapshot not in sanitizer whitelist:
-     - If formula → assert formula string equal (after normalization)
-     - If plain value → assert numerically equal @ 1e-6
-  6. Also assert: visibility enforcement (29 visible sheets as today)
-- [ ] Run test. Expected: GREEN on first try (builders already handle
-  all 29 sheets; V1 body is inert for them). If RED, investigate — may
-  indicate a hidden regression in one of the 29 builders.
-- [ ] Update `phase-c-verification-report.md` — regenerated on failure.
-- [ ] Verify: `npm run verify:phase-c` green, total test count increases
-- Commit 5: `test(phase-c): strict state-parity rewrite with real fixtures`
+**Verification**: dev-server render on PT Raja Voltama fixture matches image-01 mental model; Proy CFS/NOPLAT pages still render (do not crash).
 
-## T6. Prune `exportToXlsx` body — in-place rewrite
+## Task 5 — `computeProyFixedAssetsLive` rewrite (Net Value growth)
 
-**Scope**: replace the 90-line orchestration body in
-`src/lib/export/export-xlsx.ts` (lines 78-167) with the slim ~15-line
-version from design.md. Wire `stripCrossSheetRefsToBlankSheets` using
-`runSheetBuilders` return value.
+**Files**:
+- `src/data/live/compute-proy-fixed-assets-live.ts` — rewrite
+- `__tests__/lib/calculations/compute-proy-fixed-assets-live.test.ts` — rewrite tests
 
-- [ ] Replace body. Keep all helper function definitions below unchanged.
-- [ ] Remove imports no longer needed (`MIGRATED_SHEET_NAMES` still
-  needed? — yes, deprecated but Phase C may use. Check grep first.)
-- [ ] Remove no-longer-needed DLOM/DLOC/AAM/extended-injector wrappers
-  at the orchestration layer (the helpers remain — only the V1 guarded
-  call-sites go away).
-- [ ] Run full test suite. Expected green. Phase C state-parity from
-  T5 is the primary gate.
-- Commit 6: `refactor(export): prune exportToXlsx body — registry-only pipeline`
+**TDD**:
+- [ ] RED: 8 tests covering (a) per-account Net Value growth, (b) 7-band internal projection via same growth rate, (c) Dep Additions (row 51) non-zero for PROY LR cascade, (d) totals per band, (e) extended accounts (excelRow ≥ 100), (f) custom accounts (≥ 1000), (g) zero-growth edge, (h) missing Net Value historical
+- [ ] GREEN: new signature, loop accounts × 7 bands, uniform NV-growth
+- [ ] Totals computed per-band summing leaves
 
-## T7. Delete dead internal functions
+**Verification**: 8 new tests pass; PROY LR depreciation cascade preserved.
 
-**Scope**: remove 5 internal functions + their source-code overhead.
-Zero downstream references → safe after T6.
+## Task 6 — Proy FA page rewrite + MVP gate
 
-- [ ] Delete `clearAllInputCells` function (lines 376-442 approx)
-- [ ] Delete `injectScalarCells` function (lines 467-479)
-- [ ] Delete `injectGridCells` function (lines 646-673)
-- [ ] Delete `injectArrayCells` function (lines 679-690)
-- [ ] Delete `injectDynamicRows` function (lines 725-736)
-- [ ] Remove any JSDoc comments now-orphaned that reference the deleted
-  functions (grep for orphan mentions)
-- [ ] Remove `skipSheets` parameter documentation from `writeXxxFromSheet`
-  helpers if it's there purely for V1 compat (it's not — the helpers
-  target single sheet by name, no skipSheets param)
-- [ ] Verify: `npm run typecheck` + `npm run lint` + `npm test` green,
-  no dangling references
-- Commit 7: `refactor(export): delete 5 dead internal injection functions`
+**Files**:
+- `src/app/projection/fixed-asset/page.tsx` — rewrite renderer for dynamic accounts × 7 bands
 
-## T8. Full verification gate + live check
+**Tasks**:
+- [ ] All FA accounts listed under each of 7 band sections (read-only)
+- [ ] Display logic: Net Value band shows values for proj years; Acq/Dep bands show "—" for proj years (still display historical last year)
+- [ ] Growth row under each Net Value account shows per-account NV avg YoY growth
+- [ ] Internal data (Acq/Dep) still in output for downstream (via useMemo cast; display filter)
 
-**Scope**: run every gate before merge. Fix any regressions discovered.
+**MVP Gate (after Task 6)**:
+- [ ] `npm test` all green (new + existing)
+- [ ] `npm run build` — 39 pages still prerender
+- [ ] `npm run typecheck` clean
+- [ ] `npm run lint` zero warnings
+- [ ] Dev-server smoke test: Input FA shows CS/Growth; Proy BS + Proy FA render with PT Raja Voltama fixture
+- [ ] **Commit checkpoint**: if context budget tight, STOP here and merge MVP. T7–T10 slip to 036.5.
 
-- [ ] `npm run build 2>&1 | tail -25` — zero errors
-- [ ] `npm test 2>&1 | tail -25` — expect ~1200+ passing, zero fails
-- [ ] `npm run typecheck 2>&1 | tail -10` — clean
-- [ ] `npm run lint 2>&1 | tail -10` — zero warnings
-- [ ] `npm run audit:i18n` — zero violations
-- [ ] `npm run verify:phase-c` — 5/5+ integrity gates green (new count)
-- [ ] Cascade integration test still green (29/29 registered)
-- [ ] `git diff --stat origin/main..HEAD` — sanity summary
-- Commit 8: (if gate revealed a fix needed) `fix: ...` or skip if clean
+## Task 7 — Store v15→v16 migration + Additional Capex slice
 
-## T9. Merge + push + live verify
+**Files**:
+- `src/lib/store/useKkaStore.ts` — add `additionalCapexByAccount` to KeyDrivers slice; migrate function v15→v16
+- `__tests__/lib/store/migrate-v16.test.ts` — migration unit test
 
-- [ ] Sync feature branch with main: `git rebase main` (conflicts
-  resolved if any)
-- [ ] Merge to main: `git checkout main && git merge feat/session-035-legacy-cleanup-v2-promotion`
-- [ ] Push: `git push origin main` (Vercel auto-deploys)
-- [ ] Delete feature branch local + remote
-- [ ] Curl live: `curl -s -o /dev/null -w "%{http_code}" https://penilaian-bisnis.vercel.app/` — expect 307 (root redirect to /akses)
-- [ ] Spot-check /akses returns 200
-- No new commit at this step (merge is a fast-forward or merge commit)
+**TDD**:
+- [ ] RED: test (a) v15 state → v16 has empty additionalCapexByAccount, old field stripped; (b) other fields preserved; (c) already-v16 pass-through
+- [ ] GREEN: implement migrate v15→v16 in useKkaStore persist config
 
-## T10. `/update-kka-penilaian-saham` Mode B wrap-up
+**Verification**: 3+ migration cases green.
 
-**Scope**: session closer per SKILL.md Steps B1-B9.
+## Task 8 — Key Drivers Additional Capex dynamic section
 
-- [ ] Gather session evidence (commits, stats)
-- [ ] Write `history/session-035-legacy-cleanup-v2-promotion.md`
-- [ ] Extract lessons learned (expected 3-4 new LESSON-099+ entries)
-- [ ] Update `progress.md` with latest state (Phase C new shape, V1
-  pruned, test count)
-- [ ] Promote general lessons to `~/.claude/skills/start-kka-penilaian-saham/SKILL.md`
-  section 2 (Delivered State) + section 8 (Tech Stack Gotchas) as fits
-- [ ] Commit docs: `docs(session-035): wrap-up — V1 pruned + Phase C
-  state-parity + N lessons`
-- [ ] Push docs commit
+**Files**:
+- `src/components/forms/KeyDriversForm.tsx` — rewrite Additional Capex section to iterate `fixedAsset.accounts`
+- `src/lib/i18n/translations.ts` — adjust KD labels if needed
 
-## Success Gate Summary
+**Tasks**:
+- [ ] Section reads `fixedAsset?.accounts` — if null, show empty-state prompt linking to Input FA
+- [ ] Per account × projection year: NumericInput bound to `keyDrivers.additionalCapexByAccount[excelRow][year]`
+- [ ] Footer: Total Additional Capex per year row (sum across accounts)
+- [ ] Debounced auto-save to store
 
-After T10:
-- Tests ≥ ~1200 green (T4 + T5 + T6 adds ~15-25 new tests)
-- `exportToXlsx` body ≤ 20 LOC
-- 5 internal functions deleted (verified via grep)
-- Phase C runs strict cell-parity against PT Raja Voltama state
-- `stripCrossSheetRefsToBlankSheets` exported + tested
-- Live deploy HTTP 307 (root) + 200 (/akses)
-- Session 035 history committed
-- 3-4 new lessons recorded
+**Verification**: Render test with mock FA accounts; input updates store.
+
+## Task 9 — Export builder updates (ProyBsBuilder + ProyFaBuilder)
+
+**Files**:
+- `src/lib/export/sheet-builders/proy-balance-sheet.ts` — extended account injection (Session 025 BS pattern)
+- `src/lib/export/sheet-builders/proy-fixed-asset.ts` — extended account injection (Session 028 FA pattern)
+- `__tests__/lib/export/sheet-builders/proy-balance-sheet.test.ts` — updated cases
+- `__tests__/lib/export/sheet-builders/proy-fixed-asset.test.ts` — updated cases
+
+**TDD**:
+- [ ] RED: test extended account (excelRow 100) writes to expected template row/col; custom account (excelRow 1000) ditto
+- [ ] GREEN: follow `injectExtendedBsAccounts` + `extendBsSectionSubtotals` pattern
+
+**Verification**: per-builder tests + cascade integration + Phase C expansion (Task 10).
+
+## Task 10 — Phase C whitelist + full gate + merge
+
+**Files**:
+- `__tests__/integration/phase-c-verification.test.ts` — expand `KNOWN_DIVERGENT_CELLS`
+- `progress.md` — update to Session 036 delivered state
+- `lessons-learned.md` — extract lessons
+- `history/session-036-dynamic-projection.md` — session snapshot
+
+**Tasks**:
+- [ ] Add Proy BS rows that now diverge from PT Raja Voltama template (growth-based ≠ template cached)
+- [ ] Add Proy FA Acq/Dep band cells that are now null in projection years
+- [ ] `npm run verify:phase-c` green
+- [ ] Full gate: build + test + typecheck + lint + audit + Phase C + cascade
+- [ ] Merge feature branch to main via fast-forward
+- [ ] Push main
+- [ ] Live-deploy smoke: HTTP 307 → 200
+- [ ] `/update-kka-penilaian-saham` Mode B (invoked by user at wrap-up)
+
+**Verification**: All gates green, live 200, docs committed.
+
+---
+
+## Dependency Graph
+
+```
+T1 (scaffold) ──► T2 (Input FA CS/Growth) ──┐
+                                              ├──► MVP gate at T6
+T1 ──► T3 (Proy BS compute) ──► T4 (page) ──┤
+T1 ──► T5 (Proy FA compute) ──► T6 (page) ──┘
+                                              │
+                                              ▼
+                                       T7 (store migration)
+                                              │
+                                              ▼
+                                       T8 (KD Additional Capex)
+                                              │
+                                              ▼
+                                       T9 (Export builders)
+                                              │
+                                              ▼
+                                       T10 (Phase C + gate + merge)
+```
+
+## Success Criteria
+
+- [ ] User adds a custom BS account (e.g. "Piutang Koperasi") at Input BS → appears in Proy BS with growth row → value projects per historical growth
+- [ ] User adds a custom FA account (e.g. "Mesin Pabrik") at Input FA → appears in Proy FA × 7 bands, Net Value projects via own historical NV growth
+- [ ] Input FA now has Common Size + Growth YoY columns (feature parity with Input BS / IS)
+- [ ] Key Drivers Additional Capex shows dynamic FA accounts (no hardcoded 4 rows)
+- [ ] Export .xlsx has dynamic accounts written to template via extended-row injection
+- [ ] All existing tests + new tests green
+- [ ] `verify:phase-c` green (coverage-invariant for projection sheets maintained)
+- [ ] 29/29 `MIGRATED_SHEETS` cascade still green
+- [ ] Live deploy HTTP 200
