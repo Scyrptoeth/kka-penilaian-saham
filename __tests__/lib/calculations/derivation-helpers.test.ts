@@ -7,8 +7,8 @@ import {
 } from '@/lib/calculations/derivation-helpers'
 
 const ROWS: readonly ManifestRow[] = [
-  { excelRow: 10, label: 'Account A', type: 'leaf' },
-  { excelRow: 11, label: 'Account B', type: 'leaf' },
+  { excelRow: 10, label: 'Account A', type: 'normal' },
+  { excelRow: 11, label: 'Account B', type: 'normal' },
   { excelRow: 12, label: 'Total', type: 'total' },
 ] as const
 

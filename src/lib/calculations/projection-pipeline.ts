@@ -27,6 +27,7 @@ import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { computeAvgGrowth } from '@/lib/calculations/helpers'
 import { BALANCE_SHEET_MANIFEST } from '@/data/manifests/balance-sheet'
 import { FIXED_ASSET_MANIFEST } from '@/data/manifests/fixed-asset'
+import { buildDynamicBsManifest } from '@/data/manifests/build-dynamic-bs'
 import { computeProyFixedAssetsLive } from '@/data/live/compute-proy-fixed-assets-live'
 import { computeProyLrLive, type ProyLrInput } from '@/data/live/compute-proy-lr-live'
 import { computeProyBsLive, type ProyBsInput } from '@/data/live/compute-proy-bs-live'
@@ -121,27 +122,29 @@ export function computeFullProjectionPipeline(
   }
   const proyNoplatRows = computeProyNoplatLive(noplatInput, lastHistYear, projYears)
 
-  // ── Step 4: PROY BS ──
-  const bsAvgGrowth: Record<number, number> = {}
-  const bsLastYear: Record<number, number> = {}
-  for (const [rowStr, series] of Object.entries(balanceSheet.rows)) {
-    const row = Number(rowStr)
-    bsAvgGrowth[row] = computeAvgGrowth(series)
-    bsLastYear[row] = series[lastHistYear] ?? 0
-  }
+  // ── Step 4: PROY BS (Session 036 — Full Simple Growth model) ──
+  // Per-account historical-growth projection via dynamic BS manifest.
+  // No cross-refs to PROY FA / PROY LR — decoupled.
+  const bsManifest = buildDynamicBsManifest(
+    balanceSheet.accounts,
+    balanceSheet.language,
+    balanceSheet.yearCount,
+    home.tahunTransaksi,
+  )
   const bsInput: ProyBsInput = {
-    bsLastYear, bsAvgGrowth, proyFaRows,
-    proyLrNetProfit: proyLrRows[39] ?? {},
-    intangibleGrowth: bsAvgGrowth[24] ?? 0,
+    accounts: balanceSheet.accounts,
+    bsRows: balanceSheet.rows,
+    historicalYears: histYears4,
+    manifestRows: bsManifest.rows,
   }
-  const proyBsRows = computeProyBsLive(bsInput, lastHistYear, projYears)
+  const proyBsRows = computeProyBsLive(bsInput, projYears)
 
   // ── Step 5: PROY ACC PAYABLES ──
   const proyApRows = computeProyAccPayablesLive({
     interestRateST: keyDrivers.financialDrivers.interestRateShortTerm,
     interestRateLT: keyDrivers.financialDrivers.interestRateLongTerm,
-    stEnding: bsLastYear[31] ?? 0,
-    ltEnding: bsLastYear[38] ?? 0,
+    stEnding: balanceSheet.rows[31]?.[lastHistYear] ?? 0,
+    ltEnding: balanceSheet.rows[38]?.[lastHistYear] ?? 0,
   }, lastHistYear, projYears)
 
   // ── Step 6: PROY CFS ──
