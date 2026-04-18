@@ -41,6 +41,15 @@ export interface ProjectionPipelineInput {
   incomeStatement: IncomeStatementInputState
   fixedAsset: FixedAssetInputState | null
   keyDrivers: KeyDriversState
+  /**
+   * Session 039 — WC scope for projection ΔCA / ΔCL aggregation. `null`
+   * defaults to "no exclusions" (all CA / CL accounts included). UI gates
+   * downstream consumer pages via PageEmptyState when this is null.
+   */
+  changesInWorkingCapital?: {
+    excludedCurrentAssets: readonly number[]
+    excludedCurrentLiabilities: readonly number[]
+  } | null
 }
 
 export interface ProjectionPipelineOutput {
@@ -63,7 +72,7 @@ export interface ProjectionPipelineOutput {
 export function computeFullProjectionPipeline(
   input: ProjectionPipelineInput,
 ): ProjectionPipelineOutput {
-  const { home, balanceSheet, incomeStatement, fixedAsset, keyDrivers } = input
+  const { home, balanceSheet, incomeStatement, fixedAsset, keyDrivers, changesInWorkingCapital } = input
 
   const histYears4 = computeHistoricalYears(home.tahunTransaksi, 4)
   const histYears3 = computeHistoricalYears(home.tahunTransaksi, 3)
@@ -155,6 +164,9 @@ export function computeFullProjectionPipeline(
   const cfsInput: ProyCfsInput = {
     proyLrRows, proyBsRows, proyFaRows, proyApRows,
     histCashEnding,
+    bsAccounts: balanceSheet.accounts,
+    excludedCurrentAssets: changesInWorkingCapital?.excludedCurrentAssets ?? [],
+    excludedCurrentLiabilities: changesInWorkingCapital?.excludedCurrentLiabilities ?? [],
   }
   const proyCfsRows = computeProyCfsLive(cfsInput, lastHistYear, projYears)
 

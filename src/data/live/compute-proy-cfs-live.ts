@@ -1,53 +1,56 @@
 /**
- * PROY CFS — Projected Cash Flow Statement computation.
+ * PROY CFS — Projected Cash Flow Statement computation (Session 039 rewrite).
  *
- * Row mapping (matching proy-cash-flow-statement.json fixture):
+ * ════════════════════════════════════════════════════════════════════════
+ * Session 039 — Account-driven Working Capital aggregation.
+ * ════════════════════════════════════════════════════════════════════════
  *
- * CASH FLOW FROM OPERATIONS:
- *   5: EBITDA          = PROY LR row 19
- *   6: Corporate Tax   = PROY LR row 37 (already negative)
- *   8: Changes in CA   = -(sum of BS 13,15,17,19 current - prior) * -1
- *   9: Changes in CL   = BS row 45 current - BS row 45 prior
- *  10: Working Capital  = 8 + 9
- *  11: CFO             = SUM(5:9) = 5 + 6 + 8 + 9
+ * Legacy behavior (pre-Session-039): hardcoded access to PROY BS template
+ * rows 13/15/17/19 for ΔCA and row 45 for Total CL. This was coupled to
+ * PT Raja Voltama prototipe template row numbering and broke silently for
+ * dynamic catalog accounts (Session 036's `computeProyBsLive` outputs
+ * user-excelRow-keyed data, not template-keyed).
  *
- * CASH FLOW FROM NON-OPERATIONS:
- *  13: CF Non-Op       = PROY LR row 34
+ * New behavior: ΔCA / ΔCL aggregate from `proyBsRows` using the same
+ * account-driven pattern as historical CFS — iterate `bsAccounts` filtered
+ * by section, skip exclusions. The exclusion list flows from the same
+ * `changesInWorkingCapital` store slice used by historical CFS, so user's
+ * scope choice propagates consistently across both timeframes.
  *
- * CASH FLOW FROM INVESTMENT:
- *  17: CFI (CapEx)     = PROY FA row 23 * -1
+ * Row mapping:
+ *   5  EBITDA          = PROY LR row 19
+ *   6  Corporate Tax   = PROY LR row 37 (already negative)
+ *   8  ΔCurrent Assets = -(ΣCA[year] − ΣCA[prev]) where ΣCA excludes user's exclusion list
+ *   9  ΔCurrent Liab   = ΣCL[year] − ΣCL[prev] where ΣCL excludes user's exclusion list
+ *  10  Working Capital = 8 + 9
+ *  11  CFO             = 5 + 6 + 8 + 9
+ *  13  CF Non-Op       = PROY LR row 34
+ *  17  CFI (CapEx)     = PROY FA row 23 × -1
+ *  19  CF before Fin   = 11 + 13 + 17
+ *  22  Equity Injection = 0
+ *  23  New Loan         = 0
+ *  24  Interest Expense = PROY LR row 31 (already negative)
+ *  25  Interest Income  = PROY LR row 29
+ *  26  Principal Repay  = PROY ACC PAYABLES row 21
+ *  28  CF from Financing = 22 + 23 + 24 + 25 + 26
+ *  30  Net Cash Flow   = 11 + 13 + 17 + 28
+ *  32  Cash Beginning  = prior year Cash Ending
+ *  33  Cash Ending     = PROY BS row 8 + row 9 (user's standard Cash rows)
+ *  35  Cash in Bank    = PROY BS row 9
+ *  36  Cash on Hand    = PROY BS row 8
  *
- * CASH FLOW BEFORE FINANCING:
- *  19: CF before Fin   = 11 + 13 + 17
- *
- * FINANCING:
- *  22: Equity Injection = 0
- *  23: New Loan         = 0
- *  24: Interest Expense = PROY LR row 31 (already negative)
- *  25: Interest Income  = PROY LR row 29 (positive)
- *  26: Principal Repay  = PROY ACC PAYABLES row 21
- *  28: CF from Financing = SUM(22:26)
- *
- * NET CASH:
- *  30: Net Cash Flow   = 11 + 13 + 17 + 28
- *  32: Cash Beginning  = prev Cash Ending
- *  33: Cash Ending     = PROY BS row 9 + PROY BS row 11
- *  35: Cash in Bank    = PROY BS row 11
- *  36: Cash on Hand    = PROY BS row 9
- *
- * Sign conventions:
- *  - PROY LR row 37 (tax) is negative in store → direct to CFS row 6
- *  - Current Assets change: increase = cash outflow → multiply delta by -1
- *  - CapEx from PROY FA: positive in FA → negate for cash outflow
- *  - Interest Expense from PROY LR row 31: already negative → direct
+ * Design priority: system correctness across hundreds of different company
+ * structures > fixture-value parity with PT Raja Voltama prototipe (single
+ * case study). See /memory/feedback_system_over_prototype.md.
  */
 
 import type { YearKeyedSeries } from '@/types/financial'
+import type { BsAccountEntry } from '@/data/catalogs/balance-sheet-catalog'
 
 export interface ProyCfsInput {
   /** PROY LR rows — needs 19 (EBITDA), 29, 31, 34, 37. */
   proyLrRows: Record<number, YearKeyedSeries>
-  /** PROY BS rows — needs 9, 11, 13, 15, 17, 19, 45. */
+  /** PROY BS rows — keyed by USER excelRow per computeProyBsLive contract. */
   proyBsRows: Record<number, YearKeyedSeries>
   /** PROY FA rows — needs row 23 (Total Additions/CapEx). */
   proyFaRows: Record<number, YearKeyedSeries>
@@ -55,6 +58,23 @@ export interface ProyCfsInput {
   proyApRows: Record<number, YearKeyedSeries>
   /** Historical Cash Ending from prior period (for CFS Cash Beginning row 32). */
   histCashEnding: number
+  /**
+   * Session 039 — BS account entries for account-driven WC aggregation.
+   * Same list as historical CFS; defaults to empty (no CA/CL contribution)
+   * to keep the function safe-to-call before accounts are wired.
+   */
+  bsAccounts?: readonly BsAccountEntry[]
+  /** Session 039 — excelRows excluded from Operating WC (same as historical). */
+  excludedCurrentAssets?: readonly number[]
+  excludedCurrentLiabilities?: readonly number[]
+}
+
+function sumRows(
+  data: Record<number, YearKeyedSeries>,
+  rows: readonly number[],
+  year: number,
+): number {
+  return rows.reduce((sum, r) => sum + (data[r]?.[year] ?? 0), 0)
 }
 
 export function computeProyCfsLive(
@@ -62,6 +82,13 @@ export function computeProyCfsLive(
   histYear: number,
   projYears: readonly number[],
 ): Record<number, YearKeyedSeries> {
+  const {
+    proyLrRows, proyBsRows, proyFaRows, proyApRows, histCashEnding,
+    bsAccounts = [],
+    excludedCurrentAssets = [],
+    excludedCurrentLiabilities = [],
+  } = input
+
   const out: Record<number, YearKeyedSeries> = {}
 
   const set = (row: number, year: number, value: number) => {
@@ -71,13 +98,23 @@ export function computeProyCfsLive(
 
   const get = (row: number, year: number): number => out[row]?.[year] ?? 0
 
-  const lr = (row: number, year: number): number => input.proyLrRows[row]?.[year] ?? 0
-  const bs = (row: number, year: number): number => input.proyBsRows[row]?.[year] ?? 0
-  const fa = (row: number, year: number): number => input.proyFaRows[row]?.[year] ?? 0
-  const ap = (row: number, year: number): number => input.proyApRows[row]?.[year] ?? 0
+  const lr = (row: number, year: number): number => proyLrRows[row]?.[year] ?? 0
+  const bs = (row: number, year: number): number => proyBsRows[row]?.[year] ?? 0
+  const fa = (row: number, year: number): number => proyFaRows[row]?.[year] ?? 0
+  const ap = (row: number, year: number): number => proyApRows[row]?.[year] ?? 0
+
+  // Account-driven CA / CL row lists (same filter as historical CFS).
+  const excludedCaSet = new Set(excludedCurrentAssets)
+  const excludedClSet = new Set(excludedCurrentLiabilities)
+  const caRows = bsAccounts
+    .filter((a) => a.section === 'current_assets' && !excludedCaSet.has(a.excelRow))
+    .map((a) => a.excelRow)
+  const clRows = bsAccounts
+    .filter((a) => a.section === 'current_liabilities' && !excludedClSet.has(a.excelRow))
+    .map((a) => a.excelRow)
 
   // Seed historical cash ending for row 32 beginning calculation
-  set(33, histYear, input.histCashEnding)
+  set(33, histYear, histCashEnding)
 
   for (const year of projYears) {
     const prev = year - 1
@@ -86,13 +123,15 @@ export function computeProyCfsLive(
     set(5, year, lr(19, year))   // EBITDA
     set(6, year, lr(37, year))   // Corporate Tax (already negative from PROY LR)
 
-    // Changes in Current Assets: -(delta of AR+OtherRec+Inv+Others)
-    const caCurr = bs(13, year) + bs(15, year) + bs(17, year) + bs(19, year)
-    const caPrev = bs(13, prev) + bs(15, prev) + bs(17, prev) + bs(19, prev)
+    // Changes in Current Assets: -(ΣCA[year] − ΣCA[prev]) across user-selected CA accounts
+    const caCurr = sumRows(proyBsRows, caRows, year)
+    const caPrev = sumRows(proyBsRows, caRows, prev)
     set(8, year, -(caCurr - caPrev))
 
-    // Changes in Current Liabilities: delta of Total CL
-    set(9, year, bs(45, year) - bs(45, prev))
+    // Changes in Current Liabilities: ΣCL[year] − ΣCL[prev] across user-selected CL accounts
+    const clCurr = sumRows(proyBsRows, clRows, year)
+    const clPrev = sumRows(proyBsRows, clRows, prev)
+    set(9, year, clCurr - clPrev)
 
     // Working Capital
     set(10, year, get(8, year) + get(9, year))
@@ -122,11 +161,12 @@ export function computeProyCfsLive(
     // ── Net Cash Flow ──
     set(30, year, get(11, year) + get(13, year) + get(17, year) + get(28, year))
 
-    // Cash balances from PROY BS
-    set(32, year, get(33, prev))                    // Beginning = prev Ending
-    set(33, year, bs(9, year) + bs(11, year))       // Ending = Cash on Hand + Cash in Banks
-    set(35, year, bs(11, year))                     // Cash in Bank
-    set(36, year, bs(9, year))                      // Cash on Hand
+    // ── Cash balances ──
+    // Standard Cash rows (8 = Cash on Hand, 9 = Bank) consistent with historical CFS.
+    set(32, year, get(33, prev))                // Beginning = prev Ending
+    set(33, year, bs(8, year) + bs(9, year))    // Ending = Cash on Hand + Cash in Bank
+    set(35, year, bs(9, year))                  // Cash in Bank
+    set(36, year, bs(8, year))                  // Cash on Hand
   }
 
   return out
