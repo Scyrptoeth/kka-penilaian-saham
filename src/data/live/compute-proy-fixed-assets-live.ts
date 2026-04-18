@@ -1,24 +1,28 @@
 /**
- * PROY Fixed Assets — Roll-forward projection model (Session 045 rewrite).
+ * PROY Fixed Assets — Roll-forward projection model (Session 045 + 046).
  *
  * For each user-selected FA account, the 7 bands project as follows:
  *
  *   - Acq Additions[Y+1] = Acq Additions[Y] × (1 + acqAddGrowth)
  *     where acqAddGrowth = avg YoY growth of the HISTORICAL Acq Additions
  *     band for this account. If only 1 historical year (no YoY available),
- *     growth = 0 → Additions carry forward (LESSON-131 carry-forward default).
+ *     growth = 0 → Additions carry forward.
  *   - Acq Beginning[Y+1] = Acq Ending[Y]  (roll-forward identity)
  *   - Acq Ending[Y]      = Acq Beginning[Y] + Acq Additions[Y]
  *
- *   - Dep bands mirror Acq with their own Dep Additions growth.
+ *   - Dep bands mirror Acq with their own Dep Additions growth, EXCEPT
+ *     when Net Value[Y-1] ≤ 0 (asset fully depreciated / disposed) —
+ *     then Dep Additions[Y] = 0 (Session 046 stopping rule). Net can't
+ *     go further negative from depreciation once the asset is done.
  *
  *   - Net Value[Y] = Acq Ending[Y] - Dep Ending[Y].
  *
- * Previously (Session 036) all 7 bands projected using a single per-account
- * NET VALUE growth rate. That model was simpler but less correct — it didn't
- * preserve Acq=Beginning+Additions identity and couldn't distinguish Acq
- * additions growth from Dep additions growth. This rewrite is the proper
- * accounting roll-forward model requested in Session 045.
+ * Session 046 seed fix: Historical End values (ACQ_ENDING / DEP_ENDING)
+ * are NOT persisted by DynamicFaEditor pre-Session 046, so reading
+ * `faRows[excelRow + ACQ_ENDING][histYear]` returns undefined → 0.
+ * Compute now DERIVES `endAtHist = Beg[hist] + Add[hist]` as the
+ * roll-forward seed so first projected Beginning is correct even when
+ * sentinel rows are missing. Self-healing for existing localStorage.
  *
  * Subtotals (rows 14/23/32/42/51/60/69) sum per-account values per band
  * at each year (unchanged from Session 036).
@@ -108,13 +112,24 @@ export function computeProyFixedAssetsLive(
     const depBegHist = faRows[acct.excelRow + FA_OFFSET.DEP_BEGINNING] ?? {}
     const netHist = faRows[acct.excelRow + FA_OFFSET.NET_VALUE] ?? {}
 
-    const acqBegSeries: YearKeyedSeries = { [histYear]: acqBegHist[histYear] ?? 0 }
-    const acqAddSeries: YearKeyedSeries = { [histYear]: acqAddHist[histYear] ?? 0 }
-    const acqEndSeries: YearKeyedSeries = { [histYear]: acqEndHist[histYear] ?? 0 }
-    const depBegSeries: YearKeyedSeries = { [histYear]: depBegHist[histYear] ?? 0 }
-    const depAddSeries: YearKeyedSeries = { [histYear]: depAddHist[histYear] ?? 0 }
-    const depEndSeries: YearKeyedSeries = { [histYear]: depEndHist[histYear] ?? 0 }
-    const netSeries: YearKeyedSeries = { [histYear]: netHist[histYear] ?? 0 }
+    // Session 046: derive historical End from Beg+Add when not in faRows
+    // (ACQ_ENDING / DEP_ENDING / NET_VALUE are computed manifest rows —
+    // pre-Session 046 editor didn't persist them, so we self-heal).
+    const acqBegAtHist = acqBegHist[histYear] ?? 0
+    const acqAddAtHist = acqAddHist[histYear] ?? 0
+    const acqEndAtHist = acqEndHist[histYear] ?? (acqBegAtHist + acqAddAtHist)
+    const depBegAtHist = depBegHist[histYear] ?? 0
+    const depAddAtHist = depAddHist[histYear] ?? 0
+    const depEndAtHist = depEndHist[histYear] ?? (depBegAtHist + depAddAtHist)
+    const netAtHist = netHist[histYear] ?? (acqEndAtHist - depEndAtHist)
+
+    const acqBegSeries: YearKeyedSeries = { [histYear]: acqBegAtHist }
+    const acqAddSeries: YearKeyedSeries = { [histYear]: acqAddAtHist }
+    const acqEndSeries: YearKeyedSeries = { [histYear]: acqEndAtHist }
+    const depBegSeries: YearKeyedSeries = { [histYear]: depBegAtHist }
+    const depAddSeries: YearKeyedSeries = { [histYear]: depAddAtHist }
+    const depEndSeries: YearKeyedSeries = { [histYear]: depEndAtHist }
+    const netSeries: YearKeyedSeries = { [histYear]: netAtHist }
 
     const acqGrowth = growths.acqAdd[acct.excelRow] ?? 0
     const depGrowth = growths.depAdd[acct.excelRow] ?? 0
@@ -127,8 +142,15 @@ export function computeProyFixedAssetsLive(
       const thisAcqAdd = (acqAddSeries[prevYear] ?? 0) * (1 + acqGrowth)
       const thisAcqEnd = thisAcqBeg + thisAcqAdd
 
+      // Session 046 stopping rule: if Net Value ≤ 0 in previous year,
+      // asset is fully depreciated / disposed — zero further Dep Additions.
+      const prevNet = netSeries[prevYear] ?? 0
+      const assetDone = prevNet <= 0
+
       const thisDepBeg = depEndSeries[prevYear] ?? 0
-      const thisDepAdd = (depAddSeries[prevYear] ?? 0) * (1 + depGrowth)
+      const thisDepAdd = assetDone
+        ? 0
+        : (depAddSeries[prevYear] ?? 0) * (1 + depGrowth)
       const thisDepEnd = thisDepBeg + thisDepAdd
 
       const thisNet = thisAcqEnd - thisDepEnd

@@ -56,14 +56,16 @@ describe('computeProyFixedAssetsLive — roll-forward model (Session 045)', () =
   })
 
   it('rolls Depreciation bands with their own Additions growth', () => {
+    // Acq set high enough that Net stays positive across projection
+    // (keeps Session 046 stopping rule dormant so Dep growth math isolated).
     const faRows: Record<number, YearKeyedSeries> = {
-      [8 + FA_OFFSET.ACQ_BEGINNING]: { 2019: 0, 2020: 0, 2021: 0 },
+      [8 + FA_OFFSET.ACQ_BEGINNING]: { 2019: 1000, 2020: 1000, 2021: 1000 },
       [8 + FA_OFFSET.ACQ_ADDITIONS]: { 2019: 0, 2020: 0, 2021: 0 },
-      [8 + FA_OFFSET.ACQ_ENDING]:    { 2019: 0, 2020: 0, 2021: 0 },
+      [8 + FA_OFFSET.ACQ_ENDING]:    { 2019: 1000, 2020: 1000, 2021: 1000 },
       [8 + FA_OFFSET.DEP_BEGINNING]: { 2019: 10, 2020: 15, 2021: 22 },
       [8 + FA_OFFSET.DEP_ADDITIONS]: { 2019: 5, 2020: 7, 2021: 8 },
       [8 + FA_OFFSET.DEP_ENDING]:    { 2019: 15, 2020: 22, 2021: 30 },
-      [8 + FA_OFFSET.NET_VALUE]:     { 2019: 0, 2020: 0, 2021: 0 },
+      [8 + FA_OFFSET.NET_VALUE]:     { 2019: 985, 2020: 978, 2021: 970 },
     }
     const input: ProyFaInput = { accounts: land, faRows, historicalYears: [...HIST_YEARS] }
     const result = computeProyFixedAssetsLive(input, [...PROJ_YEARS])
@@ -158,6 +160,74 @@ describe('computeProyFixedAssetsLive — roll-forward model (Session 045)', () =
     // Subtotals should sum both accounts (each carries forward Additions)
     expect(result[FA_SUBTOTAL.TOTAL_ACQ_ADDITIONS]?.[2022]).toBeCloseTo(50, PRECISION)
     expect(result[FA_SUBTOTAL.TOTAL_DEP_ADDITIONS]?.[2022]).toBeCloseTo(15, PRECISION)
+  })
+
+  it('derives historical Ending from Beg+Add when ENDING rows missing from faRows (Session 046 Bug B)', () => {
+    // Simulates real-world localStorage state: DynamicFaEditor (pre-Session 046)
+    // only persists Beg + Add rows, NOT ACQ_ENDING / DEP_ENDING / NET_VALUE.
+    // Compute must self-heal by deriving End[histYear] = Beg[histYear] + Add[histYear].
+    const faRows: Record<number, YearKeyedSeries> = {
+      [8 + FA_OFFSET.ACQ_BEGINNING]: { 2021: 1000 },
+      [8 + FA_OFFSET.ACQ_ADDITIONS]: { 2021: 200 },
+      // ACQ_ENDING deliberately omitted — represents buggy persist state
+      [8 + FA_OFFSET.DEP_BEGINNING]: { 2021: 300 },
+      [8 + FA_OFFSET.DEP_ADDITIONS]: { 2021: 100 },
+      // DEP_ENDING deliberately omitted
+      // NET_VALUE deliberately omitted
+    }
+    const input: ProyFaInput = { accounts: land, faRows, historicalYears: [2021] }
+    const result = computeProyFixedAssetsLive(input, [...PROJ_YEARS])
+
+    // Derived End[2021]: Acq 1000+200=1200, Dep 300+100=400
+    expect(result[8 + FA_OFFSET.ACQ_ENDING]?.[2021]).toBeCloseTo(1200, PRECISION)
+    expect(result[8 + FA_OFFSET.DEP_ENDING]?.[2021]).toBeCloseTo(400, PRECISION)
+
+    // Roll-forward: Beg[2022] MUST equal derived End[2021], not 0
+    expect(result[8 + FA_OFFSET.ACQ_BEGINNING]?.[2022]).toBeCloseTo(1200, PRECISION)
+    expect(result[8 + FA_OFFSET.DEP_BEGINNING]?.[2022]).toBeCloseTo(400, PRECISION)
+
+    // End[2022]: 1-hist-year growth=0 → Add carries. Acq 1200+200=1400, Dep 400+100=500.
+    expect(result[8 + FA_OFFSET.ACQ_ENDING]?.[2022]).toBeCloseTo(1400, PRECISION)
+    expect(result[8 + FA_OFFSET.DEP_ENDING]?.[2022]).toBeCloseTo(500, PRECISION)
+
+    // Net Value[2021] derived = 1200 - 400 = 800; Net[2022] = 1400 - 500 = 900
+    expect(result[8 + FA_OFFSET.NET_VALUE]?.[2021]).toBeCloseTo(800, PRECISION)
+    expect(result[8 + FA_OFFSET.NET_VALUE]?.[2022]).toBeCloseTo(900, PRECISION)
+  })
+
+  it('stops depreciation additions once Net Value reaches 0 or below (Session 046 new rule)', () => {
+    // Scenario: Dep growth > Acq growth → Net will hit 0 in a projection year.
+    // Once Net[Y-1] ≤ 0, Dep Add[Y] must be 0 (asset fully depreciated / disposed).
+    // Acq bands continue normally — user said only depreciation stops.
+    const faRows: Record<number, YearKeyedSeries> = {
+      // Acq: flat 100 (no additions ever)
+      [8 + FA_OFFSET.ACQ_BEGINNING]: { 2021: 100 },
+      [8 + FA_OFFSET.ACQ_ADDITIONS]: { 2021: 0 },
+      // Dep: starts at 80, adds 20/year (zero growth)
+      [8 + FA_OFFSET.DEP_BEGINNING]: { 2021: 60 },
+      [8 + FA_OFFSET.DEP_ADDITIONS]: { 2021: 20 },
+    }
+    const input: ProyFaInput = { accounts: land, faRows, historicalYears: [2021] }
+    const result = computeProyFixedAssetsLive(input, [...PROJ_YEARS])
+
+    // Year 2021 (hist): Acq End = 100+0 = 100; Dep End = 60+20 = 80; Net = 20
+    expect(result[8 + FA_OFFSET.NET_VALUE]?.[2021]).toBeCloseTo(20, PRECISION)
+
+    // Year 2022: Dep End = 80+20 = 100; Acq End = 100+0 = 100; Net = 0
+    expect(result[8 + FA_OFFSET.DEP_ENDING]?.[2022]).toBeCloseTo(100, PRECISION)
+    expect(result[8 + FA_OFFSET.NET_VALUE]?.[2022]).toBeCloseTo(0, PRECISION)
+
+    // Year 2023: Net[2022]=0 triggers stop → Dep Add[2023]=0
+    // Dep End[2023] = Dep Beg[2023] + 0 = 100 (frozen)
+    // Acq End[2023] = 100+0 = 100 (continues normally but no Acq growth here)
+    // Net[2023] = 100 - 100 = 0
+    expect(result[8 + FA_OFFSET.DEP_ADDITIONS]?.[2023]).toBeCloseTo(0, PRECISION)
+    expect(result[8 + FA_OFFSET.DEP_ENDING]?.[2023]).toBeCloseTo(100, PRECISION)
+    expect(result[8 + FA_OFFSET.NET_VALUE]?.[2023]).toBeCloseTo(0, PRECISION)
+
+    // Year 2024: same frozen state
+    expect(result[8 + FA_OFFSET.DEP_ADDITIONS]?.[2024]).toBeCloseTo(0, PRECISION)
+    expect(result[8 + FA_OFFSET.DEP_ENDING]?.[2024]).toBeCloseTo(100, PRECISION)
   })
 
   it('handles extended accounts (excelRow >= 100) via same roll-forward', () => {

@@ -27,11 +27,15 @@ import { useT } from '@/lib/i18n/useT'
  * At persist time, the editor:
  * 1. Maps original account offset rows (2008→17, 4008→36, 5008→45) to legacy positions
  * 2. Computes ALL subtotals (including extended accounts) at sentinel positions
- * 3. Stores sentinels alongside leaf data so downstream reads the correct values
+ * 3. Persists per-account computed rows (ACQ_ENDING / DEP_ENDING / NET_VALUE)
+ *    so consumers like Proy FA compute, export builders, NOPLAT and FCF see
+ *    correct values (Session 046 fix — LESSON-058-style full sentinel coverage).
+ * 4. Stores sentinels alongside leaf data so downstream reads the correct values
  *
  * This mirrors the IS sentinel pattern (LESSON-052). Without this mapping,
  * downstream consumers (upstream-helpers, CFS, FCF, PROY FA, export) would
- * find zeros because they reference legacy row positions (17-22, 36-41, 45-50).
+ * find zeros because they reference legacy row positions (17-22, 36-41, 45-50)
+ * OR rely on computed End/Net rows that never land in the store.
  */
 function computeFaSentinels(
   accounts: FaAccountEntry[],
@@ -63,6 +67,21 @@ function computeFaSentinels(
   for (const r of FA_SENTINEL_ROWS) {
     if (computed[r]) sentinels[r] = computed[r]
   }
+
+  // Step 5 (Session 046): persist per-account computed rows.
+  // ACQ_ENDING / DEP_ENDING / NET_VALUE are `subtotal`-typed in the dynamic
+  // manifest with explicit `computedFrom`; deriveComputedRows produces them
+  // but prior to this they were never written to the store, causing Proy FA
+  // roll-forward to seed from 0 and downstream consumers to read stale data.
+  for (const acct of accounts) {
+    const acqEnd = acct.excelRow + FA_OFFSET.ACQ_ENDING
+    const depEnd = acct.excelRow + FA_OFFSET.DEP_ENDING
+    const netVal = acct.excelRow + FA_OFFSET.NET_VALUE
+    if (computed[acqEnd]) sentinels[acqEnd] = computed[acqEnd]
+    if (computed[depEnd]) sentinels[depEnd] = computed[depEnd]
+    if (computed[netVal]) sentinels[netVal] = computed[netVal]
+  }
+
   return sentinels
 }
 
