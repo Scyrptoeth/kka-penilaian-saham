@@ -16,6 +16,7 @@ import {
 import { RowInputGrid } from './RowInputGrid'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
+import { computeCommonSize, computeGrowthYoY } from '@/lib/calculations/derivation-helpers'
 import type { YearKeyedSeries } from '@/types/financial'
 import { getFaStrings } from '@/lib/i18n/fixed-asset'
 import { useT } from '@/lib/i18n/useT'
@@ -161,6 +162,22 @@ export default function DynamicFaEditor() {
     () => deriveComputedRows(dynamicManifest.rows, localRows, years),
     [dynamicManifest.rows, localRows, years],
   )
+
+  // Merge leaves + computed for derivation math. Row 69 = Total Net Value FA
+  // is used as the Common Size denominator (analog to BS TOTAL ASSETS row 27).
+  const allValues = useMemo(
+    () => ({ ...localRows, ...computedValues }),
+    [localRows, computedValues],
+  )
+  const commonSizeData = useMemo(
+    () => computeCommonSize(dynamicManifest.rows, allValues, years, 69),
+    [dynamicManifest.rows, allValues, years],
+  )
+  const growthData = useMemo(
+    () => computeGrowthYoY(dynamicManifest.rows, allValues, years),
+    [dynamicManifest.rows, allValues, years],
+  )
+  const growthYears = useMemo(() => (years.length >= 2 ? years.slice(1) : []), [years])
 
   // Existing account IDs for filtering dropdown
   const existingIds = useMemo(() => new Set(accounts.map((a) => a.catalogId)), [accounts])
@@ -343,6 +360,10 @@ export default function DynamicFaEditor() {
         onCloseDropdown={() => setShowDropdown(false)}
         dropdownStrings={{ manualEntry: faStrings.manualEntry, allAccountsAdded: faStrings.allAccountsAdded, accountNamePlaceholder: faStrings.accountNamePlaceholder, cancel: tGlobal('common.cancel'), add: tGlobal('common.add') }}
         language={language}
+        commonSize={commonSizeData}
+        commonSizeYears={years}
+        growth={growthData}
+        growthYears={growthYears}
       />
 
       {/* Footer: RESET + auto-save indicator */}

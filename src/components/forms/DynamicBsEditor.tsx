@@ -14,7 +14,7 @@ import {
 import { RowInputGrid } from './RowInputGrid'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
-import { ratioOfBase, yoyChangeSafe } from '@/lib/calculations/helpers'
+import { computeCommonSize, computeGrowthYoY } from '@/lib/calculations/derivation-helpers'
 import type { YearKeyedSeries } from '@/types/financial'
 import { getBsStrings } from '@/lib/i18n/balance-sheet'
 import { useT } from '@/lib/i18n/useT'
@@ -156,36 +156,15 @@ export default function DynamicBsEditor() {
     () => ({ ...mergedValues, ...computedValues }),
     [mergedValues, computedValues],
   )
-  const commonSizeData = useMemo(() => {
-    const totalAssets = allValues[27] // BS row 27 = TOTAL ASSETS
-    if (!totalAssets) return {}
-    const out: Record<number, YearKeyedSeries> = {}
-    for (const row of dynamicManifest.rows) {
-      if (row.excelRow === undefined) continue
-      const line = allValues[row.excelRow]
-      if (!line) continue
-      const series: YearKeyedSeries = {}
-      for (const y of years) series[y] = ratioOfBase(line[y] ?? 0, totalAssets[y] ?? 0)
-      out[row.excelRow] = series
-    }
-    return out
-  }, [allValues, dynamicManifest.rows, years])
-
-  const growthData = useMemo(() => {
-    if (years.length < 2) return {}
-    const out: Record<number, YearKeyedSeries> = {}
-    for (const row of dynamicManifest.rows) {
-      if (row.excelRow === undefined) continue
-      const line = allValues[row.excelRow]
-      if (!line) continue
-      const series: YearKeyedSeries = {}
-      for (let i = 1; i < years.length; i++) {
-        series[years[i]] = yoyChangeSafe(line[years[i]] ?? 0, line[years[i - 1]] ?? 0)
-      }
-      out[row.excelRow] = series
-    }
-    return out
-  }, [allValues, dynamicManifest.rows, years])
+  // Common Size denominator = BS row 27 TOTAL ASSETS.
+  const commonSizeData = useMemo(
+    () => computeCommonSize(dynamicManifest.rows, allValues, years, 27),
+    [dynamicManifest.rows, allValues, years],
+  )
+  const growthData = useMemo(
+    () => computeGrowthYoY(dynamicManifest.rows, allValues, years),
+    [dynamicManifest.rows, allValues, years],
+  )
 
   const growthYears = useMemo(() => years.length >= 2 ? years.slice(1) : [], [years])
 
