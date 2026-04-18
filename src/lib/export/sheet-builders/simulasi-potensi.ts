@@ -28,7 +28,7 @@ const NILAI_PENGALIHAN_CELL = 'E11'
  */
 export const SimulasiPotensiBuilder: SheetBuilder = {
   sheetName: SHEET_NAME,
-  upstream: ['balanceSheet', 'home'],
+  upstream: ['balanceSheet', 'home', 'changesInWorkingCapital'],
   build(workbook, state) {
     const ws = workbook.getWorksheet(SHEET_NAME)
     if (!ws) return

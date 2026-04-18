@@ -110,7 +110,7 @@ describe('CashFlowStatementBuilder — metadata', () => {
   it('has correct sheetName + upstream slices', () => {
     expect(CashFlowStatementBuilder.sheetName).toBe('CASH FLOW STATEMENT')
     expect(CashFlowStatementBuilder.upstream).toEqual([
-      'home', 'balanceSheet', 'incomeStatement',
+      'home', 'balanceSheet', 'incomeStatement', 'changesInWorkingCapital'
     ])
   })
 })

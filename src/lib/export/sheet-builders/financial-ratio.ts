@@ -26,7 +26,7 @@ const SHEET_NAME = 'FINANCIAL RATIO'
  */
 export const FinancialRatioBuilder: SheetBuilder = {
   sheetName: SHEET_NAME,
-  upstream: ['home', 'balanceSheet', 'incomeStatement'],
+  upstream: ['home', 'balanceSheet', 'incomeStatement', 'changesInWorkingCapital'],
   build(workbook, state) {
     const ws = workbook.getWorksheet(SHEET_NAME)
     if (!ws || !state.home || !state.balanceSheet || !state.incomeStatement) return

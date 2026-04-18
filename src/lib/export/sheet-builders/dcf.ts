@@ -19,7 +19,7 @@ const SHEET_NAME = 'DCF'
  */
 export const DcfBuilder: SheetBuilder = {
   sheetName: SHEET_NAME,
-  upstream: ['home', 'balanceSheet', 'incomeStatement', 'fixedAsset', 'keyDrivers', 'discountRate', 'interestBearingDebt'],
+  upstream: ['home', 'balanceSheet', 'incomeStatement', 'fixedAsset', 'keyDrivers', 'discountRate', 'interestBearingDebt', 'changesInWorkingCapital'],
   build(workbook, state) {
     const ws = workbook.getWorksheet(SHEET_NAME)
     if (

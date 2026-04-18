@@ -112,7 +112,7 @@ describe('DcfBuilder', () => {
   it('has sheetName + upstream', () => {
     expect(DcfBuilder.sheetName).toBe('DCF')
     expect(DcfBuilder.upstream).toEqual([
-      'home', 'balanceSheet', 'incomeStatement', 'fixedAsset', 'keyDrivers', 'discountRate', 'interestBearingDebt',
+      'home', 'balanceSheet', 'incomeStatement', 'fixedAsset', 'keyDrivers', 'discountRate', 'interestBearingDebt', 'changesInWorkingCapital'
     ])
   })
 

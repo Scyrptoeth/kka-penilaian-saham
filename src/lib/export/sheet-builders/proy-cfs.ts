@@ -11,7 +11,7 @@ const SHEET_NAME = 'PROY CASH FLOW STATEMENT'
  */
 export const ProyCfsBuilder: SheetBuilder = {
   sheetName: SHEET_NAME,
-  upstream: ['home', 'balanceSheet', 'incomeStatement', 'fixedAsset', 'keyDrivers'],
+  upstream: ['home', 'balanceSheet', 'incomeStatement', 'fixedAsset', 'keyDrivers', 'changesInWorkingCapital'],
   build(workbook, state) {
     const ws = workbook.getWorksheet(SHEET_NAME)
     if (

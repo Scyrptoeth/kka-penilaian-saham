@@ -24,7 +24,7 @@ const SHEET_NAME = 'EEM'
  */
 export const EemBuilder: SheetBuilder = {
   sheetName: SHEET_NAME,
-  upstream: ['home', 'balanceSheet', 'incomeStatement', 'fixedAsset', 'discountRate', 'interestBearingDebt'],
+  upstream: ['home', 'balanceSheet', 'incomeStatement', 'fixedAsset', 'discountRate', 'interestBearingDebt', 'changesInWorkingCapital'],
   build(workbook, state) {
     const ws = workbook.getWorksheet(SHEET_NAME)
     if (

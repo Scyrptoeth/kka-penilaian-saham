@@ -99,7 +99,7 @@ describe('ProyCfsBuilder', () => {
   it('has sheetName + upstream', () => {
     expect(ProyCfsBuilder.sheetName).toBe('PROY CASH FLOW STATEMENT')
     expect(ProyCfsBuilder.upstream).toEqual([
-      'home', 'balanceSheet', 'incomeStatement', 'fixedAsset', 'keyDrivers',
+      'home', 'balanceSheet', 'incomeStatement', 'fixedAsset', 'keyDrivers', 'changesInWorkingCapital'
     ])
   })
 

@@ -21,6 +21,9 @@ export function isPopulated(
     if (key === 'interestBearingDebt') {
       return state.interestBearingDebt !== null
     }
+    if (key === 'changesInWorkingCapital') {
+      return state.changesInWorkingCapital !== null
+    }
     return state[key] !== null
   })
 }

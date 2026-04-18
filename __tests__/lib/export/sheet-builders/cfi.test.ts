@@ -105,7 +105,7 @@ describe('CfiBuilder', () => {
   it('has sheetName + upstream', () => {
     expect(CfiBuilder.sheetName).toBe('CFI')
     expect(CfiBuilder.upstream).toEqual([
-      'home', 'balanceSheet', 'incomeStatement', 'fixedAsset', 'keyDrivers', 'discountRate', 'interestBearingDebt',
+      'home', 'balanceSheet', 'incomeStatement', 'fixedAsset', 'keyDrivers', 'discountRate', 'interestBearingDebt', 'changesInWorkingCapital'
     ])
   })
 

@@ -119,7 +119,7 @@ describe('FinancialRatioBuilder — metadata', () => {
   it('has correct sheetName + upstream slices', () => {
     expect(FinancialRatioBuilder.sheetName).toBe('FINANCIAL RATIO')
     expect(FinancialRatioBuilder.upstream).toEqual([
-      'home', 'balanceSheet', 'incomeStatement',
+      'home', 'balanceSheet', 'incomeStatement', 'changesInWorkingCapital'
     ])
   })
 })

@@ -105,7 +105,7 @@ describe('DashboardBuilder', () => {
   it('has sheetName + upstream', () => {
     expect(DashboardBuilder.sheetName).toBe('DASHBOARD')
     expect(DashboardBuilder.upstream).toEqual([
-      'home', 'balanceSheet', 'incomeStatement',
+      'home', 'balanceSheet', 'incomeStatement', 'changesInWorkingCapital'
     ])
   })
 

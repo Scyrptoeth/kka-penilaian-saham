@@ -118,7 +118,7 @@ describe('EemBuilder', () => {
   it('has sheetName + upstream', () => {
     expect(EemBuilder.sheetName).toBe('EEM')
     expect(EemBuilder.upstream).toEqual([
-      'home', 'balanceSheet', 'incomeStatement', 'fixedAsset', 'discountRate', 'interestBearingDebt',
+      'home', 'balanceSheet', 'incomeStatement', 'fixedAsset', 'discountRate', 'interestBearingDebt', 'changesInWorkingCapital'
     ])
   })
 

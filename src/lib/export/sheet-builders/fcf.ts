@@ -29,7 +29,7 @@ const SHEET_NAME = 'FCF'
  */
 export const FcfBuilder: SheetBuilder = {
   sheetName: SHEET_NAME,
-  upstream: ['home', 'balanceSheet', 'incomeStatement', 'fixedAsset'],
+  upstream: ['home', 'balanceSheet', 'incomeStatement', 'fixedAsset', 'changesInWorkingCapital'],
   build(workbook, state) {
     const ws = workbook.getWorksheet(SHEET_NAME)
     if (

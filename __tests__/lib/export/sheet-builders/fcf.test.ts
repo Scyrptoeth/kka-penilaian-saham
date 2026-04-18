@@ -102,7 +102,7 @@ describe('FcfBuilder — metadata', () => {
   it('has correct sheetName + upstream slices', () => {
     expect(FcfBuilder.sheetName).toBe('FCF')
     expect(FcfBuilder.upstream).toEqual([
-      'home', 'balanceSheet', 'incomeStatement', 'fixedAsset',
+      'home', 'balanceSheet', 'incomeStatement', 'fixedAsset', 'changesInWorkingCapital'
     ])
   })
 })
