@@ -285,7 +285,7 @@ const dict = {
   'aam.valuation': { en: 'Valuation', id: 'Valuasi' },
   'aam.netAssetValue': { en: 'Net Asset Value', id: 'Nilai Aset Bersih' },
   'aam.interestBearingDebt': { en: 'Interest Bearing Debt', id: 'Utang Berbunga' },
-  'aam.equityValue': { en: 'Equity Value', id: 'Nilai Ekuitas' },
+  'aam.equityValue': { en: 'Equity Value (100%)', id: 'Nilai Ekuitas (100%)' },
   'aam.equityLessDlom': { en: 'Equity Less DLOM', id: 'Ekuitas Setelah DLOM' },
   'aam.marketValue100': { en: 'Market Value of Equity (100%)', id: 'Nilai Pasar Ekuitas (100%)' },
   'aam.dlomLabel': { en: 'DLOM', id: 'DLOM' },

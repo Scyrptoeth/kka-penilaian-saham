@@ -386,7 +386,7 @@ export default function AamPage() {
             </tr>
             <tr className="border-b border-grid">
               <td className="px-3 py-2 text-ink">{t('aam.interestBearingDebt')}</td>
-              <td className="px-3 py-2 text-right font-mono tabular-nums">{formatIdr(r.interestBearingDebt)}</td>
+              <td className="px-3 py-2 text-right font-mono tabular-nums text-negative">{formatIdr(-r.interestBearingDebt)}</td>
             </tr>
             <tr className="border-b border-grid font-semibold">
               <td className="px-3 py-2 text-ink">{t('aam.equityValue')}</td>
