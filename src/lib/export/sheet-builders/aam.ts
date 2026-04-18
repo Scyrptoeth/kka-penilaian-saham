@@ -1,5 +1,6 @@
 import type { SheetBuilder } from './types'
 import { injectAamAdjustments } from '@/lib/export/export-xlsx'
+import { injectAamExtendedAccounts } from '@/lib/export/aam-extended'
 import { writeAamLabels } from './label-writer'
 
 const SHEET_NAME = 'AAM'
@@ -38,5 +39,6 @@ export const AamBuilder: SheetBuilder = {
 
     writeAamLabels(ws, bs.accounts, bs.language)
     injectAamAdjustments(workbook, state)
+    injectAamExtendedAccounts(workbook, state)
   },
 }
