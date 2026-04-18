@@ -93,7 +93,7 @@ export function FinancialRatioLiveView() {
   }, [isLive, home, balanceSheet, incomeStatement, fixedAsset, accPayables, changesInWorkingCapital])
 
   if (!hasHydrated) return null
-  if (!home || !balanceSheet || !incomeStatement) {
+  if (!home || !balanceSheet || !incomeStatement || changesInWorkingCapital === null) {
     return (
       <PageEmptyState section={t('nav.group.analysis')}
         title={t('nav.item.financialRatio')}
@@ -101,6 +101,7 @@ export function FinancialRatioLiveView() {
           { label: 'HOME', href: '/', filled: !!home },
           { label: 'Balance Sheet', href: '/input/balance-sheet', filled: !!balanceSheet },
           { label: 'Income Statement', href: '/input/income-statement', filled: !!incomeStatement },
+          { label: t('wc.gate.required.label'), href: '/analysis/changes-in-working-capital', filled: changesInWorkingCapital !== null },
         ]}
       />
     )

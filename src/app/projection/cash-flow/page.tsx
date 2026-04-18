@@ -42,7 +42,7 @@ export default function ProyCashFlowPage() {
   const hasHydrated = useKkaStore(s => s._hasHydrated)
 
   const data = useMemo(() => {
-    if (!hasHydrated || !home || !balanceSheet || !incomeStatement || !keyDrivers) return null
+    if (!hasHydrated || !home || !balanceSheet || !incomeStatement || !keyDrivers || changesInWorkingCapital === null) return null
 
     const pipeline = computeFullProjectionPipeline({
       home, balanceSheet, incomeStatement, fixedAsset, keyDrivers,
@@ -67,6 +67,7 @@ export default function ProyCashFlowPage() {
           { label: 'Income Statement', href: '/input/income-statement', filled: !!incomeStatement },
           { label: 'Fixed Asset', href: '/input/fixed-asset', filled: !!fixedAsset },
           { label: 'Key Drivers', href: '/input/key-drivers', filled: !!keyDrivers },
+          { label: t('wc.gate.required.label'), href: '/analysis/changes-in-working-capital', filled: changesInWorkingCapital !== null },
         ]}
       />
     )

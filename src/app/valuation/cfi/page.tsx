@@ -31,7 +31,7 @@ export default function CfiPage() {
   const hasHydrated = useKkaStore(s => s._hasHydrated)
 
   const data = useMemo(() => {
-    if (!hasHydrated || !home || !balanceSheet || !incomeStatement || !keyDrivers || !discountRateState || interestBearingDebt === null) return null
+    if (!hasHydrated || !home || !balanceSheet || !incomeStatement || !keyDrivers || !discountRateState || interestBearingDebt === null || changesInWorkingCapital === null) return null
 
     const pipeline = computeFullProjectionPipeline({
       home, balanceSheet, incomeStatement, fixedAsset, keyDrivers,
@@ -86,6 +86,7 @@ export default function CfiPage() {
           { label: 'Key Drivers', href: '/input/key-drivers', filled: !!keyDrivers },
           { label: 'Discount Rate', href: '/valuation/discount-rate', filled: !!discountRateState },
           { label: t('nav.item.interestBearingDebt'), href: '/valuation/interest-bearing-debt', filled: interestBearingDebt !== null },
+          { label: t('wc.gate.required.label'), href: '/analysis/changes-in-working-capital', filled: changesInWorkingCapital !== null },
         ]}
       />
     )

@@ -47,7 +47,7 @@ export default function SimulasiPotensiPage() {
   }, [setNilaiPengalihanDilaporkan])
 
   const equityValues = useMemo(() => {
-    if (!hasHydrated || !home || !balanceSheet || interestBearingDebt === null) return null
+    if (!hasHydrated || !home || !balanceSheet || interestBearingDebt === null || changesInWorkingCapital === null) return null
 
     const histYears4 = computeHistoricalYears(home.tahunTransaksi, 4)
     const histYears3 = computeHistoricalYears(home.tahunTransaksi, 3)
@@ -143,6 +143,7 @@ export default function SimulasiPotensiPage() {
           { label: 'HOME', href: '/', filled: !!home },
           { label: 'Balance Sheet', href: '/input/balance-sheet', filled: !!balanceSheet },
           { label: t('nav.item.interestBearingDebt'), href: '/valuation/interest-bearing-debt', filled: interestBearingDebt !== null },
+          { label: t('wc.gate.required.label'), href: '/analysis/changes-in-working-capital', filled: changesInWorkingCapital !== null },
         ]}
       />
     )

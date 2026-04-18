@@ -33,7 +33,7 @@ export function FcfLiveView() {
   const hasHydrated = useKkaStore((s) => s._hasHydrated)
 
   const liveRows = useMemo(() => {
-    if (!hasHydrated || !home || !balanceSheet || !incomeStatement) return null
+    if (!hasHydrated || !home || !balanceSheet || !incomeStatement || changesInWorkingCapital === null) return null
 
     const years = computeHistoricalYears(
       home.tahunTransaksi,
@@ -69,7 +69,7 @@ export function FcfLiveView() {
   }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, accPayables, changesInWorkingCapital])
 
   if (!hasHydrated) return null
-  if (!home || !balanceSheet || !incomeStatement) {
+  if (!home || !balanceSheet || !incomeStatement || changesInWorkingCapital === null) {
     return (
       <PageEmptyState section={t('nav.group.analysis')}
         title={t('dcf.section.fcf')}
@@ -78,6 +78,7 @@ export function FcfLiveView() {
           { label: 'Balance Sheet', href: '/input/balance-sheet', filled: !!balanceSheet },
           { label: 'Income Statement', href: '/input/income-statement', filled: !!incomeStatement },
           { label: 'Fixed Asset', href: '/input/fixed-asset', filled: !!fixedAsset },
+          { label: t('wc.gate.required.label'), href: '/analysis/changes-in-working-capital', filled: changesInWorkingCapital !== null },
         ]}
       />
     )

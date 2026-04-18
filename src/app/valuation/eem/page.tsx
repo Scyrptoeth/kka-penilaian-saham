@@ -36,7 +36,7 @@ export default function EemPage() {
   const hasHydrated = useKkaStore(s => s._hasHydrated)
 
   const data = useMemo(() => {
-    if (!hasHydrated || !home || !balanceSheet || !incomeStatement || !discountRateState || interestBearingDebt === null) return null
+    if (!hasHydrated || !home || !balanceSheet || !incomeStatement || !discountRateState || interestBearingDebt === null || changesInWorkingCapital === null) return null
 
     const histYears4 = computeHistoricalYears(home.tahunTransaksi, 4)
     const histYears3 = computeHistoricalYears(home.tahunTransaksi, 3)
@@ -132,6 +132,7 @@ export default function EemPage() {
           { label: 'Income Statement', href: '/input/income-statement', filled: !!incomeStatement },
           { label: 'Discount Rate', href: '/valuation/discount-rate', filled: !!discountRateState },
           { label: t('nav.item.interestBearingDebt'), href: '/valuation/interest-bearing-debt', filled: interestBearingDebt !== null },
+          { label: t('wc.gate.required.label'), href: '/analysis/changes-in-working-capital', filled: changesInWorkingCapital !== null },
         ]}
       />
     )

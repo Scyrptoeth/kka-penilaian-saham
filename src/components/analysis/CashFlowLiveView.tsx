@@ -27,7 +27,7 @@ export function CashFlowLiveView() {
   const hasHydrated = useKkaStore((s) => s._hasHydrated)
 
   const liveRows = useMemo(() => {
-    if (!hasHydrated || !home || !balanceSheet || !incomeStatement) return null
+    if (!hasHydrated || !home || !balanceSheet || !incomeStatement || changesInWorkingCapital === null) return null
 
     const cfsYears = computeHistoricalYears(
       home.tahunTransaksi,
@@ -59,6 +59,7 @@ export function CashFlowLiveView() {
           { label: 'HOME', href: '/', filled: !!home },
           { label: 'Balance Sheet', href: '/input/balance-sheet', filled: !!balanceSheet },
           { label: 'Income Statement', href: '/input/income-statement', filled: !!incomeStatement },
+          { label: t('wc.gate.required.label'), href: '/analysis/changes-in-working-capital', filled: changesInWorkingCapital !== null },
         ]}
       />
     )

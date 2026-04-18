@@ -24,7 +24,7 @@ export default function DcfPage() {
   const hasHydrated = useKkaStore(s => s._hasHydrated)
 
   const data = useMemo(() => {
-    if (!hasHydrated || !home || !balanceSheet || !incomeStatement || !keyDrivers || !discountRateState || interestBearingDebt === null) return null
+    if (!hasHydrated || !home || !balanceSheet || !incomeStatement || !keyDrivers || !discountRateState || interestBearingDebt === null || changesInWorkingCapital === null) return null
 
     // ── Projection pipeline (shared with PROY CFS, CFI, etc.) ──
     const pipeline = computeFullProjectionPipeline({
@@ -84,6 +84,7 @@ export default function DcfPage() {
           { label: 'Key Drivers', href: '/input/key-drivers', filled: !!keyDrivers },
           { label: 'Discount Rate', href: '/valuation/discount-rate', filled: !!discountRateState },
           { label: t('nav.item.interestBearingDebt'), href: '/valuation/interest-bearing-debt', filled: interestBearingDebt !== null },
+          { label: t('wc.gate.required.label'), href: '/analysis/changes-in-working-capital', filled: changesInWorkingCapital !== null },
         ]}
       />
     )
