@@ -315,6 +315,8 @@ export default function DynamicIsEditor() {
         commonSizeYears={years}
         growth={growthData}
         growthYears={growthYears}
+        showCommonSizeAverage={years.length >= 2}
+        showGrowthAverage={years.length >= 2}
       />
 
       {/* Footer: RESET + auto-save indicator */}

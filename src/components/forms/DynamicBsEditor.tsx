@@ -330,6 +330,8 @@ export default function DynamicBsEditor() {
         commonSizeYears={years}
         growth={growthData}
         growthYears={growthYears}
+        showCommonSizeAverage={years.length >= 2}
+        showGrowthAverage={years.length >= 2}
       />
 
       {/* Footer: RESET + auto-save indicator */}

@@ -6,6 +6,7 @@ import type { YearKeyedSeries } from '@/types/financial'
 import { cn } from '@/lib/utils/cn'
 import { useT } from '@/lib/i18n/useT'
 import { formatIdr, formatPercent, isNegative } from '@/components/financial/format'
+import { averageSeries } from '@/lib/calculations/derivation-helpers'
 import { parseFinancialInput } from './parse-financial-input'
 
 interface RowInputGridProps {
@@ -35,6 +36,20 @@ interface RowInputGridProps {
   growth?: Readonly<Record<number, YearKeyedSeries>>
   /** Years to show Growth columns for (years[1:] — need prior year) */
   growthYears?: readonly number[]
+  /**
+   * Render an extra "Average" sub-column at the end of the Common Size
+   * column group. Per-row avg is computed from `commonSize[excelRow]`
+   * across `commonSizeYears` using leading-zero-skip semantics.
+   * Auto-hidden when `commonSizeYears.length < 2` (need ≥2 historical years).
+   */
+  showCommonSizeAverage?: boolean
+  /**
+   * Render an extra "Average" sub-column at the end of the Growth YoY
+   * column group. Per-row avg is computed from `growth[excelRow]` across
+   * `growthYears` using leading-zero-skip semantics. Auto-hidden when
+   * `growthYears.length < 1` (no YoY data to average).
+   */
+  showGrowthAverage?: boolean
 }
 
 export function RowInputGrid({
@@ -57,10 +72,19 @@ export function RowInputGrid({
   commonSizeYears = [],
   growth,
   growthYears = [],
+  showCommonSizeAverage = false,
+  showGrowthAverage = false,
 }: RowInputGridProps) {
   const { t } = useT()
   const resolvedLineItemHeader = lineItemHeader ?? t('table.lineItemHeader')
-  const colCount = 1 + years.length + commonSizeYears.length + growthYears.length
+  // Average columns are gated by having ≥2 historical years overall — user
+  // spec: "jika hanya 1 tahun historis, tidak perlu Average".
+  const csAvg = showCommonSizeAverage && commonSizeYears.length >= 2
+  const grAvg = showGrowthAverage && growthYears.length >= 1 && years.length >= 2
+  const csAvgExtra = csAvg ? 1 : 0
+  const grAvgExtra = grAvg ? 1 : 0
+  const colCount =
+    1 + years.length + commonSizeYears.length + csAvgExtra + growthYears.length + grAvgExtra
   return (
     <div className="overflow-x-auto rounded-sm border border-grid bg-canvas-raised shadow-[0_1px_0_rgba(10,22,40,0.04)]">
       <table className="min-w-full border-collapse text-[13px]">
@@ -84,7 +108,7 @@ export function RowInputGrid({
             {commonSizeYears.length > 0 && (
               <th
                 scope="colgroup"
-                colSpan={commonSizeYears.length}
+                colSpan={commonSizeYears.length + csAvgExtra}
                 className="sticky top-0 z-10 border-b border-l border-grid-strong bg-canvas-raised px-3 py-2 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-accent"
               >
                 {t('table.commonSize')}
@@ -93,7 +117,7 @@ export function RowInputGrid({
             {growthYears.length > 0 && (
               <th
                 scope="colgroup"
-                colSpan={growthYears.length}
+                colSpan={growthYears.length + grAvgExtra}
                 className="sticky top-0 z-10 border-b border-l border-grid-strong bg-canvas-raised px-3 py-2 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-accent"
               >
                 {t('table.growthYoY')}
@@ -107,9 +131,25 @@ export function RowInputGrid({
               {commonSizeYears.map((y) => (
                 <th key={`cs-${y}`} className="border-b border-l border-grid bg-canvas-raised px-2 py-1 text-right text-[10px] font-medium text-ink-muted">{y}</th>
               ))}
+              {csAvg && (
+                <th
+                  key="cs-avg"
+                  className="border-b border-l border-grid-strong bg-canvas-raised px-2 py-1 text-right text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted"
+                >
+                  {t('table.average')}
+                </th>
+              )}
               {growthYears.map((y) => (
                 <th key={`gr-${y}`} className="border-b border-l border-grid bg-canvas-raised px-2 py-1 text-right text-[10px] font-medium text-ink-muted">{y}</th>
               ))}
+              {grAvg && (
+                <th
+                  key="gr-avg"
+                  className="border-b border-l border-grid-strong bg-canvas-raised px-2 py-1 text-right text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted"
+                >
+                  {t('table.average')}
+                </th>
+              )}
             </tr>
           )}
         </thead>
@@ -250,6 +290,20 @@ export function RowInputGrid({
                     </td>
                   )
                 })}
+                {csAvg && (() => {
+                  const avg = averageSeries(commonSize?.[excelRow], commonSizeYears)
+                  return (
+                    <td key={`cs-avg-${excelRow}`} className={cn(
+                      'border-l border-grid-strong px-2 py-1.5 text-right font-mono text-[12px] font-semibold tabular-nums',
+                      baseBg,
+                      type === 'subtotal' && 'border-t border-grid-strong',
+                      type === 'total' && 'border-t-2 border-ink font-bold',
+                      avg == null ? 'text-ink-muted' : isNegative(avg) ? 'text-negative' : 'text-ink',
+                    )}>
+                      {avg == null ? '—' : formatPercent(avg)}
+                    </td>
+                  )
+                })()}
                 {growthYears.map((y) => {
                   const v = growth?.[excelRow]?.[y] ?? 0
                   return (
@@ -264,6 +318,20 @@ export function RowInputGrid({
                     </td>
                   )
                 })}
+                {grAvg && (() => {
+                  const avg = averageSeries(growth?.[excelRow], growthYears)
+                  return (
+                    <td key={`gr-avg-${excelRow}`} className={cn(
+                      'border-l border-grid-strong px-2 py-1.5 text-right font-mono text-[12px] font-semibold tabular-nums',
+                      baseBg,
+                      type === 'subtotal' && 'border-t border-grid-strong',
+                      type === 'total' && 'border-t-2 border-ink font-bold',
+                      avg == null ? 'text-ink-muted' : isNegative(avg) ? 'text-negative' : 'text-ink',
+                    )}>
+                      {avg == null ? '—' : formatPercent(avg)}
+                    </td>
+                  )
+                })()}
               </tr>
             )
           })}
