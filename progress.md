@@ -1,62 +1,81 @@
 # Progress — KKA Penilaian Saham
 
-> Latest state after Session 040 — Extended Injection (Proy BS / Proy FA / KEY DRIVERS) + Sign Reconciliation (2026-04-18)
-> Session 040 shipped on feature branch `feat/session-040-extended-proy-kd-injection`; merge to main pending user review (option b — langsung merge setelah local gates hijau).
+> Latest state after Session 041 — IS Revamp + BS Koreksi Note + IBD Scope-Page Redesign (2026-04-18)
+> Session 041 fully merged to main + pushed (commit `f680d7b`); Vercel production deploy triggered.
 
 ## Verification Results
 ```
-Tests:     1250 / 1251 passing + 1 skipped  (102 files)
+Tests:     1261 / 1261 passing + 1 skipped  (103 files; +11 net since Session 040)
 Build:     ✅ 41 static pages, compiled cleanly
 Typecheck: ✅ tsc --noEmit clean
 Lint:      ✅ zero warnings (React Compiler compliant; local/no-hardcoded-ui-strings active)
 Audit:     ✅ 0 i18n violations (`npm run audit:i18n`)
 Phase C:   ✅ 5/5 gates green (`npm run verify:phase-c`)
 Cascade:   ✅ 3/3 (29/29 MIGRATED_SHEETS)
-Live:      https://penilaian-bisnis.vercel.app — Session 039 deployed to production via Task #1 merge
-Store:     v18 (no schema change in Session 040)
+Live:      https://penilaian-bisnis.vercel.app — Session 041 deployed to production via fast-forward merge
+Store:     v19 (schema migration v18→v19 — 3 coordinated changes)
 Registry:  29 / 29 WEBSITE_NAV_SHEETS state-driven
 ```
 
-## Session 040 (2026-04-18) — Extended Injection + Sign Reconciliation
+## Session 041 (2026-04-18) — IS Revamp + BS Koreksi Note + IBD Scope-Page Redesign
 
-### Task #1 — Merge Session 039 to main
-Fast-forward merge `feat/wc-scope-page-and-dcf-breakdown` → main (56 files, +1976/-249). Pushed origin main → production deploy. Deleted feature branch local + remote. Created Session 040 branch.
+### Task 1 — Depreciation IS read-only mirror dari FA Total Additions
+- New helper `computeDepreciationFromFa(faRows)` di `src/lib/calculations/derive-depreciation.ts` reads FA row 51 (TOTAL_DEP_ADDITIONS), negates per LESSON-055
+- DynamicIsEditor injects FA cross-ref via persist-time `useKkaStore.getState()` + render-time `useMemo` + useEffect re-persist on FA change (mirror LESSON-058 BS-from-FA pattern)
+- buildDynamicIsManifest row 21 marked `type: 'cross-ref'` → RowInputGrid renders read-only
+- IS_FIXED_LEAF_ROWS drops 21; only TAX (33) remains user-editable fixed leaf
+- 6 TDD cases
 
-### Task #2 — Proy BS Extended Injection
-`ProyBsBuilder.build()` adds a second pass: iterate `state.balanceSheet.accounts` with `excelRow ≥ 100`, write label at col B + projected values (lastHistYear + 3 projYears) at cols C/D/E/F of synthetic rows (excelRow 100-399 extended, 1000+ custom). Subtotals untouched — already include extended via `deriveComputedRows(dynamicBsManifest.computedFrom)`. Appending `+SUM(range)` would double-count. +5 TDD cases.
+### Task 2 — Trivia Koreksi Fiskal di BS page
+- `KoreksiFiskalNote` aside di bawah Reset buttons di `DynamicBsEditor.tsx`. Mirror AAM cross-ref styling (`border-l-2 border-accent`)
+- 4 i18n keys bilingual EN/ID (heading, intro, positive, negative cases)
+- Markdown-bold parser (`**phrase**`) keeps i18n strings declarative — no `dangerouslySetInnerHTML` (LESSON-117)
 
-### Task #3 — Proy FA Extended Injection
-`ProyFaBuilder.build()` adds a 7-band slot-allocation pass (rows 100-379 at 40-slot bands mirroring Session 028 FA historical). Each extended/custom account with slot index `i` writes labels + values across all 7 bands at `bandStart + i`. All-static values (diverges from Session 028 FA which uses live formulas for computed bands) matching ProyFaBuilder baseline static-write convention. Subtotals untouched (same double-count argument). +7 TDD cases.
+### Task 3 — Split net_interest → interest_income + interest_expense
+- Catalog refactor: `IsSection` drops `'net_interest'`, adds two new sections. Drops `interestType` discriminator. PSAK-aligned defaults: 6 income (rows 500-519, PSAK 71/IFRS 9) + 7 expense (rows 520-539, IAS 23 borrowing costs)
+- Each section gets its own +Add dropdown — eliminates misclassification trap where income accounts ended up under EXPENSE
+- IS_SECTION_INJECT (export): both new sections now use SUM-formula sentinel replacement (single-sign). LESSON-077 mixed-sign exception removed
+- Migration v18→v19: relocate via legacy `interestType` field
 
-### Task #4 — KEY DRIVERS Dynamic additionalCapex Injection
-New `injectAdditionalCapexByAccount` helper in `KeyDriversBuilder`. Closes the Session 036 T8 data-loss gap (dynamic field added but no injector). Per-account row at `33 + slotIndex`, label at col B via `resolveLabel`, projection-year values at cols D-J. Clear-before-write strategy cleans prototipe residue (Tanah/Bangunan/Peralatan/Lainnya at B33-B36) when user has <4 FA accounts. Edge case: skip entirely when `accounts.length === 0` (preserves template parity for fixture edge case — PT Raja Voltama has empty accounts + populated rows). Upstream stays `['keyDrivers']`; injector internally gates on home + fixedAsset + keyDrivers. +8 TDD cases.
+### Task 4 — Koreksi Fiskal + TAXABLE PROFIT antara PBT-Tax
+- New synthetic sentinel rows: `KOREKSI_FISKAL = 600` (signed user-editable leaf), `TAXABLE_PROFIT = 601` (computed `[PBT, KOREKSI_FISKAL]`)
+- Manifest order: PBT (32) → Koreksi (600) → TAXABLE PROFIT (601) → Tax (33) → NPAT (35)
+- Tax + NPAT formulas UNCHANGED — backward compat for KEY DRIVERS / NOPLAT / downstream (LESSON-116)
+- 2 i18n strings added to IsStrings interface
 
-### Task #5 — KD Ratio Sign Reconciliation
-`reconcileRatioSigns` helper runs after `writeScalars + writeArrays`, negates D20/D23/D24 + E-J expansions via `value === 0 ? 0 : -Math.abs(value)`. Store stays POSITIVE (LESSON-011); export boundary flips to NEGATIVE matching template + live PROY LR formulas (`=D8*'KEY DRIVERS'!D23` etc.) so projected expenses evaluate with correct signs when user reopens exported file. Previous whitelist (21 entries) hid a FUNCTIONAL bug, not cosmetic gap — removed from KNOWN_DIVERGENT_CELLS. 2 pre-existing tests updated. +8 TDD cases.
+### Task 5 — IBD page redesign mirror CWC + isIbdAccount cleanup
+- Store schema v18→v19: `interestBearingDebt: number | null` → `{excludedCurrentLiabilities, excludedNonCurrentLiabilities} | null`. Migration drops legacy numeric → null
+- Page rewrite `/valuation/interest-bearing-debt`: lists all CL+NCL accounts read-only with trash icon to mark NOT-IBD. Live IBD total preview. Mirror UX of `/analysis/changes-in-working-capital`
+- New helper `computeInterestBearingDebt(input)` derives total from BS data minus exclusion set
+- 6 consumer pages (AAM/DCF/EEM/CFI/Simulasi/Dashboard) + 3 sheet-builders (DCF/EEM/CFI) use the helper
+- **`isIbdAccount` classifier removed** (LESSON-074 closed). AAM CL/NCL display split now driven by same exclusion sets — single source of truth (LESSON-119)
 
-### Lessons extracted (3)
-- **LESSON-111** (promoted): Injection patterns don't transplant between LIVE-formula subtotals (append SUM) and STATIC-value subtotals (leaf-only). Arithmetic contract of destination cell decides the pattern.
-- **LESSON-112** (promoted): Phase C whitelist can hide FUNCTIONAL bugs when template has live formulas referencing the whitelisted cell. Grep fixtures for live references before accepting a whitelist entry.
-- **LESSON-113** (local): Per-account export injectors must explicitly decide `accounts.length === 0` behavior — clear-always vs preserve-template. Document the choice in an inline comment.
+### Lessons extracted (6, 5 promoted)
+- **LESSON-114** (promoted): Section split refactor must touch every reference atomically
+- **LESSON-115** (promoted): Cross-sheet read-only sentinel pattern generalizes BS-from-FA → IS-from-FA
+- **LESSON-116** (promoted): Synthetic sentinel rows ≥ 600 preserve downstream backward compatibility
+- **LESSON-117** (local): Markdown-bold parser for trivia strings — declarative + safe
+- **LESSON-118** (promoted): Store schema migration must also update Phase C fixture helpers
+- **LESSON-119** (promoted): User-curated exclusion list is single source of truth for compute AND display
 
-## Sessions 037–039 Recap
+## Sessions 038–040 Recap
 
-### Session 039 (2026-04-18) — Changes in Working Capital + DCF inline breakdown
-Store v17→v18, new `/analysis/changes-in-working-capital` page, account-driven CFS/PROY CFS rewrite (drops hardcoded `BS_CA_ROWS`/`BS_CL_ROWS`), 9 consumer pages PageEmptyState-gated, DCF inline breakdown rows (FCF components + PV per year + Equity Value derivation). 53 files, 3 lessons (LESSON-108/109/110). **Merged to main in Session 040 Task #1.**
+### Session 040 (2026-04-18) — Extended injection PROY BS/FA + KEY DRIVERS additionalCapex
+Per-account injectors for Proy BS extended rows + Proy FA 7-band slot allocation + KEY DRIVERS Additional Capex per FA account. KD ratio sign reconciliation at export boundary (21 whitelist entries removed). 4 commits, +28 tests, 3 lessons (111/112/113).
 
-### Session 038 (2026-04-18) — Interest Bearing Debt dedicated page
-Store v16→v17, `/valuation/interest-bearing-debt` required-gate page with always-visible bilingual trivia, 6 consumer pages PageEmptyState-gated, AAM cross-ref note with hyperlink, 3 input-builders refactored (IBD as explicit param, sign at boundary). 51 files, 2 lessons (LESSON-106/107).
+### Session 039 (2026-04-18) — Changes in Working Capital required-gate + DCF inline breakdown
+Store v17→v18, new `/analysis/changes-in-working-capital` page, account-driven CFS/PROY CFS rewrite, 9 consumer gates. DCF inline breakdown rows. 53 files, 3 lessons (108/109/110).
 
-### Session 037 (2026-04-18) — Average columns
-`computeAverage` + `averageSeries` helpers in derivation-helpers, 3 Input editors (BS/IS/FA) + 3 Analysis manifests (FR/NOPLAT/GR) opt-in, leading-zero-skip semantics per user spec, hidden when year count < 2. 15 files, 1 lesson (LESSON-105).
+### Session 038 (2026-04-18) — Interest Bearing Debt dedicated page (Session 038 schema deprecated by Session 041 redesign)
+Store v16→v17, original numeric-input IBD page with always-visible trivia, 6 consumer gates, AAM cross-ref note + hyperlink. **NOTE: Session 041 replaced the numeric-input page with a CWC-style scope editor; trivia content and required-gate semantics preserved.**
 
 ## Delivered (cumulative)
 
 ### Infrastructure
-- Next 16 + React 19 + TS strict + Tailwind v4 + Zustand 5 (v18) + RHF 7 + Zod 4 + ExcelJS 4 + Recharts 3 + next-themes 0.4
+- Next 16 + React 19 + TS strict + Tailwind v4 + Zustand 5 (v19) + RHF 7 + Zod 4 + ExcelJS 4 + Recharts 3 + next-themes 0.4
 - Visual identity: Montserrat + JetBrains Mono, B&W palette light + dark mode
-- Store v18 with chained migration v1→v18
-- Comprehensive i18n: ~530+ keys, `useT()` hook, root-level `language`
+- Store v19 with chained migration v1→v19 (last 3 steps coordinate Session 041 schema changes)
+- Comprehensive i18n: ~545+ keys, `useT()` hook, root-level `language`
 - Triple-layer i18n enforcement: `audit-i18n.mjs` + ESLint rule + `pretest`
 - State-driven export (Sessions 030–035) — 29/29 registry, V1 pruned, Phase C state-parity
 - Shared derivation helpers: `computeCommonSize` + `computeGrowthYoY` + `computeAverage` + `averageSeries`
@@ -64,40 +83,42 @@ Store v16→v17, `/valuation/interest-bearing-debt` required-gate page with alwa
 - Sentinel pre-computation across BS, IS, FA editors
 - IS sign convention: expenses negative, formulas plain addition
 - Universal auto-save: 500ms debounce; no SIMPAN buttons
-- PageEmptyState universal (gates on `interestBearingDebt` + `changesInWorkingCapital`)
+- PageEmptyState universal (gates on `interestBearingDebt` + `changesInWorkingCapital`, both now scope-object based)
 - Account-driven WC aggregation (Session 039 LESSON-108) with shared `resolveWcRows` helper
-- AAM section-based input, IBD classification (display split only; value from dedicated page)
-- **Export pipeline extended-account coverage** (Session 040): BS / IS / FA historical + **PROY BS** + **PROY FA** + **KEY DRIVERS Additional Capex** now preserve user's extended-catalog and custom accounts end-to-end. Sign convention reconciled at export boundary for KD ratios (LESSON-011 adapter pattern applied).
+- AAM section-based input + IBD classification driven by user-curated exclusion sets (Session 041 LESSON-119)
+- **IS Depreciation cross-ref from FA** (Session 041 Task 1) — read-only mirror; persist + useEffect chain mirrors BS LESSON-058
+- **IS Koreksi Fiskal + TAXABLE PROFIT** (Session 041 Task 4) — synthetic rows 600/601 inserted between PBT and Tax; downstream NPAT formula UNCHANGED
+- **Export pipeline extended-account coverage** (Session 040): BS / IS / FA historical + PROY BS + PROY FA + KEY DRIVERS Additional Capex
+- **IBD scope-editor page** (Session 041 Task 5) — mirror CWC scope page UX; `isIbdAccount` classifier removed (LESSON-074 closed)
 
 ### Pages (41 total prerendered)
-- **Input**: HOME · Balance Sheet (dynamic 84) · Income Statement (dynamic 41) · Fixed Asset (dynamic 20) · Key Drivers (dynamic Additional Capex per FA account, **export preserved**) · Acc Payables
+- **Input**: HOME · Balance Sheet (dynamic 84, with Koreksi Fiskal tax-impact note) · Income Statement (dynamic, **Depreciation read-only from FA**, **interest income/expense split**, **Koreksi Fiskal + TAXABLE PROFIT**) · Fixed Asset (dynamic 20) · Key Drivers (dynamic Additional Capex per FA account, export preserved) · Acc Payables
 - **Historical** (hidden from sidebar): BS, IS, Cash Flow, Fixed Asset
 - **Analysis**: Financial Ratio (18/18 + Average) · FCF · NOPLAT (+ Average in YoY) · Growth Revenue (+ Average in YoY) · ROIC · Growth Rate · Changes in Working Capital · Cash Flow Statement
-- **Projection**: Proy. L/R · **Proy. FA (dynamic + extended)** · **Proy. BS (Full Simple Growth + extended)** · Proy. NOPLAT · Proy. CFS
-- **Valuation**: DLOM · DLOC (PFC) · WACC · Discount Rate · Borrowing Cap · Interest Bearing Debt · DCF (with inline breakdown rows) · AAM (with cross-ref note) · EEM · CFI · Simulasi Potensi
+- **Projection**: Proy. L/R · Proy. FA (dynamic + extended) · Proy. BS (Full Simple Growth + extended) · Proy. NOPLAT · Proy. CFS
+- **Valuation**: DLOM · DLOC (PFC) · WACC · Discount Rate · Borrowing Cap · **Interest Bearing Debt (CWC-style scope editor)** · DCF (with inline breakdown rows) · AAM (with cross-ref note + IBD scope-driven CL/NCL split) · EEM · CFI · Simulasi Potensi
 - **Dashboard**: 4 Recharts charts
 
 ## Next Session Priorities
 
-### Session 041 — AAM Extended + LESSON-108 Audit
+### Session 042 — Excel Export of Tax Adjustment + AAM Extended + Audit
 
-1. **Merge `feat/session-040-extended-proy-kd-injection` to main** — Task #6 wrap-up step; performed directly after local gates green per user option (b).
-2. **AAM extended-account native injection** — mirror Session 031 AAM builder with extended row range, honoring per-row Penyesuaian (`aamAdjustments`). Currently only baseline accounts reach the AAM sheet; extended accounts ≥ 100 are silently skipped via `BS_ROW_TO_AAM_D_ROW` lookup miss.
-3. **LESSON-108 grep audit** — scan `computeNoplatLiveRows`, `computeFcfLiveRows`, FR ratios, ROIC for remaining hardcoded row-number lists (`const *_ROWS = [N, N, N]` pattern). Any remaining latent bugs for dynamic-catalog users.
-4. **AccPayables extended catalog** — complete the 4th dynamic catalog (BS/IS/FA done).
-5. **Upload parser (.xlsx → store)** — reverse of export, reuses cell-mapping + needs `Math.abs` on KD ratios per Session 040 sign boundary (LESSON-112 implication).
-6. **RESUME page** — final side-by-side summary of AAM / DCF / EEM per share.
+1. **Excel export of Koreksi Fiskal (600) + TAXABLE PROFIT (601) to extended IS rows** — Session 041 added them at synthetic rows in the website but export pipeline does not yet write them to the IS sheet. Mirror Session 028 IS_SECTION_INJECT pattern with a new `tax_adjustment` section that writes labels + values at the END of the IS template (rows 600-601 area, matching synthetic excelRow).
+2. **AAM extended-account native injection** (excelRow ≥ 100) — mirror Session 031 AAM builder, honoring per-row Penyesuaian (`aamAdjustments`).
+3. **LESSON-108 grep audit** — scan `computeNoplatLiveRows`, `computeFcfLiveRows`, FR ratios, ROIC for hardcoded `const *_ROWS = [N, N, N]` patterns.
+4. **AccPayables extended catalog** — complete the 4th dynamic catalog (BS/IS/FA done; AP last).
+5. **Upload parser (.xlsx → store)** — reverse direction. IBD scope reconstruction now requires either (a) leave null on upload and force user re-confirm, or (b) trust mode that preserves uploaded numeric IBD as virtual exclusion entry. Discuss with user before starting.
+6. **RESUME page** — final side-by-side AAM/DCF/EEM per-share summary.
 
-### Session 041+ Backlog
+### Session 042+ Backlog
 
-- **Dashboard polish** — projected FCF chart with new NV-growth model from Session 036
-- **Cleanup `isIbdAccount` classifier** from AAM CL/NCL display split (calc-inert after Session 038)
+- **Dashboard polish** — projected FCF chart with Session 036 NV-growth model
 - **Multi-case management** (multiple companies in one localStorage)
 - **Cloud sync / multi-device**
 
 ## Latest Sessions
+- [Session 041](history/session-041-is-revamp-bs-note-ibd-redesign.md) (2026-04-18): IS Revamp + BS Koreksi Fiskal note + IBD scope-page redesign + isIbdAccount cleanup — store v18→v19, 5 user tasks, 27 files, +1296/-360 LOC, +11 tests, 6 lessons (5 promoted). Merged to main commit `f680d7b`, deployed to production
 - [Session 040](history/session-040-extended-injection-sign-reconciliation.md) (2026-04-18): Extended Injection (Proy BS/FA/KD) + KD Sign Reconciliation — 4 builder commits + Session 039 merge, 7 production files, 1228→1250 tests (+28), 3 lessons
 - [Session 039](history/session-039-wc-scope-and-dcf-breakdown.md) (2026-04-18): Changes in Working Capital required-gate + DCF inline breakdown — store v17→v18, new page + trivia, account-driven CFS/PROY CFS, 9 consumer gates, DCF breakdown rows, 53 files, 3 lessons
-- [Session 038](history/session-038-ibd-field.md) (2026-04-18): Interest Bearing Debt dedicated page — store v16→v17, new page + trivia, 6 consumer gates, AAM cross-ref note, 3 input-builders refactored, 51 files, 2 lessons
-- [Session 037](history/session-037-average-columns.md) (2026-04-18): Average columns — computeAverage + averageSeries helpers, 3 Input editors + 3 Analysis manifests, leading-zero-skip semantics, 15 files, 1 lesson
-- [Session 036](history/session-036-dynamic-projection.md) (2026-04-18): Dynamic Account Interoperability — Proy BS Full Simple Growth, Proy FA per-account NV growth, Input FA CS+Growth, KD Additional Capex dynamic, store v15→v16, row translation export, 2 lessons
+- [Session 038](history/session-038-ibd-field.md) (2026-04-18): Interest Bearing Debt dedicated page (numeric input — superseded by Session 041 scope-editor redesign)
+- [Session 037](history/session-037-average-columns.md) (2026-04-18): Average columns — computeAverage + averageSeries helpers, 3 Input editors + 3 Analysis manifests

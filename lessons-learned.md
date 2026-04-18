@@ -627,7 +627,18 @@ untuk 3+ sesi ke depan:
 - LESSON-108 (Account-driven aggregation replaces hardcoded row lists — system correctness > prototipe fidelity)
 - LESSON-110 (Export shared row-filter helper when historical + projection compute must share semantic)
 
-LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054, 074, 087, 109 **TIDAK** di-promote — workflow/session-specific
+### Session 040 (Extended injection PROY BS/FA + KEY DRIVERS additionalCapex + KD ratio sign reconciliation)
+- LESSON-111 (Injection patterns don't transplant between LIVE-formula vs STATIC-value subtotals — classify destination arithmetic first)
+- LESSON-112 (Phase C whitelist can hide FUNCTIONAL bugs when template has live formulas referencing the whitelisted cell — grep fixtures before whitelisting)
+
+### Session 041 (IS Revamp + BS Koreksi note + IBD scope-page redesign + isIbdAccount cleanup)
+- LESSON-114 (Section split refactor must touch every reference atomically — catalog + manifest + migration + export + fixtures + tests)
+- LESSON-115 (Cross-sheet read-only sentinel pattern generalizes BS-from-FA → IS-from-FA → any cross-slice mirror)
+- LESSON-116 (Synthetic sentinel rows ≥ 600 preserve downstream backward compatibility — never renumber existing template rows)
+- LESSON-118 (Store schema migration must also update Phase C fixture helpers — typecheck does not catch missing nullable fields)
+- LESSON-119 (User-curated exclusion list is single source of truth for compute AND display — never retain a heuristic classifier "for display only")
+
+LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054, 074, 087, 109, 113, 117 **TIDAK** di-promote — workflow/session-specific
 insights yang general ke project lain tapi terlalu luas atau terlalu
 session-specific untuk section 8 (yang fokus KKA-specific gotchas).
 Tersimpan di lessons-learned saja.
@@ -3459,5 +3470,115 @@ Red flag for existing whitelist entries: when a session touches the compute or e
 Document the decision in an inline comment at the early-return. Test both branches (empty accounts + populated accounts) to prevent regression when future refactors assume the opposite.
 
 **Proven at**: session-040. `injectAdditionalCapexByAccount` uses template-as-fallback branch (early return on empty accounts) with explicit comment + TDD coverage. Phase C 5/5 green on PT Raja Voltama fixture which has `fixedAsset.accounts: []`.
+
+---
+
+## Session 041 — IS Revamp + BS Koreksi Note + IBD Scope-Page Redesign
+
+### LESSON-114: Section split refactor must touch every reference atomically
+
+**Kategori**: Anti-pattern | TypeScript | Workflow
+**Sesi**: session-041
+**Tanggal**: 2026-04-18
+
+**Konteks**: Refactoring a single catalog section (e.g. IS `net_interest`) into multiple sections (e.g. `interest_income` + `interest_expense`).
+
+**Apa yang terjadi**: Splitting `net_interest` triggered cascading test failures across 7 test cases in 3 files. Every place that references the old section name had to be updated atomically: catalog type union, catalog data, manifest builder filter logic, store migration v18→v19, IS_SECTION_INJECT export map, sentinel sign-replacement comment, fixture test data (STATE_WITH_EXTENDED_IS), section-coverage assertion, +Add button enumeration test.
+
+**Root cause / insight**: TypeScript catches some references via the `IsSection` union narrowing (the export pipeline got compile errors on `'net_interest'` literal), but not all. Test fixtures often hardcode the OLD section name as a string literal — typecheck doesn't see them. Migration step that relocates accounts must run BEFORE the old section literal stops being valid, OR reference the literal as a plain string with a `// eslint-disable` for the migration block.
+
+**Cara menerapkan di masa depan**: Before merging a section-split refactor, run the FULL test suite (not just typecheck) and grep for the old section name across `src` AND `__tests__` AND `__tests__/helpers`. Specifically scan for: (1) catalog type union, (2) catalog data, (3) manifest builder section filter, (4) store migration relocations, (5) export pipeline section maps, (6) test fixtures (`STATE_WITH_*` constants), (7) test assertions enumerating sections, (8) i18n keys with old name (e.g. `addButtonLabels.net_interest`).
+
+**Proven at**: session-041 (2026-04-18). Cascade hit 3 test files (manifest, catalog, export-xlsx) when net_interest split into interest_income + interest_expense. All caught + fixed in one round once the full test suite ran.
+
+---
+
+### LESSON-115: Cross-sheet read-only sentinel pattern — generalize from BS-from-FA to any sentinel mirror
+
+**Kategori**: Framework | Excel | Design
+**Sesi**: session-041
+**Tanggal**: 2026-04-18
+
+**Konteks**: Adding a read-only IS row that mirrors a value from a different store slice (e.g. IS Depreciation row 21 from FA row 51).
+
+**Apa yang terjadi**: Session 041 Task 1 needed IS row 21 to mirror `-FA[51]`. Existing pattern from Session 021 (BS rows 20/21 from FA rows 32/60) was directly reusable: extract `computeXxxFromYy(srcRows)` helper with sign reconciliation at the boundary, inject via `useMemo` into `mergedValues` for live render, inject via `getState()` lookup at persist time so sentinel chain (EBIT/PBT/NPAT) resolves correctly, add `useEffect` re-persist on source-slice change.
+
+**Root cause / insight**: This is not a one-off pattern — it generalizes to ANY read-only sentinel mirror across store slices. The structure has 4 mandatory pieces: (a) sign-reconciling helper at the boundary (LESSON-011), (b) useMemo injection into computed pipeline, (c) `useKkaStore.getState()` lookup at persist time (NOT closure capture — see LESSON-058), (d) useEffect re-persist when source slice mutates. Mark the manifest row `type: 'cross-ref'` so RowInputGrid renders it read-only formatted.
+
+**Cara menerapkan di masa depan**: When adding a new cross-sheet read-only mirror: (1) write helper in `src/lib/calculations/derive-{name}.ts`, (2) JSDoc cite source formula + sign convention, (3) test at boundary, (4) editor wires 4 pieces above, (5) catalog declares row in `IS_FIXED_LEAF_ROWS` exclusion (will be in COMPUTED set), (6) manifest builder row `type: 'cross-ref'`. Examples to mirror: any row that pulls from another store slice (e.g. Acc Payables → BS, KEY DRIVERS → IS projections, etc.).
+
+**Proven at**: session-041 (2026-04-18). `computeDepreciationFromFa` mirrors LESSON-058 BS-from-FA pattern. 6 TDD cases, lint clean, production deploy live.
+
+---
+
+### LESSON-116: Synthetic sentinel rows out-of-template-range preserve downstream backward compatibility
+
+**Kategori**: Excel | Anti-pattern | Design
+**Sesi**: session-041
+**Tanggal**: 2026-04-18
+
+**Konteks**: Inserting new conceptual rows into a financial statement between existing rows (e.g. Koreksi Fiskal + TAXABLE PROFIT between PBT row 32 and Tax row 33).
+
+**Apa yang terjadi**: Two options were considered: (a) renumber Tax 33 → 35 + NPAT 35 → 37 + insert new rows at 33/34 (template-aligned), (b) put new rows at synthetic excelRow 600/601 outside the existing template range with manifest-driven visual ordering placing them between PBT and Tax. Option (a) would have broken every downstream consumer that references rows 33/35 (NOPLAT depends on Tax, KEY DRIVERS Tax rate calc, NPAT formula, RESUME page, export builders). Option (b) keeps all existing references valid.
+
+**Root cause / insight**: Excel template row numbers are an immutable contract once downstream consumers wire to them. Inserting visual rows into the manifest is cheap; renumbering is expensive AND error-prone. The manifest's `rows: ManifestRow[]` array is order-preserving, so visual position is decoupled from `excelRow`. Synthetic excelRows ≥ 600 (outside template range 1-69 + extended 100-539 + custom 1000+) signal "logical row, not a template cell" and never collide with existing or extended catalog ranges.
+
+**Cara menerapkan di masa depan**: Whenever a user request asks "insert a new row between row X and row Y": (1) keep X and Y at their existing excelRows, (2) add new row(s) at synthetic excelRow ≥ 600 (or another reserved range), (3) achieve visual ordering by manifest array position only, (4) NEVER renumber existing rows just to make a sequence look natural. If the new row needs to participate in computed formulas downstream (e.g. TAXABLE PROFIT = PBT + Koreksi), use `computedFrom: [PBT, KOREKSI_FISKAL]` — `deriveComputedRows` resolves arbitrary excelRow numbers, doesn't care about ordering. Document the reserved synthetic range in the catalog's top-of-file comment so the next maintainer doesn't accidentally allocate the same range to a different concept.
+
+**Proven at**: session-041 (2026-04-18). Koreksi Fiskal at 600 + TAXABLE PROFIT at 601, manifest places them between PBT (32) and Tax (33), NPAT formula `[32, 33]` UNCHANGED, downstream NOPLAT/KEY DRIVERS untouched. Test suite passes 1261/1261.
+
+---
+
+### LESSON-117: Markdown-bold parser for trivia strings — declarative + safe
+
+**Kategori**: Framework | Anti-pattern | i18n
+**Sesi**: session-041
+**Tanggal**: 2026-04-18
+
+**Konteks**: Bilingual trivia/note paragraphs in i18n strings that need bold emphasis on specific phrases (e.g. BS Koreksi Fiskal note with "**Tambahkan**" / "**kurangi**" / "**Utang Pajak**" highlighted).
+
+**Apa yang terjadi**: Initial attempt encoded bold via `<strong>` tags directly in i18n strings, intending to render with `dangerouslySetInnerHTML`. Better alternative: encode with `**phrase**` markdown markers + tiny renderer function that splits on the regex and emits `<strong>` JSX nodes + `<React.Fragment>` for text segments.
+
+**Root cause / insight**: `dangerouslySetInnerHTML` poses XSS risk (controlled here since strings are hardcoded, but the pattern normalizes it for future contributors). Encoding emphasis as data + rendering via JSX keeps i18n strings declarative AND safe. The renderer is ~10 lines of code. Pattern is local to one component (no need to extract to shared utility unless ≥ 2 consumers emerge).
+
+**Cara menerapkan di masa depan**: For any bilingual note with embedded emphasis: encode as `**phrase**` in i18n strings, render via small inline parser like `renderBold(input)` in `DynamicBsEditor.tsx`. Use `<React.Fragment key={i}>` per LESSON-109 for the text segments. Don't promote the parser to a shared utility unless a 2nd consumer exists — local utility is more discoverable.
+
+**Proven at**: session-041 (2026-04-18). `KoreksiFiskalNote` component in `DynamicBsEditor.tsx` uses inline `renderBold(input)`. Lint + audit:i18n clean.
+
+---
+
+### LESSON-118: Store schema migration must also update Phase C fixture helpers — typecheck does not catch missing nullable fields
+
+**Kategori**: Testing | TypeScript | Anti-pattern
+**Sesi**: session-041
+**Tanggal**: 2026-04-18
+
+**Konteks**: Bumping a store schema field's shape (e.g. `interestBearingDebt: number | null` → `{...} | null` in v18→v19) when the field is also part of `ExportableState` consumed by Phase C verification.
+
+**Apa yang terjadi**: After Task 5 changed `interestBearingDebt` schema, `npm run typecheck` passed (TypeScript narrowing accepted the new shape). But Phase C tests failed at runtime: `__tests__/helpers/pt-raja-voltama-state.ts` `loadPtRajaVoltamaState()` returned an `ExportableState` MISSING both `interestBearingDebt` AND `changesInWorkingCapital` fields. TypeScript permitted this because the function return type wasn't `Required<ExportableState>` AND nullable fields don't trigger strict-required checks. At runtime, `computeInterestBearingDebt` destructured `interestBearingDebt` (undefined) → tried `.excludedCurrentLiabilities` access → NPE.
+
+**Root cause / insight**: `ExportableState` interface treats `interestBearingDebt: ScopeObj | null` — TypeScript's "missing object key" detection only fires on truly required (non-`?`, non-`undefined`) fields. Nullable fields are silently undefined-OK. Fixture helpers that pre-date a schema bump silently lose the new field, and `null` semantics differ from `undefined` semantics in destructuring.
+
+**Cara menerapkan di masa depan**: Whenever bumping a store schema field used by Phase C (or any test fixture builder), add an explicit `Required<>` cast at the fixture boundary OR ensure the fixture has every field of `ExportableState` populated. Maintain a checklist: store type → fixture helper → consumer pages → consumer sheet-builders. After every schema bump, grep `ExportableState` consumers for fields you forgot to wire. Also: prefer typing the fixture builder return as `Required<ExportableState>` so TypeScript will scream when a new field is added.
+
+**Proven at**: session-041 (2026-04-18). Phase C error trace led to `pt-raja-voltama-state.ts` → added missing IBD + WC fields with empty exclusion sets (mirrors confirmed scope, no functional change). 5/5 Phase C gates green after fix.
+
+---
+
+### LESSON-119: User-curated exclusion list is the single source of truth for both compute AND display — never retain a heuristic classifier "for display only"
+
+**Kategori**: Anti-pattern | Design
+**Sesi**: session-041
+**Tanggal**: 2026-04-18
+
+**Konteks**: Replacing a heuristic classifier (e.g. `isIbdAccount(account)` → IBD-or-not boolean) with a user-curated exclusion list (e.g. IBD scope page exclusion sets).
+
+**Apa yang terjadi**: Session 038 introduced IBD as a numeric input but retained `isIbdAccount` classifier for the AAM CL/NCL display split — rationale was "the classifier doesn't affect NAV math when user follows the workflow". Session 041 moved IBD scope to user-curated exclusion sets. Decision Q6: keep classifier for display, OR unify with the new exclusion sets. Chose unify. AAM display split now reads `excludedXxx` Sets from store: included → IBD subtotal, excluded → NON-IBD subtotal.
+
+**Root cause / insight**: Two sources of truth for the same semantic concept (IBD-or-not) inevitably diverge. User edits the exclusion list, expects display to reflect it. Heuristic classifier (catalog ID match) doesn't see user intent, so display contradicts user action — confusing AND wrong. Single source of truth = exclusion list. Classifier removed entirely (15 LOC + 1 export deleted).
+
+**Cara menerapkan di masa depan**: When introducing user-curated control over a concept that previously had a heuristic, REPLACE the heuristic in ALL consumers, including display-only ones. Don't leave the heuristic alive "just for the display split" — that's a future bug. The cost of unifying is small (one switch from `isIbdAccount(acct)` → `exclSet.has(acct.excelRow)`), the cost of divergence is high (silent display/math mismatch). Document the cleanup as part of the user-curation feature, not as a follow-up task.
+
+**Proven at**: session-041 (2026-04-18). `isIbdAccount` removed from `balance-sheet-catalog.ts`. `buildAamInput` accepts optional `excludedCurrentLiabIbd` + `excludedNonCurrentLiabIbd` Sets. AAM page passes them from `state.interestBearingDebt.excludedXxx`. Same exclusion sets feed both NAV math (via `computeInterestBearingDebt`) AND display (via Set membership in `buildAamInput` switch). Tests 1261/1261 pass.
 
 ---
