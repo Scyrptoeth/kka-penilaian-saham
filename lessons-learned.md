@@ -665,7 +665,10 @@ untuk 3+ sesi ke depan:
 
 ### Session 051 (Proy BS strict growth + Equity editable + Proy FA seed fallback)
 - LESSON-143 (`averageYoYStrict` — projection growth requires ≥ 2 real YoY observations or null/flat fallback — single source of truth for INPUT display + Proy compute)
-- LESSON-144 (Multiplicative roll-forward projection seed MUST fall back to last non-zero historical when histYear entry is undefined — distinguishes "user typed 0" from "user left blank")
+- ~~LESSON-144~~ (SUPERSEDED by LESSON-146 in session-052 — fabricated fallback silently diverged Proy FA Additions from INPUT FA Additions at shared anchor year; reverted to strict histYear-as-source-of-truth)
+
+### Session 052 (Revert FA seed fallback + KD Additional Capex visual polish)
+- LESSON-146 (INPUT at histYear is strict source of truth — no fabricated seed fallback; supersedes LESSON-144)
 
 LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054, 074, 087, 109, 113, 117, 120, 121, 125, 127, 128, 130, 131, 134, 136, 138, 140, 142, 145 **TIDAK** di-promote — workflow/session-specific
 insights yang general ke project lain tapi terlalu luas atau terlalu
@@ -4290,7 +4293,9 @@ useEffect(() => {
 
 ### LESSON-144: Multiplicative roll-forward projection seed MUST fall back to last non-zero historical when `histYear` entry is undefined
 
-**Kategori**: Excel | Anti-pattern (promoted)
+**Status**: ⚠️ **SUPERSEDED by LESSON-146 (session-052, 2026-04-19)** — fabricated fallback silently diverges Proy FA Additions display from INPUT FA Additions at the shared anchor year. Contract reverted: histYear value is strict source of truth, 0 when undefined, no fabrication.
+
+**Kategori**: Excel | Anti-pattern (promoted → demoted to historical note)
 
 **Sesi**: session-051
 **Tanggal**: 2026-04-19
@@ -4350,5 +4355,32 @@ useEffect(() => {
 - Local lesson (not promoted) — one consumer migrated in Session 051 (DynamicBsEditor); IS/FA/AP editors stay on default `averageSeries`. Promote if a third consumer adopts
 
 **Proven at**: session-051 (2026-04-19). `RowInputGrid.growthAverageResolver?: (excelRow) => number | null` prop added; `DynamicBsEditor` passes `(row) => averageYoYStrict(allValues[row], years)`. Single-line swap at caller site; zero impact on IS/FA editors still using loose semantic.
+
+---
+
+### LESSON-146: INPUT at histYear is strict source of truth — no fabricated seed fallback (supersedes LESSON-144)
+
+**Kategori**: Excel | Design | Anti-pattern (promoted)
+
+**Sesi**: session-052
+**Tanggal**: 2026-04-19
+
+**Konteks**: A dynamic-catalog manual-entry account has sparse historical data for a multiplicatively-projected band (e.g. Fixed Asset Acq/Dep Additions). User entered values for earlier historical years but left `histYear` (the projection anchor) blank. LESSON-144 introduced a `lastNonZeroHistorical` seed fallback that fabricated the anchor value from pre-histYear data to avoid stalled-at-zero projection. The projection page rendered non-zero values at histYear + projection years even though INPUT showed 0 at histYear.
+
+**Apa yang terjadi**: User inspected side-by-side `/input/fixed-asset` vs `/projection/fixed-asset` Additions columns at the same anchor year (2021). INPUT showed `0` across every account at 2021 (user hadn't entered). Proy FA showed `3.365.510.390`, `6.424.709.610`, etc. (fabricated from 2018/2019/2020). User flagged as "nilai tidak sama... sangat fatal" — the display betrayed the INPUT. The cascading downstream (KD Additional Capex auto-populate, Proy CFS CapEx, Proy BS FA) all showed non-zero magic values that didn't trace back to any cell the user had typed.
+
+**Root cause / insight**: The fabricated fallback violated a fundamental UX contract — **INPUT at a given year should uniquely determine the PROJECTION at that year's anchor**. When display silently diverges from INPUT, the user loses the mental model "what I type is what I see". Trade-off: with strict semantic, multiplicatively-projected bands stall at 0 when histYear is blank — the user fixes this by typing the histYear value, not by having the system guess.
+
+The original LESSON-144 complaint ("KD Additional Capex shows 0") was misdiagnosed: the correct fix is for the user to entry histYear Additions, NOT for the system to fabricate it. The blank histYear was legitimate user state, not a bug to be papered over.
+
+**Cara menerapkan di masa depan**:
+
+- **Multiplicatively-projected bands: `seed = historicalSeries[histYear] ?? 0`**. Strict. No `lastNonZeroHistorical` fallback. If projection stalls at 0, the cure is data entry at histYear, not fabrication.
+- **Additively-projected bands (roll-forward sum)**: still OK to self-heal via `?? (Beg + Add)` — this is arithmetic derivation from other INPUT cells at the same year, not fabrication from different years.
+- **Anti-pattern red flag**: any `seed = A ?? fallback(B)` where `fallback` reaches across years to invent an anchor value. Audit grep pattern: `?? lastNon*`, `?? fallbackFrom*`, or `for (let i = years.length - 1; i >= 0; ...)` inside a seed resolution path.
+- **Generalizes**: same principle for any derived display that mirrors user INPUT — if the displayed value at year Y deviates from the INPUT at year Y for the same logical field, something is wrong. Either INPUT entry-guidance is missing (prompt user) or display is computing from wrong source.
+- **Document cascade expectations explicitly**: when seed becomes strict, downstream consumers (KD auto-capex, Proy CFS, Proy BS FA) inherit the 0-stall. That's correct — it's a visible signal that histYear entry is missing. Silent magic is worse than visible emptiness.
+
+**Proven at**: session-052 (2026-04-19). `src/data/live/compute-proy-fixed-assets-live.ts` — deleted `lastNonZeroHistorical` helper (18 LOC), simplified `acqAddAtHist = acqAddHist[histYear] ?? 0` + same for Dep. 4 tests in `Session 052 Additions seed is strict — INPUT at histYear wins` block verify: undefined → 0 + 0 projection, explicit 0 → 0 + 0 projection, non-zero → propagates with growth, Dep symmetric. `__tests__/data/live/compute-proy-fixed-assets-live.test.ts` 18/18. Full suite 1382/1382. Phase C 5/5. Cascade integration untouched (same 29/29).
 
 ---

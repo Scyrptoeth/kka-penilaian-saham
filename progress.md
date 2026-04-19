@@ -1,10 +1,10 @@
 # Progress — KKA Penilaian Saham
 
-> Latest state after Session 051 — Proy BS Strict Growth + Equity Editable + Proy FA Seed Fallback (2026-04-19)
+> Latest state after Session 052 — Revert FA Seed Fallback (LESSON-144 SUPERSEDED) + KD Additional Capex Visual Polish (2026-04-19)
 
 ## Verification Results
 ```
-Tests:     1382 / 1382 passing + 1 skipped  (111 files; +24 net since Session 050)
+Tests:     1382 / 1382 passing + 1 skipped  (111 files; unchanged count — Session 052 rewrote 4 FA tests in-place)
 Build:     ✅ 42 static pages
 Typecheck: ✅ tsc --noEmit clean
 Lint:      ✅ zero warnings (React Compiler compliant)
@@ -12,10 +12,54 @@ Audit:     ✅ 0 i18n violations (`npm run audit:i18n`)
 Phase C:   ✅ 5/5 gates green (`npm run verify:phase-c`)
 Cascade:   ✅ 3/3 (29/29 MIGRATED_SHEETS)
 Live:      https://penilaian-bisnis.vercel.app (HTTP 200 after auth redirect)
-Store:     v21 (bumped in Session 051 — equityProjectionOverrides)
+Store:     v21 (unchanged since Session 051 — equityProjectionOverrides)
 Registry:  29 / 29 WEBSITE_NAV_SHEETS state-driven
-Branch:    main — Session 051 merged fast-forward + pushed; Vercel production deploy live (`3329837`)
+Branch:    main — pending Session 052 merge
 ```
+
+## Session 052 (2026-04-19) — Revert FA Seed Fallback + KD Additional Capex Visual Polish
+
+### User-requested 2-point spec
+
+1. **Proy FA Additions displayed values diverge from INPUT FA Additions at shared anchor year (2021).**
+   Root cause identified: LESSON-144 `lastNonZeroHistorical` seed fallback from Session 051 fabricated
+   histYear anchor values from pre-histYear data (2018-2020) when user hadn't entered at histYear.
+   This violated INPUT-is-source-of-truth. User chose **(B)**: revert total. Seed becomes strict
+   `historicalSeries[histYear] ?? 0`. Projection 2022-2024 stalls at 0 when histYear = 0/empty —
+   user fixes by entering histYear data (correct workflow), not by system fabrication.
+2. **KD Additional Capex visual polish (3 issues + 1).**
+   - Italic removed → normal font
+   - Thousand separator added via `IDR.format` (id-ID locale: `8935657067` → `8.935.657.067`)
+   - Year header aligned with values (both right-aligned on full `<td>` width)
+   - `<input readonly>` box → plain `<td>` text (mirrors Total row styling, consistent auto-readonly look with Proy FA)
+
+### Delivered (commit pending)
+
+**Compute** — `src/data/live/compute-proy-fixed-assets-live.ts`:
+- Deleted `lastNonZeroHistorical` helper (18 LOC)
+- Simplified `acqAddAtHist = acqAddHist[histYear] ?? 0` + same for Dep
+- Docstring updated: "Session 052: strict INPUT-as-source-of-truth"
+
+**Tests** — `__tests__/data/live/compute-proy-fixed-assets-live.test.ts`:
+- Rewrote `Session 051 Additions seed fallback` block as `Session 052 Additions seed is strict`
+- 4 TDD cases: undefined → 0 + 0 projection, explicit 0 → 0 + 0 projection, non-zero → propagates with growth, Dep symmetric
+
+**UI** — `src/components/forms/KeyDriversForm.tsx`:
+- Additional Capex section data rows: replaced `<input readOnly>` (8 attrs + class with italic + border) with plain `<td>` (3 attrs: `title`, `aria-readonly`, class with `text-right font-mono tabular-nums text-ink`)
+- Value rendered via `IDR.format(Math.round(series[y] ?? 0))` — consistent with Total row
+
+**Lessons**:
+- LESSON-144 marked SUPERSEDED
+- LESSON-146 (PROMOTED) — INPUT at histYear is strict source of truth — no fabricated seed fallback
+
+### Cascade (as per user "Keempat" directive)
+
+System naturally cascades through data flow — no additional code changes needed:
+- **KD Additional Capex**: auto-populate from Proy FA Acq Additions band — now 0 everywhere until user enters 2021 data (same behavior pre-Session 051)
+- **Proy CFS CapEx outflow**: 0 in projection (flows from Proy FA Additions via compute chain)
+- **Proy BS Fixed Assets**: flat across projection (same source)
+- **DCF Free Cash Flow**: no CapEx deduction term in projection (flows from same)
+- **User action required post-deploy**: enter 2021 FA Additions data at `/input/fixed-asset` to get meaningful projections
 
 ## Session 051 (2026-04-19) — Proy BS Strict Growth + Equity Editable + Proy FA Seed Fallback
 
@@ -71,10 +115,10 @@ Branch:    main — Session 051 merged fast-forward + pushed; Vercel production 
 - **LESSON-145** [local]: Resolver prop pattern for derivation columns — decouple presentational grid from avg computation semantics; caller injects strict vs loose via `(row) => result` function
 
 ## Latest Sessions
+- [Session 052](history/session-052-revert-fa-seed-fallback-kd-capex-polish.md) (2026-04-19): Revert FA Seed Fallback + KD Additional Capex Visual Polish — 2 tasks, 4 files modified (1 compute + 1 test + 1 form + docs), −18 net LOC compute, 0 net test count (4 rewritten in-place), 1 lesson (LESSON-146 promoted, LESSON-144 superseded).
 - [Session 051](history/session-051-proy-bs-strict-growth-equity-capex-seed.md) (2026-04-19): Proy BS Strict Growth + Equity Editable + Proy FA Seed Fallback — 10 tasks, 14 files (1 new + 13 modified), +882/−203 LOC, +24 net tests, 3 lessons (2 promoted). Merged to main.
 - [Session 050](history/session-050-kd-auto-readonly.md) (2026-04-19): Key Drivers Auto Read-Only — 8 tasks, 9 files (2 new + 7 modified), +667/−434 LOC, +14 net tests, 2 lessons (1 promoted). Merged to main.
 - [Session 049](history/session-049-proy-lr-opex-common-size.md) (2026-04-19): Proy. P&L OpEx Merge + Common-Size Projection Drivers — 1 task (refactor), 9 files, +768/−361 LOC, +16 net tests, 2 lessons (1 promoted).
-- [Session 048](history/session-048-per-row-dividers-fr-dcf.md) (2026-04-19): Per-Row Dividers FR + DCF — 1 task, 2 files, +10/−10 LOC (net 0 — pure style), 0 new tests, 1 lesson (local).
 
 ## Delivered (cumulative highlights)
 
@@ -87,7 +131,7 @@ Branch:    main — Session 051 merged fast-forward + pushed; Vercel production 
 - State-driven export (Sessions 030–035) — 29/29 registry, V1 pruned
 - Shared derivation helpers + generic `CatalogAccount` + 4 dynamic catalogs (BS/IS/FA/AP)
 - **Session 051 strict avg-growth (`averageYoYStrict`)**: sparse-historical accounts no longer extrapolate from single observation; single source of truth for INPUT BS Avg column AND Proy BS projection multiplier (LESSON-143 + LESSON-139)
-- **Session 051 Proy FA Additions seed fallback**: `lastNonZeroHistorical` helper prevents stalled-at-zero projection when user leaves histYear Additions cell blank. Fixes KD Additional Capex display (LESSON-144)
+- **Session 052 Proy FA Additions seed strict**: Reverts Session 051 fabricated fallback. `seed = historicalSeries[histYear] ?? 0`. INPUT at histYear is strict source of truth — no fabricated fallback from pre-histYear years. Projection stalls at 0 when histYear blank (cure: user enters histYear data). Cascade: KD Additional Capex = 0, Proy CFS CapEx = 0, Proy BS FA flat until user entry. LESSON-146 PROMOTED (supersedes LESSON-144)
 - Session 050 Key Drivers auto read-only (merge-at-persist useMemo, React Compiler compliant)
 - Session 046 sentinel coverage + Session 047 Net Value clamp + sticky floor
 
@@ -101,12 +145,16 @@ Branch:    main — Session 051 merged fast-forward + pushed; Vercel production 
 
 ## Next Session Priorities
 
-### Session 052+ Backlog
+### Session 053+ Backlog
 
-1. **User visual QA on Session 051** — verify at:
-   (a) `/input/balance-sheet` Average Growth YoY column shows "—" for sparse manual-entry accounts (Setara Kas, Hutang PPh Pasal 21/2021);
-   (b) `/projection/balance-sheet` — those accounts stay flat across 2022-2024, growth column = "—";
-   (c) Equity section: no growth row, cells editable, edit 2022 does NOT cascade to 2023/2024;
-   (d) `/input/key-drivers` Additional Capex section populates with non-zero projected values (Proy FA seed fallback).
-2. **Upload parser (.xlsx → store)** — highest-priority backlog. Reverse of export. Needs architecture discussion: null-on-upload force re-confirm (IBD/WC scope slices) vs trust-mode preserving uploaded structure. AP dynamic schedule shape adapter required.
-3. **Dashboard projected FCF chart** — leverages Session 045-047 Proy FA + Session 049 uniform Proy LR compute + Session 050 KD auto-capex + Session 051 Proy BS strict growth.
+1. **User visual QA on Session 052** — verify at:
+   (a) `/projection/fixed-asset` — Additions column at 2021 anchor mirrors INPUT FA 2021 values exactly (= 0 for all accounts when histYear empty);
+   (b) `/input/fixed-asset` → entry non-zero 2021 Additions for 1-2 accounts → `/projection/fixed-asset` now projects 2022-2024 with growth from those accounts (others stay 0);
+   (c) `/input/key-drivers` Additional Capex section: values show as plain text (no italic, no box), format `8.935.657.067` (id-ID dot separators), year header right-aligned over values;
+   (d) Cascade: `/analysis/cash-flow-statement` + `/projection/cash-flow` CapEx reflect strict Proy FA.
+2. **User visual QA on Session 051** (deferred from Session 051 wrap-up):
+   (a) `/input/balance-sheet` Avg Growth YoY = "—" for sparse accounts (Setara Kas, Hutang PPh Pasal 21/2021);
+   (b) `/projection/balance-sheet` sparse accounts flat 2022-2024 + growth "—";
+   (c) Equity section: no growth row, per-cell editable, edit 2022 tidak cascade.
+3. **Upload parser (.xlsx → store)** — highest-priority backlog. Reverse of export. Needs architecture discussion: null-on-upload force re-confirm (IBD/WC scope slices) vs trust-mode preserving uploaded structure. AP dynamic schedule shape adapter required.
+4. **Dashboard projected FCF chart** — leverages Sessions 045-052 projection stack.
