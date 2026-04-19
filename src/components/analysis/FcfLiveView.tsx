@@ -13,7 +13,6 @@ import { computeNoplatLiveRows } from '@/data/live/compute-noplat-live'
 import { computeCashFlowLiveRows } from '@/data/live/compute-cash-flow-live'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { PageEmptyState } from '@/components/shared/PageEmptyState'
-import { FcfCwcBreakdown } from '@/components/analysis/FcfCwcBreakdown'
 import { useT } from '@/lib/i18n/useT'
 
 /**
@@ -90,10 +89,5 @@ export function FcfLiveView() {
     )
   }
 
-  return (
-    <>
-      <SheetPage manifest={FCF_MANIFEST} liveRows={liveRows} />
-      <FcfCwcBreakdown />
-    </>
-  )
+  return <SheetPage manifest={FCF_MANIFEST} liveRows={liveRows} />
 }

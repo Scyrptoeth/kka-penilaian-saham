@@ -584,49 +584,6 @@ const dict = {
   'dcf.title': { en: 'Discounted Cash Flow (DCF)', id: 'Discounted Cash Flow (DCF)' },
   'dcf.subtitle': { en: 'Discounted cash flow method to determine share value.', id: 'Metode arus kas terdiskonto untuk menentukan nilai saham.' },
   'dcf.section.fcf': { en: 'Free Cash Flow', id: 'Arus Kas Bebas' },
-
-  // Session 053 — FCF CWC inline breakdown (Q3=Z)
-  'fcf.cwcBreakdown.heading': {
-    en: 'Changes in Working Capital — Per-Account Breakdown',
-    id: 'Perubahan Modal Kerja — Rincian per Akun',
-  },
-  'fcf.cwcBreakdown.subtitle': {
-    en: 'Per-account contribution to the aggregate rows above. Columns sum to match the totals.',
-    id: 'Kontribusi tiap akun terhadap baris agregat di atas. Total kolom = total agregat.',
-  },
-  'fcf.cwcBreakdown.editScope': { en: 'Edit Scope', id: 'Atur Cakupan' },
-  'fcf.cwcBreakdown.ca.heading': {
-    en: 'Current Assets — Included in CWC Scope',
-    id: 'Aset Lancar — Termasuk Cakupan CWC',
-  },
-  'fcf.cwcBreakdown.cl.heading': {
-    en: 'Current Liabilities — Included in CWC Scope',
-    id: 'Liabilitas Lancar — Termasuk Cakupan CWC',
-  },
-  'fcf.cwcBreakdown.ca.total': {
-    en: 'Total (Increase) / Decrease in Current Assets',
-    id: 'Total (Kenaikan) / Penurunan Aset Lancar',
-  },
-  'fcf.cwcBreakdown.cl.total': {
-    en: 'Total Increase / (Decrease) in Current Liabilities',
-    id: 'Total Kenaikan / (Penurunan) Liabilitas Lancar',
-  },
-  'fcf.cwcBreakdown.includedCount': {
-    en: '{count} accounts included',
-    id: '{count} akun termasuk',
-  },
-  'fcf.cwcBreakdown.excludedLabel': {
-    en: 'Excluded accounts · {count}',
-    id: 'Akun dikecualikan · {count}',
-  },
-  'fcf.cwcBreakdown.empty': {
-    en: 'No accounts included. Edit scope to add Current Assets / Liabilities.',
-    id: 'Tidak ada akun termasuk. Atur cakupan untuk menambahkan Aset / Liabilitas Lancar.',
-  },
-  'fcf.cwcBreakdown.triviaFooter': {
-    en: 'To change which accounts contribute to this aggregate, click "Edit Scope" above.',
-    id: 'Untuk mengubah akun yang berkontribusi ke agregat ini, klik "Atur Cakupan" di atas.',
-  },
   'dcf.section.discounting': { en: 'Discounting', id: 'Diskonto' },
   'dcf.section.terminalValue': { en: 'Terminal Value', id: 'Nilai Terminal' },
   'dcf.section.equityShare': { en: 'Equity → Share Value', id: 'Ekuitas → Nilai Saham' },
