@@ -42,6 +42,29 @@
  * rows fall back to 0 — callers that still want the legacy "sum rows
  * 8+9" behavior must pre-compute it themselves and pass the result.
  *
+ * ═══════════════════════════════════════════════════════════════════════
+ * Session 056 rewrite: Financing rows 22/23/24/25/26 are scope-driven.
+ * ═══════════════════════════════════════════════════════════════════════
+ *
+ * Legacy behavior (pre-Session-056):
+ *   - row 22 (Equity Injection)   → 0 (no input source at all)
+ *   - row 23 (New Loan)           → apRows[10] + apRows[19]   (hardcoded)
+ *   - row 24 (Interest Payment)   → isLeaves[27]              (hardcoded)
+ *   - row 25 (Interest Income)    → isLeaves[26]              (hardcoded)
+ *   - row 26 (Principal Repay)    → apRows[20]                (hardcoded)
+ * Same brittleness pattern as WC / Cash: broke for extended or custom
+ * BS / IS / AP structures, and row 22 always rendered 0 regardless of
+ * equity movements in the BS.
+ *
+ * New behavior: caller passes pre-computed `financingResult` (from
+ * `computeFinancing` against user-curated Financing scope). The 5
+ * financing rows read directly from `financingResult.{equityInjection,
+ * newLoan, interestPayment, interestIncome, principalRepayment}`. When
+ * `financingResult` is absent (legacy callers / unconfirmed scope), all
+ * five rows fall back to 0 — callers that want the legacy AP/IS
+ * reconstruction must pre-compute it themselves via `computeFinancing`
+ * with an equivalent scope and pass the result.
+ *
  * Sign conventions (unchanged):
  *   - IS leaves: natural sign (expenses negative per Excel convention)
  *   - BS leaves: natural values (positive)
@@ -62,6 +85,7 @@ import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { FIXED_ASSET_MANIFEST } from '@/data/manifests/fixed-asset'
 import type { BsAccountEntry } from '@/data/catalogs/balance-sheet-catalog'
 import type { YearKeyedSeries } from '@/types/financial'
+import type { FinancingResult } from '@/lib/calculations/compute-financing'
 
 function sumRows(
   data: Record<number, YearKeyedSeries>,
@@ -98,7 +122,10 @@ export function resolveWcRows(
  * @param bsRows                  BS leaf values (natural sign, keyed by BS excelRow)
  * @param isLeaves                IS leaf values (Excel convention: expenses negative)
  * @param faLeaves                FA leaf values (natural sign, nullable if FA not entered)
- * @param apRows                  ACC PAYABLES leaf values (nullable, defaults financing to 0)
+ * @param apRows                  ACC PAYABLES leaf values (nullable). No longer consumed
+ *                                after Session 056 — financing rows now read from
+ *                                `financingResult`. Kept in signature for backward-compat
+ *                                with existing callers; may be removed in a future cleanup.
  * @param cfsYears                CFS year span, e.g. [2019, 2020, 2021]
  * @param bsYears                 BS year span, e.g. [2018, 2019, 2020, 2021] — first entry
  *                                is the prior year for CL delta and Cash Beginning
@@ -110,6 +137,10 @@ export function resolveWcRows(
  * @param cashAccountResult       Session 055 — pre-computed Bank / CashOnHand split
  *                                (from `computeCashAccount`). Feeds rows 35/36. When absent,
  *                                rows 35/36 default to 0.
+ * @param financingResult         Session 056 — pre-computed 5 Financing series
+ *                                (from `computeFinancing` against user-curated Financing
+ *                                scope). Feeds rows 22/23/24/25/26. When absent, those
+ *                                rows default to 0 (legacy-null behavior preserved).
  */
 export function computeCashFlowLiveRows(
   bsAccounts: readonly BsAccountEntry[],
@@ -123,6 +154,7 @@ export function computeCashFlowLiveRows(
   excludedCurrentLiab: readonly number[] = [],
   cashBalanceResult?: { ending: YearKeyedSeries; beginning: YearKeyedSeries },
   cashAccountResult?: { bank: YearKeyedSeries; cashOnHand: YearKeyedSeries },
+  financingResult?: FinancingResult,
 ): Record<number, YearKeyedSeries> {
   // Compute FA subtotals — need Total Additions (row 23) for CapEx.
   // Sentinel subtotals in store override re-derived values (include extended accounts).
@@ -184,26 +216,23 @@ export function computeCashFlowLiveRows(
     // Row 17: CapEx = FA row 23 (Total Additions) × -1
     set(17, year, -(faComputed?.[23]?.[year] ?? 0))
 
-    // ── FINANCING ──
+    // ── FINANCING — scope-driven via Financing slice (Session 056) ──
 
-    // Row 22: Equity Injection (leaf, no input source — default 0)
-    set(22, year, 0)
+    // Row 22: Equity Injection (YoY delta on user-picked equity accounts)
+    set(22, year, financingResult?.equityInjection?.[year] ?? 0)
 
-    // Row 23: New Loan = ACC PAYABLES row 10 + row 19
-    set(
-      23,
-      year,
-      (apRows?.[10]?.[year] ?? 0) + (apRows?.[19]?.[year] ?? 0),
-    )
+    // Row 23: New Loan (sum user-picked AP Add-band rows)
+    set(23, year, financingResult?.newLoan?.[year] ?? 0)
 
-    // Row 24: Interest Payment = IS row 27 (direct — already negative)
-    set(24, year, isLeaves[27]?.[year] ?? 0)
+    // Row 24: Interest Payment (sum user-picked IS interest_expense accounts —
+    // IS convention preserved: expenses already negative per LESSON-011)
+    set(24, year, financingResult?.interestPayment?.[year] ?? 0)
 
-    // Row 25: Interest Income = IS row 26 (positive)
-    set(25, year, isLeaves[26]?.[year] ?? 0)
+    // Row 25: Interest Income (sum user-picked IS interest_income accounts)
+    set(25, year, financingResult?.interestIncome?.[year] ?? 0)
 
-    // Row 26: Principal Repayment = ACC PAYABLES row 20
-    set(26, year, apRows?.[20]?.[year] ?? 0)
+    // Row 26: Principal Repayment (sum user-picked AP rows)
+    set(26, year, financingResult?.principalRepayment?.[year] ?? 0)
 
     // ── CASH BALANCES (Session 055 — scope-driven via Cash Balance / Cash Account) ──
 

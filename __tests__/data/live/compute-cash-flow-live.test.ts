@@ -14,6 +14,7 @@ import { describe, expect, it } from 'vitest'
 import { computeCashFlowLiveRows } from '@/data/live/compute-cash-flow-live'
 import { computeCashBalance } from '@/lib/calculations/compute-cash-balance'
 import { computeCashAccount } from '@/lib/calculations/compute-cash-account'
+import { computeFinancing } from '@/lib/calculations/compute-financing'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { CASH_FLOW_STATEMENT_MANIFEST } from '@/data/manifests/cash-flow-statement'
 // INCOME_STATEMENT_MANIFEST removed — IS values read directly from fixture
@@ -152,6 +153,26 @@ describe('CFS live mode matches fixture at all historical years', () => {
     years: CFS_YEARS,
   })
 
+  // Session 056 — reproduce legacy hardcoded Financing wiring via scope:
+  //  - row 24 Interest Payment  → IS row 27 (interest_expense)
+  //  - row 25 Interest Income   → IS row 26 (interest_income)
+  //  - rows 22/23/26 stay 0 (PT Raja prototype has no equity movements
+  //    and AP is null in this test, so newLoan / principalRepayment are 0)
+  const financingResult = computeFinancing({
+    financing: {
+      equityInjection: [],
+      newLoan: [],
+      interestPayment: [27],
+      interestIncome: [26],
+      principalRepayment: [],
+    },
+    bsRows: bsLeaves,
+    isLeaves,
+    apRows: {},
+    cfsYears: CFS_YEARS,
+    bsYears: BS_YEARS,
+  })
+
   // Compute CFS leaf rows from upstream data
   const cfsLeafRows = computeCashFlowLiveRows(
     bsAccounts,
@@ -165,6 +186,7 @@ describe('CFS live mode matches fixture at all historical years', () => {
     excludedCL,
     cashBalanceResult,
     cashAccountResult,
+    financingResult,
   )
 
   // Derive subtotals via CFS manifest computedFrom
@@ -355,5 +377,101 @@ describe('CFS account-driven WC aggregation (Session 039)', () => {
     expect(out[33]![2020]).toBe(275)
     expect(out[35]![2020]).toBe(75)
     expect(out[36]![2020]).toBe(200)
+  })
+})
+
+describe('CFS Financing rows scope-driven (Session 056)', () => {
+  const years = [2019, 2020, 2021]
+  const bsYears = [2018, 2019, 2020, 2021]
+  const isLeaves: Record<number, YearKeyedSeries> = {
+    18: { 2019: 800, 2020: 1000, 2021: 1500 },
+    26: { 2019: 0, 2020: 0, 2021: 0 },
+    27: { 2019: 0, 2020: 0, 2021: 0 },
+    30: { 2019: 0, 2020: 0, 2021: 0 },
+    33: { 2019: -80, 2020: -100, 2021: -150 },
+  }
+  const bsAccounts: BsAccountEntry[] = [
+    { catalogId: 'account_receivable', excelRow: 10, section: 'current_assets' },
+  ]
+  const bsRows: Record<number, YearKeyedSeries> = {
+    10: { 2018: 50, 2019: 100, 2020: 150, 2021: 180 },
+  }
+
+  it('row 22 reads financingResult.equityInjection per year', () => {
+    const financingResult = {
+      equityInjection: { 2019: 1000, 2020: 2000, 2021: 3000 },
+      newLoan: { 2019: 0, 2020: 0, 2021: 0 },
+      interestPayment: { 2019: 0, 2020: 0, 2021: 0 },
+      interestIncome: { 2019: 0, 2020: 0, 2021: 0 },
+      principalRepayment: { 2019: 0, 2020: 0, 2021: 0 },
+    }
+    const out = computeCashFlowLiveRows(
+      bsAccounts, bsRows, isLeaves, null, null, years, bsYears, [], [],
+      undefined, undefined, financingResult,
+    )
+    expect(out[22]![2019]).toBe(1000)
+    expect(out[22]![2020]).toBe(2000)
+    expect(out[22]![2021]).toBe(3000)
+  })
+
+  it('row 23 reads financingResult.newLoan per year', () => {
+    const financingResult = {
+      equityInjection: { 2019: 0, 2020: 0, 2021: 0 },
+      newLoan: { 2019: 500, 2020: 750, 2021: 900 },
+      interestPayment: { 2019: 0, 2020: 0, 2021: 0 },
+      interestIncome: { 2019: 0, 2020: 0, 2021: 0 },
+      principalRepayment: { 2019: 0, 2020: 0, 2021: 0 },
+    }
+    const out = computeCashFlowLiveRows(
+      bsAccounts, bsRows, isLeaves, null, null, years, bsYears, [], [],
+      undefined, undefined, financingResult,
+    )
+    expect(out[23]![2019]).toBe(500)
+    expect(out[23]![2020]).toBe(750)
+    expect(out[23]![2021]).toBe(900)
+  })
+
+  it('rows 24/25/26 read interestPayment / interestIncome / principalRepayment', () => {
+    const financingResult = {
+      equityInjection: { 2019: 0, 2020: 0, 2021: 0 },
+      newLoan: { 2019: 0, 2020: 0, 2021: 0 },
+      // IS convention: expenses already negative (LESSON-011 — no extra negation)
+      interestPayment: { 2019: -100, 2020: -120, 2021: -150 },
+      interestIncome: { 2019: 30, 2020: 40, 2021: 50 },
+      principalRepayment: { 2019: -200, 2020: -250, 2021: -300 },
+    }
+    const out = computeCashFlowLiveRows(
+      bsAccounts, bsRows, isLeaves, null, null, years, bsYears, [], [],
+      undefined, undefined, financingResult,
+    )
+    expect(out[24]![2020]).toBe(-120)
+    expect(out[25]![2020]).toBe(40)
+    expect(out[26]![2020]).toBe(-250)
+  })
+
+  it('rows 22-26 default to 0 when financingResult is omitted (regression gate)', () => {
+    // AP rows present with values at legacy hardcoded rows 10/19/20 —
+    // confirms the old apRows[10]+[19] / apRows[20] path is GONE.
+    const apRows: Record<number, YearKeyedSeries> = {
+      10: { 2019: 999, 2020: 999, 2021: 999 },
+      19: { 2019: 999, 2020: 999, 2021: 999 },
+      20: { 2019: 999, 2020: 999, 2021: 999 },
+    }
+    // IS interest rows populated too — legacy isLeaves[26]/[27] path must also be gone.
+    const isWithInterest: Record<number, YearKeyedSeries> = {
+      ...isLeaves,
+      26: { 2019: 777, 2020: 777, 2021: 777 },
+      27: { 2019: -555, 2020: -555, 2021: -555 },
+    }
+    const out = computeCashFlowLiveRows(
+      bsAccounts, bsRows, isWithInterest, null, apRows, years, bsYears, [], [],
+      undefined, undefined, /* financingResult */ undefined,
+    )
+    // All 5 Financing rows = 0 regardless of AP/IS content, because scope is absent.
+    expect(out[22]![2020]).toBe(0)
+    expect(out[23]![2020]).toBe(0)
+    expect(out[24]![2020]).toBe(0)
+    expect(out[25]![2020]).toBe(0)
+    expect(out[26]![2020]).toBe(0)
   })
 })
