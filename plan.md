@@ -1,55 +1,53 @@
-# Session 055 — Plan
+# Session 056 — Plan (Cluster C Financing)
 
-**Branch**: `feat/session-055-invested-capital-cash-scope-nfa-cwc`
+**Branch**: `feat/session-056-financing-scope`
 **Strategy**: TDD, commit per task, parallel agents where independent
 
-## Tasks (18 tracked via TaskList)
+## Tasks (14 tracked)
 
-1. **Rename global**: ROIC "Non Operating Fixed Assets" → "Other Non-Operating Assets" — manifest label + fixture JSONs + i18n scaffolding
-2. **Store v22→v23**: 3 slice types + setters + migration + partialize + ExportableState
-3. **computeInvestedCapital**: pure helper BS+FA sourced
-4. **computeCashBalance**: pure helper 1-list + year-shift
-5. **computeCashAccount**: pure helper bank+cashOnHand
-6. **IC page**: `/input/invested-capital` with 3-section dropdown-add
-7. **CashBalance page**: `/input/cash-balance` single-section + pre-history
-8. **CashAccount page**: `/input/cash-account` 2-section mutex
-9. **ROIC rewire**: compute + gate + builder
-10. **Growth Rate NFA fix**: compute refactor both rows FA + LESSON-057 merge + gate
-11. **CWC multi-year**: FinancialTable matrix + Avg
-12. **CFS rewire**: cash rows scope-aware + gate
-13. **Nav tree**: 3 entries alphabetical Drivers & Scope
-14. **i18n bulk**: ~55 keys bilingual EN/ID
-15. **Phase C fixture**: extend `pt-raja-voltama-state.ts`
-16. **Verification gate**: full suite + build + typecheck + lint + audit + Phase C
-17. **Merge + deploy**: main + Vercel live
-18. **Wrap-up**: history + lessons + progress.md
+1. **Design + plan** (done) — design.md section appended, plan.md rewritten
+2. **Create feature branch** — from main
+3. **computeFinancing pure helper (TDD)** — `src/lib/calculations/compute-financing.ts` + 12+ test cases
+4. **Store v23→v24 migration** — `FinancingState` + mutex setter `assignFinancing(row, excelRow)` + migration + 4 TDD cases
+5. **`/input/financing` page editor** — 5-section hydration-gated, dropdown-add, trash, sticky confirm, trivia bilingual
+6. **Nav-tree + i18n keys** — Drivers & Scope 6→7 alphabetical + ~55 i18n keys
+7. **CFS view rewire + required-gate** — CashFlowLiveView + compute-cash-flow-live refactor (accept financingResult, replace hardcoded isLeaves[26/27] + apRows[10/19/20])
+8. **CashFlowStatementBuilder + Phase C fixture** — upstream += 'financing', pre-compute, fixture reconstruction for PT Raja parity
+9. **Full verification gates** — test + build + typecheck + lint + audit + phase-c + cascade
+10. **Dev server render verification** — curl /input/financing + /analysis/cash-flow-statement
+11. **Documentation** — lessons-learned.md append + history/session-056-*.md + progress.md rewrite
+12. **Commit chain** — 7-8 conventional commits per logical block; explicit paths only
+13. **Merge to main + push + Vercel deploy + live verification** — fast-forward, push origin main, curl penilaian-bisnis.vercel.app HTTP 200
 
 ## Dependencies
 
-- Task 2 blocks 3/4/5/6/7/8/9/10/11/12 (store types needed)
-- Task 3/4/5 blocks 9/10/12 (compute needed for consumers)
-- Task 14 parallel-friendly with most (just translations.ts append)
-- Task 16 blocks 17
-- Task 17 blocks 18
+- Task 2 (branch) blocks 3/4/5/6/7/8
+- Task 4 (store) blocks 5/7/8 (FinancingState type needed)
+- Task 3 (compute) blocks 7/8 (computeFinancing consumer)
+- Task 6 (nav/i18n) parallel with most
+- Task 9 blocks 10 (verification before live render)
+- Task 10 blocks 11 (docs only after verified)
+- Task 12 blocks 13 (commit before merge)
 
 ## Parallelization Plan
 
-- **Sequential (main thread)**: 1 (rename), 2 (store — critical), 13-14 (small)
-- **Parallel batch A** (after Task 2): 3+4+5 (compute helpers — pure functions, independent)
-- **Parallel batch B** (after A): 6+7+8 (pages — independent routes, mirror IBD pattern)
-- **Parallel batch C** (after compute + pages): 9+10+11+12 (consumer rewires — touch different files)
-- **Sequential tail**: 15 → 16 → 17 → 18
+- **Sequential (main thread)**: 2 (branch), 9/10 (verification), 11/12/13 (docs+merge+deploy)
+- **Parallel batch A** (after Task 2): 3 + 4 (pure compute + store — independent files)
+- **Parallel batch B** (after A): 5 + 6 + 7 + 8 (page + nav/i18n + consumer rewire + builder — independent files)
+  - Task 5 reads store types from Task 4
+  - Task 6 reads translation.ts (careful ordering with other i18n updates)
+  - Task 7 + 8 consume compute from Task 3
 
 ## Verification Target
 
 ```
-Tests:     1393+50 new = ~1443 passing, 0 regressions
-Build:     ✅ 45 static pages (+3 new input routes)
+Tests:     1420 → ~1440 passing, 0 regressions
+Build:     ✅ 45 → 46 static pages (+1 /input/financing)
 Typecheck: ✅
 Lint:      ✅
 Audit:     ✅ 0 i18n violations
-Phase C:   ✅ 5/5
+Phase C:   ✅ 5/5 (numeric parity preserved via fixture reconstruction)
 Cascade:   ✅ 3/3 (29/29)
-Live:      penilaian-bisnis.vercel.app HTTP 200
-Store:     v23
+Live:      penilaian-bisnis.vercel.app HTTP 200/307 after Vercel deploy
+Store:     v24
 ```

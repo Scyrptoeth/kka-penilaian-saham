@@ -108,7 +108,202 @@ export interface CashAccountState {
 
 ## Out of Scope
 
-- Financing scope editor (Session 056 Cluster C)
 - Upload parser
 - Dashboard projected FCF chart
 - Extended-catalog smoke test fixture
+
+---
+
+# Session 056 — Design (Cluster C Financing)
+
+## Scope
+
+Cluster C dari user 7-poin revision (poin 6): `/input/financing` scope editor
+yang menggantikan hardcoded references di `compute-cash-flow-live.ts` untuk 5
+CFS FINANCING rows (22-26) dengan user-curated scope — konsisten dengan
+pattern Session 055 Invested Capital / Cash Balance / Cash Account.
+
+## Architectural Decisions
+
+### Decision 1 — UX: 5 section terpisah (konsisten Invested Capital)
+
+Pattern mirror Invested Capital Session 055 (3 section with dropdown-add +
+cross-row mutex + trash-icon remove). Financing extends ke 5 section:
+
+```
+/input/financing
+  ├── 💰 Equity Injection (Row 22)       pool: BS section='equity'
+  ├── 🏦 New Loan (Row 23)                pool: AP schedule Add-band excelRows
+  ├── 💸 Interest Payment (Row 24)       pool: IS section='interest_expense'
+  ├── 💵 Interest Income (Row 25)         pool: IS section='interest_income'
+  └── 🔙 Principal Repayment (Row 26)     pool: AP row space (any band user picks)
+```
+
+**Cross-row mutex**: 1 excelRow hanya boleh appear di 1 CFS row (matches
+Invested Capital mutex semantic). Pools sources are disjoint by design
+(BS vs IS vs AP) except for Row 23 vs Row 26 yang share AP pool — mutex
+protects against double-count.
+
+### Decision 2 — Equity Injection semantic: YoY delta
+
+Row 22 (Equity Injection) = `Σ(equity_accounts @ Y) − Σ(equity_accounts @ Y-1)`.
+
+Year 1 prior year = `bsYears[0]` (BS extends 4 years, CFS 3 years — same
+pattern as existing CFS row 9 CL delta). Year 2+ prior = `cfsYears[i-1]`.
+
+**Why YoY delta (A2) not raw BS value (A1)**: flow semantic matches 4 other
+CFS Financing rows (which are flows). User picks equity accounts that
+represent INJECTION FLOWS (paid-up capital, APIC) — NOT retained earnings
+(which flow through net profit via CFS Operations) NOR treasury stock
+(buyback is also a flow but user's choice whether to include).
+
+### Decision 3 — AP pool granularity: per individual excelRow
+
+User picks specific AP excelRows (catalog band baseline + extended + raw
+schedule rows). Label in dropdown: `Schedule <name> · <band> (row N)`.
+
+**New Loan pool**: filter AP rows where the schedule band type is 'add'
+(legacy 10, 19 + extended 140-179 ST + 260-299 LT). PT Raja fixture
+replication: `newLoan: [10, 19]`.
+
+**Principal Repayment pool**: free AP row space — user can pick any AP row
+including legacy prototipe row 20. Fixture replication:
+`principalRepayment: [20]` — row 20 is NOT in AP_BANDS but store.rows
+Record<number> is generic enough to hold it (legacy prototipe data).
+
+### Decision 4 — IS pool: per account (granular)
+
+**Interest Payment**: filter `isLeaves` keyed by excelRow where the
+corresponding IS account has `section: 'interest_expense'` (rows 520-539).
+Sum user-picked accounts' values per year.
+
+**Interest Income**: same pattern with `section: 'interest_income'`
+(rows 500-519).
+
+Legacy sentinel `isLeaves[27]` / `isLeaves[26]` are section-sum sentinels
+pre-computed by DynamicIsEditor at persist time. PT Raja fixture
+reconstruction: pick the individual account rows (e.g. [520] for sole
+interest_expense account in prototipe) → sum yields same numeric as legacy
+section-sentinel read. Phase C parity preserved.
+
+**IS non_operating EXCLUDED** from Financing pool — `non_operating` is
+already wired to CFS row 13 "Non Operations" (outside FINANCING section).
+Session 055 progress.md notes mentioned it possibly typo — my decision:
+exclude (no CFS Financing row slot for it).
+
+### Decision 5 — Store v23 → v24 single migration
+
+```ts
+export interface FinancingState {
+  equityInjection: number[]      // BS excelRows (equity section)
+  newLoan: number[]              // AP excelRows (Add-band)
+  interestPayment: number[]      // IS excelRows (interest_expense)
+  interestIncome: number[]       // IS excelRows (interest_income)
+  principalRepayment: number[]   // AP excelRows (any)
+}
+```
+
+Root-level `financing: FinancingState | null`. Setter
+`assignFinancing(row: keyof FinancingState, excelRow: number)` auto-removes
+from the other 4 rows before appending (cross-row mutex enforced in store
+layer — matches Session 055 pattern).
+
+`confirmFinancingScope()` transitions null → default empty-list state.
+`resetFinancingScope()` reverts to null.
+
+### Decision 6 — Required-gate minimal
+
+`financing === null` blocks `/analysis/cash-flow-statement` only. NO
+cascade to DCF/EEM/CFI/Simulasi/Dashboard/FCF (mereka baca dari CFS
+sentinel rows at store level, not financing directly).
+
+CFS gate additive: sudah gated on `cashBalance === null || cashAccount === null`
+(Session 055). Adds `|| financing === null`. Empty state lists Financing
+as required.
+
+### Decision 7 — Sidebar placement
+
+Drivers & Scope subgroup 6 → 7 items alphabetical (adding "Financing"
+between "Changes in Working Capital" dan "Growth Revenue"):
+
+```
+DRIVERS & SCOPE
+  Cash Account
+  Cash Balance
+  Changes in Working Capital
+  Financing            ← NEW
+  Growth Revenue
+  Invested Capital
+  Key Drivers
+```
+
+### Decision 8 — Phase C fixture reconstruction
+
+`pt-raja-voltama-state.ts` gains:
+
+```ts
+financing: {
+  equityInjection: [],             // legacy row 22 = 0 (unwired)
+  newLoan: [10, 19],               // legacy: apRows[10] + apRows[19]
+  interestPayment: [520],          // legacy: isLeaves[27] (single account)
+  interestIncome: [500],           // legacy: isLeaves[26] (single account)
+  principalRepayment: [20],        // legacy: apRows[20]
+}
+```
+
+Numeric parity: PT Raja prototipe has exactly 1 interest_income account
+(row 500) and 1 interest_expense account (row 520). Their values are
+mirrored to section sentinels at rows 26/27 by DynamicIsEditor. Picking
+[500]/[520] at scope layer sums those rows directly — identical numeric.
+AP rows 10/19/20 mirror legacy hardcoded refs. Row 22 = 0 preserves
+legacy unwired semantic.
+
+## Types
+
+```ts
+export interface FinancingState {
+  equityInjection: number[]
+  newLoan: number[]
+  interestPayment: number[]
+  interestIncome: number[]
+  principalRepayment: number[]
+}
+
+export interface FinancingResult {
+  equityInjection: YearKeyedSeries  // YoY delta per cfsYear
+  newLoan: YearKeyedSeries
+  interestPayment: YearKeyedSeries
+  interestIncome: YearKeyedSeries
+  principalRepayment: YearKeyedSeries
+}
+
+export function computeFinancing(input: {
+  financing: FinancingState | null
+  bsRows: Record<number, YearKeyedSeries>
+  isLeaves: Record<number, YearKeyedSeries>
+  apRows: Record<number, YearKeyedSeries>
+  cfsYears: readonly number[]
+  bsYears: readonly number[]
+}): FinancingResult
+```
+
+Returns zeroed series (all rows) when `financing === null`. When set, for
+each of 5 output fields: sum user-picked excelRows' values at each year,
+with equityInjection special-cased for YoY delta.
+
+## Non-Negotiables Honored
+
+- **LESSON-108**: zero hardcoded row numbers in compute after refactor
+- **LESSON-107**: required-gate with null sentinel at CFS consumer
+- **LESSON-150**: triple-wiring atomically (view + compute-helper + builder + Phase C fixture)
+- **LESSON-112**: Phase C fixture replicates legacy behavior exactly (numeric parity)
+- **LESSON-011**: sign reconciliation at builder boundary (interest_expense passes through negative per Session 041 convention)
+- **LESSON-029**: company-agnostic — scope editors work for any company structure
+- **LESSON-081**: commit with explicit paths only (no `git add -A`)
+
+## Out of Scope (Session 056)
+
+- Upload parser (carryover backlog)
+- Dashboard projected FCF chart
+- Extended-catalog smoke test fixture (LESSON-148 follow-up)
+- Proy CFS financing rewire — that module uses DIFFERENT AP rows (ST end=12, LT end=21 per compute-proy-acc-payables-live.ts comments) and projection semantic. Keep deferred.
