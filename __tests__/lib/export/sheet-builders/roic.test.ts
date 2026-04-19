@@ -94,16 +94,28 @@ function makeState(overrides: Partial<ExportableState>): ExportableState {
     home: makeHome(), balanceSheet: null, incomeStatement: null,
     fixedAsset: null, accPayables: null, wacc: null,
     discountRate: null, keyDrivers: null, dlom: null, dloc: null,
-    borrowingCapInput: null, aamAdjustments: {}, nilaiPengalihanDilaporkan: 0, interestBearingDebt: 0,
+    borrowingCapInput: null, aamAdjustments: {}, nilaiPengalihanDilaporkan: 0,
+    interestBearingDebt: null,
+    changesInWorkingCapital: null,
+    growthRevenue: null,
+    // Session 055: user-curated Excess Cash = BS row 8 (matches legacy
+    // hardcoded behavior for fixture parity)
+    investedCapital: {
+      otherNonOperatingAssets: [],
+      excessCash: [{ source: 'bs', excelRow: 8 }],
+      marketableSecurities: [],
+    },
+    cashBalance: null,
+    cashAccount: null,
     ...overrides,
-  }
+  } as ExportableState
 }
 
 describe('RoicBuilder — metadata', () => {
   it('has correct sheetName + upstream slices', () => {
     expect(RoicBuilder.sheetName).toBe('ROIC')
     expect(RoicBuilder.upstream).toEqual([
-      'home', 'balanceSheet', 'incomeStatement', 'fixedAsset',
+      'home', 'balanceSheet', 'incomeStatement', 'fixedAsset', 'investedCapital',
     ])
   })
 })
@@ -129,7 +141,7 @@ describe('RoicBuilder.build', () => {
     expect(ws.getCell('D8').value).toBe(850) // 2021
   })
 
-  it('writes Excess Cash row 10 = -BS row 8', () => {
+  it('writes Excess Cash row 10 = -(curated scope sum) — here scope is BS row 8', () => {
     const state = makeState({
       balanceSheet: makeBs(),
       incomeStatement: makeIs(),
@@ -137,7 +149,7 @@ describe('RoicBuilder.build', () => {
     })
     RoicBuilder.build(wb, state)
     const ws = wb.getWorksheet('ROIC')!
-    // BS row 8 for 2019 = 120 → row 10 = -120
+    // BS row 8 for 2019 = 120 → scope sum = 120 → row 10 = -120
     expect(ws.getCell('B10').value).toBe(-120)
   })
 

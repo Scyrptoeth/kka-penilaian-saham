@@ -12,6 +12,8 @@
 
 import { describe, expect, it } from 'vitest'
 import { computeCashFlowLiveRows } from '@/data/live/compute-cash-flow-live'
+import { computeCashBalance } from '@/lib/calculations/compute-cash-balance'
+import { computeCashAccount } from '@/lib/calculations/compute-cash-account'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { CASH_FLOW_STATEMENT_MANIFEST } from '@/data/manifests/cash-flow-statement'
 // INCOME_STATEMENT_MANIFEST removed — IS values read directly from fixture
@@ -133,6 +135,23 @@ describe('CFS live mode matches fixture at all historical years', () => {
   const excludedCA = [8, 9, 13]
   const excludedCL: number[] = []
 
+  // Session 055 — feed Cash Balance / Cash Account scope results that
+  // reproduce the legacy "BS rows 8+9" behavior the fixture expects.
+  //  - Cash Balance scope: both rows 8 + 9 count as cash.
+  //  - Cash Account scope: row 9 → bank, row 8 → cashOnHand (matches the
+  //    legacy hardcoded mapping for CFS rows 35/36).
+  const cashBalanceResult = computeCashBalance({
+    scope: { accounts: [8, 9] },
+    bsRows: bsLeaves,
+    cfsYears: CFS_YEARS,
+    bsYears: BS_YEARS,
+  })
+  const cashAccountResult = computeCashAccount({
+    scope: { bank: [9], cashOnHand: [8] },
+    bsRows: bsLeaves,
+    years: CFS_YEARS,
+  })
+
   // Compute CFS leaf rows from upstream data
   const cfsLeafRows = computeCashFlowLiveRows(
     bsAccounts,
@@ -144,6 +163,8 @@ describe('CFS live mode matches fixture at all historical years', () => {
     BS_YEARS,
     excludedCA,
     excludedCL,
+    cashBalanceResult,
+    cashAccountResult,
   )
 
   // Derive subtotals via CFS manifest computedFrom
@@ -282,7 +303,7 @@ describe('CFS account-driven WC aggregation (Session 039)', () => {
     expect(out[9]![2021]! + 0).toBe(0)
   })
 
-  it('Cash Beginning/Ending balance rows still read BS rows 8+9 regardless of WC exclusions', () => {
+  it('Cash Beginning/Ending rows default to 0 when cashBalanceResult is omitted (Session 055)', () => {
     const bsAccounts: BsAccountEntry[] = [
       { catalogId: 'cash', excelRow: 8, section: 'current_assets' },
       { catalogId: 'cash_bank', excelRow: 9, section: 'current_assets' },
@@ -291,13 +312,48 @@ describe('CFS account-driven WC aggregation (Session 039)', () => {
       8: { 2018: 50, 2019: 100, 2020: 200, 2021: 300 },
       9: { 2018: 25, 2019: 50, 2020: 75, 2021: 100 },
     }
+    // No cashBalanceResult / cashAccountResult passed — rows 32/33/35/36
+    // default to 0 (scope is required; legacy BS-row-8+9 fallback removed).
     const out = computeCashFlowLiveRows(
       bsAccounts, bsRows, isLeaves, null, null, years, bsYears,
-      [8, 9], // Excluded from WC
+      [8, 9],
       [],
     )
-    // Row 33 Cash Ending = row 8 + row 9 (independent of exclusions).
+    expect(out[32]![2020]).toBe(0)
+    expect(out[33]![2020]).toBe(0)
+    expect(out[35]![2020]).toBe(0)
+    expect(out[36]![2020]).toBe(0)
+  })
+
+  it('Cash Beginning/Ending + Bank/OnHand read from scope results when provided', () => {
+    const bsAccounts: BsAccountEntry[] = [
+      { catalogId: 'cash', excelRow: 8, section: 'current_assets' },
+      { catalogId: 'cash_bank', excelRow: 9, section: 'current_assets' },
+    ]
+    const bsRows: Record<number, YearKeyedSeries> = {
+      8: { 2018: 50, 2019: 100, 2020: 200, 2021: 300 },
+      9: { 2018: 25, 2019: 50, 2020: 75, 2021: 100 },
+    }
+    const cashBalanceResult = {
+      // Scope includes both cash rows; Ending = 8+9, Beginning = prior year.
+      ending: { 2019: 150, 2020: 275, 2021: 400 },
+      beginning: { 2019: 75, 2020: 150, 2021: 275 },
+    }
+    const cashAccountResult = {
+      bank: { 2019: 50, 2020: 75, 2021: 100 },
+      cashOnHand: { 2019: 100, 2020: 200, 2021: 300 },
+    }
+    const out = computeCashFlowLiveRows(
+      bsAccounts, bsRows, isLeaves, null, null, years, bsYears,
+      [8, 9], // excluded from WC
+      [],
+      cashBalanceResult,
+      cashAccountResult,
+    )
+    // Rows are independent of WC exclusions — they come straight from scope.
+    expect(out[32]![2020]).toBe(150)
     expect(out[33]![2020]).toBe(275)
-    expect(out[33]![2021]).toBe(400)
+    expect(out[35]![2020]).toBe(75)
+    expect(out[36]![2020]).toBe(200)
   })
 })

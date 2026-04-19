@@ -9,6 +9,8 @@ import {
 } from '@/data/catalogs/balance-sheet-catalog'
 import { PageEmptyState } from '@/components/shared/PageEmptyState'
 import { formatIdr } from '@/components/financial/format'
+import { averageSeries } from '@/lib/calculations/derivation-helpers'
+import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
 
 /**
  * /input/changes-in-working-capital — Session 039
@@ -51,8 +53,15 @@ function WcScopeEditor() {
   const setScope = useKkaStore.setState
 
   const language: 'en' | 'id' = balanceSheet?.language ?? 'id'
-  const lastHistYear = useKkaStore((s) => s.home?.tahunTransaksi ?? new Date().getFullYear())
-  const displayYear = lastHistYear - 1
+  const tahunTransaksi = useKkaStore(
+    (s) => s.home?.tahunTransaksi ?? new Date().getFullYear(),
+  )
+  const yearCount = balanceSheet?.yearCount ?? 3
+  const historicalYears = useMemo(
+    () => computeHistoricalYears(tahunTransaksi, yearCount),
+    [tahunTransaksi, yearCount],
+  )
+  const lastHistYear = historicalYears[historicalYears.length - 1] ?? tahunTransaksi - 1
 
   // Local exclusion draft — commits to store via "Confirm" / "Update" button.
   const [localCA, setLocalCA] = useState<number[]>(
@@ -121,7 +130,8 @@ function WcScopeEditor() {
         excludedSet={caExcludedSet}
         onToggle={toggleCA}
         language={language}
-        displayYear={displayYear}
+        years={historicalYears}
+        displayYear={lastHistYear}
       />
 
       <div className="h-6" />
@@ -133,7 +143,8 @@ function WcScopeEditor() {
         excludedSet={clExcludedSet}
         onToggle={toggleCL}
         language={language}
-        displayYear={displayYear}
+        years={historicalYears}
+        displayYear={lastHistYear}
       />
 
       <div className="sticky bottom-4 z-10 mt-8 flex items-center justify-between rounded-sm border border-grid bg-canvas-raised/95 p-4 shadow-[0_2px_8px_rgba(10,22,40,0.08)] backdrop-blur">
@@ -167,6 +178,7 @@ function SectionEditor({
   excludedSet,
   onToggle,
   language,
+  years,
   displayYear,
 }: {
   section: Section
@@ -175,6 +187,7 @@ function SectionEditor({
   excludedSet: Set<number>
   onToggle: (row: number) => void
   language: 'en' | 'id'
+  years: number[]
   displayYear: number
 }) {
   const { t } = useT()
@@ -184,7 +197,8 @@ function SectionEditor({
   const included = accounts.filter((a) => !excludedSet.has(a.excelRow))
   const excluded = accounts.filter((a) => excludedSet.has(a.excelRow))
 
-  const valueFor = (row: number): number => bsRows?.[row]?.[displayYear] ?? 0
+  const valueFor = (row: number, year: number): number =>
+    bsRows?.[row]?.[year] ?? 0
 
   return (
     <section
@@ -203,34 +217,67 @@ function SectionEditor({
 
       {accounts.length === 0 ? (
         <p className="py-3 text-sm text-ink-muted">{t('wc.empty.section')}</p>
+      ) : included.length === 0 ? (
+        <p className="py-3 text-sm text-ink-muted">—</p>
       ) : (
-        <ul className="divide-y divide-grid">
-          {included.length === 0 && (
-            <li className="py-3 text-sm text-ink-muted">—</li>
-          )}
-          {included.map((account) => (
-            <li
-              key={account.excelRow}
-              className="flex items-center gap-3 py-2.5"
-            >
-              <span className="flex-1 text-sm text-ink">
-                {resolveLabel(account, language)}
-              </span>
-              <span className="font-mono text-sm tabular-nums text-ink-soft">
-                {formatIdr(valueFor(account.excelRow))}
-              </span>
-              <button
-                type="button"
-                onClick={() => onToggle(account.excelRow)}
-                aria-label={t('wc.action.exclude')}
-                title={t('wc.action.exclude')}
-                className="shrink-0 rounded-sm border border-grid p-1.5 text-ink-muted transition-colors hover:border-negative hover:text-negative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-              >
-                <TrashIcon />
-              </button>
-            </li>
-          ))}
-        </ul>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-grid text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+                <th className="py-2 pr-4 text-left font-semibold">
+                  {t('wc.col.account')}
+                </th>
+                {years.map((year) => (
+                  <th
+                    key={year}
+                    className="whitespace-nowrap px-3 py-2 text-right font-semibold tabular-nums"
+                  >
+                    {year}
+                  </th>
+                ))}
+                <th className="whitespace-nowrap border-l-2 border-grid px-3 py-2 text-right font-semibold">
+                  {t('common.average')}
+                </th>
+                <th className="w-10 py-2 pl-3" aria-label="" />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-grid">
+              {included.map((account) => {
+                const series = bsRows?.[account.excelRow]
+                const avg = averageSeries(series, years)
+                return (
+                  <tr key={account.excelRow}>
+                    <td className="py-2.5 pr-4 text-ink">
+                      {resolveLabel(account, language)}
+                    </td>
+                    {years.map((year) => (
+                      <td
+                        key={year}
+                        className="whitespace-nowrap px-3 py-2.5 text-right font-mono text-sm tabular-nums text-ink-soft"
+                      >
+                        {formatIdr(valueFor(account.excelRow, year))}
+                      </td>
+                    ))}
+                    <td className="whitespace-nowrap border-l-2 border-grid px-3 py-2.5 text-right font-mono text-sm tabular-nums font-semibold text-ink">
+                      {avg == null ? '—' : formatIdr(avg)}
+                    </td>
+                    <td className="py-2.5 pl-3 text-right">
+                      <button
+                        type="button"
+                        onClick={() => onToggle(account.excelRow)}
+                        aria-label={t('wc.action.exclude')}
+                        title={t('wc.action.exclude')}
+                        className="shrink-0 rounded-sm border border-grid p-1.5 text-ink-muted transition-colors hover:border-negative hover:text-negative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                      >
+                        <TrashIcon />
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {excluded.length > 0 && (
@@ -257,7 +304,7 @@ function SectionEditor({
                     {resolveLabel(account, language)}
                   </span>
                   <span className="font-mono text-sm tabular-nums text-ink-muted">
-                    {formatIdr(valueFor(account.excelRow))}
+                    {formatIdr(valueFor(account.excelRow, displayYear))}
                   </span>
                   <button
                     type="button"

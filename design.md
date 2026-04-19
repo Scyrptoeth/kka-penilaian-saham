@@ -1,110 +1,114 @@
-# Session 051 — Design
+# Session 055 — Design
 
-## Scope (4 user-spec points)
+## Scope
 
-1. **Proy BS growth auto read-only + strict-average algorithm for sparse accounts.**
-   Assets (kecuali Fixed Asset) + Liabilitas leaves must render growth sub-row
-   with value sourced from INPUT BS "Average Growth YoY" per account. Current
-   bug: sparse-historical accounts (manual-entry with 1–2 real data years like
-   "Setara Kas" and "Hutang PPh Pasal 21/2021") produce misleadingly high
-   growth (231.9% / 68.4%) because a single trailing YoY observation passes
-   through leading-zero-skip as the "average". Fix must be system-dev
-   generalized so any sparse account (catalog or custom) shows "—" and
-   projects flat (× 1.0).
-2. **Equity no-growth + auto-fill editable per-cell independent.**
-   Section `shareholders_equity` accounts have NO meaningful growth semantic.
-   Projection cells default to historical last-year value, editable per-cell
-   with per-cell independence (edit 2022 does NOT cascade to 2023/2024).
-3. **KD Additional Capex auto read-only — fix root cause at Proy FA seed.**
-   KD currently shows 0 for all capex cells because `computeProyFixedAssetsLive`
-   seeds ACQ_ADDITIONS projection from `acqAddHist[histYear]` which defaults
-   to 0 when user didn't entry Additions for `histYear`. Growth % is computed
-   correctly from earlier YoY pairs, but 0 × (1+g) = 0 stalls forever.
-   Fix: seed from last non-null historical value when `histYear` entry is
-   undefined/null. Respect explicit 0 (user intent).
-4. **System-wide integration.** Downstream (Proy LR, Proy CFS, KD, export)
-   adjusts automatically. Phase C whitelist updated if needed.
+Cluster AB dari user 7-poin revision: Poin 1-5 (rename + Invested Capital + Growth Rate NFA + CWC multi-year + Cash Balance + Cash Account). Poin 6 Financing di-defer ke Session 056.
 
-## Chosen Approach
+## Architectural Decisions
 
-### Fix 1: Unified `averageYoYStrict` helper
+### Decision 1 — Invested Capital: 3-section dropdown-add (bukan flat trash-icon)
 
-New helper in `src/lib/calculations/derivation-helpers.ts`:
+Sementara CWC/IBD pakai flat trash-icon (karena binary include/exclude atas pool eksisting), **Invested Capital butuh 4-state assignment per account** (unassigned / row A / row B / row C) dengan **cross-row mutual exclusion**. Pattern yang cocok:
 
-```ts
-export function averageYoYStrict(
-  series: YearKeyedSeries | undefined,
-  historicalYears: readonly number[],
-): number | null
+- 3 section masing-masing punya **dropdown "Add account"** dengan opsi **filtered** (exclude yang sudah terpilih di 3 row manapun)
+- **Selected accounts list** per section dengan trash icon untuk un-assign
+- Opsi dropdown berasal dari pool: **BS asset accounts + FA detail per-item**
+
+Alasan pilih pattern ini: matches user spec "downlist yang bisa dipilih adalah semua nama akun... pengguna akan memilih akun mana saja yang masuk ke baris... 1 akun hanya bisa masuk ke salah 1 baris saja".
+
+Warning soft kalau user pilih BS "Fixed Assets — Net" (PPE aggregate) BERSAMAAN dengan FA detail account (risiko double-count).
+
+### Decision 2 — Cash Balance: 1 unified list, year-shift otomatis
+
+Per user Q2 (A): user pilih 1 set akun cash (dari BS current_assets), sistem derive:
+- `CashEnding[Y] = sum(accounts @ year Y)`
+- `CashBeginning[Y] = sum(accounts @ year Y-1)` — otomatis identik dengan `CashEnding[Y-1]`
+- Untuk tahun pertama historis, `CashBeginning[years[0]]` = `scope.preHistoryBeginning ?? 0` (optional user input)
+
+### Decision 3 — Cash Account: 2 section mutual exclusion, independent pool
+
+Per user Q8 (A): pool = BS current_assets (sama dengan Cash Balance), tapi **independent** — account bisa di Cash Balance tapi tidak di Cash Account atau sebaliknya. Warning soft kalau akun di Cash Account tidak ada di Cash Balance (potensi inconsistency).
+
+Cash Account.bank dan Cash Account.cashOnHand mutual exclusive (1 akun hanya di salah satu).
+
+### Decision 4 — Growth Rate NFA single source of truth
+
+Per user Q5 (B): kedua row (End + Beginning) dari FA row 69 langsung:
+- `NetFA_End[Y] = FA[69][Y]`
+- `NetFA_Beginning[Y] = FA[69][Y-1]` (pre-signed negative di display)
+
+Fix root cause "End shows `-`": LESSON-057 merge order — page menggunakan `allFa = { ...faComp, ...state.fixedAsset.rows }` supaya store sentinel menang atas static manifest recompute yang tidak melihat dynamic extended accounts.
+
+### Decision 5 — CWC multi-year display
+
+Per user Q4 (AAA): matrix year-column + 1 trash aggregate + Avg column. Reuse `<FinancialTable>` component. Scope editing tetap year-agnostic (trash apply across all years).
+
+### Decision 6 — Store v22 → v23 single migration
+
+Per user Q8 (A): satu bump v23 menambah 3 slice null sentinel:
+- `investedCapital: InvestedCapitalState | null`
+- `cashBalance: CashBalanceState | null`
+- `cashAccount: CashAccountState | null`
+
+### Decision 7 — Required-gate minimal
+
+Per user Q6 (A):
+- `investedCapital === null` blocks `/analysis/roic` + `/analysis/growth-rate`
+- `cashBalance === null` blocks `/analysis/cash-flow-statement`
+- `cashAccount === null` blocks `/analysis/cash-flow-statement`
+- **NO cascade** ke FCF/DCF/EEM/CFI/Simulasi/Dashboard (mereka tidak butuh nilai ini)
+
+### Decision 8 — Sidebar placement
+
+Per user Q7 (A): 3 scope editor baru masuk Drivers & Scope alphabetical:
+```
+DRIVERS & SCOPE
+  Cash Account       ← NEW
+  Cash Balance       ← NEW
+  Changes in Working Capital
+  Growth Revenue
+  Invested Capital   ← NEW
+  Key Drivers
 ```
 
-Rules:
-1. Iterate consecutive-year pairs in `historicalYears`.
-2. A pair is a "real observation" when BOTH values are defined (`!= null`)
-   AND prev is non-zero AND prev isFinite.
-3. If fewer than 2 real observations → return `null`.
-4. Else → arithmetic mean of the real YoY values.
+## Types
 
-**Single source of truth** consumed by:
-- `computeProyBsLive` (Task 4): when null → growth = 0 → flat projection.
-- `DynamicBsEditor` Input BS Average Growth YoY column (Task 5): when null → "—".
-
-Both paths consume the SAME function → displayed value always equals
-projection multiplier. LESSON-139 principle (driver-display sync) applied
-to INPUT BS ↔ Proy BS pairing.
-
-### Fix 2: Equity auto-fill editable per-cell (Tasks 3+4+6)
-
-**Store** (`balanceSheet` slice): add `equityProjectionOverrides: Record<excelRow, YearKeyedSeries>`.
-Root-level setter: `setEquityProjectionOverride(excelRow, year, value | null)`.
-`null` value → delete override (revert to default).
-
-**Migration v20 → v21**: initialize `equityProjectionOverrides = {}` when
-upgrading existing balance-sheet state.
-
-**Compute** (`computeProyBsLive`): for each account with
-`section === 'shareholders_equity'`, skip growth-based projection.
 ```ts
-const override = equityOverrides[row]?.[projYear]
-out[projYear] = override ?? histYearValue
+export type SourceRef = {
+  source: 'bs' | 'fa'
+  excelRow: number  // for BS: account.excelRow; for FA: account.excelRow (base row)
+}
+
+export interface InvestedCapitalState {
+  otherNonOperatingAssets: SourceRef[]
+  excessCash: SourceRef[]
+  marketableSecurities: SourceRef[]
+}
+
+export interface CashBalanceState {
+  accounts: number[]  // BS current_assets excelRows
+  preHistoryBeginning?: number  // optional pre-first-year Beginning
+}
+
+export interface CashAccountState {
+  bank: number[]         // BS current_assets excelRows
+  cashOnHand: number[]   // BS current_assets excelRows (mutex with bank)
+}
 ```
-
-**Page** (`/projection/balance-sheet/page.tsx`): for equity leaves render
-`<NumericInput>` editable cells with debounced 500ms onChange → setter.
-No growth sub-row rendered for these accounts. Non-equity rows unchanged.
-
-### Fix 3: Proy FA Additions seed fallback (Task 7)
-
-Modify `computeProyFixedAssetsLive`:
-```ts
-const acqAddAtHistRaw = acqAddHist[histYear]
-const acqAddAtHist = acqAddAtHistRaw != null
-  ? acqAddAtHistRaw  // respect explicit 0
-  : (lastNonNullHistorical(acqAddHist, historicalYears) ?? 0)
-```
-
-Same for DEP_ADDITIONS. Helper `lastNonNullHistorical(series, years)` walks
-historicalYears from end to start, returns first `series[y] != null` value.
-
-Impact: KD Additional Capex auto-populates because `computeProyFixedAssetsLive`
-now returns non-zero ACQ_ADDITIONS projections when user has historical
-Additions data but skipped entry for `histYear`.
-
-## What's Out of Scope
-
-- Rewriting Proy LR `computeAvgGrowth` usage (Session 049 handled).
-- Changing Proy FA roll-forward beyond seed fallback.
-- KD form edit affordance (stays auto-read-only — user confirmed Q3).
-- Multi-case management, cloud sync, audit trail (explicitly dropped).
 
 ## Non-Negotiables Honored
 
-- **System-dev over prototype** (memory feedback): null-on-sparse is a
-  generalized rule, not a Setara-Kas-specific patch.
-- **LESSON-108** (account-driven aggregation): equity skip via section
-  check, not hardcoded row numbers.
-- **LESSON-141** (merge-at-persist): equity editable uses debounced
-  persist, not setState-in-effect.
-- **LESSON-139** (driver-display sync): INPUT BS avg = Proy BS multiplier
-  via shared helper.
-- **React Compiler compliance**: no setState-in-effect patterns introduced.
+- **LESSON-108**: Zero hardcoded row numbers in compute — all aggregations iterate user-curated scope
+- **LESSON-107**: Required-gate pattern with null sentinel at every consumer page
+- **LESSON-057**: Merge order `{ ...recomputed, ...storeRows }` for Growth Rate FA fix
+- **LESSON-118**: Phase C fixture helper extended for new schema
+- **LESSON-119**: Single source of truth — Invested Capital scope drives both ROIC compute AND downstream DCF
+- **LESSON-143/146**: No fabricated defaults — empty scope = 0, not guessed
+- **LESSON-029**: Company-agnostic — scope editors work for any company
+
+## Out of Scope
+
+- Financing scope editor (Session 056 Cluster C)
+- Upload parser
+- Dashboard projected FCF chart
+- Extended-catalog smoke test fixture

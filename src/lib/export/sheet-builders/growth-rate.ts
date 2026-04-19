@@ -4,6 +4,9 @@ import { computeCashFlowLiveRows } from '@/data/live/compute-cash-flow-live'
 import { computeFcfLiveRows } from '@/data/live/compute-fcf-live'
 import { computeRoicLiveRows } from '@/data/live/compute-roic-live'
 import { computeGrowthRateLive } from '@/data/live/compute-growth-rate-live'
+import { computeInvestedCapital } from '@/lib/calculations/compute-invested-capital'
+import { computeCashBalance } from '@/lib/calculations/compute-cash-balance'
+import { computeCashAccount } from '@/lib/calculations/compute-cash-account'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
 import { BALANCE_SHEET_MANIFEST } from '@/data/manifests/balance-sheet'
@@ -37,7 +40,7 @@ const SHEET_NAME = 'GROWTH RATE'
  */
 export const GrowthRateBuilder: SheetBuilder = {
   sheetName: SHEET_NAME,
-  upstream: ['home', 'balanceSheet', 'incomeStatement', 'fixedAsset'],
+  upstream: ['home', 'balanceSheet', 'incomeStatement', 'fixedAsset', 'investedCapital'],
   build(workbook, state) {
     const ws = workbook.getWorksheet(SHEET_NAME)
     if (
@@ -45,7 +48,8 @@ export const GrowthRateBuilder: SheetBuilder = {
       !state.home ||
       !state.balanceSheet ||
       !state.incomeStatement ||
-      !state.fixedAsset
+      !state.fixedAsset ||
+      !state.investedCapital
     ) {
       return
     }
@@ -74,7 +78,13 @@ export const GrowthRateBuilder: SheetBuilder = {
     )
     const allFa = { ...faCompOnly, ...state.fixedAsset.rows }
 
-    // CFS
+    // CFS (with optional Cash Balance / Cash Account scope)
+    const cashBalanceResult = state.cashBalance
+      ? computeCashBalance({ scope: state.cashBalance, bsRows: state.balanceSheet.rows, cfsYears, bsYears })
+      : undefined
+    const cashAccountResult = state.cashAccount
+      ? computeCashAccount({ scope: state.cashAccount, bsRows: state.balanceSheet.rows, years: cfsYears })
+      : undefined
     const cfsLeaf = computeCashFlowLiveRows(
       state.balanceSheet.accounts,
       state.balanceSheet.rows,
@@ -85,6 +95,8 @@ export const GrowthRateBuilder: SheetBuilder = {
       bsYears,
       state.changesInWorkingCapital?.excludedCurrentAssets ?? [],
       state.changesInWorkingCapital?.excludedCurrentLiabilities ?? [],
+      cashBalanceResult,
+      cashAccountResult,
     )
     const cfsComp = deriveComputedRows(
       CASH_FLOW_STATEMENT_MANIFEST.rows,
@@ -98,8 +110,14 @@ export const GrowthRateBuilder: SheetBuilder = {
     const fcfComp = deriveComputedRows(FCF_MANIFEST.rows, fcfLeaf, cfsYears)
     const allFcf = { ...fcfLeaf, ...fcfComp }
 
-    // ROIC
-    const roicRows = computeRoicLiveRows(allFcf, allBs, cfsYears)
+    // ROIC — scope-aware Invested Capital "Less" rows
+    const icValues = computeInvestedCapital({
+      scope: state.investedCapital,
+      bsRows: state.balanceSheet.rows,
+      faRows: state.fixedAsset.rows,
+      years: cfsYears,
+    })
+    const roicRows = computeRoicLiveRows(allFcf, allBs, cfsYears, icValues)
 
     // Growth Rate
     const gr = computeGrowthRateLive(allBs, allFa, roicRows, cfsYears)

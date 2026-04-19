@@ -134,8 +134,19 @@ describe('ROIC live mode matches fixture', () => {
   const bsComputed = deriveComputedRows(BALANCE_SHEET_MANIFEST.rows, bsLeaves, YEARS)
   const allBsRows = { ...bsLeaves, ...bsComputed }
 
-  // Compute ROIC
-  const roicRows = computeRoicLiveRows(allFcfRows, allBsRows, YEARS)
+  // Session 055: ROIC now takes an optional `investedCapitalValues` arg.
+  // The PT Raja Voltama fixture implies user scope: excessCash = BS row 8
+  // (Cash on Hand), otherNonOp = 0, marketable = 0. Reconstruct this so
+  // fixture parity tests verify the NEW scope-aware contract.
+  const mockIcValues = {
+    otherNonOperatingAssets: {} as Record<number, number>,
+    excessCash: YEARS.reduce<Record<number, number>>((acc, y) => {
+      acc[y] = bsLeaves[8]?.[y] ?? 0
+      return acc
+    }, {}),
+    marketableSecurities: {} as Record<number, number>,
+  }
+  const roicRows = computeRoicLiveRows(allFcfRows, allBsRows, YEARS, mockIcValues)
 
   // Rows 7-12: available for all 3 years
   // Rows unaffected by NOPLAT tax adjustment — match fixture directly

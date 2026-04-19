@@ -3,6 +3,9 @@ import { computeNoplatLiveRows } from '@/data/live/compute-noplat-live'
 import { computeCashFlowLiveRows } from '@/data/live/compute-cash-flow-live'
 import { computeFcfLiveRows } from '@/data/live/compute-fcf-live'
 import { computeRoicLiveRows } from '@/data/live/compute-roic-live'
+import { computeInvestedCapital } from '@/lib/calculations/compute-invested-capital'
+import { computeCashBalance } from '@/lib/calculations/compute-cash-balance'
+import { computeCashAccount } from '@/lib/calculations/compute-cash-account'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
 import { BALANCE_SHEET_MANIFEST } from '@/data/manifests/balance-sheet'
@@ -31,7 +34,7 @@ const SHEET_NAME = 'ROIC'
  */
 export const RoicBuilder: SheetBuilder = {
   sheetName: SHEET_NAME,
-  upstream: ['home', 'balanceSheet', 'incomeStatement', 'fixedAsset'],
+  upstream: ['home', 'balanceSheet', 'incomeStatement', 'fixedAsset', 'investedCapital'],
   build(workbook, state) {
     const ws = workbook.getWorksheet(SHEET_NAME)
     if (
@@ -39,7 +42,8 @@ export const RoicBuilder: SheetBuilder = {
       !state.home ||
       !state.balanceSheet ||
       !state.incomeStatement ||
-      !state.fixedAsset
+      !state.fixedAsset ||
+      !state.investedCapital
     ) {
       return
     }
@@ -71,7 +75,22 @@ export const RoicBuilder: SheetBuilder = {
       cfsYears,
     )
 
-    // CFS
+    // CFS (with optional Cash Balance / Cash Account scope — if absent, rows 32/33/35/36 default 0)
+    const cashBalanceResult = state.cashBalance
+      ? computeCashBalance({
+          scope: state.cashBalance,
+          bsRows: state.balanceSheet.rows,
+          cfsYears,
+          bsYears,
+        })
+      : undefined
+    const cashAccountResult = state.cashAccount
+      ? computeCashAccount({
+          scope: state.cashAccount,
+          bsRows: state.balanceSheet.rows,
+          years: cfsYears,
+        })
+      : undefined
     const cfsLeaf = computeCashFlowLiveRows(
       state.balanceSheet.accounts,
       state.balanceSheet.rows,
@@ -82,6 +101,8 @@ export const RoicBuilder: SheetBuilder = {
       bsYears,
       state.changesInWorkingCapital?.excludedCurrentAssets ?? [],
       state.changesInWorkingCapital?.excludedCurrentLiabilities ?? [],
+      cashBalanceResult,
+      cashAccountResult,
     )
     const cfsComp = deriveComputedRows(
       CASH_FLOW_STATEMENT_MANIFEST.rows,
@@ -95,8 +116,14 @@ export const RoicBuilder: SheetBuilder = {
     const fcfComp = deriveComputedRows(FCF_MANIFEST.rows, fcfLeaf, cfsYears)
     const allFcf = { ...fcfLeaf, ...fcfComp }
 
-    // ROIC
-    const roicRows = computeRoicLiveRows(allFcf, allBs, cfsYears)
+    // ROIC — scope-aware Invested Capital "Less" rows
+    const icValues = computeInvestedCapital({
+      scope: state.investedCapital,
+      bsRows: state.balanceSheet.rows,
+      faRows: state.fixedAsset.rows,
+      years: cfsYears,
+    })
+    const roicRows = computeRoicLiveRows(allFcf, allBs, cfsYears, icValues)
 
     writeComputedRowsToSheet(ws, ROIC_MANIFEST, roicRows, cfsYears)
   },

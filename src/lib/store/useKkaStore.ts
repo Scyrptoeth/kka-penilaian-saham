@@ -127,6 +127,53 @@ export interface GrowthRevenueState {
   industryNetProfit: import('@/types/financial').YearKeyedSeries
 }
 
+/**
+ * Session 055 — Invested Capital scope reference.
+ *
+ * `source` distinguishes BS-level account (aggregate via cross-ref for PPE)
+ * from FA-level per-item account (fine-grained). `excelRow` is the account's
+ * canonical excelRow in its source slice.
+ */
+export interface SourceRef {
+  source: 'bs' | 'fa'
+  excelRow: number
+}
+
+/**
+ * Session 055 — Invested Capital user-curated scope for the 3 ROIC "Less"
+ * rows. Each row is a list of SourceRef; a single account (by source+excelRow)
+ * can only appear in ONE of the 3 rows at a time (cross-row mutual exclusion
+ * enforced by setters). Null = user has not yet confirmed → ROIC + Growth Rate
+ * gated via PageEmptyState.
+ */
+export interface InvestedCapitalState {
+  otherNonOperatingAssets: SourceRef[]
+  excessCash: SourceRef[]
+  marketableSecurities: SourceRef[]
+}
+
+/**
+ * Session 055 — Cash Balance scope. User picks ONE set of BS current_assets
+ * accounts representing cash holdings. System derives CFS Cash Ending[Y] =
+ * sum @ year Y and Cash Beginning[Y] = sum @ year Y-1 (shift). For the first
+ * historical year Y0, Beginning defaults to `preHistoryBeginning ?? 0`
+ * (optional user entry for pre-period balance).
+ */
+export interface CashBalanceState {
+  accounts: number[]
+  preHistoryBeginning?: number
+}
+
+/**
+ * Session 055 — Cash Account split. `bank` + `cashOnHand` are disjoint subsets
+ * of BS current_assets (cross-list mutual exclusion enforced by setters).
+ * These feed CFS rows 35/36 (Cash Ending in Bank / Cash on Hand).
+ */
+export interface CashAccountState {
+  bank: number[]
+  cashOnHand: number[]
+}
+
 interface KkaState {
   /** Global language preference — EN (default) or ID. Lifted to root level in v15. */
   language: 'en' | 'id'
@@ -195,6 +242,21 @@ interface KkaState {
    * `/input/growth-revenue` editor. `null` until user first visits + saves.
    */
   growthRevenue: GrowthRevenueState | null
+  /**
+   * Session 055 — Invested Capital scope (ROIC). Null until user confirms at
+   * `/input/invested-capital`. ROIC + Growth Rate pages are gated on this.
+   */
+  investedCapital: InvestedCapitalState | null
+  /**
+   * Session 055 — Cash Balance scope (CFS Cash rows). Null until user confirms
+   * at `/input/cash-balance`. CFS page is gated on this.
+   */
+  cashBalance: CashBalanceState | null
+  /**
+   * Session 055 — Cash Account split (CFS Bank / On Hand). Null until user
+   * confirms at `/input/cash-account`. CFS page is gated on this.
+   */
+  cashAccount: CashAccountState | null
   setHome: (home: HomeInputs) => void
   resetHome: () => void
   /**
@@ -255,6 +317,33 @@ interface KkaState {
   /** Session 054 — bulk set/clear growthRevenue. Passing `null` clears it (equivalent to resetGrowthRevenue). */
   setGrowthRevenue: (gr: GrowthRevenueState | null) => void
   resetGrowthRevenue: () => void
+  /**
+   * Session 055 — Invested Capital scope setters. `assignInvestedCapital` sets
+   * an account into one of 3 rows (removes from other rows — mutual exclusion).
+   * `removeInvestedCapital` un-assigns. `confirmInvestedCapitalScope` null →
+   * empty object to unlock ROIC + Growth Rate. `resetInvestedCapitalScope` →
+   * null (re-gates).
+   */
+  assignInvestedCapital: (
+    row: keyof InvestedCapitalState,
+    ref: SourceRef,
+  ) => void
+  removeInvestedCapital: (row: keyof InvestedCapitalState, ref: SourceRef) => void
+  confirmInvestedCapitalScope: () => void
+  resetInvestedCapitalScope: () => void
+  /** Session 055 — Cash Balance scope setters. */
+  toggleCashBalanceAccount: (excelRow: number) => void
+  setCashBalancePreHistoryBeginning: (value: number | null) => void
+  confirmCashBalanceScope: () => void
+  resetCashBalanceScope: () => void
+  /**
+   * Session 055 — Cash Account scope setters. `assignCashAccount` adds account
+   * to bank or cashOnHand (removes from the other list — mutual exclusion).
+   */
+  assignCashAccount: (row: 'bank' | 'cashOnHand', excelRow: number) => void
+  removeCashAccount: (row: 'bank' | 'cashOnHand', excelRow: number) => void
+  confirmCashAccountScope: () => void
+  resetCashAccountScope: () => void
   /** Reset ALL store slices to initial state (destructive — clears all user data). */
   resetAll: () => void
   _hasHydrated: boolean
@@ -262,7 +351,7 @@ interface KkaState {
 }
 
 const STORE_KEY = 'kka-penilaian-saham'
-const STORE_VERSION = 22
+const STORE_VERSION = 23
 
 /**
  * Migrate persisted state from older versions to the current schema.
@@ -763,6 +852,23 @@ export function migratePersistedState(
     }
   }
 
+  // v22 → v23: Session 055 added 3 root-level scope slices (all null by
+  //           default): `investedCapital`, `cashBalance`, `cashAccount`.
+  //           Required-gate: user must visit dedicated pages and click
+  //           "Konfirmasi Cakupan" to unlock ROIC + Growth Rate + CFS.
+  //           Idempotent.
+  if (fromVersion < 23) {
+    if (!('investedCapital' in state)) {
+      state = { ...state, investedCapital: null }
+    }
+    if (!('cashBalance' in state)) {
+      state = { ...state, cashBalance: null }
+    }
+    if (!('cashAccount' in state)) {
+      state = { ...state, cashAccount: null }
+    }
+  }
+
   return state
 }
 
@@ -786,6 +892,9 @@ export const useKkaStore = create<KkaState>()(
       interestBearingDebt: null,
       changesInWorkingCapital: null,
       growthRevenue: null,
+      investedCapital: null,
+      cashBalance: null,
+      cashAccount: null,
       setHome: (home) => set({ home }),
       resetHome: () => set({ home: null }),
       setDlom: (dlom) =>
@@ -920,6 +1029,94 @@ export const useKkaStore = create<KkaState>()(
       resetWcScope: () => set({ changesInWorkingCapital: null }),
       setGrowthRevenue: (growthRevenue) => set({ growthRevenue }),
       resetGrowthRevenue: () => set({ growthRevenue: null }),
+      assignInvestedCapital: (row, ref) =>
+        set((state) => {
+          const current = state.investedCapital ?? {
+            otherNonOperatingAssets: [],
+            excessCash: [],
+            marketableSecurities: [],
+          }
+          const refMatches = (r: SourceRef) =>
+            r.source === ref.source && r.excelRow === ref.excelRow
+          const next: InvestedCapitalState = {
+            otherNonOperatingAssets: current.otherNonOperatingAssets.filter((r) => !refMatches(r)),
+            excessCash: current.excessCash.filter((r) => !refMatches(r)),
+            marketableSecurities: current.marketableSecurities.filter((r) => !refMatches(r)),
+          }
+          if (!next[row].some(refMatches)) {
+            next[row] = [...next[row], ref]
+          }
+          return { investedCapital: next }
+        }),
+      removeInvestedCapital: (row, ref) =>
+        set((state) => {
+          const current = state.investedCapital ?? {
+            otherNonOperatingAssets: [],
+            excessCash: [],
+            marketableSecurities: [],
+          }
+          const refMatches = (r: SourceRef) =>
+            r.source === ref.source && r.excelRow === ref.excelRow
+          return {
+            investedCapital: {
+              ...current,
+              [row]: current[row].filter((r) => !refMatches(r)),
+            },
+          }
+        }),
+      confirmInvestedCapitalScope: () =>
+        set((state) => ({
+          investedCapital: state.investedCapital ?? {
+            otherNonOperatingAssets: [],
+            excessCash: [],
+            marketableSecurities: [],
+          },
+        })),
+      resetInvestedCapitalScope: () => set({ investedCapital: null }),
+      toggleCashBalanceAccount: (excelRow) =>
+        set((state) => {
+          const current = state.cashBalance ?? { accounts: [] }
+          const list = current.accounts
+          const next = list.includes(excelRow)
+            ? list.filter((r) => r !== excelRow)
+            : [...list, excelRow]
+          return { cashBalance: { ...current, accounts: next } }
+        }),
+      setCashBalancePreHistoryBeginning: (value) =>
+        set((state) => {
+          const current = state.cashBalance ?? { accounts: [] }
+          if (value === null) {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { preHistoryBeginning: _drop, ...rest } = current
+            return { cashBalance: { ...rest } }
+          }
+          return { cashBalance: { ...current, preHistoryBeginning: value } }
+        }),
+      confirmCashBalanceScope: () =>
+        set((state) => ({ cashBalance: state.cashBalance ?? { accounts: [] } })),
+      resetCashBalanceScope: () => set({ cashBalance: null }),
+      assignCashAccount: (row, excelRow) =>
+        set((state) => {
+          const current = state.cashAccount ?? { bank: [], cashOnHand: [] }
+          const next: CashAccountState = {
+            bank: current.bank.filter((r) => r !== excelRow),
+            cashOnHand: current.cashOnHand.filter((r) => r !== excelRow),
+          }
+          next[row] = [...next[row], excelRow]
+          return { cashAccount: next }
+        }),
+      removeCashAccount: (row, excelRow) =>
+        set((state) => {
+          const current = state.cashAccount ?? { bank: [], cashOnHand: [] }
+          return {
+            cashAccount: { ...current, [row]: current[row].filter((r) => r !== excelRow) },
+          }
+        }),
+      confirmCashAccountScope: () =>
+        set((state) => ({
+          cashAccount: state.cashAccount ?? { bank: [], cashOnHand: [] },
+        })),
+      resetCashAccountScope: () => set({ cashAccount: null }),
       resetAll: () => set({
         language: 'en',
         home: null,
@@ -938,6 +1135,9 @@ export const useKkaStore = create<KkaState>()(
         interestBearingDebt: null,
         changesInWorkingCapital: null,
         growthRevenue: null,
+        investedCapital: null,
+        cashBalance: null,
+        cashAccount: null,
       }),
       _hasHydrated: false,
       _setHasHydrated: (hydrated) => set({ _hasHydrated: hydrated }),
@@ -964,6 +1164,9 @@ export const useKkaStore = create<KkaState>()(
         interestBearingDebt: state.interestBearingDebt,
         changesInWorkingCapital: state.changesInWorkingCapital,
         growthRevenue: state.growthRevenue,
+        investedCapital: state.investedCapital,
+        cashBalance: state.cashBalance,
+        cashAccount: state.cashAccount,
       }),
       migrate: migratePersistedState,
       onRehydrateStorage: () => (state) => {

@@ -48,8 +48,11 @@ export const NAV_TREE: NavGroup[] = [
       { label: 'nav.item.incomeStatement', href: '/input/income-statement', subGroup: 'nav.subgroup.financialStatements' },
 
       // Sub-group 2: Drivers & Scope (projection drivers + account-scope editors)
+      { label: 'nav.item.cashAccount', href: '/input/cash-account', subGroup: 'nav.subgroup.driversScope' },
+      { label: 'nav.item.cashBalance', href: '/input/cash-balance', subGroup: 'nav.subgroup.driversScope' },
       { label: 'nav.item.changesInWorkingCapital', href: '/input/changes-in-working-capital', subGroup: 'nav.subgroup.driversScope' },
       { label: 'nav.item.growthRevenue', href: '/input/growth-revenue', subGroup: 'nav.subgroup.driversScope' },
+      { label: 'nav.item.investedCapital', href: '/input/invested-capital', subGroup: 'nav.subgroup.driversScope' },
       { label: 'nav.item.keyDrivers', href: '/input/key-drivers', subGroup: 'nav.subgroup.driversScope' },
 
       // Sub-group 3: Asumsi Penilaian (valuation assumptions)

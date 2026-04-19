@@ -434,6 +434,7 @@ const dict = {
   },
   'wc.section.currentAssets': { en: 'Current Assets', id: 'Aset Lancar' },
   'wc.section.currentLiabilities': { en: 'Current Liabilities', id: 'Kewajiban Lancar' },
+  'wc.col.account': { en: 'Account', id: 'Akun' },
   'wc.included.label': {
     en: 'Included in Operating Working Capital',
     id: 'Termasuk dalam Modal Kerja Operasional',
@@ -1065,6 +1066,102 @@ const dict = {
   'bs.koreksiFiskal.note.negative': {
     en: 'Conversely, when there is a **negative Fiscal Correction**, compute the tax impact (Correction Value × Tax Rate). **Reduce** **Tax Liabilities** by that amount, and **add** the same amount to **Current Year Profit**.',
     id: 'Sebaliknya, dalam hal terdapat **Koreksi Fiskal Negatif**, hitung dampak pajaknya (Nilai Koreksi × Tarif Pajak). **Kurangi** akun **Utang Pajak** sebesar nilai tersebut, dan **tambahkan** nilainya ke akun **Laba Tahun Berjalan**.',
+  },
+
+  // Session 055 — Nav items for 3 new scope editors
+  'nav.item.investedCapital': { en: 'Invested Capital', id: 'Modal yang Diinvestasikan' },
+  'nav.item.cashBalance': { en: 'Cash Balance', id: 'Saldo Kas' },
+  'nav.item.cashAccount': { en: 'Cash Account', id: 'Akun Kas' },
+
+  // Session 055 — Invested Capital scope editor (ROIC required-gate)
+  'investedCapital.title': { en: 'Invested Capital', id: 'Modal yang Diinvestasikan' },
+  'investedCapital.subtitle': {
+    en: 'Define the scope of Invested Capital: curate which Balance Sheet or Fixed Asset detail accounts flow into Other Non-Operating Assets, Excess Cash, and Marketable Securities for the ROIC calculation.',
+    id: 'Tentukan cakupan Modal yang Diinvestasikan: pilih akun mana dari Neraca atau detail Aset Tetap yang masuk ke Aset Non-Operasi Lainnya, Kelebihan Kas, dan Surat Berharga untuk perhitungan ROIC.',
+  },
+  'investedCapital.section.otherNonOperatingAssets': { en: 'Other Non-Operating Assets', id: 'Aset Non-Operasi Lainnya' },
+  'investedCapital.section.excessCash': { en: 'Excess Cash', id: 'Kelebihan Kas' },
+  'investedCapital.section.marketableSecurities': { en: 'Marketable Securities', id: 'Surat Berharga yang Dapat Diperdagangkan' },
+  'investedCapital.empty.section': { en: 'No accounts selected yet', id: 'Belum ada akun yang dipilih' },
+  'investedCapital.dropdown.placeholder': { en: '+ Add account…', id: '+ Tambahkan akun…' },
+  'investedCapital.dropdown.optionBs': { en: '[BS] {label}', id: '[Neraca] {label}' },
+  'investedCapital.dropdown.optionFa': { en: '[FA] {label}', id: '[Aset Tetap] {label}' },
+  'investedCapital.action.remove': { en: 'Remove from this row', id: 'Hapus dari baris ini' },
+  'investedCapital.action.confirm': { en: 'Confirm Scope', id: 'Konfirmasi Cakupan' },
+  'investedCapital.action.update': { en: 'Update Scope', id: 'Perbarui Cakupan' },
+  'investedCapital.state.confirmed': { en: 'Scope confirmed. Downstream pages unlocked.', id: 'Cakupan dikonfirmasi. Halaman turunan terbuka.' },
+  'investedCapital.state.unconfirmed': { en: 'Confirm scope to unlock ROIC + Growth Rate.', id: 'Konfirmasi cakupan untuk membuka ROIC + Growth Rate.' },
+  'investedCapital.gate.required.label': { en: 'Invested Capital scope', id: 'Cakupan Modal Investasi' },
+  'investedCapital.warning.ppeOverlap': {
+    en: '⚠ You selected BS "Fixed Assets — Net" and one or more FA detail accounts. These may double-count the same underlying assets. Pick one level.',
+    id: '⚠ Anda memilih Neraca "Aset Tetap — Neto" dan satu atau lebih akun detail dari Aset Tetap. Ini berpotensi double-count aset yang sama. Pilih salah satu level saja.',
+  },
+  'investedCapital.trivia.otherNonOp.heading': { en: 'About Other Non-Operating Assets', id: 'Tentang Aset Non-Operasi Lainnya' },
+  'investedCapital.trivia.otherNonOp.body': {
+    en: 'In financial modeling, **Other Non-Operating Assets** is a catch-all category for company assets that **do not contribute to core business operations** (do not produce Operating Income) but also **do not fit into more specific non-operational asset classes** such as Excess Cash or Marketable Securities. Typical examples: Long-Term Equity Investments, Non-Trade Receivables, Bond Sinking Funds, Cash Surrender Value of Life Insurance, Idle Intangible Assets, Advances for PPE, Deferred Tax Assets.',
+    id: 'Dalam pemodelan keuangan, **Aset Non-Operasi Lainnya** adalah kategori "keranjang penampung" untuk aset perusahaan yang **tidak berkontribusi pada kegiatan bisnis inti** (tidak menghasilkan Operating Income), namun juga **tidak masuk ke klasifikasi aset non-operasional yang lebih spesifik** seperti Excess Cash atau Marketable Securities. Contoh umum: Investasi Ekuitas Jangka Panjang, Piutang Non-Usaha, Dana Cadangan Pelunasan Utang, Nilai Tunai Asuransi Jiwa, Aset Tak Berwujud Menganggur, Uang Muka Pembelian Aset Tetap, Aset Pajak Tangguhan.',
+  },
+  'investedCapital.trivia.excessCash.heading': { en: 'About Excess Cash', id: 'Tentang Excess Cash' },
+  'investedCapital.trivia.excessCash.body': {
+    en: '**Excess Cash** is the amount of cash and cash equivalents held by the company **beyond what is needed to run day-to-day operations** (working capital) and cover short-term obligations. Think of it as a "savings" or "emergency fund". Rather than sitting idle in a non-interest account, it is typically parked in short-term investments. Note: Excess Cash is **rarely labeled literally as an account name** on the Balance Sheet — it is an analytical concept. Analysts typically identify it from Cash & Cash Equivalents, Short-Term Investments, Marketable Securities, Time Deposits, or Treasury Bills.',
+    id: '**Excess Cash** (Kas Berlebih) adalah jumlah kas dan setara kas yang dimiliki perusahaan yang **melebihi jumlah yang dibutuhkan untuk menjalankan kegiatan operasional bisnis sehari-hari** (modal kerja) dan membayar kewajiban jangka pendek. Ibarat keuangan pribadi, ini adalah uang "tabungan" atau "dana darurat". Alih-alih dibiarkan menganggur di rekening giro tanpa bunga, excess cash biasanya diparkir di instrumen keuangan jangka pendek. Catatan: Excess Cash **jarang sekali ditulis secara harfiah sebagai nama akun** di Neraca — ini lebih merupakan konsep analisis keuangan. Analis biasanya mengidentifikasinya dari akun Kas dan Setara Kas, Investasi Jangka Pendek, Surat Berharga, Deposito Berjangka, atau Surat Perbendaharaan Negara.',
+  },
+  'investedCapital.trivia.marketable.heading': { en: 'About Marketable Securities', id: 'Tentang Marketable Securities' },
+  'investedCapital.trivia.marketable.body': {
+    en: '**Marketable Securities** are highly liquid financial instruments that can be quickly and easily bought or sold (converted to cash) in public capital markets at fair prices. They are the **primary "parking spot"** for companies with Excess Cash — rather than letting money sit in a non-interest account, companies buy short-term financial instruments so the funds continue generating returns (dividends, interest, or capital gains) while waiting to be used operationally. Key characteristics: **highly liquid** (active market exists), **short-term** (typically held for <1 year, always classified under Current Assets), **pure temporary investment** (not for controlling other companies). Common instruments: Trading Securities (Equities/Stocks), Treasury Bills, Corporate Bonds (short-term), Commercial Paper, Negotiable Certificates of Deposit, Money Market Funds.',
+    id: '**Marketable Securities** (Surat Berharga yang Dapat Diperdagangkan atau Efek yang Dapat Dipasarkan) adalah instrumen keuangan yang sangat likuid, yang dapat dengan cepat dan mudah dibeli atau dijual (dicairkan menjadi kas) di pasar modal publik dengan harga yang wajar. Marketable securities adalah **"tempat parkir" utama** bagi perusahaan yang memiliki Excess Cash. Daripada uang tersebut menganggur di brankas atau rekening giro tanpa bunga, perusahaan membelikannya instrumen keuangan jangka pendek agar uang tersebut tetap menghasilkan keuntungan (berupa dividen, bunga, atau keuntungan modal/capital gain) selagi menunggu digunakan untuk operasional. Karakteristik utamanya: **sangat likuid** (ada pasar aktif), **jangka pendek** (biasanya dipegang untuk dicairkan dalam waktu kurang dari satu tahun, selalu dicatat di bawah kelompok Aset Lancar), **tujuan murni investasi sementara** (bukan untuk menguasai perusahaan lain). Instrumen umum: Saham yang Diperdagangkan, Surat Perbendaharaan Negara (SPN), Obligasi Korporasi (jangka pendek), Surat Berharga Komersial, Sertifikat Deposito (Yang Dapat Diperdagangkan), Reksa Dana Pasar Uang.',
+  },
+
+  // Session 055 — Cash Balance scope editor (CFS required-gate)
+  'cashBalance.title': { en: 'Cash Balance', id: 'Saldo Kas' },
+  'cashBalance.subtitle': {
+    en: 'Define the scope of Cash: curate which Balance Sheet current-asset accounts represent cash holdings. The system derives CFS Cash Beginning/Ending rows automatically — Ending[Y-1] = Beginning[Y] (accounting identity).',
+    id: 'Tentukan cakupan Kas: pilih akun aset lancar Neraca mana yang merepresentasikan saldo kas. Sistem menurunkan baris Cash Beginning/Ending di Laporan Arus Kas secara otomatis — Ending[Y-1] = Beginning[Y] (identitas akuntansi).',
+  },
+  'cashBalance.section.accounts': { en: 'Cash Accounts', id: 'Akun Kas' },
+  'cashBalance.empty.section': { en: 'No accounts selected yet', id: 'Belum ada akun yang dipilih' },
+  'cashBalance.dropdown.placeholder': { en: '+ Add current-asset account…', id: '+ Tambahkan akun aset lancar…' },
+  'cashBalance.action.remove': { en: 'Remove', id: 'Hapus' },
+  'cashBalance.action.confirm': { en: 'Confirm Scope', id: 'Konfirmasi Cakupan' },
+  'cashBalance.action.update': { en: 'Update Scope', id: 'Perbarui Cakupan' },
+  'cashBalance.state.confirmed': { en: 'Scope confirmed. Cash Flow Statement unlocked.', id: 'Cakupan dikonfirmasi. Cash Flow Statement terbuka.' },
+  'cashBalance.state.unconfirmed': { en: 'Confirm scope to unlock Cash Flow Statement.', id: 'Konfirmasi cakupan untuk membuka Cash Flow Statement.' },
+  'cashBalance.gate.required.label': { en: 'Cash Balance scope', id: 'Cakupan Saldo Kas' },
+  'cashBalance.preHistory.label': { en: 'Pre-history Beginning Balance (optional)', id: 'Saldo Awal Pra-Historis (opsional)' },
+  'cashBalance.preHistory.helper': {
+    en: 'Optional: enter the cash balance at the start of the first historical year if Balance Sheet does not include a prior year. Defaults to 0.',
+    id: 'Opsional: masukkan saldo kas di awal tahun historis pertama bila Neraca tidak mencakup tahun sebelumnya. Default 0.',
+  },
+  'cashBalance.trivia.heading': { en: 'Trivia: Net Cash Flow', id: 'Trivia: Net Cash Flow' },
+  'cashBalance.trivia.intro': {
+    en: 'In the Cash Flow Statement, **Net Cash Flow** is the total difference between all cash inflows (receipts) and all cash outflows (payments) during a specific period. It is the **bottom-line** that reconciles Cash at Beginning of Period + Net Cash Flow = Cash at End of Period. The Ending Balance should match exactly the Cash value on the Balance Sheet.',
+    id: 'Dalam Laporan Arus Kas, **Net Cash Flow** (Arus Kas Bersih) adalah total selisih antara seluruh uang tunai yang masuk (penerimaan) dan seluruh uang tunai yang keluar (pengeluaran) perusahaan selama suatu periode tertentu. Ini adalah **hasil akhir (bottom line)** yang merekonsiliasi Kas Awal Periode + Net Cash Flow = Kas Akhir Periode. Saldo Akhir harus sama persis dengan nilai Kas di Neraca.',
+  },
+
+  // Session 055 — Cash Account scope editor (CFS required-gate)
+  'cashAccount.title': { en: 'Cash Account (Bank vs Cash on Hand)', id: 'Akun Kas (Bank vs Kas di Tangan)' },
+  'cashAccount.subtitle': {
+    en: 'Partition your cash accounts into Bank holdings vs physical Cash on Hand. One account can only live in ONE bucket.',
+    id: 'Pisahkan akun kas Anda menjadi saldo Bank dan Kas di Tangan fisik. Satu akun hanya bisa berada di SATU bucket.',
+  },
+  'cashAccount.section.bank': { en: 'Cash Ending in Bank', id: 'Kas Akhir di Bank' },
+  'cashAccount.section.cashOnHand': { en: 'Cash Ending in Cash on Hand', id: 'Kas Akhir di Kas Fisik' },
+  'cashAccount.empty.section': { en: 'No accounts selected yet', id: 'Belum ada akun yang dipilih' },
+  'cashAccount.dropdown.placeholder': { en: '+ Add current-asset account…', id: '+ Tambahkan akun aset lancar…' },
+  'cashAccount.action.remove': { en: 'Remove', id: 'Hapus' },
+  'cashAccount.action.confirm': { en: 'Confirm Scope', id: 'Konfirmasi Cakupan' },
+  'cashAccount.action.update': { en: 'Update Scope', id: 'Perbarui Cakupan' },
+  'cashAccount.state.confirmed': { en: 'Scope confirmed. Cash Flow Statement unlocked.', id: 'Cakupan dikonfirmasi. Cash Flow Statement terbuka.' },
+  'cashAccount.state.unconfirmed': { en: 'Confirm scope to unlock Cash Flow Statement.', id: 'Konfirmasi cakupan untuk membuka Cash Flow Statement.' },
+  'cashAccount.gate.required.label': { en: 'Cash Account scope', id: 'Cakupan Akun Kas' },
+  'cashAccount.warning.notInCashBalance': {
+    en: '⚠ Some Cash Account entries are not in your Cash Balance scope. Consider adding them to Cash Balance for consistency.',
+    id: '⚠ Beberapa akun di Cash Account belum ada di cakupan Cash Balance. Pertimbangkan menambahkannya ke Cash Balance agar konsisten.',
+  },
+  'cashAccount.trivia.heading': { en: 'Trivia: Net Cash Flow', id: 'Trivia: Net Cash Flow' },
+  'cashAccount.trivia.intro': {
+    en: 'See the Cash Balance trivia for context on Net Cash Flow. The Ending balance can be split into where the cash physically lives — in Bank accounts (deposits, checking, savings) vs Cash on Hand (petty cash, register floats). This split is useful for audit trail and internal controls.',
+    id: 'Lihat trivia Cash Balance untuk konteks Net Cash Flow. Saldo Akhir dapat dipecah berdasarkan lokasi fisik kas — di rekening Bank (deposito, giro, tabungan) vs Kas di Tangan (kas kecil, kas register). Pembagian ini berguna untuk audit trail dan kontrol internal.',
   },
 } as const
 
