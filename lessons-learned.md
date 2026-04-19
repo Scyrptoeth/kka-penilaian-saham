@@ -677,7 +677,11 @@ untuk 3+ sesi ke depan:
 ### Session 054 (INPUT taxonomy reorganization + CWC cleanup + GR editor)
 - LESSON-149 (Per-row editability in shared RowInputGrid / SheetManifest — mark derived rows `type: 'cross-ref'`, leave editable rows as default `type: 'normal'`; one manifest + two data layers (`values` vs `computedValues`) in the same table)
 
-LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054, 074, 087, 109, 113, 117, 120, 121, 125, 127, 128, 130, 131, 134, 136, 138, 140, 142, 145 **TIDAK** di-promote — workflow/session-specific
+### Session 055 (Invested Capital + Cash Balance + Cash Account scope editors + ROIC rename + Growth Rate NFA single source + CWC multi-year)
+- LESSON-150 (Cross-sheet scope editor triple-wiring pattern — view + compute-helper + builder must be updated atomically for new user-curated scope slices; Phase C fixture reconstructs legacy values via curated scope)
+- LESSON-151 (Parallel agent delegation scales for independent tracks with disjoint file ownership — Session 055 ran ~11 parallel agent tasks without conflicts)
+
+LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054, 074, 087, 109, 113, 117, 120, 121, 125, 127, 128, 130, 131, 134, 136, 138, 140, 142, 145, 152 **TIDAK** di-promote — workflow/session-specific
 insights yang general ke project lain tapi terlalu luas atau terlalu
 session-specific untuk section 8 (yang fokus KKA-specific gotchas).
 Tersimpan di lessons-learned saja.
@@ -4502,3 +4506,93 @@ Alternative rejected — fork the table into two separate components. That dupli
 **Proven at**: session-054 (2026-04-19). `src/components/forms/GrowthRevenueEditor.tsx` — single `<RowInputGrid>` with rows 8 + 9 read-only (cross-ref) + rows 40 + 41 editable. Manifest unchanged except `type: 'cross-ref'` markers. Compute adapter signature extended to accept optional `growthRevenue` slice. Full suite 1393/1393. Phase C 5/5. Cascade 3/3.
 
 ---
+
+---
+
+## Session 055 — Cluster AB (Invested Capital + Cash Balance + Cash Account scope editors + ROIC rename + Growth Rate NFA single source + CWC multi-year)
+
+### LESSON-150: Cross-sheet scope editor triple-wiring pattern
+
+**Kategori**: Workflow | Anti-pattern
+**Sesi**: session-055
+**Tanggal**: 2026-04-19
+
+**Konteks**: Adding a new user-curated scope slice that drives downstream analysis compute (e.g. `investedCapital` drives ROIC row 9/10/11; `cashBalance` + `cashAccount` drive CFS rows 32/33/35/36).
+
+**Apa yang terjadi**: Session 055 shipped 3 new scope editors. Each one required coordinated updates across 3 layers simultaneously to prevent partial-integration bugs:
+1. **View layer**: PageEmptyState gate on `slice === null` + `useMemo` pre-computes scope result + passes into main compute helper
+2. **Builder layer**: upstream array += slice name + build() pre-computes scope result + threads into compute helper
+3. **Phase C fixture layer**: `pt-raja-voltama-state.ts` reconstructs legacy hardcoded behavior by populating slice with curated account lists (e.g. `investedCapital.excessCash = [{source: 'bs', excelRow: 8}]` reproduces old `row 10 = -BS[8]` parity)
+
+**Root cause / insight**: Dropping hardcoded references in favor of scope-driven compute (LESSON-108 compliance) has a 3-layer integration cost. If any one layer is missed:
+- Missing view wiring → ROIC page shows 0 for the affected rows
+- Missing builder wiring → exported .xlsx diverges from live website display
+- Missing Phase C fixture reconstruction → cell-parity verification fails because template values were baked from the hardcoded behavior that no longer runs in compute
+
+All 3 layers are in different files + different test suites, so partial completion compiles cleanly. Phase C + Unit tests are the ONLY safety net. This is the right path — scope-driven compute is system-correct — but you have to budget for the coordinated triple-update.
+
+**Cara menerapkan di masa depan**: Before introducing a new user-curated scope slice:
+1. Grep downstream consumers: `grep -r "bsAllRows\[N\]\|faRows\[N\]" src/data/live src/data/manifests` — enumerate every hardcoded reference the new scope will replace
+2. Map each reference to exactly one layer: view (useMemo), builder (build), fixture (pt-raja-voltama-state)
+3. Ship ALL 3 layers in the same feature branch. No partial. LESSON-118 audit checklist: typecheck passes ≠ correct; run Phase C + full test suite before merge
+4. If the refactor is large enough that 3-layer updates overflow 1 session, use Session 055's parallel-agent pattern: 1 agent per layer, each given a complete brief
+
+**Proven at**: session-055 (2026-04-19) across 3 independent scope editors (Invested Capital, Cash Balance, Cash Account). Phase C 5/5 green post-update.
+
+### LESSON-151: Parallel agent delegation scales for independent-track refactors
+
+**Kategori**: Workflow
+**Sesi**: session-055
+**Tanggal**: 2026-04-19
+
+**Konteks**: Large sessions where 10+ tasks split naturally into independent tracks (disjoint file ownership) and context budget is precious.
+
+**Apa yang terjadi**: Session 055 had 18 tracked tasks — realistically 2x what a sequential main-thread session can deliver. Strategy:
+- **Main thread**: critical state work (store migration v22→v23, Phase C fixture reconstruction), shared-file edits (translations.ts), verification gates, git ops
+- **Parallel Explore agents** (batch 1, 5 concurrent): reconnaissance on ROIC / Growth Rate / CWC / CFS / FA-catalog current state — each wrote a file:line facts report
+- **Parallel general-purpose agents** (batch 2, 3 concurrent): pure compute helpers (computeInvestedCapital, computeCashBalance, computeCashAccount) via TDD + verification
+- **Parallel general-purpose agents** (batch 3, 3 concurrent): 3 new scope editor pages (invested-capital, cash-balance, cash-account) — each ~400 LOC
+- **Parallel general-purpose agents** (batch 4, 2 concurrent): CWC multi-year display refactor + CFS rewire with gate
+
+Total: ~13 parallel agent tasks across the session, zero merge conflicts, zero verification regressions attributable to parallelism.
+
+**Root cause / insight**: Parallel agent scaling works when:
+- **Disjoint file ownership**: each agent writes to a distinct file tree (e.g. `src/app/input/{invested-capital,cash-balance,cash-account}` are 3 different directories; no shared file edits)
+- **Complete briefs**: each agent gets the full spec (types, signatures, test cases, existing patterns to mirror, verification commands) — no back-and-forth
+- **Verification built into agent prompt**: each agent ends by running typecheck + tests + audit, so main thread only merges work that's already validated
+
+Fails when:
+- Shared file edits (e.g. i18n translations.ts, nav-tree.ts) — must be serialized on main thread
+- Cross-dependent tasks (e.g. Task A returns type that Task B needs) — must be sequential
+
+**Cara menerapkan di masa depan**:
+- Early in session planning, identify independent tracks vs serialized work
+- Bundle serialized work (types, store migrations, shared files) into main-thread tasks
+- Launch parallel agents in batches (3-5 at a time) per independent track
+- Brief template: context (2-3 sentences) → existing infrastructure (trust, don't re-verify) → spec (types, file paths, test cases) → verification commands → return format (<100-word report)
+
+**Proven at**: session-055 (2026-04-19). ~18 tracked tasks completed in one session. Tests 1393 → 1420 (+27), build 42 → 45 pages, 0 regressions.
+
+### LESSON-152: git add -A at session boundaries is foot-gun (local)
+
+**Kategori**: Workflow | Anti-pattern
+**Sesi**: session-055
+**Tanggal**: 2026-04-19
+
+**Konteks**: End-of-session wrap-up where working directory has accumulated many untracked artifacts (user-provided screenshots, prompt MDs, temp export .xlsx files) alongside intentional code changes.
+
+**Apa yang terjadi**: Committing Tasks 9-12 consumer rewires via `git add -A && git commit -m "..."` also included ~170 untracked session-documentation files (screenshots, MDs, temp files like `~$kka-penilaian-saham.xlsx`). The commit became hard to review.
+
+**Root cause / insight**: `git add -A` stages EVERY untracked file including Office temp-lock files (`~$*.xlsx`), OS metadata, session media. Even if most of those are intentional session documentation, mixing them with code changes makes `git show` + `git blame` noisy and clouds the intent of the commit.
+
+**Cara menerapkan di masa depan**: At session boundaries, ALWAYS stage explicit paths:
+```bash
+git add <specific-code-paths> <specific-doc-paths>  # never -A for feature commits
+git commit -m "feat(X): ..."
+```
+
+For documentation + media that should be tracked (e.g. session prompt MDs that document the feature request), commit them in a separate `docs(session-NNN): ...` commit so they're distinguishable from code work.
+
+For temp/junk files (`~$*.xlsx`, `.DS_Store`), add to `.gitignore` aggressively — preventing the problem at the root.
+
+**Proven at**: session-055 (2026-04-19) — temp file cleanup required a second commit to remove `~$kka-penilaian-saham.xlsx`.
