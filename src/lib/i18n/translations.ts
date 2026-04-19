@@ -29,6 +29,10 @@ const dict = {
   'nav.item.fcf': { en: 'FCF', id: 'FCF' },
   'nav.item.noplat': { en: 'NOPLAT', id: 'NOPLAT' },
   'nav.item.growthRevenue': { en: 'Growth Revenue', id: 'Pertumbuhan Pendapatan' },
+  'growthRevenue.editor.subtitle': {
+    en: 'Company revenue and net profit are derived from your Income Statement. Industry rows are editable benchmarks — fill them to show YoY growth comparison with the market.',
+    id: 'Baris penjualan dan laba bersih perusahaan diturunkan dari Laporan Laba Rugi. Baris industri dapat diisi sebagai pembanding — lengkapi untuk melihat perbandingan pertumbuhan YoY dengan pasar.',
+  },
   'nav.item.roic': { en: 'ROIC', id: 'ROIC' },
   'nav.item.growthRate': { en: 'Growth Rate', id: 'Tingkat Pertumbuhan' },
   'nav.item.cashFlowStatement': { en: 'Cash Flow Statement', id: 'Laporan Arus Kas' },

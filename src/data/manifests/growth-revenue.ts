@@ -34,11 +34,12 @@ export const GROWTH_REVENUE_MANIFEST: SheetManifest = {
   disclaimer:
     'Data demo dari workbook prototipe. Kolom growth 2019-2021 dihitung dari primitive yoyGrowth dan divalidasi cocok dengan formula Excel (H8-J9 = IF(prior=0,0,(current−prior)/prior)). Saat user mengisi data via Input Data, tampilan otomatis beralih ke mode live.',
   rows: [
-    // ====================== PERUSAHAAN ======================
+    // ====================== PERUSAHAAN (derived — read-only) ===============
     { label: 'DATA PENJUALAN', type: 'header' },
     {
       excelRow: 8,
       label: 'Penjualan',
+      type: 'cross-ref',
       formula: {
         values: "='INCOME STATEMENT'!C6..F6 — Revenue 2018-2021",
         growth: GROWTH_DESC,
@@ -47,6 +48,7 @@ export const GROWTH_REVENUE_MANIFEST: SheetManifest = {
     {
       excelRow: 9,
       label: 'Laba Bersih',
+      type: 'cross-ref',
       formula: {
         values: "='INCOME STATEMENT'!C35..F35 — Net Profit 2018-2021",
         growth: GROWTH_DESC,
@@ -55,13 +57,13 @@ export const GROWTH_REVENUE_MANIFEST: SheetManifest = {
 
     { label: '', type: 'separator' },
 
-    // ====================== INDUSTRI (placeholder) ======================
+    // ====================== INDUSTRI (user-editable) =======================
     { label: 'DATA PENJUALAN / PENDAPATAN INDUSTRI', type: 'header' },
     {
       excelRow: 40,
       label: 'Penjualan (Industri)',
       formula: {
-        values: 'User-input benchmark — blank in demo workbook',
+        values: 'User-input industry benchmark',
         growth: GROWTH_DESC,
       },
     },
@@ -69,7 +71,7 @@ export const GROWTH_REVENUE_MANIFEST: SheetManifest = {
       excelRow: 41,
       label: 'Pendapatan Bersih (Industri)',
       formula: {
-        values: 'User-input benchmark — blank in demo workbook',
+        values: 'User-input industry benchmark',
         growth: GROWTH_DESC,
       },
     },
