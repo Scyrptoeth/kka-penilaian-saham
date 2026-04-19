@@ -109,6 +109,24 @@ export interface BorrowingCapInputState {
   persediaanCalk: number
 }
 
+/**
+ * Session 054 — Growth Revenue industry benchmark slice.
+ *
+ * The Growth Revenue page shows Revenue + NPAT historical (derived from IS)
+ * alongside "Industri" benchmark rows (excelRow 40 + 41) that users enter
+ * manually as comparison data. These two fields are the user-input layer.
+ * Derived rows 8 + 9 stay read-only.
+ *
+ * `null` at the top level = user has not yet visited the editor. Empty
+ * series `{}` after visit = visited but all cleared.
+ */
+export interface GrowthRevenueState {
+  /** Industry Sales (manifest row 40). Year → value. */
+  industryRevenue: import('@/types/financial').YearKeyedSeries
+  /** Industry Net Profit (manifest row 41). Year → value. */
+  industryNetProfit: import('@/types/financial').YearKeyedSeries
+}
+
 interface KkaState {
   /** Global language preference — EN (default) or ID. Lifted to root level in v15. */
   language: 'en' | 'id'
@@ -172,6 +190,11 @@ interface KkaState {
     excludedCurrentAssets: number[]
     excludedCurrentLiabilities: number[]
   } | null
+  /**
+   * Session 054 — Growth Revenue industry benchmark rows. Populated via
+   * `/input/growth-revenue` editor. `null` until user first visits + saves.
+   */
+  growthRevenue: GrowthRevenueState | null
   setHome: (home: HomeInputs) => void
   resetHome: () => void
   /**
@@ -229,6 +252,9 @@ interface KkaState {
   toggleExcludeCurrentLiability: (excelRow: number) => void
   confirmWcScope: () => void
   resetWcScope: () => void
+  /** Session 054 — bulk set/clear growthRevenue. Passing `null` clears it (equivalent to resetGrowthRevenue). */
+  setGrowthRevenue: (gr: GrowthRevenueState | null) => void
+  resetGrowthRevenue: () => void
   /** Reset ALL store slices to initial state (destructive — clears all user data). */
   resetAll: () => void
   _hasHydrated: boolean
@@ -236,7 +262,7 @@ interface KkaState {
 }
 
 const STORE_KEY = 'kka-penilaian-saham'
-const STORE_VERSION = 21
+const STORE_VERSION = 22
 
 /**
  * Migrate persisted state from older versions to the current schema.
@@ -728,6 +754,15 @@ export function migratePersistedState(
     }
   }
 
+  // v21 → v22: Session 054 added root-level `growthRevenue` slice for
+  //           industry benchmark rows 40 + 41. Default null until user
+  //           first opens the editor. Idempotent.
+  if (fromVersion < 22) {
+    if (!('growthRevenue' in state)) {
+      state = { ...state, growthRevenue: null }
+    }
+  }
+
   return state
 }
 
@@ -750,6 +785,7 @@ export const useKkaStore = create<KkaState>()(
       nilaiPengalihanDilaporkan: 0,
       interestBearingDebt: null,
       changesInWorkingCapital: null,
+      growthRevenue: null,
       setHome: (home) => set({ home }),
       resetHome: () => set({ home: null }),
       setDlom: (dlom) =>
@@ -882,6 +918,8 @@ export const useKkaStore = create<KkaState>()(
           },
         })),
       resetWcScope: () => set({ changesInWorkingCapital: null }),
+      setGrowthRevenue: (growthRevenue) => set({ growthRevenue }),
+      resetGrowthRevenue: () => set({ growthRevenue: null }),
       resetAll: () => set({
         language: 'en',
         home: null,
@@ -899,6 +937,7 @@ export const useKkaStore = create<KkaState>()(
         nilaiPengalihanDilaporkan: 0,
         interestBearingDebt: null,
         changesInWorkingCapital: null,
+        growthRevenue: null,
       }),
       _hasHydrated: false,
       _setHasHydrated: (hydrated) => set({ _hasHydrated: hydrated }),
@@ -924,6 +963,7 @@ export const useKkaStore = create<KkaState>()(
         nilaiPengalihanDilaporkan: state.nilaiPengalihanDilaporkan,
         interestBearingDebt: state.interestBearingDebt,
         changesInWorkingCapital: state.changesInWorkingCapital,
+        growthRevenue: state.growthRevenue,
       }),
       migrate: migratePersistedState,
       onRehydrateStorage: () => (state) => {

@@ -514,12 +514,16 @@ describe('migratePersistedState — v13 → v14 (faAdjustment → aamAdjustments
   })
 
   it('passes future versions through unchanged', () => {
+    // Keeps identity if state already contains every slice a later migration
+    // would otherwise add. Growing list mirrors the `if (fromVersion < N)`
+    // checks for conditional fields. Session 054 added `growthRevenue`.
     const v19State = {
       home: null,
       language: 'en',
       interestBearingDebt: null,
       changesInWorkingCapital: null,
       incomeStatement: null,
+      growthRevenue: null,
       futureSlice: {},
     }
     const migrated = migratePersistedState(v19State, 19)
@@ -694,6 +698,36 @@ describe('migratePersistedState — v13 → v14 (faAdjustment → aamAdjustments
     const v20State = { home: null, language: 'en', balanceSheet: null }
     const migrated = migratePersistedState(v20State, 20) as Record<string, unknown>
     expect(migrated.balanceSheet).toBeNull()
+  })
+
+  // Session 054 — v21 → v22: add root-level `growthRevenue` slice (industry
+  // benchmark rows 40 + 41 — editable alongside derived rows 8 + 9).
+  it('v21 → v22 initializes growthRevenue as null', () => {
+    const v21State = { home: null, language: 'en' }
+    const migrated = migratePersistedState(v21State, 21) as Record<string, unknown>
+    expect(migrated.growthRevenue).toBeNull()
+  })
+
+  it('v21 → v22 preserves existing growthRevenue if already present (idempotent)', () => {
+    const existing = {
+      industryRevenue: { 2020: 1000, 2021: 1100 },
+      industryNetProfit: { 2020: 100, 2021: 150 },
+    }
+    const v21State = { home: null, language: 'en', growthRevenue: existing }
+    const migrated = migratePersistedState(v21State, 21) as Record<string, unknown>
+    expect(migrated.growthRevenue).toEqual(existing)
+  })
+
+  it('chain migration from v20 reaches v22 with both equityProjectionOverrides and growthRevenue', () => {
+    const v20State = {
+      home: null,
+      language: 'en',
+      balanceSheet: { yearCount: 4, accounts: [], rows: {}, language: 'en' },
+    }
+    const migrated = migratePersistedState(v20State, 20) as Record<string, unknown>
+    const bs = migrated.balanceSheet as Record<string, unknown>
+    expect(bs.equityProjectionOverrides).toEqual({})
+    expect(migrated.growthRevenue).toBeNull()
   })
 
   it('v20 → v21 preserves existing equityProjectionOverrides if already present (idempotent)', () => {
