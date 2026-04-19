@@ -318,5 +318,28 @@ export function loadPtRajaVoltamaState(): ExportableState {
       excludedCurrentAssets: [],
       excludedCurrentLiabilities: [],
     },
-  }
+    // Session 054 — growthRevenue slice (null = not visited by user; row 40/41
+    // remain absent in output, matching template behavior)
+    growthRevenue: null,
+    // Session 055 — Invested Capital scope. To match legacy ROIC behavior where
+    // row 10 (Less Excess Cash) = -BS[8], confirm scope with BS row 8 curated
+    // as Excess Cash. Other Non-Op + Marketable stay empty (template default 0).
+    investedCapital: {
+      otherNonOperatingAssets: [],
+      excessCash: [{ source: 'bs', excelRow: 8 }],
+      marketableSecurities: [],
+    },
+    // Session 055 — Cash Balance scope. Legacy CFS used BS rows [8, 9]
+    // (Cash on Hand + Cash in Bank) for both Beginning and Ending. Reconstruct
+    // with those 2 accounts to maintain Phase C numeric parity.
+    cashBalance: {
+      accounts: [8, 9],
+    },
+    // Session 055 — Cash Account split. Legacy CFS row 35 (Cash in Bank) = BS[9],
+    // row 36 (Cash on Hand) = BS[8]. Reconstruct the split faithfully.
+    cashAccount: {
+      bank: [9],
+      cashOnHand: [8],
+    },
+  } as ExportableState
 }
