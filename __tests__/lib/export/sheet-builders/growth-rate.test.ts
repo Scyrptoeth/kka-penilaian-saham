@@ -97,16 +97,22 @@ function makeState(overrides: Partial<ExportableState>): ExportableState {
     home: makeHome(), balanceSheet: null, incomeStatement: null,
     fixedAsset: null, accPayables: null, wacc: null,
     discountRate: null, keyDrivers: null, dlom: null, dloc: null,
-    borrowingCapInput: null, aamAdjustments: {}, nilaiPengalihanDilaporkan: 0, interestBearingDebt: 0,
+    borrowingCapInput: null, aamAdjustments: {}, nilaiPengalihanDilaporkan: 0,
+    interestBearingDebt: null,
+    changesInWorkingCapital: null,
+    growthRevenue: null,
+    investedCapital: { otherNonOperatingAssets: [], excessCash: [], marketableSecurities: [] },
+    cashBalance: null,
+    cashAccount: null,
     ...overrides,
-  }
+  } as ExportableState
 }
 
 describe('GrowthRateBuilder — metadata', () => {
   it('has correct sheetName + upstream slices', () => {
     expect(GrowthRateBuilder.sheetName).toBe('GROWTH RATE')
     expect(GrowthRateBuilder.upstream).toEqual([
-      'home', 'balanceSheet', 'incomeStatement', 'fixedAsset',
+      'home', 'balanceSheet', 'incomeStatement', 'fixedAsset', 'investedCapital',
     ])
   })
 })

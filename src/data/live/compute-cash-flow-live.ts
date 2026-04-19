@@ -1,5 +1,5 @@
 /**
- * Cash Flow Statement live compute adapter — account-driven (Session 039).
+ * Cash Flow Statement live compute adapter — account-driven (Session 039 + 055).
  *
  * Maps upstream data (BS accounts + BS / IS / FA / AP row values) into CFS
  * manifest leaf rows. The caller feeds the result into `deriveComputedRows`
@@ -25,6 +25,22 @@
  * Design priority: correctness of generalized calculation across hundreds
  * of different company structures > fixture-value parity with single
  * PT Raja Voltama case study. See /memory/feedback_system_over_prototype.md.
+ *
+ * ═══════════════════════════════════════════════════════════════════════
+ * Session 055 rewrite: Cash rows 32/33/35/36 are scope-driven.
+ * ═══════════════════════════════════════════════════════════════════════
+ *
+ * Legacy behavior (pre-Session-055): hardcoded `BS_CASH_ROWS=[8, 9]` —
+ * rows 32/33 summed BS rows 8+9 at current/prior year, rows 35/36 read
+ * BS row 9 / row 8 directly. Same brittleness as WC: broke for extended
+ * or custom BS structures.
+ *
+ * New behavior: caller passes pre-computed `cashBalanceResult` (from
+ * `computeCashBalance` against user-curated Cash Balance scope) and
+ * `cashAccountResult` (from `computeCashAccount` against user-curated
+ * bank / cashOnHand partition). When either is absent, the affected
+ * rows fall back to 0 — callers that still want the legacy "sum rows
+ * 8+9" behavior must pre-compute it themselves and pass the result.
  *
  * Sign conventions (unchanged):
  *   - IS leaves: natural sign (expenses negative per Excel convention)
@@ -88,6 +104,12 @@ export function resolveWcRows(
  *                                is the prior year for CL delta and Cash Beginning
  * @param excludedCurrentAssets   BS excelRows to exclude from CA aggregation (user scope)
  * @param excludedCurrentLiab     BS excelRows to exclude from CL aggregation (user scope)
+ * @param cashBalanceResult       Session 055 — pre-computed Cash Beginning / Ending series
+ *                                (from `computeCashBalance`). Feeds rows 32/33. When absent,
+ *                                rows 32/33 default to 0.
+ * @param cashAccountResult       Session 055 — pre-computed Bank / CashOnHand split
+ *                                (from `computeCashAccount`). Feeds rows 35/36. When absent,
+ *                                rows 35/36 default to 0.
  */
 export function computeCashFlowLiveRows(
   bsAccounts: readonly BsAccountEntry[],
@@ -99,6 +121,8 @@ export function computeCashFlowLiveRows(
   bsYears: readonly number[],
   excludedCurrentAssets: readonly number[] = [],
   excludedCurrentLiab: readonly number[] = [],
+  cashBalanceResult?: { ending: YearKeyedSeries; beginning: YearKeyedSeries },
+  cashAccountResult?: { bank: YearKeyedSeries; cashOnHand: YearKeyedSeries },
 ): Record<number, YearKeyedSeries> {
   // Compute FA subtotals — need Total Additions (row 23) for CapEx.
   // Sentinel subtotals in store override re-derived values (include extended accounts).
@@ -110,11 +134,6 @@ export function computeCashFlowLiveRows(
   // Resolve active CA + CL row lists (respecting user exclusions).
   const caRows = resolveWcRows(bsAccounts, 'current_assets', excludedCurrentAssets)
   const clRows = resolveWcRows(bsAccounts, 'current_liabilities', excludedCurrentLiab)
-
-  // Cash rows (8, 9) are still referenced directly for Cash Beginning / Ending
-  // Balance rendering. These balances are OUTPUTS of the CFS, independent of
-  // whether the user includes Cash in the WC aggregation.
-  const BS_CASH_ROWS = [8, 9] as const
 
   const out: Record<number, YearKeyedSeries> = {}
   const set = (row: number, year: number, value: number) => {
@@ -186,20 +205,19 @@ export function computeCashFlowLiveRows(
     // Row 26: Principal Repayment = ACC PAYABLES row 20
     set(26, year, apRows?.[20]?.[year] ?? 0)
 
-    // ── CASH BALANCES (always from BS rows 8+9 — Cash is the output metric) ──
+    // ── CASH BALANCES (Session 055 — scope-driven via Cash Balance / Cash Account) ──
 
-    // Row 32: Cash Beginning = BS prior year (rows 8+9)
-    const beginYear = isFirstYear ? bsYears[0] : cfsYears[i - 1]
-    set(32, year, sumRows(bsRows, BS_CASH_ROWS, beginYear))
+    // Row 32: Cash Beginning — from `cashBalanceResult.beginning` (defaults 0).
+    set(32, year, cashBalanceResult?.beginning?.[year] ?? 0)
 
-    // Row 33: Cash Ending = BS current year (rows 8+9)
-    set(33, year, sumRows(bsRows, BS_CASH_ROWS, year))
+    // Row 33: Cash Ending — from `cashBalanceResult.ending` (defaults 0).
+    set(33, year, cashBalanceResult?.ending?.[year] ?? 0)
 
-    // Row 35: Cash in Bank = BS row 9 current year
-    set(35, year, bsRows[9]?.[year] ?? 0)
+    // Row 35: Cash in Bank — from `cashAccountResult.bank` (defaults 0).
+    set(35, year, cashAccountResult?.bank?.[year] ?? 0)
 
-    // Row 36: Cash on Hand = BS row 8 current year
-    set(36, year, bsRows[8]?.[year] ?? 0)
+    // Row 36: Cash on Hand — from `cashAccountResult.cashOnHand` (defaults 0).
+    set(36, year, cashAccountResult?.cashOnHand?.[year] ?? 0)
   }
 
   return out

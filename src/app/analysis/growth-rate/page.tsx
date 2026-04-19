@@ -10,6 +10,9 @@ import { computeRoicLiveRows } from '@/data/live/compute-roic-live'
 import { computeFcfLiveRows } from '@/data/live/compute-fcf-live'
 import { computeNoplatLiveRows } from '@/data/live/compute-noplat-live'
 import { computeCashFlowLiveRows } from '@/data/live/compute-cash-flow-live'
+import { computeInvestedCapital } from '@/lib/calculations/compute-invested-capital'
+import { computeCashBalance } from '@/lib/calculations/compute-cash-balance'
+import { computeCashAccount } from '@/lib/calculations/compute-cash-account'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { NOPLAT_MANIFEST } from '@/data/manifests/noplat'
 import { FIXED_ASSET_MANIFEST } from '@/data/manifests/fixed-asset'
@@ -39,10 +42,22 @@ export default function GrowthRatePage() {
   const fixedAsset = useKkaStore(s => s.fixedAsset)
   const accPayables = useKkaStore(s => s.accPayables)
   const changesInWorkingCapital = useKkaStore(s => s.changesInWorkingCapital)
+  const investedCapital = useKkaStore(s => s.investedCapital)
+  const cashBalance = useKkaStore(s => s.cashBalance)
+  const cashAccount = useKkaStore(s => s.cashAccount)
   const hasHydrated = useKkaStore(s => s._hasHydrated)
 
   const data = useMemo(() => {
-    if (!hasHydrated || !home || !balanceSheet || !incomeStatement) return null
+    if (
+      !hasHydrated ||
+      !home ||
+      !balanceSheet ||
+      !incomeStatement ||
+      !fixedAsset ||
+      investedCapital === null
+    ) {
+      return null
+    }
 
     const years3 = computeHistoricalYears(home.tahunTransaksi, 3)
     const bsYears = computeHistoricalYears(home.tahunTransaksi, 4)
@@ -52,16 +67,25 @@ export default function GrowthRatePage() {
     const noplatComp = deriveComputedRows(NOPLAT_MANIFEST.rows, noplatLeaf, years3)
     const allNoplat = { ...noplatLeaf, ...noplatComp }
 
-    const faRows = fixedAsset?.rows ?? null
-    const faComp = faRows
-      ? deriveComputedRows(FIXED_ASSET_MANIFEST.rows, faRows, years3)
-      : null
+    const faRows = fixedAsset.rows
+    const faComp = deriveComputedRows(FIXED_ASSET_MANIFEST.rows, faRows, years3)
+    // LESSON-057: store sentinels win over re-derived values — extended/custom
+    // accounts exist only in store; static manifest cannot see them.
+    const allFa = { ...faComp, ...faRows }
 
+    const cashBalanceResult = cashBalance
+      ? computeCashBalance({ scope: cashBalance, bsRows: balanceSheet.rows, cfsYears: years3, bsYears })
+      : undefined
+    const cashAccountResult = cashAccount
+      ? computeCashAccount({ scope: cashAccount, bsRows: balanceSheet.rows, years: years3 })
+      : undefined
     const cfsLeaf = computeCashFlowLiveRows(
       balanceSheet.accounts,
       balanceSheet.rows, incomeStatement.rows, faRows, accPayables?.rows ?? null, years3, bsYears,
       changesInWorkingCapital?.excludedCurrentAssets ?? [],
       changesInWorkingCapital?.excludedCurrentLiabilities ?? [],
+      cashBalanceResult,
+      cashAccountResult,
     )
     const cfsComp = deriveComputedRows(CASH_FLOW_STATEMENT_MANIFEST.rows, cfsLeaf, years3)
     const allCfs = { ...cfsLeaf, ...cfsComp }
@@ -73,16 +97,30 @@ export default function GrowthRatePage() {
     const bsComp = deriveComputedRows(BALANCE_SHEET_MANIFEST.rows, balanceSheet.rows, bsYears)
     const allBs = { ...bsComp, ...balanceSheet.rows }
 
-    const roicRows = computeRoicLiveRows(allFcf, allBs, years3)
-
-    // Merge FA computed rows for row 69
-    const allFa = faComp ? { ...(faRows ?? {}), ...faComp } : {}
+    const icValues = computeInvestedCapital({
+      scope: investedCapital,
+      bsRows: balanceSheet.rows,
+      faRows,
+      years: years3,
+    })
+    const roicRows = computeRoicLiveRows(allFcf, allBs, years3, icValues)
 
     return computeGrowthRateLive(allBs, allFa, roicRows, years3)
-  }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, accPayables, changesInWorkingCapital])
+  }, [
+    hasHydrated,
+    home,
+    balanceSheet,
+    incomeStatement,
+    fixedAsset,
+    accPayables,
+    changesInWorkingCapital,
+    investedCapital,
+    cashBalance,
+    cashAccount,
+  ])
 
   if (!hasHydrated) return null
-  if (!home || !balanceSheet || !incomeStatement) {
+  if (!home || !balanceSheet || !incomeStatement || !fixedAsset || investedCapital === null) {
     return (
       <PageEmptyState section={t('nav.group.analysis')}
         title={t('nav.item.growthRate')}
@@ -91,6 +129,7 @@ export default function GrowthRatePage() {
           { label: 'Balance Sheet', href: '/input/balance-sheet', filled: !!balanceSheet },
           { label: 'Income Statement', href: '/input/income-statement', filled: !!incomeStatement },
           { label: 'Fixed Asset', href: '/input/fixed-asset', filled: !!fixedAsset },
+          { label: t('investedCapital.gate.required.label'), href: '/input/invested-capital', filled: investedCapital !== null },
         ]}
       />
     )

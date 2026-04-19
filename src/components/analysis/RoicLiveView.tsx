@@ -14,8 +14,12 @@ import { computeRoicLiveRows } from '@/data/live/compute-roic-live'
 import { computeFcfLiveRows } from '@/data/live/compute-fcf-live'
 import { computeNoplatLiveRows } from '@/data/live/compute-noplat-live'
 import { computeCashFlowLiveRows } from '@/data/live/compute-cash-flow-live'
+import { computeInvestedCapital } from '@/lib/calculations/compute-invested-capital'
+import { computeCashBalance } from '@/lib/calculations/compute-cash-balance'
+import { computeCashAccount } from '@/lib/calculations/compute-cash-account'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { PageEmptyState } from '@/components/shared/PageEmptyState'
+import { useT } from '@/lib/i18n/useT'
 
 /**
  * ROIC live-mode wrapper. Builds the full upstream chain:
@@ -28,10 +32,23 @@ export function RoicLiveView() {
   const fixedAsset = useKkaStore((s) => s.fixedAsset)
   const accPayables = useKkaStore((s) => s.accPayables)
   const changesInWorkingCapital = useKkaStore((s) => s.changesInWorkingCapital)
+  const investedCapital = useKkaStore((s) => s.investedCapital)
+  const cashBalance = useKkaStore((s) => s.cashBalance)
+  const cashAccount = useKkaStore((s) => s.cashAccount)
   const hasHydrated = useKkaStore((s) => s._hasHydrated)
+  const { t } = useT()
 
   const liveRows = useMemo(() => {
-    if (!hasHydrated || !home || !balanceSheet || !incomeStatement) return null
+    if (
+      !hasHydrated ||
+      !home ||
+      !balanceSheet ||
+      !incomeStatement ||
+      !fixedAsset ||
+      investedCapital === null
+    ) {
+      return null
+    }
 
     const years = computeHistoricalYears(
       home.tahunTransaksi,
@@ -50,12 +67,20 @@ export function RoicLiveView() {
       ? deriveComputedRows(FIXED_ASSET_MANIFEST.rows, faRows, years)
       : null
 
-    // 3. CFS from BS + IS + FA
+    // 3. CFS from BS + IS + FA (+ Cash Balance / Cash Account scope if available)
+    const cashBalanceResult = cashBalance
+      ? computeCashBalance({ scope: cashBalance, bsRows: balanceSheet.rows, cfsYears: years, bsYears })
+      : undefined
+    const cashAccountResult = cashAccount
+      ? computeCashAccount({ scope: cashAccount, bsRows: balanceSheet.rows, years })
+      : undefined
     const cfsLeaf = computeCashFlowLiveRows(
       balanceSheet.accounts,
       balanceSheet.rows, incomeStatement.rows, faRows, accPayables?.rows ?? null, years, bsYears,
       changesInWorkingCapital?.excludedCurrentAssets ?? [],
       changesInWorkingCapital?.excludedCurrentLiabilities ?? [],
+      cashBalanceResult,
+      cashAccountResult,
     )
     const cfsComp = deriveComputedRows(CASH_FLOW_STATEMENT_MANIFEST.rows, cfsLeaf, years)
     const allCfs = { ...cfsLeaf, ...cfsComp }
@@ -69,12 +94,31 @@ export function RoicLiveView() {
     const bsComp = deriveComputedRows(BALANCE_SHEET_MANIFEST.rows, balanceSheet.rows, years)
     const allBs = { ...bsComp, ...balanceSheet.rows }
 
-    // 6. ROIC
-    return computeRoicLiveRows(allFcf, allBs, years)
-  }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, accPayables, changesInWorkingCapital])
+    // 6. ROIC — scope-aware Invested Capital "Less" rows
+    const icValues = fixedAsset
+      ? computeInvestedCapital({
+          scope: investedCapital,
+          bsRows: balanceSheet.rows,
+          faRows: fixedAsset.rows,
+          years,
+        })
+      : undefined
+    return computeRoicLiveRows(allFcf, allBs, years, icValues)
+  }, [
+    hasHydrated,
+    home,
+    balanceSheet,
+    incomeStatement,
+    fixedAsset,
+    accPayables,
+    changesInWorkingCapital,
+    investedCapital,
+    cashBalance,
+    cashAccount,
+  ])
 
   if (!hasHydrated) return null
-  if (!home || !balanceSheet || !incomeStatement) {
+  if (!home || !balanceSheet || !incomeStatement || !fixedAsset || investedCapital === null) {
     return (
       <PageEmptyState section="ANALISIS"
         title="ROIC"
@@ -83,6 +127,7 @@ export function RoicLiveView() {
           { label: 'Balance Sheet', href: '/input/balance-sheet', filled: !!balanceSheet },
           { label: 'Income Statement', href: '/input/income-statement', filled: !!incomeStatement },
           { label: 'Fixed Asset', href: '/input/fixed-asset', filled: !!fixedAsset },
+          { label: t('investedCapital.gate.required.label'), href: '/input/invested-capital', filled: investedCapital !== null },
         ]}
       />
     )

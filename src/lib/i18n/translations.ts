@@ -434,6 +434,7 @@ const dict = {
   },
   'wc.section.currentAssets': { en: 'Current Assets', id: 'Aset Lancar' },
   'wc.section.currentLiabilities': { en: 'Current Liabilities', id: 'Kewajiban Lancar' },
+  'wc.col.account': { en: 'Account', id: 'Akun' },
   'wc.included.label': {
     en: 'Included in Operating Working Capital',
     id: 'Termasuk dalam Modal Kerja Operasional',

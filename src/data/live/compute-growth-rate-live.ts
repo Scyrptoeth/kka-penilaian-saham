@@ -7,12 +7,17 @@
  * For each Growth Rate year Y:
  *   row 6: Net FA End = FA row 69 at year Y
  *   row 7: Net CA End = BS row 16 at year Y
- *   row 8: Less: Net FA Beg = -(BS row 22 at year Y-1)
+ *   row 8: Less: Net FA Beg = -(FA row 69 at year Y-1) — Session 055 single source of truth
  *   row 9: Less: Net CA Beg = -(BS row 16 at year Y-1)
  *   row 10: Total Net Investment = SUM(6:9)
  *   row 12: Total IC BOY = ROIC row 12 at year Y-1
  *   row 14: Growth Rate = row 10 / row 12
  *   row 15: Average of growth rates
+ *
+ * Session 055 Task 10 (Q5-B refactor): Net FA End AND Net FA Beg both source
+ * from FA row 69 (TOTAL_NET_VALUE) for single source of truth. Previously Beg
+ * was sourced from BS row 22 (Fixed Assets — Net cross-ref) which required
+ * the BS cross-ref to exist; unifying to FA eliminates divergence potential.
  */
 
 import type { YearKeyedSeries } from '@/types/financial'
@@ -61,7 +66,7 @@ export function computeGrowthRateLive(
 
     netFaEnd.push(faRows[69]?.[year] ?? 0)
     netCaEnd.push(bsAllRows[16]?.[year] ?? 0)
-    netFaBeg.push(-(bsAllRows[22]?.[priorYear] ?? 0))
+    netFaBeg.push(-(faRows[69]?.[priorYear] ?? 0))  // Session 055: FA row 69 both years for single source of truth
     netCaBeg.push(-(bsAllRows[16]?.[priorYear] ?? 0))
     totalIcBoy.push(roicRows[12]?.[priorYear] ?? 0)
   }

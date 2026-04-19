@@ -96,21 +96,42 @@ function makeAp(): AccPayablesInputState {
   }
 }
 
+// Default Cash Balance scope = [8, 9] (both BS cash rows); Cash Account
+// split = row 9 → bank, row 8 → cashOnHand. Reproduces the legacy
+// hardcoded-BS-rows-8+9 behavior that pre-Session-055 tests relied on.
+function makeCashBalance() {
+  return { accounts: [8, 9] }
+}
+function makeCashAccount() {
+  return { bank: [9], cashOnHand: [8] }
+}
+
 function makeState(overrides: Partial<ExportableState>): ExportableState {
   return {
     home: makeHome(), balanceSheet: null, incomeStatement: null,
     fixedAsset: null, accPayables: null, wacc: null,
     discountRate: null, keyDrivers: null, dlom: null, dloc: null,
-    borrowingCapInput: null, aamAdjustments: {}, nilaiPengalihanDilaporkan: 0, interestBearingDebt: 0,
+    borrowingCapInput: null, aamAdjustments: {}, nilaiPengalihanDilaporkan: 0,
+    interestBearingDebt: null,
+    changesInWorkingCapital: null,
+    growthRevenue: null,
+    investedCapital: null,
+    cashBalance: makeCashBalance(),
+    cashAccount: makeCashAccount(),
     ...overrides,
-  }
+  } as ExportableState
 }
 
 describe('CashFlowStatementBuilder — metadata', () => {
   it('has correct sheetName + upstream slices', () => {
     expect(CashFlowStatementBuilder.sheetName).toBe('CASH FLOW STATEMENT')
     expect(CashFlowStatementBuilder.upstream).toEqual([
-      'home', 'balanceSheet', 'incomeStatement', 'changesInWorkingCapital'
+      'home',
+      'balanceSheet',
+      'incomeStatement',
+      'changesInWorkingCapital',
+      'cashBalance',
+      'cashAccount',
     ])
   })
 })
