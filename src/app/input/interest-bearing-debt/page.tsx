@@ -12,7 +12,7 @@ import { PageEmptyState } from '@/components/shared/PageEmptyState'
 import { formatIdr } from '@/components/financial/format'
 
 /**
- * /valuation/interest-bearing-debt — Session 041 Task 5 redesign.
+ * /input/interest-bearing-debt — Session 041 Task 5 redesign.
  *
  * Replaces the Session 038 single-numeric-input page with a Working-Capital-style
  * scope editor: list every Current + Non-Current Liability account from the
@@ -26,7 +26,7 @@ import { formatIdr } from '@/components/financial/format'
  *     excludedNonCurrentLiabilities: number[]
  *   } | null                                     // null = not yet confirmed
  *
- * UX contract: identical to /analysis/changes-in-working-capital — local
+ * UX contract: identical to /input/changes-in-working-capital — local
  * exclusion draft commits to store via "Confirm Scope" / "Update Scope".
  * Excluded accounts appear in a collapsible section below each section with
  * a restore icon to put them back. Trivia block (always-visible) preserved

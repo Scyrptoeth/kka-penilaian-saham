@@ -83,7 +83,7 @@ export function FcfLiveView() {
           { label: 'Balance Sheet', href: '/input/balance-sheet', filled: !!balanceSheet },
           { label: 'Income Statement', href: '/input/income-statement', filled: !!incomeStatement },
           { label: 'Fixed Asset', href: '/input/fixed-asset', filled: !!fixedAsset },
-          { label: t('wc.gate.required.label'), href: '/analysis/changes-in-working-capital', filled: changesInWorkingCapital !== null },
+          { label: t('wc.gate.required.label'), href: '/input/changes-in-working-capital', filled: changesInWorkingCapital !== null },
         ]}
       />
     )

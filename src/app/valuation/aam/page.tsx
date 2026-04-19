@@ -217,7 +217,7 @@ export default function AamPage() {
         inputs={[
           { label: 'HOME', href: '/', filled: !!home },
           { label: 'Balance Sheet', href: '/input/balance-sheet', filled: !!balanceSheet },
-          { label: t('nav.item.interestBearingDebt'), href: '/valuation/interest-bearing-debt', filled: interestBearingDebt !== null },
+          { label: t('nav.item.interestBearingDebt'), href: '/input/interest-bearing-debt', filled: interestBearingDebt !== null },
         ]}
       />
     )
@@ -360,7 +360,7 @@ export default function AamPage() {
       >
         {t('aam.tleNote.prefix')}{' '}
         <Link
-          href="/valuation/interest-bearing-debt"
+          href="/input/interest-bearing-debt"
           aria-label={t('aam.tleNote.linkAria')}
           className="font-semibold text-accent underline decoration-accent/40 underline-offset-2 transition-colors hover:decoration-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >

@@ -37,7 +37,7 @@ export const BORROWING_PERCENT_DEFAULT = 0.7
 /**
  * Compute the user-curated Interest Bearing Debt total at a given year by
  * iterating BS Current + Non-Current Liabilities accounts and skipping
- * those the user marked NON-IBD on `/valuation/interest-bearing-debt`.
+ * those the user marked NON-IBD on `/input/interest-bearing-debt`.
  *
  * Returns 0 when:
  *   - `interestBearingDebt` slice is null (user has not confirmed scope)
@@ -215,7 +215,7 @@ export interface BuildAamParams {
   aamAdjustments: Record<number, number>
   /**
    * Session 041 Task 5: user-curated Interest Bearing Debt scope.
-   * Sourced from `/valuation/interest-bearing-debt` page (mirror of WC
+   * Sourced from `/input/interest-bearing-debt` page (mirror of WC
    * scope page UX). The numeric IBD total is derived via
    * `computeInterestBearingDebt(state)`; downstream builders accept the
    * derived number as a positive amount and reconcile sign at the boundary
@@ -280,7 +280,7 @@ export function buildAamInput(params: BuildAamParams): AamInput {
   // Session 041 Task 5: CL/NCL split is driven by the user-curated IBD
   // exclusion set (LESSON-074 isIbdAccount classifier removed). An account
   // appearing in the exclusion set means the user marked it NOT IBD on the
-  // dedicated /valuation/interest-bearing-debt page.
+  // dedicated /input/interest-bearing-debt page.
   let totalCurrentAssets = 0
   let otherNonCurrentAssets = 0
   let intangibleAssets = 0

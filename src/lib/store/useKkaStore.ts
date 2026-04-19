@@ -163,7 +163,7 @@ interface KkaState {
    *
    * `null` = user has not yet confirmed scope → AAM / DCF / EEM / CFI /
    * Simulasi / Dashboard show PageEmptyState until user visits
-   * `/valuation/interest-bearing-debt` and clicks "Confirm Scope" (which
+   * `/input/interest-bearing-debt` and clicks "Confirm Scope" (which
    * transitions null → empty-exclusion object).
    */
   interestBearingDebt: {
@@ -176,7 +176,7 @@ interface KkaState {
    * marked as "not part of Operating Working Capital" (e.g. Cash, short-term
    * investments, IBD). `null` = user has not yet confirmed scope → consumer
    * pages (CFS / FCF / FR / DCF / EEM / CFI / Simulasi / Dashboard / Proy CFS)
-   * show PageEmptyState until user visits `/analysis/changes-in-working-capital`
+   * show PageEmptyState until user visits `/input/changes-in-working-capital`
    * and clicks "Konfirmasi Cakupan" (sets an empty-exclusion object).
    *
    * The live CFS compute (`computeCashFlowLiveRows`) now iterates
@@ -613,7 +613,7 @@ export function migratePersistedState(
   }
 
   // v17→v18: Session 039 — add root-level `changesInWorkingCapital` slice.
-  // Required input gate: user must visit /analysis/changes-in-working-capital
+  // Required input gate: user must visit /input/changes-in-working-capital
   // and click "Konfirmasi Cakupan" to transition null → empty-exclusion object
   // before CFS/FCF/FR/DCF/EEM/CFI/Simulasi/Dashboard/Proy CFS unlock.
   // Idempotent: if the field already exists, leave it alone.

@@ -162,8 +162,8 @@ export default function SimulasiPotensiPage() {
         inputs={[
           { label: 'HOME', href: '/', filled: !!home },
           { label: 'Balance Sheet', href: '/input/balance-sheet', filled: !!balanceSheet },
-          { label: t('nav.item.interestBearingDebt'), href: '/valuation/interest-bearing-debt', filled: interestBearingDebt !== null },
-          { label: t('wc.gate.required.label'), href: '/analysis/changes-in-working-capital', filled: changesInWorkingCapital !== null },
+          { label: t('nav.item.interestBearingDebt'), href: '/input/interest-bearing-debt', filled: interestBearingDebt !== null },
+          { label: t('wc.gate.required.label'), href: '/input/changes-in-working-capital', filled: changesInWorkingCapital !== null },
         ]}
       />
     )

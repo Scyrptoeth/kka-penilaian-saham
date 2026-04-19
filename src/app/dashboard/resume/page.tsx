@@ -250,17 +250,17 @@ export default function ResumePage() {
           },
           {
             label: t('nav.item.discountRate'),
-            href: '/valuation/discount-rate',
+            href: '/input/discount-rate',
             filled: !!discountRateState,
           },
           {
             label: t('nav.item.interestBearingDebt'),
-            href: '/valuation/interest-bearing-debt',
+            href: '/input/interest-bearing-debt',
             filled: interestBearingDebt !== null,
           },
           {
             label: t('wc.gate.required.label'),
-            href: '/analysis/changes-in-working-capital',
+            href: '/input/changes-in-working-capital',
             filled: changesInWorkingCapital !== null,
           },
         ]}

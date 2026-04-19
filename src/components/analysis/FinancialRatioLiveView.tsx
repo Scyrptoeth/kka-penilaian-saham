@@ -101,7 +101,7 @@ export function FinancialRatioLiveView() {
           { label: 'HOME', href: '/', filled: !!home },
           { label: 'Balance Sheet', href: '/input/balance-sheet', filled: !!balanceSheet },
           { label: 'Income Statement', href: '/input/income-statement', filled: !!incomeStatement },
-          { label: t('wc.gate.required.label'), href: '/analysis/changes-in-working-capital', filled: changesInWorkingCapital !== null },
+          { label: t('wc.gate.required.label'), href: '/input/changes-in-working-capital', filled: changesInWorkingCapital !== null },
         ]}
       />
     )

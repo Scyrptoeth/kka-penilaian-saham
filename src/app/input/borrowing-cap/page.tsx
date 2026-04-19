@@ -73,7 +73,7 @@ function BorrowingCapEditor() {
         inputs={[
           { label: 'HOME', href: '/', filled: !!home },
           { label: 'Balance Sheet', href: '/input/balance-sheet', filled: !!balanceSheet },
-          { label: 'Discount Rate', href: '/valuation/discount-rate', filled: !!discountRateState },
+          { label: 'Discount Rate', href: '/input/discount-rate', filled: !!discountRateState },
         ]}
       />
     )

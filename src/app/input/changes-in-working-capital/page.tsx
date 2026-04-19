@@ -11,7 +11,7 @@ import { PageEmptyState } from '@/components/shared/PageEmptyState'
 import { formatIdr } from '@/components/financial/format'
 
 /**
- * /analysis/changes-in-working-capital — Session 039
+ * /input/changes-in-working-capital — Session 039
  *
  * Required gate for CFS / FCF / FR / DCF / EEM / CFI / Simulasi /
  * Dashboard / Proy CFS. Lets the user refine the scope of Operating

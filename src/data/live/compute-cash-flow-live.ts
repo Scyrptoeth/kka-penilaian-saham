@@ -20,7 +20,7 @@
  * `bsAccounts.filter(a => a.section === 'current_assets')` minus accounts
  * whose excelRow appears in `excludedCurrentAssets` (same for CL). Users
  * control exactly which accounts count as Operating Working Capital via
- * the `/analysis/changes-in-working-capital` page.
+ * the `/input/changes-in-working-capital` page.
  *
  * Design priority: correctness of generalized calculation across hundreds
  * of different company structures > fixture-value parity with single
