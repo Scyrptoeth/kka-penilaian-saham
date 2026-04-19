@@ -68,3 +68,40 @@ describe('computeGrowthRevenueLiveRows matches GR fixture base values', () => {
     })
   }
 })
+
+// Session 054 — industry benchmark rows 40 + 41 flow from GrowthRevenueState
+// (user-editable). Rows 8 + 9 remain derived from IS.
+describe('Session 054 — industry benchmark rows (40, 41) from store', () => {
+  const YEARS = [2018, 2019, 2020, 2021]
+  const isLeaves = loadIsLeaves(YEARS)
+
+  it('writes row 40 from growthRevenue.industryRevenue', () => {
+    const rows = computeGrowthRevenueLiveRows(isLeaves, YEARS, {
+      industryRevenue: { 2018: 1_000, 2019: 1_100, 2020: 1_300, 2021: 1_500 },
+      industryNetProfit: {},
+    })
+    expect(rows[40]).toEqual({ 2018: 1_000, 2019: 1_100, 2020: 1_300, 2021: 1_500 })
+  })
+
+  it('writes row 41 from growthRevenue.industryNetProfit', () => {
+    const rows = computeGrowthRevenueLiveRows(isLeaves, YEARS, {
+      industryRevenue: {},
+      industryNetProfit: { 2018: 100, 2019: 110, 2020: 130, 2021: 150 },
+    })
+    expect(rows[41]).toEqual({ 2018: 100, 2019: 110, 2020: 130, 2021: 150 })
+  })
+
+  it('omits rows 40 + 41 when growthRevenue is null or undefined (backward compat)', () => {
+    const rows = computeGrowthRevenueLiveRows(isLeaves, YEARS)
+    expect(rows[40]).toBeUndefined()
+    expect(rows[41]).toBeUndefined()
+  })
+
+  it('respects per-year partial entries (blank years filled with 0)', () => {
+    const rows = computeGrowthRevenueLiveRows(isLeaves, YEARS, {
+      industryRevenue: { 2020: 1_500 },
+      industryNetProfit: {},
+    })
+    expect(rows[40]).toEqual({ 2018: 0, 2019: 0, 2020: 1_500, 2021: 0 })
+  })
+})

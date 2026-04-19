@@ -19,6 +19,7 @@ export function GrowthRevenueLiveView() {
   const { t } = useT()
   const home = useKkaStore((s) => s.home)
   const incomeStatement = useKkaStore((s) => s.incomeStatement)
+  const growthRevenue = useKkaStore((s) => s.growthRevenue)
   const hasHydrated = useKkaStore((s) => s._hasHydrated)
 
   const liveRows = useMemo(() => {
@@ -27,8 +28,8 @@ export function GrowthRevenueLiveView() {
       home.tahunTransaksi,
       GROWTH_REVENUE_MANIFEST.historicalYearCount ?? 4,
     )
-    return computeGrowthRevenueLiveRows(incomeStatement.rows, years)
-  }, [hasHydrated, home, incomeStatement])
+    return computeGrowthRevenueLiveRows(incomeStatement.rows, years, growthRevenue)
+  }, [hasHydrated, home, incomeStatement, growthRevenue])
 
   if (!hasHydrated) return null
   if (!home || !incomeStatement) {

@@ -85,6 +85,12 @@ export interface ExportableState {
     excludedCurrentAssets: number[]
     excludedCurrentLiabilities: number[]
   } | null
+  /**
+   * Session 054 — Growth Revenue industry benchmark rows (manifest 40, 41).
+   * Derived rows 8, 9 come from incomeStatement via compute; these are
+   * user-editable comparison data. `null` = user has not visited editor.
+   */
+  growthRevenue: import('@/lib/store/useKkaStore').GrowthRevenueState | null
 }
 
 /**

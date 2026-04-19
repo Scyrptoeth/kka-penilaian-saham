@@ -9,20 +9,28 @@
  * unchanged.
  *
  * GR layout:
- *   row 8  Penjualan (Revenue)      ← IS row 6  (leaf)
- *   row 9  Laba Bersih (NPAT)        ← IS row 35 (computed via IS manifest)
- *   rows 40, 41 industry benchmarks  ← not provided (stay blank)
+ *   row 8  Penjualan (Revenue)      ← IS row 6  (derived, read-only)
+ *   row 9  Laba Bersih (NPAT)        ← IS row 35 (derived, read-only)
+ *   row 40 Penjualan (Industri)      ← `growthRevenue.industryRevenue` (user input)
+ *   row 41 Pendapatan Bersih (Industri) ← `growthRevenue.industryNetProfit` (user input)
  *
- * Row 35 is a computed subtotal in the IS manifest, so we run
- * `deriveComputedRows` once over the IS manifest before projecting,
- * the same trick Task 4 uses for NOPLAT's PBT dependency.
+ * Session 054: rows 40 + 41 flow from the new `growthRevenue` store slice.
+ * When the store slice is null / undefined (user hasn't visited the editor),
+ * rows 40 + 41 are OMITTED from the output so the SheetPage renders them
+ * as blank with yoyGrowth → "—" via IFERROR.
  */
 
 import type { YearKeyedSeries } from '@/types/financial'
 
+export interface GrowthRevenueInput {
+  industryRevenue: YearKeyedSeries
+  industryNetProfit: YearKeyedSeries
+}
+
 export function computeGrowthRevenueLiveRows(
   isRows: Record<number, YearKeyedSeries>,
   years: readonly number[],
+  growthRevenue?: GrowthRevenueInput | null,
 ): Record<number, YearKeyedSeries> {
   // IS store now contains pre-computed sentinel values — read directly.
   const readIs = (row: number, year: number): number =>
@@ -35,8 +43,13 @@ export function computeGrowthRevenueLiveRows(
     out[row] = series
   }
 
-  write(8, (y) => readIs(6, y)) // Penjualan / Revenue
-  write(9, (y) => readIs(35, y)) // Laba Bersih / Net Profit After Tax
+  write(8, (y) => readIs(6, y)) // Penjualan / Revenue (from IS)
+  write(9, (y) => readIs(35, y)) // Laba Bersih / NPAT (from IS)
+
+  if (growthRevenue) {
+    write(40, (y) => growthRevenue.industryRevenue[y] ?? 0)
+    write(41, (y) => growthRevenue.industryNetProfit[y] ?? 0)
+  }
 
   return out
 }

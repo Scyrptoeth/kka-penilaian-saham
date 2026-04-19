@@ -22,6 +22,7 @@ export type UpstreamSlice =
   | 'aamAdjustments'
   | 'interestBearingDebt'
   | 'changesInWorkingCapital'
+  | 'growthRevenue'
 
 /**
  * One SheetBuilder per exported Excel sheet. build() is only called when
