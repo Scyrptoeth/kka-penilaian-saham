@@ -681,6 +681,9 @@ untuk 3+ sesi ke depan:
 - LESSON-150 (Cross-sheet scope editor triple-wiring pattern — view + compute-helper + builder must be updated atomically for new user-curated scope slices; Phase C fixture reconstructs legacy values via curated scope)
 - LESSON-151 (Parallel agent delegation scales for independent tracks with disjoint file ownership — Session 055 ran ~11 parallel agent tasks without conflicts)
 
+### Session 056 (Financing scope editor — Cluster C Cash Flow FINANCING section)
+- LESSON-153 (When a scope editor replaces a sentinel-level read with individual-account picks, Phase C fixture MUST pick rows that are actually extracted into the template fixture — NOT theoretical extended-catalog rows — to preserve numeric parity)
+
 LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054, 074, 087, 109, 113, 117, 120, 121, 125, 127, 128, 130, 131, 134, 136, 138, 140, 142, 145, 152 **TIDAK** di-promote — workflow/session-specific
 insights yang general ke project lain tapi terlalu luas atau terlalu
 session-specific untuk section 8 (yang fokus KKA-specific gotchas).
@@ -4596,3 +4599,32 @@ For documentation + media that should be tracked (e.g. session prompt MDs that d
 For temp/junk files (`~$*.xlsx`, `.DS_Store`), add to `.gitignore` aggressively — preventing the problem at the root.
 
 **Proven at**: session-055 (2026-04-19) — temp file cleanup required a second commit to remove `~$kka-penilaian-saham.xlsx`.
+
+
+---
+
+## Session 056 — Financing Scope Editor (Cluster C)
+
+### LESSON-153: Phase C fixture reconstruction uses extracted rows, not theoretical extended-catalog rows
+
+**Kategori**: Testing | Export | Anti-pattern
+**Sesi**: session-056
+**Tanggal**: 2026-04-19
+
+**Konteks**: Replacing hardcoded section-sentinel reads (e.g. `isLeaves[27]` for interest_expense aggregate) with user-curated scope-driven account picks. Phase C fixture must reconstruct legacy behavior for numeric parity.
+
+**Apa yang terjadi**: Session 056 replaced `isLeaves[27]` hardcoded read in CFS Financing row 24 with `financingResult.interestPayment` from `computeFinancing`. Natural fixture choice: pick the actual `interest_expense` accounts (rows 520+ per IS catalog Session 041). But PT Raja Voltama template fixture at `__tests__/fixtures/income-statement.json` only extracts rows `[1-3, 5-9, 11-13, 15-16, 18-19, 21-23, 25-28, 30, 32-33, 35-36]` — NO rows 500-539. Those extended-catalog rows exist only when users add accounts in DynamicIsEditor.
+
+Fixture reconstruction `financing.interestPayment = [520]` would read `isLeaves[520] → undefined → 0` → CFS row 24 = 0 → Phase C parity BREAKS (legacy value was non-zero sentinel read).
+
+**Root cause / insight**: In the prototipe template, the sentinel rows 26/27 store the aggregate value directly. Individual interest_expense accounts (520+) are NOT populated in the template fixture — they're synthesized at runtime by DynamicIsEditor when users add accounts. Phase C tests against the raw template, so it sees sentinels but NOT extended rows.
+
+**Cara menerapkan di masa depan**: When reconstructing legacy behavior via user-curated scope:
+1. **Grep the extracted fixture** (`__tests__/fixtures/*.json`) for which rows are actually populated.
+2. Pick THOSE rows for fixture reconstruction — even if they look like "legacy sentinel rows" rather than "new user-scope rows".
+3. In production, users interact with extended rows; the mirror-to-sentinel logic in DynamicXxxEditor ensures both yield equivalent numerics.
+4. Document the fixture-pragmatic choice with an inline comment: `// PT Raja fixture: uses sentinel rows 26/27 because extended accounts 500/520 are not in the template extract; numerics equivalent via DynamicIsEditor mirror.`
+
+**Workflow gate**: Before declaring Phase C GREEN, verify your scope fixture actually reads non-zero values. Quick check: grep `isLeaves[ROW]` or equivalent in the fixture JSON — if empty, the row isn't extracted.
+
+**Proven at**: session-056 (2026-04-19) — PT Raja `financing.interestPayment = [27]` chosen over `[520]` because row 27 IS extracted but 520 is NOT. Phase C 5/5 GREEN preserved.
