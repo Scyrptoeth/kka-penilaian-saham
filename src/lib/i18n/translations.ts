@@ -19,6 +19,10 @@ const dict = {
   'nav.group.projection': { en: 'Projection', id: 'Proyeksi' },
   'nav.group.valuation': { en: 'Valuation', id: 'Penilaian' },
   'nav.group.summary': { en: 'Summary', id: 'Ringkasan' },
+  // Session 054 — INPUT DATA sub-headers
+  'nav.subgroup.financialStatements': { en: 'Financial Statements', id: 'Laporan Keuangan' },
+  'nav.subgroup.driversScope': { en: 'Drivers & Scope', id: 'Drivers & Cakupan' },
+  'nav.subgroup.valuationAssumptions': { en: 'Valuation Assumptions', id: 'Asumsi Penilaian' },
   'nav.item.home': { en: 'HOME', id: 'HOME' },
   'nav.item.fixedAsset': { en: 'Fixed Asset', id: 'Aset Tetap' },
   'nav.item.balanceSheet': { en: 'Balance Sheet', id: 'Neraca' },

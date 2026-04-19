@@ -4,6 +4,12 @@
  *
  * Labels are translation keys (e.g. 'nav.item.home') — resolve at render
  * time via t() in SidebarNav (client component).
+ *
+ * Session 054: INPUT DATA group gained 8 items from ANALYSIS + VALUATION
+ * (Growth Revenue, CWC, DLOM, DLOC (PFC), WACC, Discount Rate, Borrowing
+ * Cap, Interest Bearing Debt). The group now splits visually into three
+ * sub-headers via `subGroup` — render logic groups consecutive items with
+ * the same `subGroup` under one sub-header.
  */
 
 export interface NavItem {
@@ -12,6 +18,13 @@ export interface NavItem {
   href: string
   /** Optional: marks placeholder routes that are not yet implemented. */
   wip?: boolean
+  /**
+   * Session 054 — optional visual sub-header key. Consecutive items
+   * sharing the same `subGroup` value render beneath one sub-header
+   * (using the i18n translation of the key). Items without `subGroup`
+   * render flat at the top of the group.
+   */
+  subGroup?: string
 }
 
 export interface NavGroup {
@@ -28,11 +41,24 @@ export const NAV_TREE: NavGroup[] = [
   {
     label: 'nav.group.inputData',
     items: [
-      { label: 'nav.item.fixedAsset', href: '/input/fixed-asset' },
-      { label: 'nav.item.balanceSheet', href: '/input/balance-sheet' },
-      { label: 'nav.item.incomeStatement', href: '/input/income-statement' },
-      { label: 'nav.item.keyDrivers', href: '/input/key-drivers' },
-      { label: 'nav.item.accPayables', href: '/input/acc-payables' },
+      // Sub-group 1: Laporan Keuangan (historical source data)
+      { label: 'nav.item.accPayables', href: '/input/acc-payables', subGroup: 'nav.subgroup.financialStatements' },
+      { label: 'nav.item.balanceSheet', href: '/input/balance-sheet', subGroup: 'nav.subgroup.financialStatements' },
+      { label: 'nav.item.fixedAsset', href: '/input/fixed-asset', subGroup: 'nav.subgroup.financialStatements' },
+      { label: 'nav.item.incomeStatement', href: '/input/income-statement', subGroup: 'nav.subgroup.financialStatements' },
+
+      // Sub-group 2: Drivers & Scope (projection drivers + account-scope editors)
+      { label: 'nav.item.changesInWorkingCapital', href: '/input/changes-in-working-capital', subGroup: 'nav.subgroup.driversScope' },
+      { label: 'nav.item.growthRevenue', href: '/input/growth-revenue', subGroup: 'nav.subgroup.driversScope' },
+      { label: 'nav.item.keyDrivers', href: '/input/key-drivers', subGroup: 'nav.subgroup.driversScope' },
+
+      // Sub-group 3: Asumsi Penilaian (valuation assumptions)
+      { label: 'nav.item.borrowingCap', href: '/input/borrowing-cap', subGroup: 'nav.subgroup.valuationAssumptions' },
+      { label: 'nav.item.dlom', href: '/input/dlom', subGroup: 'nav.subgroup.valuationAssumptions' },
+      { label: 'nav.item.dlocPfc', href: '/input/dloc-pfc', subGroup: 'nav.subgroup.valuationAssumptions' },
+      { label: 'nav.item.discountRate', href: '/input/discount-rate', subGroup: 'nav.subgroup.valuationAssumptions' },
+      { label: 'nav.item.interestBearingDebt', href: '/input/interest-bearing-debt', subGroup: 'nav.subgroup.valuationAssumptions' },
+      { label: 'nav.item.wacc', href: '/input/wacc', subGroup: 'nav.subgroup.valuationAssumptions' },
     ],
   },
   // Historis section hidden — users work directly with INPUT DATA + ANALISIS.
@@ -43,10 +69,8 @@ export const NAV_TREE: NavGroup[] = [
       { label: 'nav.item.financialRatio', href: '/analysis/financial-ratio' },
       { label: 'nav.item.fcf', href: '/analysis/fcf' },
       { label: 'nav.item.noplat', href: '/analysis/noplat' },
-      { label: 'nav.item.growthRevenue', href: '/analysis/growth-revenue' },
       { label: 'nav.item.roic', href: '/analysis/roic' },
       { label: 'nav.item.growthRate', href: '/analysis/growth-rate' },
-      { label: 'nav.item.changesInWorkingCapital', href: '/analysis/changes-in-working-capital' },
       { label: 'nav.item.cashFlowStatement', href: '/analysis/cash-flow-statement' },
     ],
   },
@@ -63,12 +87,6 @@ export const NAV_TREE: NavGroup[] = [
   {
     label: 'nav.group.valuation',
     items: [
-      { label: 'nav.item.dlom', href: '/valuation/dlom' },
-      { label: 'nav.item.dlocPfc', href: '/valuation/dloc-pfc' },
-      { label: 'nav.item.wacc', href: '/valuation/wacc' },
-      { label: 'nav.item.discountRate', href: '/valuation/discount-rate' },
-      { label: 'nav.item.borrowingCap', href: '/valuation/borrowing-cap' },
-      { label: 'nav.item.interestBearingDebt', href: '/valuation/interest-bearing-debt' },
       { label: 'nav.item.dcf', href: '/valuation/dcf' },
       { label: 'nav.item.aam', href: '/valuation/aam' },
       { label: 'nav.item.eem', href: '/valuation/eem' },

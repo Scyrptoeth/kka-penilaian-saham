@@ -23,15 +23,32 @@ export function SidebarNav({ onNavigate }: SidebarNavProps) {
             {t(group.label as TranslationKey)}
           </p>
           <ul>
-            {group.items.map((item) => (
-              <NavLink
-                key={item.href}
-                item={item}
-                active={isActive(pathname, item.href)}
-                onNavigate={onNavigate}
-                t={t}
-              />
-            ))}
+            {group.items.map((item, idx) => {
+              const prev = idx > 0 ? group.items[idx - 1] : null
+              const showSubHeader =
+                !!item.subGroup && item.subGroup !== prev?.subGroup
+              return (
+                <div key={item.href}>
+                  {showSubHeader && (
+                    <li
+                      aria-hidden
+                      className={cn(
+                        'px-3 pb-0.5 pt-2 text-[9px] font-medium uppercase tracking-[0.12em] text-ink-muted/70',
+                        idx === 0 && 'pt-0.5',
+                      )}
+                    >
+                      {t(item.subGroup as TranslationKey)}
+                    </li>
+                  )}
+                  <NavLink
+                    item={item}
+                    active={isActive(pathname, item.href)}
+                    onNavigate={onNavigate}
+                    t={t}
+                  />
+                </div>
+              )
+            })}
           </ul>
         </div>
       ))}

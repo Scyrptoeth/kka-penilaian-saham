@@ -171,23 +171,37 @@ export function buildExportFilename(namaPerusahaan: string): string {
 
 /**
  * Sheets that map to a website nav item and MUST be visible in export.
- * Mirrors `src/components/layout/nav-tree.ts` (29 items as of Session 024).
- * Exported so Phase C verification and external audits share the same list.
+ * Mirrors `src/components/layout/nav-tree.ts` (29 sheets — RESUME +
+ * scope-editor pages like CWC / IBD have no dedicated Excel sheet).
+ *
+ * Session 054: sidebar taxonomy reshuffled (Growth Revenue + CWC + DLOM
+ * + DLOC + WACC + DR + BC + IBD now sit under INPUT DATA sub-headers).
+ * Sheet set unchanged — visibility filter uses Excel sheet names, not
+ * URLs, so nav reorganization is cosmetic at the export layer.
+ *
+ * Exported so Phase C verification and external audits share this list.
  */
 export const WEBSITE_NAV_SHEETS: readonly string[] = [
   // Input Master
   'HOME',
-  // Input Data
-  'FIXED ASSET',
-  'BALANCE SHEET',
-  'INCOME STATEMENT',
-  'KEY DRIVERS',
+  // Input Data — Financial Statements
   'ACC PAYABLES',
+  'BALANCE SHEET',
+  'FIXED ASSET',
+  'INCOME STATEMENT',
+  // Input Data — Drivers & Scope
+  'GROWTH REVENUE',
+  'KEY DRIVERS',
+  // Input Data — Valuation Assumptions
+  'BORROWING CAP',
+  'DLOM',
+  'DLOC(PFC)',
+  'DISCOUNT RATE',
+  'WACC',
   // Analisis
   'FINANCIAL RATIO',
   'FCF',
   'NOPLAT',
-  'GROWTH REVENUE',
   'ROIC',
   'GROWTH RATE',
   'CASH FLOW STATEMENT',
@@ -198,11 +212,6 @@ export const WEBSITE_NAV_SHEETS: readonly string[] = [
   'PROY NOPLAT',
   'PROY CASH FLOW STATEMENT',
   // Penilaian
-  'DLOM',
-  'DLOC(PFC)',
-  'WACC',
-  'DISCOUNT RATE',
-  'BORROWING CAP',
   'DCF',
   'AAM',
   'EEM',
