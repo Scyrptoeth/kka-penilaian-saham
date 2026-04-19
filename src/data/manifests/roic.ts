@@ -1,7 +1,7 @@
 /**
  * ROIC manifest — Return on Invested Capital schedule.
  *
- *   Total Invested Capital = Total Asset − Non-Op FA − Excess Cash − Marketable Sec
+ *   Total Invested Capital = Total Asset − Other Non-Op Assets − Excess Cash − Marketable Sec
  *   ROIC = NOPLAT / Total Invested Capital (Beginning of Year)
  *
  * Columns: B(2019) C(2020) D(2021) — 3 historical years.
@@ -40,9 +40,9 @@ export const ROIC_MANIFEST: SheetManifest = {
     },
     {
       excelRow: 9,
-      label: 'Less Non Operating Fixed Assets',
+      label: 'Less Other Non-Operating Assets',
       indent: 1,
-      formula: { values: 'Idle/non-operating fixed assets — workbook default 0' },
+      formula: { values: 'Other non-operating assets — user-curated scope via /input/invested-capital' },
     },
     {
       excelRow: 10,

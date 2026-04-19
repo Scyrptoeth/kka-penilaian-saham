@@ -23,6 +23,9 @@ export type UpstreamSlice =
   | 'interestBearingDebt'
   | 'changesInWorkingCapital'
   | 'growthRevenue'
+  | 'investedCapital'
+  | 'cashBalance'
+  | 'cashAccount'
 
 /**
  * One SheetBuilder per exported Excel sheet. build() is only called when

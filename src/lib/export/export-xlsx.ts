@@ -91,6 +91,21 @@ export interface ExportableState {
    * user-editable comparison data. `null` = user has not visited editor.
    */
   growthRevenue: import('@/lib/store/useKkaStore').GrowthRevenueState | null
+  /**
+   * Session 055 — Invested Capital scope (ROIC "Less" rows). 3 disjoint
+   * account lists (BS + FA sources). `null` = user has not confirmed.
+   */
+  investedCapital: import('@/lib/store/useKkaStore').InvestedCapitalState | null
+  /**
+   * Session 055 — Cash Balance scope (CFS Cash Beginning / Ending). 1
+   * unified list + optional pre-history Beginning.
+   */
+  cashBalance: import('@/lib/store/useKkaStore').CashBalanceState | null
+  /**
+   * Session 055 — Cash Account split (CFS Bank / OnHand rows). 2 disjoint
+   * lists with mutual exclusion.
+   */
+  cashAccount: import('@/lib/store/useKkaStore').CashAccountState | null
 }
 
 /**

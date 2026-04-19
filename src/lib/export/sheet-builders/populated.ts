@@ -24,6 +24,15 @@ export function isPopulated(
     if (key === 'changesInWorkingCapital') {
       return state.changesInWorkingCapital !== null
     }
+    if (key === 'investedCapital') {
+      return state.investedCapital !== null
+    }
+    if (key === 'cashBalance') {
+      return state.cashBalance !== null
+    }
+    if (key === 'cashAccount') {
+      return state.cashAccount !== null
+    }
     return state[key] !== null
   })
 }

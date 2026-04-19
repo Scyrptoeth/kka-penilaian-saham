@@ -524,6 +524,9 @@ describe('migratePersistedState — v13 → v14 (faAdjustment → aamAdjustments
       changesInWorkingCapital: null,
       incomeStatement: null,
       growthRevenue: null,
+      investedCapital: null,
+      cashBalance: null,
+      cashAccount: null,
       futureSlice: {},
     }
     const migrated = migratePersistedState(v19State, 19)
@@ -746,5 +749,42 @@ describe('migratePersistedState — v13 → v14 (faAdjustment → aamAdjustments
     const migrated = migratePersistedState(v20State, 20) as Record<string, unknown>
     const bs = migrated.balanceSheet as Record<string, unknown>
     expect(bs.equityProjectionOverrides).toEqual(existing)
+  })
+
+  // Session 055 — v22 → v23: add 3 root-level scope slices (investedCapital,
+  // cashBalance, cashAccount) all null. Required-gates for ROIC + GrowthRate
+  // + CFS.
+  it('v22 → v23 initializes investedCapital, cashBalance, cashAccount all null', () => {
+    const v22State = { home: null, language: 'en', growthRevenue: null }
+    const migrated = migratePersistedState(v22State, 22) as Record<string, unknown>
+    expect(migrated.investedCapital).toBeNull()
+    expect(migrated.cashBalance).toBeNull()
+    expect(migrated.cashAccount).toBeNull()
+  })
+
+  it('v22 → v23 preserves existing scope slices if already present (idempotent)', () => {
+    const existing = {
+      investedCapital: {
+        otherNonOperatingAssets: [{ source: 'bs', excelRow: 15 }],
+        excessCash: [],
+        marketableSecurities: [],
+      },
+      cashBalance: { accounts: [8, 9], preHistoryBeginning: 1000 },
+      cashAccount: { bank: [9], cashOnHand: [8] },
+    }
+    const v22State = { home: null, language: 'en', ...existing }
+    const migrated = migratePersistedState(v22State, 22) as Record<string, unknown>
+    expect(migrated.investedCapital).toEqual(existing.investedCapital)
+    expect(migrated.cashBalance).toEqual(existing.cashBalance)
+    expect(migrated.cashAccount).toEqual(existing.cashAccount)
+  })
+
+  it('chain migration from v21 reaches v23 with all Session 055 slices initialized', () => {
+    const v21State = { home: null, language: 'en' }
+    const migrated = migratePersistedState(v21State, 21) as Record<string, unknown>
+    expect(migrated.growthRevenue).toBeNull()
+    expect(migrated.investedCapital).toBeNull()
+    expect(migrated.cashBalance).toBeNull()
+    expect(migrated.cashAccount).toBeNull()
   })
 })

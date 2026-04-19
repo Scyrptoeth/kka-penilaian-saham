@@ -1,43 +1,55 @@
-# Session 051 — Plan
+# Session 055 — Plan
 
-Branch: `feat/session-051-strict-growth-equity-capex-seed`
+**Branch**: `feat/session-055-invested-capital-cash-scope-nfa-cwc`
+**Strategy**: TDD, commit per task, parallel agents where independent
 
-## Tasks (10)
+## Tasks (18 tracked via TaskList)
 
-### Task 1: Foundation — design.md + plan.md + feature branch
-Write design.md (Session 051 scope + chosen approach) + plan.md (this file) +
-create feature branch. Verify `git status` clean on new branch.
+1. **Rename global**: ROIC "Non Operating Fixed Assets" → "Other Non-Operating Assets" — manifest label + fixture JSONs + i18n scaffolding
+2. **Store v22→v23**: 3 slice types + setters + migration + partialize + ExportableState
+3. **computeInvestedCapital**: pure helper BS+FA sourced
+4. **computeCashBalance**: pure helper 1-list + year-shift
+5. **computeCashAccount**: pure helper bank+cashOnHand
+6. **IC page**: `/input/invested-capital` with 3-section dropdown-add
+7. **CashBalance page**: `/input/cash-balance` single-section + pre-history
+8. **CashAccount page**: `/input/cash-account` 2-section mutex
+9. **ROIC rewire**: compute + gate + builder
+10. **Growth Rate NFA fix**: compute refactor both rows FA + LESSON-057 merge + gate
+11. **CWC multi-year**: FinancialTable matrix + Avg
+12. **CFS rewire**: cash rows scope-aware + gate
+13. **Nav tree**: 3 entries alphabetical Drivers & Scope
+14. **i18n bulk**: ~55 keys bilingual EN/ID
+15. **Phase C fixture**: extend `pt-raja-voltama-state.ts`
+16. **Verification gate**: full suite + build + typecheck + lint + audit + Phase C
+17. **Merge + deploy**: main + Vercel live
+18. **Wrap-up**: history + lessons + progress.md
 
-### Task 2: `averageYoYStrict` helper + TDD
-File: `src/lib/calculations/derivation-helpers.ts` — new helper.
-Tests: `__tests__/lib/calculations/average-yoy-strict.test.ts` — 8 cases.
+## Dependencies
 
-### Task 3: Store v20→v21 equityProjectionOverrides
-File: `src/lib/store/useKkaStore.ts` — add slice field + setter.
-Migration v20 → v21 initializes `{}`. TDD migration + setter.
+- Task 2 blocks 3/4/5/6/7/8/9/10/11/12 (store types needed)
+- Task 3/4/5 blocks 9/10/12 (compute needed for consumers)
+- Task 14 parallel-friendly with most (just translations.ts append)
+- Task 16 blocks 17
+- Task 17 blocks 18
 
-### Task 4: Refactor `computeProyBsLive`
-File: `src/data/live/compute-proy-bs-live.ts` — strict helper + equity skip +
-override consumption. Update + extend tests.
+## Parallelization Plan
 
-### Task 5: DynamicBsEditor Average column → strict
-Files: `RowInputGrid.tsx` + `DynamicBsEditor.tsx` — resolver prop pattern.
+- **Sequential (main thread)**: 1 (rename), 2 (store — critical), 13-14 (small)
+- **Parallel batch A** (after Task 2): 3+4+5 (compute helpers — pure functions, independent)
+- **Parallel batch B** (after A): 6+7+8 (pages — independent routes, mirror IBD pattern)
+- **Parallel batch C** (after compute + pages): 9+10+11+12 (consumer rewires — touch different files)
+- **Sequential tail**: 15 → 16 → 17 → 18
 
-### Task 6: Proy BS page — equity editable, no growth row
-File: `src/app/projection/balance-sheet/page.tsx` — conditional render per
-account.section.
+## Verification Target
 
-### Task 7: Fix Proy FA seed fallback
-File: `src/data/live/compute-proy-fixed-assets-live.ts` — `lastNonNullHistorical`
-fallback for ACQ_ADDITIONS + DEP_ADDITIONS. TDD.
-
-### Task 8: Downstream tests + Phase C + cascade
-Run full suite, fix anything broken downstream (KD tests, projection pipeline,
-Phase C).
-
-### Task 9: Full gate verification
-typecheck + lint + audit + test + build + verify:phase-c all GREEN.
-
-### Task 10: Commit, merge, push, deploy, wrap-up
-Feature commit → merge main → push → verify Vercel live → history/ +
-progress.md + lessons-learned.md + docs commit + push.
+```
+Tests:     1393+50 new = ~1443 passing, 0 regressions
+Build:     ✅ 45 static pages (+3 new input routes)
+Typecheck: ✅
+Lint:      ✅
+Audit:     ✅ 0 i18n violations
+Phase C:   ✅ 5/5
+Cascade:   ✅ 3/3 (29/29)
+Live:      penilaian-bisnis.vercel.app HTTP 200
+Store:     v23
+```
