@@ -2,6 +2,7 @@ import type { SheetBuilder } from './types'
 import { computeCashFlowLiveRows } from '@/data/live/compute-cash-flow-live'
 import { computeCashBalance } from '@/lib/calculations/compute-cash-balance'
 import { computeCashAccount } from '@/lib/calculations/compute-cash-account'
+import { computeFinancing } from '@/lib/calculations/compute-financing'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { computeHistoricalYears } from '@/lib/calculations/year-helpers'
 import { CASH_FLOW_STATEMENT_MANIFEST } from '@/data/manifests/cash-flow-statement'
@@ -20,17 +21,20 @@ const SHEET_NAME = 'CASH FLOW STATEMENT'
  *      Cash Beginning / Ending (CFS rows 32/33)
  *   4. computeCashAccount(scope, bs, cfsYears) — user-curated Bank /
  *      CashOnHand split (CFS rows 35/36)
- *   5. computeCashFlowLiveRows(..., cashBalanceResult, cashAccountResult) —
- *      pre-signed leaf rows: 5 EBITDA, 6 Tax, 8 ΔCA, 9 ΔCL, 13 Non-Op,
- *      17 CapEx, 22 Equity, 23 New Loan, 24 Int Pay, 25 Int Inc,
- *      26 Princ Repay, 32 Cash Begin, 33 Cash End, 35 Bank, 36 Cash
- *   6. deriveComputedRows — subtotals 10/11/19/28/30 via computedFrom
- *   7. writeComputedRowsToSheet — writes all rows at C/D/E
+ *   5. computeFinancing(scope, bs, is, ap, cfsYears, bsYears) — user-curated
+ *      5 Financing series (CFS rows 22/23/24/25/26)
+ *   6. computeCashFlowLiveRows(..., cashBalanceResult, cashAccountResult,
+ *      financingResult) — pre-signed leaf rows: 5 EBITDA, 6 Tax, 8 ΔCA,
+ *      9 ΔCL, 13 Non-Op, 17 CapEx, 22 Equity, 23 New Loan, 24 Int Pay,
+ *      25 Int Inc, 26 Princ Repay, 32 Cash Begin, 33 Cash End, 35 Bank,
+ *      36 Cash
+ *   7. deriveComputedRows — subtotals 10/11/19/28/30 via computedFrom
+ *   8. writeComputedRowsToSheet — writes all rows at C/D/E
  *
  * Upstream: ['home', 'balanceSheet', 'incomeStatement',
- *   'changesInWorkingCapital', 'cashBalance', 'cashAccount']. FA + AP
- * remain optional — compute-live returns zero CapEx / zero financing
- * when null.
+ *   'changesInWorkingCapital', 'cashBalance', 'cashAccount', 'financing'].
+ * FA + AP remain optional — compute-live returns zero CapEx when FA null;
+ * Financing helper handles null financing by returning all-zero series.
  */
 export const CashFlowStatementBuilder: SheetBuilder = {
   sheetName: SHEET_NAME,
@@ -41,6 +45,7 @@ export const CashFlowStatementBuilder: SheetBuilder = {
     'changesInWorkingCapital',
     'cashBalance',
     'cashAccount',
+    'financing',
   ],
   build(workbook, state) {
     const ws = workbook.getWorksheet(SHEET_NAME)
@@ -64,6 +69,14 @@ export const CashFlowStatementBuilder: SheetBuilder = {
       bsRows: state.balanceSheet.rows,
       years: cfsYears,
     })
+    const financingResult = computeFinancing({
+      financing: state.financing,
+      bsRows: state.balanceSheet.rows,
+      isLeaves: state.incomeStatement.rows,
+      apRows: state.accPayables?.rows ?? {},
+      cfsYears,
+      bsYears,
+    })
 
     const leaves = computeCashFlowLiveRows(
       state.balanceSheet.accounts,
@@ -77,6 +90,7 @@ export const CashFlowStatementBuilder: SheetBuilder = {
       state.changesInWorkingCapital?.excludedCurrentLiabilities ?? [],
       cashBalanceResult,
       cashAccountResult,
+      financingResult,
     )
     const comp = deriveComputedRows(
       CASH_FLOW_STATEMENT_MANIFEST.rows,

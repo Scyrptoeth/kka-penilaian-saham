@@ -106,6 +106,23 @@ function makeCashAccount() {
   return { bank: [9], cashOnHand: [8] }
 }
 
+// Default Financing scope mirrors the legacy hardcoded CFS mapping so
+// existing fixture-value assertions (rows 23/24/25/26) continue to hold:
+//   row 23 New Loan          = apRows[10] + apRows[19]
+//   row 24 Interest Payment  = isLeaves[27]
+//   row 25 Interest Income   = isLeaves[26]
+//   row 26 Principal Repay   = apRows[20]
+// Tests that want row 22/26 = 0 pass `financing: null` via overrides.
+function makeFinancing() {
+  return {
+    equityInjection: [],
+    newLoan: [10, 19],
+    interestPayment: [27],
+    interestIncome: [26],
+    principalRepayment: [20],
+  }
+}
+
 function makeState(overrides: Partial<ExportableState>): ExportableState {
   return {
     home: makeHome(), balanceSheet: null, incomeStatement: null,
@@ -118,6 +135,7 @@ function makeState(overrides: Partial<ExportableState>): ExportableState {
     investedCapital: null,
     cashBalance: makeCashBalance(),
     cashAccount: makeCashAccount(),
+    financing: makeFinancing(),
     ...overrides,
   } as ExportableState
 }
@@ -132,6 +150,7 @@ describe('CashFlowStatementBuilder — metadata', () => {
       'changesInWorkingCapital',
       'cashBalance',
       'cashAccount',
+      'financing',
     ])
   })
 })
