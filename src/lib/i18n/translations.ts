@@ -1073,6 +1073,9 @@ const dict = {
   'nav.item.cashBalance': { en: 'Cash Balance', id: 'Saldo Kas' },
   'nav.item.cashAccount': { en: 'Cash Account', id: 'Akun Kas' },
 
+  // Session 056 — Nav item for Financing scope editor
+  'nav.item.financing': { en: 'Financing', id: 'Pendanaan' },
+
   // Session 055 — Invested Capital scope editor (ROIC required-gate)
   'investedCapital.title': { en: 'Invested Capital', id: 'Modal yang Diinvestasikan' },
   'investedCapital.subtitle': {
@@ -1163,6 +1166,96 @@ const dict = {
     en: 'See the Cash Balance trivia for context on Net Cash Flow. The Ending balance can be split into where the cash physically lives — in Bank accounts (deposits, checking, savings) vs Cash on Hand (petty cash, register floats). This split is useful for audit trail and internal controls.',
     id: 'Lihat trivia Cash Balance untuk konteks Net Cash Flow. Saldo Akhir dapat dipecah berdasarkan lokasi fisik kas — di rekening Bank (deposito, giro, tabungan) vs Kas di Tangan (kas kecil, kas register). Pembagian ini berguna untuk audit trail dan kontrol internal.',
   },
+
+  // Session 056 — Financing scope editor (CFS required-gate)
+  'financing.page.title': { en: 'Financing Scope', id: 'Cakupan Pendanaan' },
+  'financing.page.subtitle': {
+    en: 'Define the scope of Financing Activities: curate which Balance Sheet and Income Statement accounts flow into Equity Injection, New Loan, Interest Payment, Interest Income, and Principal Repayment for the Cash Flow Statement.',
+    id: 'Tentukan cakupan Aktivitas Pendanaan: pilih akun mana dari Neraca dan Laporan Laba Rugi yang masuk ke Setoran Modal, Pinjaman Baru, Pembayaran Bunga, Pendapatan Bunga, dan Pembayaran Pokok Pinjaman untuk Laporan Arus Kas.',
+  },
+  'financing.intro.body': {
+    en: 'Financing activities capture cash flows between the company and its capital providers — owners (equity) and lenders (debt). Select the source accounts for each row; the system derives period values from year-over-year changes or direct book entries.',
+    id: 'Aktivitas pendanaan mencatat arus kas antara perusahaan dan penyedia modalnya — pemilik (ekuitas) dan pemberi pinjaman (utang). Pilih akun sumber untuk setiap baris; sistem akan menurunkan nilai periode dari perubahan tahun-ke-tahun atau catatan buku langsung.',
+  },
+
+  'financing.section.equityInjection.heading': { en: 'Equity Injection', id: 'Setoran Modal' },
+  'financing.section.equityInjection.subtitle': {
+    en: 'Balance Sheet equity accounts representing paid-in capital (e.g., Share Capital, Additional Paid-in Capital / Agio). Period value = YoY delta.',
+    id: 'Akun ekuitas Neraca yang merepresentasikan modal disetor (misal Modal Saham, Agio Saham / Tambahan Modal Disetor). Nilai periode = selisih YoY.',
+  },
+  'financing.section.equityInjection.empty': { en: 'No equity accounts selected yet', id: 'Belum ada akun ekuitas terpilih' },
+  'financing.section.equityInjection.addLabel': { en: 'Add equity account', id: 'Tambah akun ekuitas' },
+
+  'financing.section.newLoan.heading': { en: 'New Loan', id: 'Pinjaman Baru' },
+  'financing.section.newLoan.subtitle': {
+    en: 'Additions to interest-bearing debt (short-term or long-term bank loans). Pick Add-band rows that represent proceeds from new borrowings.',
+    id: 'Penambahan utang berbunga (pinjaman bank jangka pendek maupun panjang). Pilih baris Tambah yang merepresentasikan hasil dari pinjaman baru.',
+  },
+  'financing.section.newLoan.empty': { en: 'No loan accounts selected yet', id: 'Belum ada akun pinjaman terpilih' },
+  'financing.section.newLoan.addLabel': { en: 'Add loan account', id: 'Tambah akun pinjaman' },
+
+  'financing.section.interestPayment.heading': { en: 'Interest Payment', id: 'Pembayaran Bunga' },
+  'financing.section.interestPayment.subtitle': {
+    en: 'Income Statement interest expense accounts. Following IS convention, expense values are stored as negatives; the Cash Flow Statement presents them as outflows.',
+    id: 'Akun beban bunga di Laporan Laba Rugi. Mengikuti konvensi L/R, nilai beban disimpan negatif; Laporan Arus Kas menyajikannya sebagai arus kas keluar.',
+  },
+  'financing.section.interestPayment.empty': { en: 'No interest expense accounts selected yet', id: 'Belum ada akun beban bunga terpilih' },
+  'financing.section.interestPayment.addLabel': { en: 'Add interest expense account', id: 'Tambah akun beban bunga' },
+
+  'financing.section.interestIncome.heading': { en: 'Interest Income', id: 'Pendapatan Bunga' },
+  'financing.section.interestIncome.subtitle': {
+    en: 'Income Statement interest income accounts (e.g., bank deposit interest, marketable-security coupon). Presented as an inflow in the Financing section.',
+    id: 'Akun pendapatan bunga di Laporan Laba Rugi (misal bunga deposito bank, kupon surat berharga). Disajikan sebagai arus kas masuk di bagian Pendanaan.',
+  },
+  'financing.section.interestIncome.empty': { en: 'No interest income accounts selected yet', id: 'Belum ada akun pendapatan bunga terpilih' },
+  'financing.section.interestIncome.addLabel': { en: 'Add interest income account', id: 'Tambah akun pendapatan bunga' },
+
+  'financing.section.principalRepayment.heading': { en: 'Principal Repayment', id: 'Pembayaran Pokok Pinjaman' },
+  'financing.section.principalRepayment.subtitle': {
+    en: 'Loan principal returned to lenders during the period. Stored as a negative value to reflect cash outflow.',
+    id: 'Pokok pinjaman yang dikembalikan kepada pemberi pinjaman selama periode berjalan. Disimpan sebagai nilai negatif untuk mencerminkan arus kas keluar.',
+  },
+  'financing.section.principalRepayment.empty': { en: 'No repayment accounts selected yet', id: 'Belum ada akun pembayaran pokok terpilih' },
+  'financing.section.principalRepayment.addLabel': { en: 'Add repayment account', id: 'Tambah akun pembayaran pokok' },
+
+  'financing.trivia.heading': { en: 'Understanding Financing Activities', id: 'Memahami Aktivitas Pendanaan' },
+  'financing.trivia.intro': {
+    en: 'Financing activities in the Cash Flow Statement reconcile the company with its capital providers. Inflows come from issuing equity or drawing new loans; outflows go to lenders as principal repayments and interest, or to owners as dividends. Clean scoping here is critical — the CFS must tie back to the Balance Sheet movements in equity and interest-bearing debt.',
+    id: 'Aktivitas pendanaan di Laporan Arus Kas merekonsiliasi perusahaan dengan penyedia modalnya. Arus kas masuk berasal dari penerbitan ekuitas atau penarikan pinjaman baru; arus kas keluar disalurkan ke pemberi pinjaman sebagai pembayaran pokok dan bunga, atau ke pemilik sebagai dividen. Pemetaan cakupan yang rapi di sini sangat penting — Laporan Arus Kas harus terhubung kembali dengan pergerakan ekuitas dan utang berbunga di Neraca.',
+  },
+  'financing.trivia.equity': {
+    en: '**Equity Injection** captures cash contributed by owners during the period. The source is **paid-in capital** — typically Share Capital (par value of issued shares) plus Additional Paid-in Capital (Agio Saham, the premium over par). **Retained Earnings are excluded** because they are not a cash inflow from owners; the retained earnings movement is captured via NOPLAT inside Operating Activities. The period value is measured as the **year-over-year delta** (Paid-in Capital[Y] − Paid-in Capital[Y-1]). A positive delta means new equity was issued; a negative delta (rare) means equity was retired.',
+    id: '**Setoran Modal** mencatat kas yang disetorkan oleh pemilik selama periode berjalan. Sumbernya adalah **modal disetor** — biasanya Modal Saham (nilai nominal saham yang diterbitkan) ditambah Agio Saham (premi di atas nilai nominal / Tambahan Modal Disetor). **Laba Ditahan tidak termasuk** karena bukan arus kas masuk dari pemilik; pergerakan laba ditahan dicatat melalui NOPLAT di Aktivitas Operasi. Nilai periode diukur sebagai **selisih tahun-ke-tahun** (Modal Disetor[Y] − Modal Disetor[Y-1]). Selisih positif berarti ada penerbitan ekuitas baru; selisih negatif (jarang) berarti ada penarikan ekuitas.',
+  },
+  'financing.trivia.loan': {
+    en: '**New Loan** represents additions to interest-bearing debt during the period — both short-term and long-term bank loans, bonds issued, or other borrowings. The user selects Add-band rows from the Interest Bearing Debt editor that represent proceeds from new borrowings. This is paired with **Principal Repayment** (cash returned to lenders). Together, the net of these two rows ties back to the year-over-year change in total interest-bearing debt on the Balance Sheet — a useful audit anchor.',
+    id: '**Pinjaman Baru** merepresentasikan penambahan utang berbunga selama periode berjalan — mencakup pinjaman bank jangka pendek maupun panjang, obligasi yang diterbitkan, atau bentuk pinjaman lainnya. Pengguna memilih baris Tambah dari editor Utang Berbunga yang merepresentasikan hasil dari pinjaman baru. Baris ini berpasangan dengan **Pembayaran Pokok Pinjaman** (kas yang dikembalikan kepada pemberi pinjaman). Secara bersama-sama, neto kedua baris ini harus terhubung dengan perubahan tahun-ke-tahun total utang berbunga di Neraca — jangkar audit yang bermanfaat.',
+  },
+  'financing.trivia.interest': {
+    en: '**Interest Income** and **Interest Payment** are both pulled from the Income Statement. By convention, expense accounts on the IS are stored as **negative values**, so Interest Payment retains its sign when flowing into the CFS (already an outflow). Interest Income is stored as a positive value and presents as an inflow. Some accounting standards present interest flows under Operating Activities rather than Financing — this system places them in Financing for consistency with the indirect method used elsewhere.',
+    id: '**Pendapatan Bunga** dan **Pembayaran Bunga** keduanya ditarik dari Laporan Laba Rugi. Menurut konvensi, akun beban di L/R disimpan sebagai **nilai negatif**, sehingga Pembayaran Bunga mempertahankan tandanya ketika mengalir ke Laporan Arus Kas (sudah menjadi arus kas keluar). Pendapatan Bunga disimpan sebagai nilai positif dan disajikan sebagai arus kas masuk. Sebagian standar akuntansi menyajikan arus bunga di Aktivitas Operasi alih-alih Pendanaan — sistem ini menempatkannya di Pendanaan agar konsisten dengan metode tidak langsung yang digunakan di bagian lain.',
+  },
+  'financing.trivia.repayment': {
+    en: '**Principal Repayment** is the loan principal returned to lenders during the period — distinct from interest, which compensates lenders for the use of money. Typically entered as a **negative value** (cash outflow). Together with New Loan, Principal Repayment reconciles the interest-bearing debt movement on the Balance Sheet: (New Loans) − (Principal Repayments) ≈ Δ Interest-Bearing Debt[Y]. Discrepancies usually indicate reclassifications, FX revaluation, or missing scope assignments.',
+    id: '**Pembayaran Pokok Pinjaman** adalah pokok pinjaman yang dikembalikan kepada pemberi pinjaman selama periode berjalan — berbeda dari bunga, yang merupakan kompensasi atas penggunaan uang. Biasanya diinput sebagai **nilai negatif** (arus kas keluar). Bersama Pinjaman Baru, Pembayaran Pokok Pinjaman merekonsiliasi pergerakan utang berbunga di Neraca: (Pinjaman Baru) − (Pembayaran Pokok) ≈ Δ Utang Berbunga[Y]. Selisih umumnya menandakan reklasifikasi, penilaian ulang kurs, atau cakupan akun yang belum ditetapkan.',
+  },
+
+  'financing.gate.required.label': { en: 'Financing scope required', id: 'Cakupan Pendanaan diperlukan' },
+  'financing.gate.required.description': {
+    en: 'Confirm the Financing scope on /input/financing to unlock the Cash Flow Statement. The CFS needs at minimum one account assignment (even if empty) to compute the Financing section.',
+    id: 'Konfirmasikan cakupan Pendanaan di /input/financing untuk membuka Laporan Arus Kas. Laporan Arus Kas membutuhkan minimal satu penetapan cakupan (meski bisa kosong) untuk menghitung bagian Pendanaan.',
+  },
+
+  'financing.dropdown.placeholder': { en: '— Select account —', id: '— Pilih akun —' },
+  'financing.empty.heading': {
+    en: 'Scope confirmed but no accounts assigned. Add at least one account above or update scope if you believe Financing should have entries.',
+    id: 'Cakupan telah dikonfirmasi namun belum ada akun yang ditetapkan. Tambahkan minimal satu akun di atas atau perbarui cakupan jika Pendanaan seharusnya memiliki entri.',
+  },
+  'financing.state.confirmed': { en: 'Scope confirmed. Cash Flow Statement unlocked.', id: 'Cakupan dikonfirmasi. Laporan Arus Kas terbuka.' },
+  'financing.state.unconfirmed': { en: 'Confirm scope to unlock Cash Flow Statement.', id: 'Konfirmasi cakupan untuk membuka Laporan Arus Kas.' },
+  'financing.action.confirm': { en: 'Confirm Scope', id: 'Konfirmasi Cakupan' },
+  'financing.action.update': { en: 'Update Scope', id: 'Perbarui Cakupan' },
+  'financing.action.remove': { en: 'Remove', id: 'Hapus' },
 } as const
 
 export type TranslationKey = keyof typeof dict
