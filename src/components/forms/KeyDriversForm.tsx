@@ -384,17 +384,13 @@ export function KeyDriversForm({
                     <tr key={acct.excelRow} className="border-b border-grid">
                       <td className="px-2 py-1 text-ink">{label}</td>
                       {projYears.map((y) => (
-                        <td key={y} className="px-2 py-1">
-                          <input
-                            type="number"
-                            step="1"
-                            readOnly
-                            aria-readonly="true"
-                            tabIndex={-1}
-                            title={readonlyCapexTooltip}
-                            className="w-28 cursor-not-allowed rounded border border-grid bg-canvas-raised px-1 py-1 text-right font-mono text-sm italic tabular-nums text-ink-muted"
-                            value={series[y] ? Math.round(series[y]!).toString() : '0'}
-                          />
+                        <td
+                          key={y}
+                          title={readonlyCapexTooltip}
+                          aria-readonly="true"
+                          className="px-2 py-1 text-right font-mono tabular-nums text-ink"
+                        >
+                          {IDR.format(Math.round(series[y] ?? 0))}
                         </td>
                       ))}
                     </tr>

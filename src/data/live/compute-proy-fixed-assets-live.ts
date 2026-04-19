@@ -43,31 +43,6 @@ import { computeAvgGrowth } from '@/lib/calculations/helpers'
 /** All 7 band offsets in the FA schedule. */
 const ALL_BAND_OFFSETS = Object.values(FA_OFFSET) as readonly number[]
 
-/**
- * Session 051 — find the most recent historical year with a defined,
- * non-zero value. Used as a seed fallback for Additions bands when the
- * user left the histYear cell blank but entered data in earlier years.
- *
- * Returns null when no such value exists across the given years.
- *
- * Semantic:
- *  - `undefined` / `null` entries are skipped (treated as "not entered").
- *  - `0` entries are ALSO skipped in this helper — callers that want to
- *    respect explicit 0 should check `series[histYear] != null` first
- *    and only call this helper as a fallback for the undefined case.
- */
-function lastNonZeroHistorical(
-  series: YearKeyedSeries,
-  historicalYears: readonly number[],
-): number | null {
-  for (let i = historicalYears.length - 1; i >= 0; i--) {
-    const y = historicalYears[i]!
-    const v = series[y]
-    if (v != null && v !== 0) return v
-  }
-  return null
-}
-
 /** Map from FA_OFFSET value → corresponding SUBTOTAL row number. */
 const BAND_OFFSET_TO_SUBTOTAL: Record<number, number> = {
   [FA_OFFSET.ACQ_BEGINNING]: FA_SUBTOTAL.TOTAL_ACQ_BEGINNING,
@@ -148,24 +123,14 @@ export function computeProyFixedAssetsLive(
     // (ACQ_ENDING / DEP_ENDING / NET_VALUE are computed manifest rows —
     // pre-Session 046 editor didn't persist them, so we self-heal).
     const acqBegAtHist = acqBegHist[histYear] ?? 0
-    // Session 051 seed fallback for Additions bands: when histYear entry
-    // is undefined (user didn't enter Additions for the most recent
-    // historical year but had data in earlier years), fall back to the
-    // last non-zero historical value so projection doesn't stall at 0.
-    // Explicit 0 at histYear is respected (`!= null` check) — user who
-    // typed zero means "no acquisition that year", not "not recorded".
-    const acqAddAtHistRaw = acqAddHist[histYear]
-    const acqAddAtHist =
-      acqAddAtHistRaw != null
-        ? acqAddAtHistRaw
-        : lastNonZeroHistorical(acqAddHist, historicalYears) ?? 0
+    // Session 052: strict INPUT-as-source-of-truth — histYear value (or 0
+    // when undefined) is the seed. No fabricated fallback from pre-histYear
+    // data — that silently diverges Proy FA Additions from INPUT FA
+    // Additions at the shared anchor year. Reverts LESSON-144.
+    const acqAddAtHist = acqAddHist[histYear] ?? 0
     const acqEndAtHist = acqEndHist[histYear] ?? (acqBegAtHist + acqAddAtHist)
     const depBegAtHist = depBegHist[histYear] ?? 0
-    const depAddAtHistRaw = depAddHist[histYear]
-    const depAddAtHist =
-      depAddAtHistRaw != null
-        ? depAddAtHistRaw
-        : lastNonZeroHistorical(depAddHist, historicalYears) ?? 0
+    const depAddAtHist = depAddHist[histYear] ?? 0
     const depEndAtHist = depEndHist[histYear] ?? (depBegAtHist + depAddAtHist)
     const netAtHist = netHist[histYear] ?? (acqEndAtHist - depEndAtHist)
 
