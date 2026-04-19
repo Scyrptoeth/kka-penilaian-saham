@@ -73,16 +73,22 @@ export function createDefaultApState(): AccPayablesInputState {
 }
 
 // ---------------------------------------------------------------------------
-// Sentinel pre-compute (Beg + End derived from Addition at persist time)
+// Sentinel pre-compute (Beg [user override or roll-forward] + End derived at
+// persist time).
 //
-// For each schedule:
-//   Beg[year 0] = 0
-//   Beg[year N] = End[year N-1]
+// Session 053 semantic (Q1=C):
+//   Beg[year N] = user input at rows[begRow][year] IF defined (including 0),
+//                 else roll-forward: Beg[0] = 0, Beg[N≥1] = End[N-1].
 //   End[year N] = Beg[year N] + Addition[year N]
 //
-// Write both into `rows` so downstream consumers (CFS via cross-sheet refs,
-// export formula bands via live formulas) see consistent values regardless
-// of whether they read the store or evaluate an Excel formula.
+// The explicit-zero vs undefined distinction is intentional: `rows[begRow][y]
+// != null` respects user-typed 0 (which means "no opening balance"), while
+// truly-missing entries fall back to roll-forward. Same principle as
+// LESSON-146 (INPUT is strict source of truth — distinguish `!= null`).
+//
+// Write Beg + End into `rows` so downstream consumers (CFS via cross-sheet
+// refs, export formula bands via live formulas) see consistent values
+// regardless of whether they read the store or evaluate an Excel formula.
 // ---------------------------------------------------------------------------
 
 export function computeApSentinels(
@@ -101,7 +107,9 @@ export function computeApSentinels(
     const end: YearKeyedSeries = {}
     for (let i = 0; i < years.length; i++) {
       const year = years[i]
-      const begValue = i === 0 ? 0 : (end[years[i - 1]] ?? 0)
+      const begUser = rows[begRow]?.[year]
+      const begFallback = i === 0 ? 0 : (end[years[i - 1]] ?? 0)
+      const begValue = begUser != null ? begUser : begFallback
       beg[year] = begValue
       const addValue = rows[addRow]?.[year] ?? 0
       end[year] = begValue + addValue

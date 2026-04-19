@@ -13,6 +13,7 @@ import { computeNoplatLiveRows } from '@/data/live/compute-noplat-live'
 import { computeCashFlowLiveRows } from '@/data/live/compute-cash-flow-live'
 import { deriveComputedRows } from '@/lib/calculations/derive-computed-rows'
 import { PageEmptyState } from '@/components/shared/PageEmptyState'
+import { FcfCwcBreakdown } from '@/components/analysis/FcfCwcBreakdown'
 import { useT } from '@/lib/i18n/useT'
 
 /**
@@ -33,7 +34,7 @@ export function FcfLiveView() {
   const hasHydrated = useKkaStore((s) => s._hasHydrated)
 
   const liveRows = useMemo(() => {
-    if (!hasHydrated || !home || !balanceSheet || !incomeStatement || changesInWorkingCapital === null) return null
+    if (!hasHydrated || !home || !balanceSheet || !incomeStatement || !fixedAsset || changesInWorkingCapital === null) return null
 
     const years = computeHistoricalYears(
       home.tahunTransaksi,
@@ -46,11 +47,16 @@ export function FcfLiveView() {
     const noplatComputed = deriveComputedRows(NOPLAT_MANIFEST.rows, noplatLeafRows, years)
     const allNoplatRows = { ...noplatLeafRows, ...noplatComputed }
 
-    // 2. FA computed rows (rows 23, 51)
-    const faRows = fixedAsset?.rows ?? null
-    const faComputed = faRows
-      ? deriveComputedRows(FIXED_ASSET_MANIFEST.rows, faRows, years)
-      : null
+    // 2. FA computed rows — LESSON-057 merge pattern: freshly-derived subtotals
+    // from static FIXED_ASSET_MANIFEST.computedFrom only sum original catalog
+    // accounts (rows 17-22 + 45-50). Extended catalog accounts (excelRow ≥ 100)
+    // are NOT in the static manifest but ARE in the store's pre-persisted
+    // sentinel at rows 23 + 51 (DynamicFaEditor.computeFaSentinels, LESSON-132).
+    // Merge with store sentinels winning so FCF Depreciation (row 51) + CapEx
+    // (row 23) correctly reflect ALL user-entered accounts.
+    const faRows = fixedAsset.rows
+    const faComputed = deriveComputedRows(FIXED_ASSET_MANIFEST.rows, faRows, years)
+    const faAll = { ...faComputed, ...faRows }
 
     // 3. CFS from BS + IS + FA
     const cfsLeafRows = computeCashFlowLiveRows(
@@ -65,11 +71,11 @@ export function FcfLiveView() {
     const allCfsRows = { ...cfsLeafRows, ...cfsComputed }
 
     // 4. FCF from upstream
-    return computeFcfLiveRows(allNoplatRows, faComputed, allCfsRows, years)
+    return computeFcfLiveRows(allNoplatRows, faAll, allCfsRows, years)
   }, [hasHydrated, home, balanceSheet, incomeStatement, fixedAsset, accPayables, changesInWorkingCapital])
 
   if (!hasHydrated) return null
-  if (!home || !balanceSheet || !incomeStatement || changesInWorkingCapital === null) {
+  if (!home || !balanceSheet || !incomeStatement || !fixedAsset || changesInWorkingCapital === null) {
     return (
       <PageEmptyState section={t('nav.group.analysis')}
         title={t('dcf.section.fcf')}
@@ -84,5 +90,10 @@ export function FcfLiveView() {
     )
   }
 
-  return <SheetPage manifest={FCF_MANIFEST} liveRows={liveRows} />
+  return (
+    <>
+      <SheetPage manifest={FCF_MANIFEST} liveRows={liveRows} />
+      <FcfCwcBreakdown />
+    </>
+  )
 }

@@ -85,11 +85,21 @@ function AccPayablesEditor() {
     [localSchedules, localRows, years],
   )
 
-  function setAdditionCell(row: number, year: number, raw: string) {
-    const value = parseFinancialInput(raw)
+  function setRowCell(row: number, year: number, raw: string) {
+    const trimmed = raw.trim()
     const nextRows: LocalRows = { ...localRows }
-    if (!nextRows[row]) nextRows[row] = {}
-    nextRows[row] = { ...nextRows[row], [year]: value }
+    if (trimmed === '') {
+      // User cleared the cell → revert to fallback (delete override)
+      if (nextRows[row]) {
+        const existing = { ...nextRows[row] }
+        delete existing[year]
+        nextRows[row] = existing
+      }
+    } else {
+      const value = parseFinancialInput(raw)
+      if (!nextRows[row]) nextRows[row] = {}
+      nextRows[row] = { ...nextRows[row], [year]: value }
+    }
     setLocalRows(nextRows)
     schedulePersist(localSchedules, nextRows)
   }
@@ -171,7 +181,7 @@ function AccPayablesEditor() {
               sentinels={sentinels}
               onRename={renameSchedule}
               onRemove={removeSchedule}
-              onCellChange={setAdditionCell}
+              onCellChange={setRowCell}
               t={t}
             />
           ))
@@ -291,10 +301,12 @@ function ScheduleCard({
             </tr>
           </thead>
           <tbody>
-            <RowDisplay
+            <RowEditable
               label={t('accPayables.row.beginning')}
               years={years}
-              values={sentinels[begRow] ?? {}}
+              values={localRows[begRow] ?? {}}
+              placeholders={sentinels[begRow] ?? {}}
+              onChange={(y, raw) => onCellChange(begRow, y, raw)}
             />
             <RowEditable
               label={t('accPayables.row.addition')}
@@ -348,25 +360,35 @@ function RowEditable({
   label,
   years,
   values,
+  placeholders,
   onChange,
 }: {
   label: string
   years: number[]
   values: YearKeyedSeries
+  /** Optional fallback values shown as placeholder when user hasn't overridden. */
+  placeholders?: YearKeyedSeries
   onChange: (year: number, raw: string) => void
 }) {
   return (
     <tr className="border-b border-grid">
       <td className="px-3 py-1.5 text-ink-soft">{label}</td>
       {years.map((y) => {
-        const v = values[y] ?? 0
+        const userValue = values[y]
+        const hasOverride = userValue != null
+        const displayValue = hasOverride ? userValue : 0
+        const fallback = placeholders?.[y] ?? 0
+        // When user hasn't overridden AND fallback !== 0, show fallback as
+        // placeholder to hint the auto-derived value. Explicit 0 user override
+        // renders "0" (distinguishable from blank placeholder).
+        const placeholderText = !hasOverride && fallback !== 0 ? formatIdr(fallback) : '0'
         return (
           <td key={y} className="px-1 py-0.5">
             <input
               type="text"
               className="w-full rounded-sm border border-grid bg-canvas px-2 py-1 text-right font-mono text-sm tabular-nums text-ink outline-none focus:border-accent focus:ring-1 focus:ring-accent"
-              defaultValue={v !== 0 ? formatIdr(v) : ''}
-              placeholder="0"
+              defaultValue={hasOverride && displayValue !== 0 ? formatIdr(displayValue) : ''}
+              placeholder={placeholderText}
               onBlur={(e) => onChange(y, e.target.value)}
             />
           </td>

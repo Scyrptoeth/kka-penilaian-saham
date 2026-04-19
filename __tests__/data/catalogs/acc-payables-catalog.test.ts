@@ -103,4 +103,72 @@ describe('AP catalog — sentinel pre-compute', () => {
     expect(sentinels[18][2020]).toBe(0)
     expect(sentinels[21][2020]).toBe(0)
   })
+
+  // ─── Session 053: Beginning is user-overrideable with roll-forward fallback ───
+  describe('Session 053 Beginning user override (Q1=C)', () => {
+    it('uses user Beginning when present; End = Beg + Add', () => {
+      const schedules: ApSchedule[] = [
+        { id: 'st_default', section: 'st_bank_loans', slotIndex: 0 },
+      ]
+      const rows = {
+        9:  { 2019: 5000 }, // User entered Beg for 2019 — opening balance
+        10: { 2019: 1000 }, // Addition
+      }
+      const sentinels = computeApSentinels(schedules, rows, [2019, 2020, 2021])
+      // Beg[0] from user override, End = Beg + Add
+      expect(sentinels[9][2019]).toBe(5000)
+      expect(sentinels[12][2019]).toBe(6000)
+      // Beg[1] no user override → roll-forward from End[0] = 6000
+      expect(sentinels[9][2020]).toBe(6000)
+      expect(sentinels[12][2020]).toBe(6000)
+    })
+
+    it('user can override Beginning mid-stream; roll-forward resumes on next year', () => {
+      const schedules: ApSchedule[] = [
+        { id: 'st_default', section: 'st_bank_loans', slotIndex: 0 },
+      ]
+      const rows = {
+        9:  { 2020: 9999 },   // User override mid-stream (2020 only)
+        10: { 2019: 100, 2020: 50, 2021: 30 },
+      }
+      const sentinels = computeApSentinels(schedules, rows, [2019, 2020, 2021])
+      // 2019: no Beg override → fallback 0. End = 100.
+      expect(sentinels[9][2019]).toBe(0)
+      expect(sentinels[12][2019]).toBe(100)
+      // 2020: user override 9999. End = 9999 + 50 = 10049.
+      expect(sentinels[9][2020]).toBe(9999)
+      expect(sentinels[12][2020]).toBe(10049)
+      // 2021: no override → fallback prev End = 10049. End = 10049 + 30 = 10079.
+      expect(sentinels[9][2021]).toBe(10049)
+      expect(sentinels[12][2021]).toBe(10079)
+    })
+
+    it('respects explicit zero at Beginning (user typed 0, not blank)', () => {
+      const schedules: ApSchedule[] = [
+        { id: 'st_default', section: 'st_bank_loans', slotIndex: 0 },
+      ]
+      const rows = {
+        9:  { 2020: 0 }, // User explicitly typed 0 — NOT roll-forward
+        10: { 2019: 100, 2020: 50 },
+      }
+      const sentinels = computeApSentinels(schedules, rows, [2019, 2020])
+      // 2020: Beg = 0 explicit. End = 0 + 50 = 50. (Despite prev End = 100.)
+      expect(sentinels[9][2020]).toBe(0)
+      expect(sentinels[12][2020]).toBe(50)
+    })
+
+    it('backward compat: no Beginning entries → pure roll-forward (Session 042 behavior)', () => {
+      const schedules: ApSchedule[] = [
+        { id: 'st_default', section: 'st_bank_loans', slotIndex: 0 },
+      ]
+      const rows = {
+        10: { 2019: 1000, 2020: 500 },
+      }
+      const sentinels = computeApSentinels(schedules, rows, [2019, 2020])
+      expect(sentinels[9][2019]).toBe(0)
+      expect(sentinels[12][2019]).toBe(1000)
+      expect(sentinels[9][2020]).toBe(1000)
+      expect(sentinels[12][2020]).toBe(1500)
+    })
+  })
 })
