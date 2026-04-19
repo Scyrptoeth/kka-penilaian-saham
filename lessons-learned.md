@@ -674,6 +674,9 @@ untuk 3+ sesi ke depan:
 - LESSON-147 (Derived-with-fallback-override pattern — user input wins, roll-forward derivation fills blanks, explicit 0 respected)
 - LESSON-148 (Audit ALL downstream wrappers for LESSON-057 store-sentinel merge pattern when a sheet consumes extended-catalog subtotals — the bug is invisible with static-only catalog data)
 
+### Session 054 (INPUT taxonomy reorganization + CWC cleanup + GR editor)
+- LESSON-149 (Per-row editability in shared RowInputGrid / SheetManifest — mark derived rows `type: 'cross-ref'`, leave editable rows as default `type: 'normal'`; one manifest + two data layers (`values` vs `computedValues`) in the same table)
+
 LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054, 074, 087, 109, 113, 117, 120, 121, 125, 127, 128, 130, 131, 134, 136, 138, 140, 142, 145 **TIDAK** di-promote — workflow/session-specific
 insights yang general ke project lain tapi terlalu luas atau terlalu
 session-specific untuk section 8 (yang fokus KKA-specific gotchas).
@@ -4457,5 +4460,45 @@ CFS's `computeCashFlowLiveRows` had the correct pattern internally (line 108: `c
 - Generalizes LESSON-057 beyond "spread order in a single place" to "audit ALL places that pattern must appear".
 
 **Proven at**: session-053 (2026-04-19). `src/components/analysis/FcfLiveView.tsx` — `faComputed` replaced with `faAll = { ...faComputed, ...faRows }`. FA also promoted to required-gate (Q2=A1) so user can't reach FCF with empty FA. Full suite 1393/1393 (+11 vs Session 052). Phase C 5/5. Cascade integration 3/3.
+
+---
+
+## Session 054 — INPUT Taxonomy Reorganization + CWC Cleanup + Growth Revenue Editor
+
+### LESSON-149: Per-row editability in shared RowInputGrid / SheetManifest
+
+**Kategori**: Design | Framework | Manifest
+
+**Sesi**: session-054
+
+**Tanggal**: 2026-04-19
+
+**Konteks**: Growth Revenue page needs to display 4 rows in a single table where rows 8, 9 (Penjualan + Laba Bersih) are derived from Income Statement (read-only) and rows 40, 41 (Industri benchmarks) are user-editable. Forking the table into two separate components (one read-only + one editable) is viable but duplicates headers, growth-column derivation, and styling.
+
+**Apa yang terjadi**: `RowInputGrid` already supports mixed editability through two mechanisms, both of which pre-dated Session 054:
+
+1. `ManifestRow.type` — a row with `type: 'cross-ref'` is rendered read-only from the `computedValues` prop. A row with default `type` (plain leaf, treated as `'normal'` in the component) is rendered as a `NumericInput` bound to the `values` prop via `onChange(excelRow, year, value)`.
+2. The component separates data sources: editable rows sample `values[excelRow]`, read-only rows sample `computedValues[excelRow]`. Both can coexist in the same manifest.
+
+This compositional property was previously used by `DynamicBsEditor` (BS row 20, 21 = FA cross-ref) and `DynamicIsEditor` (IS row 21 = FA-depreciation cross-ref) for structural cross-sheet values. Session 054 generalized it for Growth Revenue where the cross-ref targets are in the SAME slice they're rendered against (IS → Growth Revenue both read from incomeStatement), which makes it easy to forget the component already handles this.
+
+**Root cause / insight**: Mixed editability within a single financial table is a common requirement — any "comparison" layout where a derived headline sits next to user-editable benchmarks. The right pattern is:
+
+- **One manifest** that declares both types of rows in sequence with semantic `type` markers.
+- **Two data layers** passed as separate props: `values` for editable rows, `computedValues` for read-only.
+- **The compute adapter** writes to EITHER layer. For Growth Revenue, `computeGrowthRevenueLiveRows` writes rows 8 + 9 to the same output map (consumed via `computedValues` by the editor). Industry rows 40 + 41 are passed separately via the editor's local `values`.
+
+Alternative rejected — fork the table into two separate components. That duplicates header rendering, growth-column computation, styling, and loses the "single visual surface" UX benefit. It also couples the editor page to two components instead of one, multiplying maintenance burden.
+
+**Cara menerapkan di masa depan**:
+
+- **Before forking**: any page needing mixed editable + read-only rows in the same visual table should reach for `RowInputGrid` + `type: 'cross-ref'` on the read-only rows. Two data layers via `values` + `computedValues` props.
+- **Derivation columns** (growth YoY, common size) work across both editable + read-only rows uniformly — no special-casing needed. The compute adapter produces the base values; derivation is applied by `applyDerivations` or inline in the page using `yoyChangeSafe`.
+- **When compute adapter writes to rows of BOTH types** (e.g. IS → Growth Revenue writes rows 8, 9, 40, 41), split the output at the editor by reading `output[row]` from `computedValues` for cross-ref rows and merging with local `values` for editable rows.
+- **i18n key for editor subtitle**: always add a `{slice}.editor.subtitle` key explaining which rows are editable vs derived — users need the context visible, not inferred.
+- **Verify store flow**: editor debounces local state change (500ms) → `setXxx(fullState)` → store slice updated → `partialize` persists → next mount seeds from store via `useState(initializer)` (LESSON-034).
+- **LESSON-141 applies at persist**: if the editor also needs to merge cross-slice computed values (e.g. FA → IS mirror), merge at persist time via `useMemo`, not via `useEffect + setState`.
+
+**Proven at**: session-054 (2026-04-19). `src/components/forms/GrowthRevenueEditor.tsx` — single `<RowInputGrid>` with rows 8 + 9 read-only (cross-ref) + rows 40 + 41 editable. Manifest unchanged except `type: 'cross-ref'` markers. Compute adapter signature extended to accept optional `growthRevenue` slice. Full suite 1393/1393. Phase C 5/5. Cascade 3/3.
 
 ---
