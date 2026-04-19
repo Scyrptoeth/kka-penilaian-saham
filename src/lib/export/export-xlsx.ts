@@ -106,6 +106,12 @@ export interface ExportableState {
    * lists with mutual exclusion.
    */
   cashAccount: import('@/lib/store/useKkaStore').CashAccountState | null
+  /**
+   * Session 056 — Financing scope (CFS financing rows 27-31). 5 disjoint IS
+   * excelRow lists with cross-row mutual exclusion. `null` = user has not
+   * confirmed scope; CFS page gates via PageEmptyState.
+   */
+  financing: import('@/lib/store/useKkaStore').FinancingState | null
 }
 
 /**

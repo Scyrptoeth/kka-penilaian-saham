@@ -33,6 +33,9 @@ export function isPopulated(
     if (key === 'cashAccount') {
       return state.cashAccount !== null
     }
+    if (key === 'financing') {
+      return state.financing !== null
+    }
     return state[key] !== null
   })
 }

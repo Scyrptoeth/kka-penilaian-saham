@@ -48,6 +48,7 @@ export function ExportButton() {
         investedCapital: state.investedCapital,
         cashBalance: state.cashBalance,
         cashAccount: state.cashAccount,
+        financing: state.financing,
       }
 
       const blob = await exportToXlsx(exportState)

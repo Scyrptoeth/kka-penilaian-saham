@@ -516,7 +516,7 @@ describe('migratePersistedState — v13 → v14 (faAdjustment → aamAdjustments
   it('passes future versions through unchanged', () => {
     // Keeps identity if state already contains every slice a later migration
     // would otherwise add. Growing list mirrors the `if (fromVersion < N)`
-    // checks for conditional fields. Session 054 added `growthRevenue`.
+    // checks for conditional fields. Session 056 added `financing`.
     const v19State = {
       home: null,
       language: 'en',
@@ -527,6 +527,7 @@ describe('migratePersistedState — v13 → v14 (faAdjustment → aamAdjustments
       investedCapital: null,
       cashBalance: null,
       cashAccount: null,
+      financing: null,
       futureSlice: {},
     }
     const migrated = migratePersistedState(v19State, 19)
@@ -786,5 +787,50 @@ describe('migratePersistedState — v13 → v14 (faAdjustment → aamAdjustments
     expect(migrated.investedCapital).toBeNull()
     expect(migrated.cashBalance).toBeNull()
     expect(migrated.cashAccount).toBeNull()
+  })
+
+  // Session 056 — v23 → v24: add root-level `financing` scope slice (5 IS-row
+  // lists for CFS financing rows 27-31). Null by default; required-gate for CFS.
+  it('v23 → v24 initializes financing as null', () => {
+    const v23State = {
+      home: null,
+      language: 'en',
+      growthRevenue: null,
+      investedCapital: null,
+      cashBalance: null,
+      cashAccount: null,
+    }
+    const migrated = migratePersistedState(v23State, 23) as Record<string, unknown>
+    expect(migrated.financing).toBeNull()
+  })
+
+  it('v23 → v24 preserves existing financing if already present (idempotent)', () => {
+    const existing = {
+      equityInjection: [100],
+      newLoan: [110],
+      interestPayment: [501],
+      interestIncome: [500],
+      principalRepayment: [120],
+    }
+    const v23State = {
+      home: null,
+      language: 'en',
+      growthRevenue: null,
+      investedCapital: null,
+      cashBalance: null,
+      cashAccount: null,
+      financing: existing,
+    }
+    const migrated = migratePersistedState(v23State, 23) as Record<string, unknown>
+    expect(migrated.financing).toEqual(existing)
+  })
+
+  it('chain migration from v22 reaches v24 with all Session 055 + 056 slices initialized', () => {
+    const v22State = { home: null, language: 'en', growthRevenue: null }
+    const migrated = migratePersistedState(v22State, 22) as Record<string, unknown>
+    expect(migrated.investedCapital).toBeNull()
+    expect(migrated.cashBalance).toBeNull()
+    expect(migrated.cashAccount).toBeNull()
+    expect(migrated.financing).toBeNull()
   })
 })

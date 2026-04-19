@@ -174,6 +174,30 @@ export interface CashAccountState {
   cashOnHand: number[]
 }
 
+/**
+ * Session 056 — Financing scope. 5 disjoint lists of IS excelRows that the
+ * user curates via `/input/financing`. Each list feeds a specific CFS row:
+ *
+ *   equityInjection       → CFS row 27 (Capital Contributed by Shareholders)
+ *   newLoan               → CFS row 28 (New Bank Loan)
+ *   interestPayment       → CFS row 29 (Interest Paid to Bank)
+ *   interestIncome        → CFS row 30 (Interest Received from Bank)
+ *   principalRepayment    → CFS row 31 (Bank Loan Principal Repayment)
+ *
+ * Cross-row mutual exclusion is enforced by the setters: a single IS
+ * excelRow can only appear in ONE of the 5 lists at a time. `null` at
+ * the top level = user has not yet confirmed scope; the CFS page
+ * surfaces PageEmptyState until the user visits `/input/financing`
+ * and clicks "Konfirmasi Cakupan".
+ */
+export interface FinancingState {
+  equityInjection: number[]
+  newLoan: number[]
+  interestPayment: number[]
+  interestIncome: number[]
+  principalRepayment: number[]
+}
+
 interface KkaState {
   /** Global language preference — EN (default) or ID. Lifted to root level in v15. */
   language: 'en' | 'id'
@@ -257,6 +281,11 @@ interface KkaState {
    * confirms at `/input/cash-account`. CFS page is gated on this.
    */
   cashAccount: CashAccountState | null
+  /**
+   * Session 056 — Financing scope (CFS financing section — rows 27-31).
+   * Null until user confirms at `/input/financing`. CFS page is gated on this.
+   */
+  financing: FinancingState | null
   setHome: (home: HomeInputs) => void
   resetHome: () => void
   /**
@@ -344,6 +373,16 @@ interface KkaState {
   removeCashAccount: (row: 'bank' | 'cashOnHand', excelRow: number) => void
   confirmCashAccountScope: () => void
   resetCashAccountScope: () => void
+  /**
+   * Session 056 — Financing scope setters. `assignFinancing` sets an IS
+   * excelRow into one of 5 rows (removes from other rows — mutual exclusion).
+   * `removeFinancing` un-assigns. `confirmFinancingScope` null → empty object
+   * to unlock CFS. `resetFinancingScope` → null (re-gates).
+   */
+  assignFinancing: (row: keyof FinancingState, excelRow: number) => void
+  removeFinancing: (row: keyof FinancingState, excelRow: number) => void
+  confirmFinancingScope: () => void
+  resetFinancingScope: () => void
   /** Reset ALL store slices to initial state (destructive — clears all user data). */
   resetAll: () => void
   _hasHydrated: boolean
@@ -351,7 +390,7 @@ interface KkaState {
 }
 
 const STORE_KEY = 'kka-penilaian-saham'
-const STORE_VERSION = 23
+const STORE_VERSION = 24
 
 /**
  * Migrate persisted state from older versions to the current schema.
@@ -869,6 +908,16 @@ export function migratePersistedState(
     }
   }
 
+  // v23 → v24: Session 056 added root-level `financing` scope slice (5 disjoint
+  //           IS-excelRow lists for CFS financing rows 27-31). Null by default —
+  //           user must visit `/input/financing` and click "Konfirmasi Cakupan"
+  //           to unlock CFS. Idempotent.
+  if (fromVersion < 24) {
+    if (!('financing' in state)) {
+      state = { ...state, financing: null }
+    }
+  }
+
   return state
 }
 
@@ -895,6 +944,7 @@ export const useKkaStore = create<KkaState>()(
       investedCapital: null,
       cashBalance: null,
       cashAccount: null,
+      financing: null,
       setHome: (home) => set({ home }),
       resetHome: () => set({ home: null }),
       setDlom: (dlom) =>
@@ -1117,6 +1167,52 @@ export const useKkaStore = create<KkaState>()(
           cashAccount: state.cashAccount ?? { bank: [], cashOnHand: [] },
         })),
       resetCashAccountScope: () => set({ cashAccount: null }),
+      assignFinancing: (row, excelRow) =>
+        set((state) => {
+          const current = state.financing ?? {
+            equityInjection: [],
+            newLoan: [],
+            interestPayment: [],
+            interestIncome: [],
+            principalRepayment: [],
+          }
+          // Cross-row mutual exclusion: strip excelRow from every list first,
+          // then append to the target list. Guarantees a single excelRow
+          // only ever lives in ONE of the 5 rows.
+          const next: FinancingState = {
+            equityInjection: current.equityInjection.filter((r) => r !== excelRow),
+            newLoan: current.newLoan.filter((r) => r !== excelRow),
+            interestPayment: current.interestPayment.filter((r) => r !== excelRow),
+            interestIncome: current.interestIncome.filter((r) => r !== excelRow),
+            principalRepayment: current.principalRepayment.filter((r) => r !== excelRow),
+          }
+          next[row] = [...next[row], excelRow]
+          return { financing: next }
+        }),
+      removeFinancing: (row, excelRow) =>
+        set((state) => {
+          const current = state.financing ?? {
+            equityInjection: [],
+            newLoan: [],
+            interestPayment: [],
+            interestIncome: [],
+            principalRepayment: [],
+          }
+          return {
+            financing: { ...current, [row]: current[row].filter((r) => r !== excelRow) },
+          }
+        }),
+      confirmFinancingScope: () =>
+        set((state) => ({
+          financing: state.financing ?? {
+            equityInjection: [],
+            newLoan: [],
+            interestPayment: [],
+            interestIncome: [],
+            principalRepayment: [],
+          },
+        })),
+      resetFinancingScope: () => set({ financing: null }),
       resetAll: () => set({
         language: 'en',
         home: null,
@@ -1138,6 +1234,7 @@ export const useKkaStore = create<KkaState>()(
         investedCapital: null,
         cashBalance: null,
         cashAccount: null,
+        financing: null,
       }),
       _hasHydrated: false,
       _setHasHydrated: (hydrated) => set({ _hasHydrated: hydrated }),
@@ -1167,6 +1264,7 @@ export const useKkaStore = create<KkaState>()(
         investedCapital: state.investedCapital,
         cashBalance: state.cashBalance,
         cashAccount: state.cashAccount,
+        financing: state.financing,
       }),
       migrate: migratePersistedState,
       onRehydrateStorage: () => (state) => {

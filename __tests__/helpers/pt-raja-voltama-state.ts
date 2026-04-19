@@ -341,5 +341,28 @@ export function loadPtRajaVoltamaState(): ExportableState {
       bank: [9],
       cashOnHand: [8],
     },
+    // Session 056 — Financing scope. Reconstruct PT Raja Voltama's legacy
+    // hardcoded CFS Financing behavior via scope-driven inputs:
+    //   row 22 (Equity Injection) → legacy = 0 (no source wired pre-056)
+    //   row 23 (New Loan)         → legacy = apRows[10] + apRows[19]
+    //   row 24 (Interest Payment) → legacy = isLeaves[27]
+    //   row 25 (Interest Income)  → legacy = isLeaves[26]
+    //   row 26 (Principal Repay)  → legacy = apRows[20]
+    //
+    // Fixture note: DynamicIsEditor in production persists BOTH detail accounts
+    // (excelRow ≥ 500) AND section sentinels (rows 26/27 for interest I/E). The
+    // extracted IS fixture holds only the sentinel rows (26/27) — rows
+    // 500/520 aren't in the template. Scoping interestIncome → [26] and
+    // interestPayment → [27] reads the sentinel values that already match the
+    // legacy hardcoded compute, preserving Phase C numeric parity exactly.
+    // AP rows 10/19/20 are zero in the fixture, so newLoan/principalRepay
+    // remain zero too — matching pre-Session-056 output.
+    financing: {
+      equityInjection: [],
+      newLoan: [10, 19],
+      interestPayment: [27],
+      interestIncome: [26],
+      principalRepayment: [20],
+    },
   } as ExportableState
 }
