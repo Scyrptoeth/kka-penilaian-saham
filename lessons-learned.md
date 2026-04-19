@@ -670,6 +670,10 @@ untuk 3+ sesi ke depan:
 ### Session 052 (Revert FA seed fallback + KD Additional Capex visual polish)
 - LESSON-146 (INPUT at histYear is strict source of truth — no fabricated seed fallback; supersedes LESSON-144)
 
+### Session 053 (AP Beginning editable + FCF FA required-gate & LESSON-057 merge fix + FCF CWC inline breakdown)
+- LESSON-147 (Derived-with-fallback-override pattern — user input wins, roll-forward derivation fills blanks, explicit 0 respected)
+- LESSON-148 (Audit ALL downstream wrappers for LESSON-057 store-sentinel merge pattern when a sheet consumes extended-catalog subtotals — the bug is invisible with static-only catalog data)
+
 LESSON-014, 015, 017, 020, 022, 027, 040, 048, 054, 074, 087, 109, 113, 117, 120, 121, 125, 127, 128, 130, 131, 134, 136, 138, 140, 142, 145 **TIDAK** di-promote — workflow/session-specific
 insights yang general ke project lain tapi terlalu luas atau terlalu
 session-specific untuk section 8 (yang fokus KKA-specific gotchas).
@@ -4382,5 +4386,76 @@ The original LESSON-144 complaint ("KD Additional Capex shows 0") was misdiagnos
 - **Document cascade expectations explicitly**: when seed becomes strict, downstream consumers (KD auto-capex, Proy CFS, Proy BS FA) inherit the 0-stall. That's correct — it's a visible signal that histYear entry is missing. Silent magic is worse than visible emptiness.
 
 **Proven at**: session-052 (2026-04-19). `src/data/live/compute-proy-fixed-assets-live.ts` — deleted `lastNonZeroHistorical` helper (18 LOC), simplified `acqAddAtHist = acqAddHist[histYear] ?? 0` + same for Dep. 4 tests in `Session 052 Additions seed is strict — INPUT at histYear wins` block verify: undefined → 0 + 0 projection, explicit 0 → 0 + 0 projection, non-zero → propagates with growth, Dep symmetric. `__tests__/data/live/compute-proy-fixed-assets-live.test.ts` 18/18. Full suite 1382/1382. Phase C 5/5. Cascade integration untouched (same 29/29).
+
+---
+
+### LESSON-147: Derived-with-fallback-override pattern — user input wins, derivation fills blanks, explicit 0 respected
+
+**Kategori**: Design | Anti-pattern (promoted)
+
+**Sesi**: session-053
+**Tanggal**: 2026-04-19
+
+**Konteks**: A value displayed in a form has both (a) a mathematically-derivable default (e.g. roll-forward identity in accounting: `Beg[Y] = End[Y-1]`), AND (b) a legitimate need for user to override the default in specific cases (opening balance entry, mid-stream corrections, auditor adjustments). A pure read-only display hides legitimate override capability. A pure editable field without a derivation loses the utility of automatic roll-forward.
+
+**Apa yang terjadi**: Session 042 AP schedule made Beginning pure read-only (sentinel-derived from `Beg[0]=0, Beg[N]=End[N-1]`). Users with existing opening balances at year 0 could not entry that. Users wanting to override a specific year mid-stream also blocked. Fix Session 053: unified pattern — user input at `rows[begRow][year]` wins; fallback to derivation chain when entry is undefined; explicit 0 respected as user intent.
+
+**Root cause / insight**: Three distinct states must be distinguishable at the data layer:
+1. User typed a positive/negative value → **use that**
+2. User typed 0 explicitly → **use 0** (intent: "no opening balance this year")
+3. User left blank / cleared → **fall back to derivation**
+
+In JS/TS the discrimination is `value != null` (covers both undefined + null) vs explicit `=== 0`. Using `?? 0` alone conflates (2) and (3) — they're semantically different.
+
+**Cara menerapkan di masa depan**:
+
+- For any derived-with-fallback field:
+  ```ts
+  const userValue = rows[row]?.[year]
+  const derivedFallback = computeFallback(/* e.g. prev End */)
+  const displayValue = userValue != null ? userValue : derivedFallback
+  ```
+- UI contract: editable input with `placeholder` showing the derived fallback (grayed) when user hasn't overridden. Typed value overrides, cleared cell reverts to fallback. Explicit 0 renders "0" (distinct from blank placeholder).
+- Generalizes LESSON-146 (INPUT strict source of truth at histYear) to derived-with-fallback fields where derivation is a legitimate default, not fabrication. The distinction: LESSON-146 rejects reaching across **different years** to fabricate the current-year value. LESSON-147 accepts derivation **along a defined chain** (roll-forward, cross-ref) as the default when user hasn't overridden.
+- Anti-pattern red flag: read-only derivation field that forces user to work around the system (copy-paste elsewhere, modify store directly) to express a legitimate override case.
+
+**Proven at**: session-053 (2026-04-19). `src/data/catalogs/acc-payables-catalog.ts` — `computeApSentinels` updated: `begValue = begUser != null ? begUser : begFallback`. `src/app/input/acc-payables/page.tsx` — Beginning row migrated from `RowDisplay` to `RowEditable` with `placeholders` prop showing roll-forward fallback. 4 TDD cases: user override wins, mid-stream override with roll-forward resume, explicit 0 respected, backward compat (no override = pure roll-forward).
+
+---
+
+### LESSON-148: Audit ALL downstream wrappers for LESSON-057 store-sentinel merge when consuming extended-catalog subtotals
+
+**Kategori**: Excel | Anti-pattern (promoted)
+
+**Sesi**: session-053
+**Tanggal**: 2026-04-19
+
+**Konteks**: LESSON-057 (Session 020) established that downstream pages merging `deriveComputedRows(STATIC_MANIFEST, storeRows)` must use spread order `{ ...recomputed, ...storeRows }` so store-persisted sentinels (which sum ALL accounts including extended catalog excelRow ≥ 100) win over freshly re-derived values (which only sum original catalog accounts via static manifest's `computedFrom`). The bug is silent and invisible with static-only catalog data because both sums equal.
+
+**Apa yang terjadi**: Session 053 audit revealed `FcfLiveView.tsx` still used pre-LESSON-057 pattern:
+```ts
+const faComputed = faRows
+  ? deriveComputedRows(FIXED_ASSET_MANIFEST.rows, faRows, years)
+  : null
+```
+No merge with `faRows`. For users with extended-catalog FA accounts (excelRow ≥ 100), row 23 (Total Acq Additions) + row 51 (Total Dep Additions) from `faComputed` only summed original catalog accounts (rows 17-22, 45-50). Extended accounts were silently dropped. FCF Depreciation (via row 51) + CapEx (via row 23) displayed as 0 / "-" even when user had extended FA data.
+
+CFS's `computeCashFlowLiveRows` had the correct pattern internally (line 108: `const faComputed = faRecomputed ? { ...faRecomputed, ...faLeaves } : null`). FCF's wrapper did not. Gap was invisible in Phase C because Phase C uses PT Raja Voltama fixtures with original catalog accounts only — extended data wasn't exercised.
+
+**Root cause / insight**: When a codebase has BOTH dynamic-catalog editors (persisting sentinels at save time per LESSON-132) AND downstream wrappers re-deriving subtotals from static manifests, the merge pattern MUST be consistent everywhere. A single wrapper missing the merge causes a silent divergence that only surfaces for extended-catalog users — a small fraction of users in early development, making the bug invisible until production feedback.
+
+**Cara menerapkan di masa depan**:
+
+- **Audit checklist for LESSON-057 merge pattern** — every downstream wrapper that reads a subtotal row from a dynamic-catalog store slice must use:
+  ```ts
+  const computed = deriveComputedRows(STATIC_MANIFEST.rows, storeRows, years)
+  const merged = { ...computed, ...storeRows }  // store WINS
+  ```
+- Grep audit pattern: `deriveComputedRows\(.+,.+\)(?!.*\{[^}]*\.\.\.)` — regex for deriveComputedRows calls not immediately followed by spread merge. Check periodically.
+- **Dynamic catalog consumers to audit** (BS + IS + FA + AP): any wrapper reading subtotals via `deriveComputedRows(STATIC_MANIFEST)` must merge with `storeRows`.
+- **Phase C limitation**: state-parity tests use fixed fixture data matching original catalog. Merge bugs for extended-catalog users survive Phase C. Consider adding a small "extended-catalog smoke test" — fixture with at least 1 extended account per dynamic catalog — to catch this class of bug in future.
+- Generalizes LESSON-057 beyond "spread order in a single place" to "audit ALL places that pattern must appear".
+
+**Proven at**: session-053 (2026-04-19). `src/components/analysis/FcfLiveView.tsx` — `faComputed` replaced with `faAll = { ...faComputed, ...faRows }`. FA also promoted to required-gate (Q2=A1) so user can't reach FCF with empty FA. Full suite 1393/1393 (+11 vs Session 052). Phase C 5/5. Cascade integration 3/3.
 
 ---

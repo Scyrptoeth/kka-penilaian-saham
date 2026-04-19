@@ -1,10 +1,10 @@
 # Progress — KKA Penilaian Saham
 
-> Latest state after Session 052 — Revert FA Seed Fallback (LESSON-144 SUPERSEDED) + KD Additional Capex Visual Polish (2026-04-19)
+> Latest state after Session 053 — AP Beginning Editable + FCF FA Required-Gate + LESSON-057 Merge Fix + FCF CWC Inline Breakdown (2026-04-19)
 
 ## Verification Results
 ```
-Tests:     1382 / 1382 passing + 1 skipped  (111 files; unchanged count — Session 052 rewrote 4 FA tests in-place)
+Tests:     1393 / 1393 passing + 1 skipped  (112 files; +11 net since Session 052 — 7 wc-breakdown + 4 AP override)
 Build:     ✅ 42 static pages
 Typecheck: ✅ tsc --noEmit clean
 Lint:      ✅ zero warnings (React Compiler compliant)
@@ -14,8 +14,57 @@ Cascade:   ✅ 3/3 (29/29 MIGRATED_SHEETS)
 Live:      https://penilaian-bisnis.vercel.app (HTTP 200 after auth redirect)
 Store:     v21 (unchanged since Session 051 — equityProjectionOverrides)
 Registry:  29 / 29 WEBSITE_NAV_SHEETS state-driven
-Branch:    main — pending Session 052 merge
+Branch:    main — pending Session 053 merge
 ```
+
+## Session 053 (2026-04-19) — AP Beginning Editable + FCF FA Gate + LESSON-057 Merge Fix + CWC Inline Breakdown
+
+### User-requested 3-point spec
+
+1. **Acc Payables Beginning editable** (Q1=C). Previously Beg = read-only (sentinel roll-forward only). Fix: Beg is user-overrideable with roll-forward fallback — user input wins, blank reverts to fallback, explicit 0 respected. End = Beg + Add as before. Zero migration needed (shape unchanged; new fields are nullable overlay).
+2. **FCF Depreciation + CapEx auto-read-only from FA** (Q2=A1). Previously showed "-" because LESSON-057 merge pattern missing in `FcfLiveView` → extended-catalog FA accounts silently dropped. Fix: (a) FA required-gate at FCF (redirect empty state if null), (b) `faAll = { ...faComputed, ...faRows }` so store sentinel (LESSON-132) wins over re-derived static-manifest subtotal.
+3. **FCF CWC inline breakdown** (Q3=Z). New `<FcfCwcBreakdown>` section below FCF table: per-account contribution per year (CA negative of delta; CL positive delta; year 1 CA absolute per Excel quirk), totals match FCF rows 12/13 exactly, excluded accounts in collapsible group, trivia panel, link to `/analysis/changes-in-working-capital` for scope edits. Pure transparency — no editor here (scope edits at dedicated page).
+
+### Delivered
+
+**Compute** — `src/data/catalogs/acc-payables-catalog.ts`:
+- `computeApSentinels` — Beg now `userValue != null ? userValue : rollforwardFallback`
+- 4 new TDD cases in `__tests__/data/catalogs/acc-payables-catalog.test.ts` (user override, mid-stream, explicit 0, backward compat)
+
+**Form** — `src/app/input/acc-payables/page.tsx`:
+- `RowEditable` extended with `placeholders?: YearKeyedSeries` prop (fallback hint when no user override)
+- Beginning row migrated from `RowDisplay` → `RowEditable` with placeholders from sentinel
+- `setAdditionCell` refactored to `setRowCell(row, year, raw)` — generic; clearing cell removes override
+
+**Helper** — `src/lib/calculations/wc-breakdown.ts` NEW:
+- `computeWcBreakdown(bsAccounts, bsRows, cfsYears, bsYears, excludedCA, excludedCL)` returning `{ caIncluded, clIncluded, caExcluded, clExcluded }` — per-account sign-aligned contribution
+- 7 new TDD cases verifying sign convention + exclusion split + sum-equals-aggregate invariant (LESSON-139 applied to FCF CWC pairing)
+
+**Component** — `src/components/analysis/FcfCwcBreakdown.tsx` NEW:
+- Inline section rendered below FCF `<SheetPage>` table
+- CA + CL per-account tables with totals matching aggregate rows 12/13
+- Excluded accounts collapsible group (no trash action — read-only)
+- Trivia panel (`wc.trivia.*` keys reused) + "Edit Scope" button linking to dedicated page
+
+**Wrapper** — `src/components/analysis/FcfLiveView.tsx`:
+- FA promoted to required-gate (`!fixedAsset`) alongside home/BS/IS/CWC
+- `faAll = { ...faComputed, ...faRows }` LESSON-057 merge pattern applied
+- Renders `<FcfCwcBreakdown>` below `<SheetPage>` when gated fields present
+
+**i18n** — `src/lib/i18n/translations.ts`:
+- 11 new `fcf.cwcBreakdown.*` keys (heading, subtitle, editScope, ca/cl headings + totals, includedCount with `{count}`, excludedLabel with `{count}`, empty, triviaFooter)
+
+### Lessons extracted (2)
+
+- **LESSON-147** [PROMOTED]: Derived-with-fallback-override pattern — user input wins, roll-forward derivation fills blanks, explicit 0 respected (`value != null` vs `=== 0` distinction). Generalizes LESSON-146 to cases where derivation IS a legitimate default (not fabrication).
+- **LESSON-148** [PROMOTED]: Audit ALL downstream wrappers for LESSON-057 store-sentinel merge pattern when consuming extended-catalog subtotals — bug is invisible with static-only catalog data (fixture tests + Phase C don't cover extended accounts). Grep pattern: `deriveComputedRows\(.+,.+\)(?!.*\{[^}]*\.\.\.)`.
+
+### Cascade (integrated naturally)
+
+- **FCF Depreciation + CapEx** now auto-populate from FA store sentinels — Task 2.1 + 2.2 addressed
+- **Proy FA / other downstream consumers** already use correct merge pattern (LESSON-148 audit only found FcfLiveView); no other wrappers needed fix
+- **Dedicated `/analysis/changes-in-working-capital`** unchanged — remains source of truth for scope edits
+- **Store slices** unchanged (AP v20 schema preserves) — no migration needed
 
 ## Session 052 (2026-04-19) — Revert FA Seed Fallback + KD Additional Capex Visual Polish
 
@@ -115,6 +164,7 @@ System naturally cascades through data flow — no additional code changes neede
 - **LESSON-145** [local]: Resolver prop pattern for derivation columns — decouple presentational grid from avg computation semantics; caller injects strict vs loose via `(row) => result` function
 
 ## Latest Sessions
+- [Session 053](history/session-053-ap-beg-editable-fcf-gate-cwc-breakdown.md) (2026-04-19): AP Beginning Editable + FCF FA Gate + LESSON-057 Merge Fix + CWC Inline Breakdown — 3 tasks, 8 files modified (2 new + 6 changed), +11 net tests, 2 lessons (both promoted).
 - [Session 052](history/session-052-revert-fa-seed-fallback-kd-capex-polish.md) (2026-04-19): Revert FA Seed Fallback + KD Additional Capex Visual Polish — 2 tasks, 4 files modified (1 compute + 1 test + 1 form + docs), −18 net LOC compute, 0 net test count (4 rewritten in-place), 1 lesson (LESSON-146 promoted, LESSON-144 superseded).
 - [Session 051](history/session-051-proy-bs-strict-growth-equity-capex-seed.md) (2026-04-19): Proy BS Strict Growth + Equity Editable + Proy FA Seed Fallback — 10 tasks, 14 files (1 new + 13 modified), +882/−203 LOC, +24 net tests, 3 lessons (2 promoted). Merged to main.
 - [Session 050](history/session-050-kd-auto-readonly.md) (2026-04-19): Key Drivers Auto Read-Only — 8 tasks, 9 files (2 new + 7 modified), +667/−434 LOC, +14 net tests, 2 lessons (1 promoted). Merged to main.
@@ -145,16 +195,13 @@ System naturally cascades through data flow — no additional code changes neede
 
 ## Next Session Priorities
 
-### Session 053+ Backlog
+### Session 054+ Backlog
 
-1. **User visual QA on Session 052** — verify at:
-   (a) `/projection/fixed-asset` — Additions column at 2021 anchor mirrors INPUT FA 2021 values exactly (= 0 for all accounts when histYear empty);
-   (b) `/input/fixed-asset` → entry non-zero 2021 Additions for 1-2 accounts → `/projection/fixed-asset` now projects 2022-2024 with growth from those accounts (others stay 0);
-   (c) `/input/key-drivers` Additional Capex section: values show as plain text (no italic, no box), format `8.935.657.067` (id-ID dot separators), year header right-aligned over values;
-   (d) Cascade: `/analysis/cash-flow-statement` + `/projection/cash-flow` CapEx reflect strict Proy FA.
-2. **User visual QA on Session 051** (deferred from Session 051 wrap-up):
-   (a) `/input/balance-sheet` Avg Growth YoY = "—" for sparse accounts (Setara Kas, Hutang PPh Pasal 21/2021);
-   (b) `/projection/balance-sheet` sparse accounts flat 2022-2024 + growth "—";
-   (c) Equity section: no growth row, per-cell editable, edit 2022 tidak cascade.
-3. **Upload parser (.xlsx → store)** — highest-priority backlog. Reverse of export. Needs architecture discussion: null-on-upload force re-confirm (IBD/WC scope slices) vs trust-mode preserving uploaded structure. AP dynamic schedule shape adapter required.
-4. **Dashboard projected FCF chart** — leverages Sessions 045-052 projection stack.
+1. **User visual QA on Session 053** — verify at:
+   (a) `/input/acc-payables` — Beginning row editable for both ST + LT schedules; placeholder shows roll-forward fallback when no user value; typing a value overrides; clearing reverts to fallback;
+   (b) `/analysis/fcf` — entering FA data causes Depreciation + CapEx rows to populate (no more "-"); FA required-gate fires if user visits FCF without FA data;
+   (c) `/analysis/fcf` — Rincian CWC section below aggregate shows per-account contribution matching aggregate totals; trivia panel renders; "Edit Scope" link navigates to dedicated CWC page.
+2. **Combined QA (Sessions 051+052+053)** — verify cross-session interaction: BS strict growth, FA seed strict, KD Additional Capex polish, AP Beginning editable, FCF CWC breakdown all render correctly together.
+3. **Upload parser (.xlsx → store)** — highest-priority backlog. Reverse of export. Needs architecture discussion: null-on-upload force re-confirm (IBD/WC scope slices) vs trust-mode preserving uploaded structure. AP dynamic schedule shape adapter required (now Beginning is user-input field too, not just Addition).
+4. **Dashboard projected FCF chart** — leverages Sessions 045-053 projection + FCF stack.
+5. **Extended-catalog smoke test** (LESSON-148 follow-up) — add a fixture with ≥1 extended account per dynamic catalog (BS/IS/FA/AP) and assert Phase C + downstream merge invariants hold.
